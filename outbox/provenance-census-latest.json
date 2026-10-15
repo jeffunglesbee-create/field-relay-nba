@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-14T12:06:16.299Z",
+  "generated_at": "2026-10-15T11:42:36.502Z",
   "file": "src/index.js",
   "effective": {
     "named": 187,
@@ -32,7 +32,7 @@
     {
       "path": "/.well-known/",
       "match": "prefix",
-      "line": 9937,
+      "line": 9951,
       "method": "ANY",
       "via": "inline",
       "state": "protocol",
@@ -43,7 +43,7 @@
     {
       "path": "/.well-known/oauth-authorization-server",
       "match": "exact",
-      "line": 9977,
+      "line": 9991,
       "method": "GET",
       "via": "inline",
       "state": "protocol",
@@ -54,7 +54,7 @@
     {
       "path": "/.well-known/oauth-protected-resource",
       "match": "exact",
-      "line": 9981,
+      "line": 9995,
       "method": "GET",
       "via": "inline",
       "state": "protocol",
@@ -65,7 +65,7 @@
     {
       "path": "/admin/archive/backfill-went-to-ot",
       "match": "exact",
-      "line": 12436,
+      "line": 12450,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -76,7 +76,7 @@
     {
       "path": "/admin/wc/bsd-backfill",
       "match": "exact",
-      "line": 12408,
+      "line": 12422,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -87,7 +87,7 @@
     {
       "path": "/ambient/",
       "match": "prefix",
-      "line": 14021,
+      "line": 14035,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -98,7 +98,7 @@
     {
       "path": "/analytics/",
       "match": "prefix",
-      "line": 18664,
+      "line": 18678,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -109,7 +109,7 @@
     {
       "path": "/analytics/circadian-late/recompute",
       "match": "exact",
-      "line": 14205,
+      "line": 14219,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -120,7 +120,7 @@
     {
       "path": "/analytics/degraded",
       "match": "exact",
-      "line": 17793,
+      "line": 17807,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -131,7 +131,7 @@
     {
       "path": "/analytics/jinx/recompute",
       "match": "exact",
-      "line": 14203,
+      "line": 14217,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -142,7 +142,7 @@
     {
       "path": "/analytics/morning-report/recompute",
       "match": "exact",
-      "line": 14204,
+      "line": 14218,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -153,7 +153,7 @@
     {
       "path": "/analytics/newspaper/",
       "match": "prefix",
-      "line": 18517,
+      "line": 18531,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -164,7 +164,7 @@
     {
       "path": "/analytics/night-stars/recompute",
       "match": "exact",
-      "line": 14202,
+      "line": 14216,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -175,7 +175,7 @@
     {
       "path": "/analytics/record-streak/recompute",
       "match": "exact",
-      "line": 14206,
+      "line": 14220,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -186,7 +186,7 @@
     {
       "path": "/analytics/run",
       "match": "exact",
-      "line": 14201,
+      "line": 14215,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -197,7 +197,7 @@
     {
       "path": "/analytics/status",
       "match": "exact",
-      "line": 17642,
+      "line": 17656,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -208,7 +208,7 @@
     {
       "path": "/archive/",
       "match": "prefix",
-      "line": 12521,
+      "line": 12535,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -219,7 +219,7 @@
     {
       "path": "/archive/backfill",
       "match": "exact",
-      "line": 12626,
+      "line": 12640,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -230,7 +230,7 @@
     {
       "path": "/archive/backfill-enrich",
       "match": "exact",
-      "line": 13143,
+      "line": 13157,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -241,7 +241,7 @@
     {
       "path": "/archive/bracket-replay",
       "match": "exact",
-      "line": 13975,
+      "line": 13989,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -252,7 +252,7 @@
     {
       "path": "/archive/bracket-snapshot",
       "match": "exact",
-      "line": 13934,
+      "line": 13948,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -263,7 +263,7 @@
     {
       "path": "/archive/brief",
       "match": "exact",
-      "line": 13786,
+      "line": 13800,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -274,7 +274,7 @@
     {
       "path": "/archive/date/",
       "match": "prefix",
-      "line": 12558,
+      "line": 12572,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -285,7 +285,7 @@
     {
       "path": "/archive/debrief-backfill",
       "match": "exact",
-      "line": 12652,
+      "line": 12666,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -296,7 +296,7 @@
     {
       "path": "/archive/drama",
       "match": "exact",
-      "line": 12773,
+      "line": 12787,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -307,7 +307,7 @@
     {
       "path": "/archive/drama-by-id",
       "match": "exact",
-      "line": 12919,
+      "line": 12933,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -318,7 +318,7 @@
     {
       "path": "/archive/drama-missing",
       "match": "exact",
-      "line": 12977,
+      "line": 12991,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -329,7 +329,7 @@
     {
       "path": "/archive/drama/leaderboard",
       "match": "exact",
-      "line": 12845,
+      "line": 12859,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -340,7 +340,7 @@
     {
       "path": "/archive/drama/percentile",
       "match": "exact",
-      "line": 12879,
+      "line": 12893,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -351,7 +351,7 @@
     {
       "path": "/archive/game",
       "match": "exact",
-      "line": 13264,
+      "line": 13278,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -362,7 +362,7 @@
     {
       "path": "/archive/last-meeting",
       "match": "exact",
-      "line": 12543,
+      "line": 12557,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -373,7 +373,7 @@
     {
       "path": "/archive/odds-backfill",
       "match": "exact",
-      "line": 12604,
+      "line": 12618,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -384,7 +384,7 @@
     {
       "path": "/archive/query",
       "match": "exact",
-      "line": 13695,
+      "line": 13709,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -395,7 +395,7 @@
     {
       "path": "/archive/score-by-id",
       "match": "exact",
-      "line": 13028,
+      "line": 13042,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -406,7 +406,7 @@
     {
       "path": "/archive/score-missing",
       "match": "exact",
-      "line": 13003,
+      "line": 13017,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -417,7 +417,7 @@
     {
       "path": "/archive/series/",
       "match": "prefix",
-      "line": 12528,
+      "line": 12542,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -428,7 +428,7 @@
     {
       "path": "/archive/sport/",
       "match": "prefix",
-      "line": 12581,
+      "line": 12595,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -439,7 +439,7 @@
     {
       "path": "/archive/tagged/",
       "match": "prefix",
-      "line": 12571,
+      "line": 12585,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -450,7 +450,7 @@
     {
       "path": "/atp",
       "match": "prefix",
-      "line": 17276,
+      "line": 17290,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -461,7 +461,7 @@
     {
       "path": "/audio/tts",
       "match": "exact",
-      "line": 10406,
+      "line": 10420,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -472,7 +472,7 @@
     {
       "path": "/backfill/brief-scores",
       "match": "exact",
-      "line": 14744,
+      "line": 14758,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -483,7 +483,7 @@
     {
       "path": "/backfill/game-briefs",
       "match": "exact",
-      "line": 14534,
+      "line": 14548,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -494,7 +494,7 @@
     {
       "path": "/bdl",
       "match": "prefix",
-      "line": 17291,
+      "line": 17305,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -505,7 +505,7 @@
     {
       "path": "/briefs/spot-check",
       "match": "exact",
-      "line": 15304,
+      "line": 15318,
       "method": "GET",
       "via": "inline",
       "state": "source-only",
@@ -516,7 +516,7 @@
     {
       "path": "/bsd/",
       "match": "prefix",
-      "line": 10444,
+      "line": 10458,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -527,7 +527,7 @@
     {
       "path": "/bsd/contract",
       "match": "exact",
-      "line": 10449,
+      "line": 10463,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -538,7 +538,7 @@
     {
       "path": "/bsd/coverage",
       "match": "exact",
-      "line": 10639,
+      "line": 10653,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -549,7 +549,7 @@
     {
       "path": "/bsd/events/by-date",
       "match": "exact",
-      "line": 11765,
+      "line": 11779,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -560,7 +560,7 @@
     {
       "path": "/bsd/events/live",
       "match": "exact",
-      "line": 10742,
+      "line": 10756,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -571,7 +571,7 @@
     {
       "path": "/bsd/events/season",
       "match": "exact",
-      "line": 11782,
+      "line": 11796,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -582,7 +582,7 @@
     {
       "path": "/bsd/r2/list",
       "match": "exact",
-      "line": 11799,
+      "line": 11813,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -593,7 +593,7 @@
     {
       "path": "/bsd/r2/read",
       "match": "exact",
-      "line": 11814,
+      "line": 11828,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -604,7 +604,7 @@
     {
       "path": "/bsd/tennis/draw",
       "match": "exact",
-      "line": 11287,
+      "line": 11301,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -615,7 +615,7 @@
     {
       "path": "/bsd/tennis/matches/by-date",
       "match": "exact",
-      "line": 11178,
+      "line": 11192,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -626,7 +626,7 @@
     {
       "path": "/bsd/tennis/matches/live",
       "match": "exact",
-      "line": 11733,
+      "line": 11747,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -637,7 +637,7 @@
     {
       "path": "/bsd/tennis/tournaments",
       "match": "exact",
-      "line": 11688,
+      "line": 11702,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -648,7 +648,7 @@
     {
       "path": "/budget/odds",
       "match": "exact",
-      "line": 14890,
+      "line": 14904,
       "method": "GET",
       "via": "inline",
       "state": "both",
@@ -659,7 +659,7 @@
     {
       "path": "/bundesliga-bapi/broadcasts",
       "match": "exact",
-      "line": 20268,
+      "line": 20282,
       "method": "GET",
       "via": "inline",
       "state": "passthrough",
@@ -670,7 +670,7 @@
     {
       "path": "/bundesliga-bapi/resolve-dayid",
       "match": "exact",
-      "line": 19992,
+      "line": 20006,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -681,7 +681,7 @@
     {
       "path": "/cfl/",
       "match": "prefix",
-      "line": 14042,
+      "line": 14056,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -692,7 +692,7 @@
     {
       "path": "/cfl/fixtures",
       "match": "exact",
-      "line": 14052,
+      "line": 14066,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -703,7 +703,7 @@
     {
       "path": "/cfl/odds-probs",
       "match": "exact",
-      "line": 14033,
+      "line": 14047,
       "method": "ANY",
       "via": "handleCFLOddsProbs",
       "state": "age-only",
@@ -714,7 +714,7 @@
     {
       "path": "/cfl/rosters",
       "match": "exact",
-      "line": 14063,
+      "line": 14077,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -725,7 +725,7 @@
     {
       "path": "/cfl/scoreboard/rounds",
       "match": "exact",
-      "line": 14069,
+      "line": 14083,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -736,7 +736,7 @@
     {
       "path": "/cfl/scoreboard/squads",
       "match": "exact",
-      "line": 14082,
+      "line": 14096,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -747,7 +747,7 @@
     {
       "path": "/cfl/standings",
       "match": "exact",
-      "line": 14067,
+      "line": 14081,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -758,7 +758,7 @@
     {
       "path": "/cfl/stats/players",
       "match": "exact",
-      "line": 14059,
+      "line": 14073,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -769,7 +769,7 @@
     {
       "path": "/cfl/stats/teams",
       "match": "exact",
-      "line": 14061,
+      "line": 14075,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -780,7 +780,7 @@
     {
       "path": "/cfl/teams",
       "match": "exact",
-      "line": 14065,
+      "line": 14079,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -791,7 +791,7 @@
     {
       "path": "/changelog/",
       "match": "prefix",
-      "line": 16507,
+      "line": 16521,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -802,7 +802,7 @@
     {
       "path": "/circadian/",
       "match": "prefix",
-      "line": 11861,
+      "line": 11875,
       "method": "ANY",
       "via": "inline",
       "state": "source-only",
@@ -813,7 +813,7 @@
     {
       "path": "/context/",
       "match": "prefix",
-      "line": 12245,
+      "line": 12259,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -824,7 +824,7 @@
     {
       "path": "/context/date/",
       "match": "prefix",
-      "line": 12336,
+      "line": 12350,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -835,7 +835,7 @@
     {
       "path": "/context/game/",
       "match": "prefix",
-      "line": 12250,
+      "line": 12264,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -846,7 +846,7 @@
     {
       "path": "/d1/execute",
       "match": "exact",
-      "line": 14207,
+      "line": 14221,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -857,7 +857,7 @@
     {
       "path": "/datamuse/words",
       "match": "exact",
-      "line": 18209,
+      "line": 18223,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -868,7 +868,7 @@
     {
       "path": "/debug/gemini-model-test",
       "match": "exact",
-      "line": 10037,
+      "line": 10051,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -879,7 +879,7 @@
     {
       "path": "/debug/last-archive-error",
       "match": "exact",
-      "line": 10020,
+      "line": 10034,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -890,7 +890,7 @@
     {
       "path": "/debug/odds-budget-latency",
       "match": "exact",
-      "line": 14208,
+      "line": 14222,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -901,7 +901,7 @@
     {
       "path": "/debug/odds-fallback-key",
       "match": "exact",
-      "line": 16589,
+      "line": 16603,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -912,7 +912,7 @@
     {
       "path": "/debug/recent-requests",
       "match": "exact",
-      "line": 9940,
+      "line": 9954,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -923,7 +923,7 @@
     {
       "path": "/deploy/verify",
       "match": "exact",
-      "line": 14473,
+      "line": 14487,
       "method": "GET",
       "via": "inline",
       "state": "age-only",
@@ -934,7 +934,7 @@
     {
       "path": "/dropbox/upload",
       "match": "exact",
-      "line": 14164,
+      "line": 14178,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -945,7 +945,7 @@
     {
       "path": "/espn-gambit",
       "match": "prefix",
-      "line": 17324,
+      "line": 17338,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -956,7 +956,7 @@
     {
       "path": "/espn-standings",
       "match": "prefix",
-      "line": 17349,
+      "line": 17363,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -967,7 +967,7 @@
     {
       "path": "/espn-summary",
       "match": "prefix",
-      "line": 17335,
+      "line": 17349,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -978,7 +978,7 @@
     {
       "path": "/fantasy/ownership",
       "match": "exact",
-      "line": 19404,
+      "line": 19418,
       "method": "GET",
       "via": "inline",
       "state": "source-only",
@@ -989,7 +989,7 @@
     {
       "path": "/fd",
       "match": "prefix",
-      "line": 17019,
+      "line": 17033,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1000,7 +1000,7 @@
     {
       "path": "/field/data/today",
       "match": "exact",
-      "line": 17361,
+      "line": 17375,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1011,7 +1011,7 @@
     {
       "path": "/fifa-rankings/",
       "match": "prefix",
-      "line": 11903,
+      "line": 11917,
       "method": "ANY",
       "via": "inline",
       "state": "source-only",
@@ -1022,7 +1022,7 @@
     {
       "path": "/fpl",
       "match": "prefix",
-      "line": 17172,
+      "line": 17186,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1033,7 +1033,7 @@
     {
       "path": "/freshness/",
       "match": "prefix",
-      "line": 16450,
+      "line": 16464,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1044,7 +1044,7 @@
     {
       "path": "/health",
       "match": "exact",
-      "line": 10360,
+      "line": 10374,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1055,7 +1055,7 @@
     {
       "path": "/health/sources",
       "match": "exact",
-      "line": 11847,
+      "line": 11861,
       "method": "ANY",
       "via": "inline",
       "state": "both",
@@ -1066,7 +1066,7 @@
     {
       "path": "/identity/mismatches",
       "match": "exact",
-      "line": 15669,
+      "line": 15683,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1077,7 +1077,7 @@
     {
       "path": "/identity/substitution-census",
       "match": "exact",
-      "line": 15823,
+      "line": 15837,
       "method": "GET",
       "via": "inline",
       "state": "age-only",
@@ -1088,7 +1088,7 @@
     {
       "path": "/integrity/briefs",
       "match": "exact",
-      "line": 14227,
+      "line": 14241,
       "method": "GET",
       "via": "inline",
       "state": "age-only",
@@ -1099,7 +1099,7 @@
     {
       "path": "/integrity/game-briefs",
       "match": "exact",
-      "line": 14311,
+      "line": 14325,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1110,7 +1110,7 @@
     {
       "path": "/integrity/games",
       "match": "exact",
-      "line": 14403,
+      "line": 14417,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1121,7 +1121,7 @@
     {
       "path": "/journalism/brief",
       "match": "exact",
-      "line": 19181,
+      "line": 19195,
       "method": "ANY",
       "via": "inline",
       "state": "age-only",
@@ -1132,7 +1132,7 @@
     {
       "path": "/journalism/brief/history",
       "match": "exact",
-      "line": 19155,
+      "line": 19169,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1143,7 +1143,7 @@
     {
       "path": "/journalism/context-probe",
       "match": "exact",
-      "line": 17578,
+      "line": 17592,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1154,7 +1154,7 @@
     {
       "path": "/journalism/enqueue",
       "match": "exact",
-      "line": 14198,
+      "line": 14212,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1165,7 +1165,7 @@
     {
       "path": "/journalism/game-complete",
       "match": "exact",
-      "line": 14199,
+      "line": 14213,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1176,7 +1176,7 @@
     {
       "path": "/journalism/game-lines",
       "match": "exact",
-      "line": 19209,
+      "line": 19223,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1187,7 +1187,7 @@
     {
       "path": "/journalism/game/",
       "match": "prefix",
-      "line": 19194,
+      "line": 19208,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1198,7 +1198,7 @@
     {
       "path": "/journalism/generate",
       "match": "exact",
-      "line": 14197,
+      "line": 14211,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1209,7 +1209,7 @@
     {
       "path": "/journalism/result/",
       "match": "prefix",
-      "line": 19109,
+      "line": 19123,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1220,7 +1220,7 @@
     {
       "path": "/journalism/run",
       "match": "exact",
-      "line": 17631,
+      "line": 17645,
       "method": "POST",
       "via": "inline",
       "state": "age-only",
@@ -1231,7 +1231,7 @@
     {
       "path": "/journalism/tonight",
       "match": "exact",
-      "line": 19181,
+      "line": 19195,
       "method": "ANY",
       "via": "inline",
       "state": "age-only",
@@ -1242,7 +1242,7 @@
     {
       "path": "/jq/retry-telemetry",
       "match": "exact",
-      "line": 10190,
+      "line": 10204,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1253,7 +1253,7 @@
     {
       "path": "/kali/",
       "match": "prefix",
-      "line": 16801,
+      "line": 16815,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1264,7 +1264,7 @@
     {
       "path": "/laliga-apim/clasificacion",
       "match": "exact",
-      "line": 17147,
+      "line": 17161,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1275,7 +1275,7 @@
     {
       "path": "/live-wp/",
       "match": "prefix",
-      "line": 14021,
+      "line": 14035,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1286,7 +1286,7 @@
     {
       "path": "/live/ambient",
       "match": "exact",
-      "line": 14021,
+      "line": 14035,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1297,7 +1297,7 @@
     {
       "path": "/mcp",
       "match": "exact",
-      "line": 20530,
+      "line": 20544,
       "method": "POST",
       "via": "inline",
       "state": "passthrough",
@@ -1308,7 +1308,7 @@
     {
       "path": "/mlb-savant-update",
       "match": "exact",
-      "line": 20336,
+      "line": 20350,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1319,7 +1319,7 @@
     {
       "path": "/mlb-stats",
       "match": "prefix",
-      "line": 17372,
+      "line": 17386,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1330,7 +1330,7 @@
     {
       "path": "/mlb-umpire-scrape",
       "match": "exact",
-      "line": 20409,
+      "line": 20423,
       "method": "ANY",
       "via": "inline",
       "state": "source-only",
@@ -1341,7 +1341,7 @@
     {
       "path": "/mls/stats",
       "match": "prefix",
-      "line": 17509,
+      "line": 17523,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1352,7 +1352,7 @@
     {
       "path": "/mls/stats/team-metrics",
       "match": "exact",
-      "line": 17451,
+      "line": 17465,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1363,7 +1363,7 @@
     {
       "path": "/nba-clutch-update",
       "match": "exact",
-      "line": 20300,
+      "line": 20314,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1374,7 +1374,7 @@
     {
       "path": "/nba-clutch/",
       "match": "prefix",
-      "line": 19584,
+      "line": 19598,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1385,7 +1385,7 @@
     {
       "path": "/nba-stats",
       "match": "prefix",
-      "line": 22092,
+      "line": 22106,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1396,7 +1396,7 @@
     {
       "path": "/nfl-r2-update",
       "match": "exact",
-      "line": 20317,
+      "line": 20331,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1407,7 +1407,7 @@
     {
       "path": "/nfl/epa/plays",
       "match": "exact",
-      "line": 19296,
+      "line": 19310,
       "method": "GET",
       "via": "inline",
       "state": "passthrough",
@@ -1418,7 +1418,7 @@
     {
       "path": "/nflverse/",
       "match": "prefix",
-      "line": 19352,
+      "line": 19366,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1429,7 +1429,7 @@
     {
       "path": "/nhl-gsax/",
       "match": "prefix",
-      "line": 19537,
+      "line": 19551,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1440,7 +1440,7 @@
     {
       "path": "/nhl-series/",
       "match": "prefix",
-      "line": 19561,
+      "line": 19575,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1451,7 +1451,7 @@
     {
       "path": "/nhl/",
       "match": "prefix",
-      "line": 17011,
+      "line": 17025,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1462,7 +1462,7 @@
     {
       "path": "/oauth/",
       "match": "prefix",
-      "line": 9938,
+      "line": 9952,
       "method": "ANY",
       "via": "inline",
       "state": "protocol",
@@ -1473,7 +1473,7 @@
     {
       "path": "/oauth/authorize",
       "match": "exact",
-      "line": 9990,
+      "line": 10004,
       "method": "GET",
       "via": "inline",
       "state": "protocol",
@@ -1484,7 +1484,7 @@
     {
       "path": "/oauth/register",
       "match": "exact",
-      "line": 9985,
+      "line": 9999,
       "method": "POST",
       "via": "inline",
       "state": "protocol",
@@ -1495,7 +1495,7 @@
     {
       "path": "/oauth/revoke",
       "match": "exact",
-      "line": 10005,
+      "line": 10019,
       "method": "POST",
       "via": "inline",
       "state": "protocol",
@@ -1506,7 +1506,7 @@
     {
       "path": "/oauth/token",
       "match": "exact",
-      "line": 10000,
+      "line": 10014,
       "method": "POST",
       "via": "inline",
       "state": "protocol",
@@ -1517,7 +1517,7 @@
     {
       "path": "/odds",
       "match": "prefix",
-      "line": 16890,
+      "line": 16904,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1528,7 +1528,7 @@
     {
       "path": "/odds-story/preview",
       "match": "exact",
-      "line": 11977,
+      "line": 11991,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1539,7 +1539,7 @@
     {
       "path": "/odds/history/",
       "match": "prefix",
-      "line": 16843,
+      "line": 16857,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1550,7 +1550,7 @@
     {
       "path": "/pin/game/",
       "match": "prefix",
-      "line": 10327,
+      "line": 10341,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1561,7 +1561,7 @@
     {
       "path": "/pl/",
       "match": "prefix",
-      "line": 17180,
+      "line": 17194,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1572,7 +1572,7 @@
     {
       "path": "/provenance/kv",
       "match": "exact",
-      "line": 14855,
+      "line": 14869,
       "method": "GET",
       "via": "inline",
       "state": "both",
@@ -1583,7 +1583,7 @@
     {
       "path": "/push/game-final",
       "match": "exact",
-      "line": 10265,
+      "line": 10279,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1594,7 +1594,7 @@
     {
       "path": "/push/subscribe",
       "match": "exact",
-      "line": 10233,
+      "line": 10247,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1605,7 +1605,7 @@
     {
       "path": "/push/unsubscribe",
       "match": "exact",
-      "line": 10249,
+      "line": 10263,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1616,7 +1616,7 @@
     {
       "path": "/quality/backfill-scores",
       "match": "exact",
-      "line": 14928,
+      "line": 14942,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1627,7 +1627,7 @@
     {
       "path": "/quality/report",
       "match": "exact",
-      "line": 14992,
+      "line": 15006,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1638,7 +1638,7 @@
     {
       "path": "/repo/archive",
       "match": "exact",
-      "line": 10096,
+      "line": 10110,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1649,7 +1649,7 @@
     {
       "path": "/rss-proxy",
       "match": "exact",
-      "line": 19129,
+      "line": 19143,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1660,7 +1660,7 @@
     {
       "path": "/savant/sync",
       "match": "exact",
-      "line": 14200,
+      "line": 14214,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1671,7 +1671,7 @@
     {
       "path": "/schedule/ai-fallback",
       "match": "exact",
-      "line": 17068,
+      "line": 17082,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -1682,7 +1682,7 @@
     {
       "path": "/session/record",
       "match": "exact",
-      "line": 14210,
+      "line": 14224,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1693,7 +1693,7 @@
     {
       "path": "/signal/crunch/",
       "match": "prefix",
-      "line": 10308,
+      "line": 10322,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1704,7 +1704,7 @@
     {
       "path": "/soccer-fbref/",
       "match": "prefix",
-      "line": 19921,
+      "line": 19935,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1715,7 +1715,7 @@
     {
       "path": "/soccer/fbref/fetch",
       "match": "exact",
-      "line": 14212,
+      "line": 14226,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1726,7 +1726,7 @@
     {
       "path": "/soccer/season-form",
       "match": "exact",
-      "line": 17523,
+      "line": 17537,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1737,7 +1737,7 @@
     {
       "path": "/soccer/sub-impact",
       "match": "exact",
-      "line": 19746,
+      "line": 19760,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1748,7 +1748,7 @@
     {
       "path": "/soccer/xg",
       "match": "exact",
-      "line": 19611,
+      "line": 19625,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1759,7 +1759,7 @@
     {
       "path": "/sportradar-ufl",
       "match": "prefix",
-      "line": 20489,
+      "line": 20503,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1770,7 +1770,7 @@
     {
       "path": "/squiggle",
       "match": "prefix",
-      "line": 16824,
+      "line": 16838,
       "method": "ANY",
       "via": "inline",
       "state": "passthrough",
@@ -1781,7 +1781,7 @@
     {
       "path": "/stat/",
       "match": "prefix",
-      "line": 22046,
+      "line": 22060,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1792,7 +1792,7 @@
     {
       "path": "/test/combined-generate-judge",
       "match": "exact",
-      "line": 14216,
+      "line": 14230,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1803,7 +1803,7 @@
     {
       "path": "/test/drama-score-cost",
       "match": "exact",
-      "line": 18249,
+      "line": 18263,
       "method": "GET",
       "via": "inline",
       "state": "both",
@@ -1814,7 +1814,7 @@
     {
       "path": "/test/gemini-judge",
       "match": "exact",
-      "line": 14215,
+      "line": 14229,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1825,7 +1825,7 @@
     {
       "path": "/test/prefilter",
       "match": "exact",
-      "line": 14217,
+      "line": 14231,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1836,7 +1836,7 @@
     {
       "path": "/test/workers-ai-judge",
       "match": "exact",
-      "line": 14214,
+      "line": 14228,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1847,7 +1847,7 @@
     {
       "path": "/unpin/game/",
       "match": "prefix",
-      "line": 10342,
+      "line": 10356,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1858,7 +1858,7 @@
     {
       "path": "/user/",
       "match": "prefix",
-      "line": 10145,
+      "line": 10159,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1869,7 +1869,7 @@
     {
       "path": "/user/event",
       "match": "exact",
-      "line": 10155,
+      "line": 10169,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1880,7 +1880,7 @@
     {
       "path": "/v2/",
       "match": "prefix",
-      "line": 14120,
+      "line": 14134,
       "method": "ANY",
       "via": "handleV2Games",
       "state": "both",
@@ -1891,7 +1891,7 @@
     {
       "path": "/v2/games",
       "match": "exact",
-      "line": 14121,
+      "line": 14135,
       "method": "ANY",
       "via": "handleV2Games",
       "state": "both",
@@ -1902,7 +1902,7 @@
     {
       "path": "/v2/golf/competitor-stats",
       "match": "exact",
-      "line": 14150,
+      "line": 14164,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1913,7 +1913,7 @@
     {
       "path": "/v2/golf/enriched",
       "match": "exact",
-      "line": 14132,
+      "line": 14146,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1924,7 +1924,7 @@
     {
       "path": "/v2/golf/eventlog",
       "match": "exact",
-      "line": 14140,
+      "line": 14154,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1935,7 +1935,7 @@
     {
       "path": "/v2/golf/player-stats",
       "match": "exact",
-      "line": 14122,
+      "line": 14136,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -1946,7 +1946,7 @@
     {
       "path": "/wc-context-patch",
       "match": "exact",
-      "line": 19493,
+      "line": 19507,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -1957,7 +1957,7 @@
     {
       "path": "/wc/",
       "match": "prefix",
-      "line": 12022,
+      "line": 12036,
       "method": "ANY",
       "via": "handleWCStandings",
       "state": "age-only",
@@ -1968,7 +1968,7 @@
     {
       "path": "/wc/admin/seed",
       "match": "exact",
-      "line": 12029,
+      "line": 12043,
       "method": "POST",
       "via": "handleWCAdminSeed",
       "state": "none",
@@ -1979,7 +1979,7 @@
     {
       "path": "/wc/bracket",
       "match": "exact",
-      "line": 12142,
+      "line": 12156,
       "method": "ANY",
       "via": "inline",
       "state": "age-only",
@@ -1990,7 +1990,7 @@
     {
       "path": "/wc/bracket/live",
       "match": "exact",
-      "line": 12157,
+      "line": 12171,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -2001,7 +2001,7 @@
     {
       "path": "/wc/bracket/refresh",
       "match": "exact",
-      "line": 12184,
+      "line": 12198,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -2012,7 +2012,7 @@
     {
       "path": "/wc/bracket/state",
       "match": "exact",
-      "line": 12168,
+      "line": 12182,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -2023,7 +2023,7 @@
     {
       "path": "/wc/brief/tournament",
       "match": "exact",
-      "line": 12062,
+      "line": 12076,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -2034,7 +2034,7 @@
     {
       "path": "/wc/elimination-traps",
       "match": "exact",
-      "line": 12082,
+      "line": 12096,
       "method": "ANY",
       "via": "inline",
       "state": "age-only",
@@ -2045,7 +2045,7 @@
     {
       "path": "/wc/match-wp",
       "match": "exact",
-      "line": 12025,
+      "line": 12039,
       "method": "ANY",
       "via": "handleWCMatchWP",
       "state": "none",
@@ -2056,7 +2056,7 @@
     {
       "path": "/wc/matchup/cache",
       "match": "exact",
-      "line": 12202,
+      "line": 12216,
       "method": "POST",
       "via": "inline",
       "state": "none",
@@ -2067,7 +2067,7 @@
     {
       "path": "/wc/movers",
       "match": "exact",
-      "line": 12053,
+      "line": 12067,
       "method": "ANY",
       "via": "inline",
       "state": "none",
@@ -2078,7 +2078,7 @@
     {
       "path": "/wc/odds-probs",
       "match": "exact",
-      "line": 12026,
+      "line": 12040,
       "method": "ANY",
       "via": "handleWCOddsProbs",
       "state": "age-only",
@@ -2089,7 +2089,7 @@
     {
       "path": "/wc/projections",
       "match": "exact",
-      "line": 12037,
+      "line": 12051,
       "method": "ANY",
       "via": "inline",
       "state": "age-only",
@@ -2100,7 +2100,7 @@
     {
       "path": "/wc/projections/refresh",
       "match": "exact",
-      "line": 12071,
+      "line": 12085,
       "method": "POST",
       "via": "inline",
       "state": "age-only",
@@ -2111,7 +2111,7 @@
     {
       "path": "/wc/results",
       "match": "exact",
-      "line": 12024,
+      "line": 12038,
       "method": "ANY",
       "via": "handleWCResults",
       "state": "age-only",
@@ -2122,7 +2122,7 @@
     {
       "path": "/wc/standings",
       "match": "exact",
-      "line": 12023,
+      "line": 12037,
       "method": "ANY",
       "via": "handleWCStandings",
       "state": "age-only",
@@ -2133,7 +2133,7 @@
     {
       "path": "/wc/third-place",
       "match": "exact",
-      "line": 12027,
+      "line": 12041,
       "method": "ANY",
       "via": "handleWCThirdPlace",
       "state": "age-only",
@@ -2144,7 +2144,7 @@
     {
       "path": "/wc/traps",
       "match": "exact",
-      "line": 12121,
+      "line": 12135,
       "method": "ANY",
       "via": "inline",
       "state": "age-only",
@@ -2155,7 +2155,7 @@
     {
       "path": "/wc/wp/verify",
       "match": "exact",
-      "line": 12028,
+      "line": 12042,
       "method": "ANY",
       "via": "handleWCWPVerify",
       "state": "age-only",
@@ -2166,7 +2166,7 @@
     {
       "path": "/web-fetch",
       "match": "exact",
-      "line": 18013,
+      "line": 18027,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -2177,7 +2177,7 @@
     {
       "path": "/wiki/trending",
       "match": "exact",
-      "line": 17814,
+      "line": 17828,
       "method": "GET",
       "via": "inline",
       "state": "none",
@@ -2188,7 +2188,7 @@
     {
       "path": "/wnba/slate",
       "match": "exact",
-      "line": 17949,
+      "line": 17963,
       "method": "POST",
       "via": "inline",
       "state": "age-only",
@@ -2199,7 +2199,7 @@
     {
       "path": "/ws/game/",
       "match": "prefix",
-      "line": 10282,
+      "line": 10296,
       "method": "ANY",
       "via": "inline",
       "state": "none",
