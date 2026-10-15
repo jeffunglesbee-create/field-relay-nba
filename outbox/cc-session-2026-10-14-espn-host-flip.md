@@ -30,7 +30,7 @@ verify job).
 |---|---|
 | verify-pending-checks failed on `NameError: name 'process'` | **VERIFIED** — job log, run 38602768930; reproduced locally |
 | the fix gets past the header line | **VERIFIED** locally (reaches urlopen) |
-| the fix on a runner | **STAGED** — the step writes a codex row to live D1, so it is not dispatched. Unblocked by the next scheduled run (cron `0 */6 * * *`). Verify: `gh api repos/jeffunglesbee-create/field-relay-nba/actions/workflows/verify-pending-checks.yml/runs?per_page=1 --jq '.workflow_runs[0].conclusion'` reads `success` on a run created after 2026-10-14T18:45Z. The daily read's silently-dead-crons line drops it from NEW once three scheduled runs pass |
+| the fix on a runner | **VERIFIED** — scheduled run 38640918363 (2026-10-14T21:31Z): `completion-trigger briefs: 21`, then `codex write status=200`, `Logged to codex — condition newly confirmed.` The next scheduled run, 38680771157 (2026-10-15T04:18Z), is also green |
 | site.web.api 403s the Worker; site.api lets it in | **VERIFIED** — html_probe, five paths |
 | the two hosts serve the same payload | **VERIFIED** 9 of 9 pairs, run 38617840250; soccer summary UNMEASURED |
 | the relay's ESPN reads work after the deploy | **VERIFIED** — nfl/epl `espn-wc`, `/espn-summary` 200 683288 B, monitor 38619780577 green |
