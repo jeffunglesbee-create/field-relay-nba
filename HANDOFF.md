@@ -1,5 +1,17 @@
 # FIELD Relay — HANDOFF
 
+## BDB frames, Tasks 1-4 — 2026-10-16
+
+`docs/CC-CMD-2026-10-15-build-bdb-frames.md` is DONE. `/nflverse/bdb_event_frames.json`
+serves 1,816,808 bytes from R2: 7 whole games of 2022 week 2, `ball_snap` and
+`pass_forward` frames, offense-right yards declared in the envelope and checked
+on the week's own plays (x 910/910 and 895/895; y 53/53 and 57/57). Verified on
+the deployed worker, 11/11 (run 38947116335). Built by jubilant-bassoon
+`scripts/build-bdb-frames.py`. The consumer, field-laboratory Gravity Well, is
+STAGED in `src/index.js` until that module reads the route.
+
+Session doc: `outbox/cc-session-2026-10-15-build-bdb-frames.md`
+
 ## BDB frames, Task 0 — 2026-10-16
 
 `docs/CC-CMD-2026-10-15-build-bdb-frames.md` Task 0 is done, with the event
