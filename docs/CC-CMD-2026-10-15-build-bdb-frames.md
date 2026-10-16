@@ -4,6 +4,7 @@
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-15 by chat, against HEAD and measured probes
+**Status:** NOT STARTED — not dispatched; no `outbox/cc-session-2026-10-15-build-bdb-frames.md` exists.
 
 Unblocks four rejected metrics at once: **The Vault**, **Kinetic Separation**,
 **The Root**, and the original NFL **Gravity Well**. All four were rejected for
