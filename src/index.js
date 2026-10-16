@@ -11817,15 +11817,33 @@ export default {
             // needed (R2 binding only). Placed inside the /bsd/* block but
             // before the BSD upstream calls so it skips the bsdToken guard
             // would have been needed earlier — instead we just check FIELD_DATA.
+            //
+            // The response states its own scope (docs/CC-CMD-2026-10-16-bsd-list-and-contract.md).
+            // On 2026-10-15 a no-prefix page — 100 keys, all bsd/wc26/ — was read as
+            // "R2 holds wc26 only" while the store held 887 events in 10
+            // competitions. The default stays bsd/wc26/ DELIBERATELY: field-laboratory's
+            // probe-empowerment.mjs lists with no prefix and with `prefix=` to measure
+            // this very scope, and widening it would silently change what that
+            // measurement reads. A scope the response names cannot be mistaken
+            // for the store; `prefixSource` says whether the caller chose it.
+            // `limit` is honoured, clamped to R2's 1000; `cursor` pages.
             if (pathname === '/bsd/r2/list') {
                 if (!env.FIELD_DATA)
                     return new Response(JSON.stringify({ error: 'FIELD_DATA not bound' }),
                         { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
-                const prefix = url.searchParams.get('prefix') || 'bsd/wc26/';
-                const list = await env.FIELD_DATA.list({ prefix, limit: 100 });
+                const asked = url.searchParams.get('prefix');
+                const prefix = asked || 'bsd/wc26/';
+                const n = parseInt(url.searchParams.get('limit') ?? '', 10);
+                const limit = Number.isFinite(n) ? Math.min(1000, Math.max(1, n)) : 100;
+                const cursor = url.searchParams.get('cursor') || undefined;
+                const list = await env.FIELD_DATA.list({ prefix, limit, cursor });
                 return new Response(JSON.stringify({
+                    prefix,
+                    prefixSource: asked ? 'request' : 'default',
+                    limit,
                     keys: list.objects.map(o => ({ key: o.key, size: o.size, uploaded: o.uploaded })),
                     truncated: list.truncated,
+                    cursor: list.truncated ? list.cursor : null,
                 }), { status: 200, headers: { 'Content-Type': 'application/json',
                       'Cache-Control': 'no-store', ...CORS } });
             }
