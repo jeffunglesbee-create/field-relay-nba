@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## BDB frames, Task 0 — 2026-10-16
+
+`docs/CC-CMD-2026-10-15-build-bdb-frames.md` Task 0 is done, with the event
+vocabulary read over week 2 (1 of 9 tracking files); Tasks 1-4 are open. Stop
+condition NOT MET: `pass_forward` is in 1,004 plays of week 2, and in 1,002 of
+its 1,111 dropbacks. Measured on a jubilant-bassoon runner (run 38926713081),
+because the Kaggle credentials are that repo's secrets and nothing in this
+repo references any. Task 1 starts from four week-2 facts: the builder runs in
+jubilant-bassoon or this repo gets its own credentials; both events over week
+2 are 4,919,405 bytes, and 6 of 16 games fit under 2,097,152 bytes in gameId
+order; `ball_snap` is missing from 4 of 1,809 plays; 5 plays carry
+`pass_shovel`.
+
+Session doc: `outbox/cc-session-2026-10-16-build-bdb-frames-task0.md`
+
 ## SESSION CLOSE-OUT — 2026-10-16 — three defects in data this relay serves, all found from outside it
 
 **HEAD:** `c078a70` → `81856af` · **Branch:** main

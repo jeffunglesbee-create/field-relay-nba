@@ -4,7 +4,10 @@
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-15 by chat, against HEAD and measured probes
-**Status:** NOT STARTED — not dispatched; no `outbox/cc-session-2026-10-15-build-bdb-frames.md` exists.
+**Status:** PARTIAL — Task 0 DONE 2026-10-16, event vocabulary and sample rate over week 2
+(1 of 9 tracking files); stop condition NOT MET (`pass_forward` in 1,004 plays of week 2);
+results in `outbox/cc-session-2026-10-16-build-bdb-frames-task0.md`.
+Tasks 1-4 not started; no `outbox/cc-session-2026-10-15-build-bdb-frames.md` exists.
 
 Unblocks four rejected metrics at once: **The Vault**, **Kinetic Separation**,
 **The Root**, and the original NFL **Gravity Well**. All four were rejected for
