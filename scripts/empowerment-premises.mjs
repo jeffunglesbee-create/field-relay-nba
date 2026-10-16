@@ -78,7 +78,9 @@ export function soccerPremises(captures, events = null) {
   const P4 = { stats_top_keys: {}, incidents_top_keys: {}, kickoff_like_keys: {}, captures: 0, event_row_found: 0,
     event_date_parseable: 0, event_row_keys: {}, missing_examples: [] }
   const P5 = { own_goal_incidents: 0, shot_goal_same_minute_credited_side: 0, shot_goal_same_minute_other_side: 0,
-    shot_goal_same_minute_none: 0, shot_keys: {} }
+    shot_goal_same_minute_none: 0, shot_keys: {}, gtype_values: {}, sit_values: {}, own_goal_row_gtype: {}, own_goal_incident_goal_types: {},
+    own_goal_rows_by_gtype_xg: {} }
+  const P3x = { extra_markers: {} }
   const P6 = { captures_with_shootout_marker: 0, shots_at_120_plus_in_shootout_captures_by_sit: {}, penalty_sit_at_120_plus: 0 }
   const T = { subminute_keys: {}, incident_types: {}, sequence_events: {}, sequence_events_with_a_time_key: 0, sequence_events_total: 0 }
   const shared = { minutes: 0, captures_with_one: 0, zero_xg_shots_by_side_of_a_same_minute_pair: 0 }
@@ -109,6 +111,8 @@ export function soccerPremises(captures, events = null) {
       else if (!isNum(s.xg)) { P1.xg_other_type++; gaps.add('xg') }
       else { P1.xg_number++; if (s.xg === 0) P1.xg_zero++; if (s.xg < 0) { P1.xg_negative++; gaps.add('xg<0') } }
       if (s.xg_estimated === true) { P1.estimated++; if (s.xg === 0) P1.estimated_zero++ }
+      if ('gtype' in s) inc(P5.gtype_values, String(s.gtype))
+      inc(P5.sit_values, String(s.sit))
       if (!isInt(s.min)) { P1.min_not_whole_number++; gaps.add('min'); if (typeof s.min === 'string') P1.min_string++ }
       if (!('added' in s)) P1.added_absent++
       else if (s.added === null) P1.added_null++
@@ -134,6 +138,7 @@ export function soccerPremises(captures, events = null) {
     if (ft.length && shootout) P3.ft_beside_shootout_marker++
     if (ft.length && extra && finishing.every(p => /^FT$/i.test(String(p.text ?? '').trim())) && ft.some(p => isInt(p.home_score) && p.home_score === p.away_score)) P3.ft_only_level_score_with_extra_marker++
     if (extra) P2.captures_with_extra_marker++
+    if (extra) for (const p of periods) inc(P3x.extra_markers, `${String(p.text ?? '').trim()}${p.is_live === true ? '(live)' : ''}@${p.minute}:${isInt(p.home_score) && isInt(p.away_score) ? (p.home_score === p.away_score ? 'level' : 'decided') : 'no-score'}`)
 
     // P2
     for (const s of shots) {
@@ -157,15 +162,20 @@ export function soccerPremises(captures, events = null) {
     for (const i of incs ?? []) {
       if (i?.type !== 'goal' || !/own/i.test(String(i.goal_type ?? ''))) continue
       P5.own_goal_incidents++
+      inc(P5.own_goal_incident_goal_types, String(i.goal_type))
       const rows = shots.filter(s => s.type === 'goal' && s.min === i.minute && (s.added ?? null) === (i.added_time ?? null))
       if (!rows.length) P5.shot_goal_same_minute_none++
-      for (const r of rows) { if (r.home === i.is_home) P5.shot_goal_same_minute_credited_side++; else P5.shot_goal_same_minute_other_side++ }
+      for (const r of rows) {
+        if (r.home === i.is_home) P5.shot_goal_same_minute_credited_side++; else P5.shot_goal_same_minute_other_side++
+        inc(P5.own_goal_row_gtype, String(r.gtype))
+        inc(P5.own_goal_rows_by_gtype_xg, `${r.gtype}:${r.xg === null ? 'null' : r.xg > 0 ? 'positive' : 'other'}`)
+      }
     }
 
     // P6
     if (shootout) {
       P6.captures_with_shootout_marker++
-      for (const s of shots) if (isInt(s.min) && s.min >= 120) inc(P6.shots_at_120_plus_in_shootout_captures_by_sit, String(s.sit ?? '(none)'))
+      for (const s of shots) if (isInt(s.min) && s.min >= 120) inc(P6.shots_at_120_plus_in_shootout_captures_by_sit, `${String(s.sit ?? '(none)')}@${s.min}+${s.added ?? 0}`)
     }
     for (const s of shots) if (isInt(s.min) && s.min >= 120 && /pen/i.test(String(s.sit ?? ''))) P6.penalty_sit_at_120_plus++
 
@@ -205,7 +215,7 @@ export function soccerPremises(captures, events = null) {
   if (events) for (const row of events.values()) for (const k of Object.keys(row)) inc(P4.event_row_keys, k)
   P1.captures_with_a_gap_count = P1.captures_with_a_gap.length
   P1.captures_with_a_gap = P1.captures_with_a_gap.slice(0, 50)
-  return { P1, P2, P3, P4, P5, P6, T, shared }
+  return { P1, P2, P3: { ...P3, ...P3x }, P4, P5, P6, T, shared }
 }
 
 // ── NHL ────────────────────────────────────────────────────────────────────
@@ -484,7 +494,9 @@ function selfTest() {
   check('a shared minute is counted once, with its 0-xG shots', d.shared.minutes === 1 && d.shared.zero_xg_shots_by_side_of_a_same_minute_pair === 1)
   check('an own goal with no shotmap goal row is counted as none', d.P5.own_goal_incidents === 1 && d.P5.shot_goal_same_minute_none === 1)
   check('an own goal with a shotmap goal row on the credited side', soccerPremises([{ ...dirty, stats: { shotmap: [shot(13, false, 0.1, { type: 'goal' })] } }]).P5.shot_goal_same_minute_credited_side === 1)
-  check('a shootout capture counts its 120+ shots by sit', d.P6.captures_with_shootout_marker === 1 && d.P6.shots_at_120_plus_in_shootout_captures_by_sit.penalty === 1 && d.P6.penalty_sit_at_120_plus === 1)
+  check('a shootout capture counts its 120+ shots by sit and clock', d.P6.captures_with_shootout_marker === 1 && d.P6.shots_at_120_plus_in_shootout_captures_by_sit['penalty@121+0'] === 1 && d.P6.penalty_sit_at_120_plus === 1)
+  check('gtype and sit values are tallied, and an own-goal row names its gtype', soccerPremises([{ ...dirty, stats: { shotmap: [shot(13, false, 0.1, { type: 'goal', gtype: 'own', sit: 'regular' })] } }]).P5.own_goal_row_gtype.own === 1 && d.P5.sit_values.penalty === 1)
+  check('an extra-time capture lists its period markers with minute and score shape', d.P3.extra_markers['Extra time(live)@105:level'] === 1 && d.P3.extra_markers['PEN@120:no-score'] === 1)
   check('a sub-minute key in a sequence event is found', d.T.subminute_keys['incidents:uts'] === 1 && d.T.sequence_events_with_a_time_key === 1)
   check('a missing event row is named', d.P4.event_row_found === 0 && d.P4.missing_examples[0] === 'y/2')
 
