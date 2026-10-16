@@ -1,0 +1,58 @@
+name: Empowerment Premises
+
+# The premise pass for field-laboratory docs/CC-CMD-2026-10-15-empowerment-metrics.md
+# Tasks 1-3, run before their types are built (lab CLAUDE.md Rule 100). JSON
+# counting over every non-shell BSD capture in R2 and over 328 NHL games of the
+# 2025-26 regular season; no metric is computed. DISPATCH ONLY.
+#
+# The R2 walk is field-laboratory's own scripts/probe-empowerment.mjs (and the
+# checks.mjs it imports), fetched at ONE lab commit recorded in the artifact:
+# this pass extends the census that produced "786", it does not re-implement it.
+# BSD_API_TOKEN is read for P4's kickoff rows only; without it P4 says UNMEASURED.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  premises:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch field-laboratory's R2 walk at one commit
+        run: |
+          sha=$(git ls-remote https://github.com/jeffunglesbee-create/field-laboratory refs/heads/main | cut -f1)
+          echo "LAB_SHA=$sha" >> "$GITHUB_ENV"
+          mkdir -p /tmp/lab/scripts
+          for f in probe-empowerment.mjs checks.mjs; do
+            curl -sSLf --max-time 30 -o "/tmp/lab/scripts/$f" \
+              "https://raw.githubusercontent.com/jeffunglesbee-create/field-laboratory/$sha/scripts/$f"
+            wc -c "/tmp/lab/scripts/$f"
+          done
+      - name: Self-test (every counter is driven non-zero, and kept at zero, on purpose)
+        run: node scripts/empowerment-premises.mjs --self-test
+      - name: Premise pass
+        env:
+          LAB_PROBE_PATH: /tmp/lab/scripts/probe-empowerment.mjs
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: node scripts/empowerment-premises.mjs
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          test -f outbox/empowerment-premises-latest.json || { echo "no artifact written"; exit 1; }
+          git add outbox/empowerment-premises-latest.json
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "probe: empowerment premise pass (run $GITHUB_RUN_ID)"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
+            sleep $((2**i))
+          done
+          exit 1
