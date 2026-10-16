@@ -1,0 +1,42 @@
+name: Verify BDB Event Frames
+
+# docs/CC-CMD-2026-10-15-build-bdb-frames.md, Task 4: the DEPLOYED
+# /nflverse/bdb_event_frames.json carries its envelope, is under the
+# 2,000,000-byte ceiling on the bytes received, comes from R2, resolves 22
+# players split 11/11 on a named left-direction play with the offense behind
+# the defense in the declared frame, and has pass_forward on a majority of
+# the plays it carries a snap for. Each assertion was made to fail on purpose
+# in --self-test (Rule 90); coverage is printed with the result (Rule 91).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Self-test (each assertion fails on a payload broken for it)
+        run: node scripts/verify-bdb-event-frames.mjs --self-test
+      - name: Verify the deployed route
+        run: node scripts/verify-bdb-event-frames.mjs
+      - name: Commit the reading
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/verify-bdb-event-frames-latest.json || true
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "verify: BDB event frames on the deployed nflverse route"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
+            sleep $((2**i))
+          done
+          exit 1
