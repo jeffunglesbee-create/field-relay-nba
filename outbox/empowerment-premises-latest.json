@@ -1,17 +1,17 @@
 {
   "cc_cmd": "field-laboratory docs/CC-CMD-2026-10-15-empowerment-metrics.md (Tasks 1-3, premise pass)",
-  "ran_at": "2026-10-16T20:27:35.803Z",
+  "ran_at": "2026-10-16T20:33:50.820Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "r2_walk": "copied from field-laboratory scripts/probe-empowerment.mjs at 8eaf5a0",
-  "run_id": "38962367310",
+  "run_id": "38963130231",
   "soccer": {
-    "coverage": "788 of 788 non-shell captures read (stats.json; incidents.json for 786 of 786 that have one); 786 uploaded at or before Task 0's census (2026-10-16T09:35:05.514Z); 10 slugs, 2184 list calls",
+    "coverage": "789 of 789 non-shell captures read (stats.json; incidents.json for 787 of 787 that have one); 786 uploaded at or before Task 0's census (2026-10-16T09:35:05.514Z); 10 slugs, 2184 list calls",
     "census_complete": true,
     "walk_copy_check": "786 non-shell captures uploaded at or before 2026-10-16T09:35:05.514Z; the source's own census counted 786",
     "kickoff_rows": "event rows for league ids 1,3,4,5,6,7,8,12,18,27, 2026-06-20 to 2026-10-16: 968 rows, pages {\"1\":1,\"3\":1,\"4\":1,\"5\":1,\"6\":1,\"7\":2,\"8\":2,\"12\":2,\"18\":3,\"27\":1}",
     "P1": {
-      "shots": 21020,
-      "xg_number": 20897,
+      "shots": 21055,
+      "xg_number": 20932,
       "xg_null": 123,
       "xg_absent": 0,
       "xg_other_type": 0,
@@ -21,7 +21,7 @@
       "estimated_zero": 0,
       "min_not_whole_number": 0,
       "min_string": 0,
-      "added_absent": 19536,
+      "added_absent": 19571,
       "added_null": 0,
       "added_not_whole_number": 0,
       "home_not_boolean": 0,
@@ -117,7 +117,7 @@
     },
     "P3": {
       "period_text_sets": {
-        "HT,Second half(live)": 735,
+        "HT,Second half(live)": 736,
         "FT,HT": 30,
         "Extra time(live),FT,HT": 14,
         "(none)": 2,
@@ -127,8 +127,8 @@
         "ET,FT,HT,PEN": 1
       },
       "period_texts": {
-        "Second half(live)": 735,
-        "HT": 785,
+        "Second half(live)": 736,
+        "HT": 786,
         "FT": 47,
         "Extra time(live)": 14,
         "First half(live)": 1,
@@ -141,26 +141,37 @@
       "ft_beside_extra_marker": 17,
       "ft_beside_shootout_marker": 1,
       "ft_only_level_score_with_extra_marker": 13,
-      "no_incidents": 2
+      "no_incidents": 2,
+      "extra_markers": {
+        "Extra time(live)@120:level": 4,
+        "FT@90:level": 14,
+        "HT@45:level": 10,
+        "Extra time(live)@120:decided": 10,
+        "HT@45:decided": 7,
+        "FT@90:decided": 3,
+        "ET@120:decided": 2,
+        "PEN@999:decided": 1,
+        "ET@120:level": 1
+      }
     },
     "P4": {
       "stats_top_keys": {
-        "event_id": 788,
-        "stats": 788,
-        "xg_estimated": 643,
-        "shotmap": 788,
-        "momentum": 788,
-        "average_positions": 788,
-        "xg_per_minute": 788
+        "event_id": 789,
+        "stats": 789,
+        "xg_estimated": 644,
+        "shotmap": 789,
+        "momentum": 789,
+        "average_positions": 789,
+        "xg_per_minute": 789
       },
       "incidents_top_keys": {
-        "event_id": 786,
-        "incidents": 786
+        "event_id": 787,
+        "incidents": 787
       },
       "kickoff_like_keys": {},
-      "captures": 788,
-      "event_row_found": 788,
-      "event_date_parseable": 788,
+      "captures": 789,
+      "event_row_found": 789,
+      "event_date_parseable": 789,
       "event_row_keys": {
         "id": 968,
         "league_id": 968,
@@ -211,28 +222,61 @@
       "shot_goal_same_minute_other_side": 0,
       "shot_goal_same_minute_none": 4,
       "shot_keys": {
-        "gm": 21020,
-        "xg": 21020,
-        "gml": 21020,
-        "min": 21020,
-        "pos": 21020,
-        "sit": 21020,
-        "body": 21020,
-        "home": 21020,
-        "type": 21020,
-        "xgot": 21020,
+        "gm": 21055,
+        "xg": 21055,
+        "gml": 21055,
+        "min": 21055,
+        "pos": 21055,
+        "sit": 21055,
+        "body": 21055,
+        "home": 21055,
+        "type": 21055,
+        "xgot": 21055,
         "added": 1484,
-        "gtype": 2386,
-        "player_id": 21020,
-        "xg_estimated": 17352,
-        "block": 12131
+        "gtype": 2392,
+        "player_id": 21055,
+        "xg_estimated": 17387,
+        "block": 12148
+      },
+      "gtype_values": {
+        "regular": 2164,
+        "own": 73,
+        "penalty": 155
+      },
+      "sit_values": {
+        "assisted": 10879,
+        "corner": 3352,
+        "regular": 2770,
+        "set-piece": 1131,
+        "throw-in-set-piece": 586,
+        "fast-break": 1561,
+        "free-kick": 584,
+        "penalty": 184,
+        "shootout": 8
+      },
+      "own_goal_row_gtype": {
+        "own": 70
+      },
+      "own_goal_incident_goal_types": {
+        "ownGoal": 74
+      },
+      "own_goal_rows_by_gtype_xg": {
+        "own:positive": 65,
+        "own:null": 5
       }
     },
     "P6": {
       "captures_with_shootout_marker": 1,
       "shots_at_120_plus_in_shootout_captures_by_sit": {
-        "shootout": 8,
-        "set-piece": 2
+        "shootout@129+0": 1,
+        "shootout@128+0": 1,
+        "shootout@127+0": 1,
+        "shootout@126+0": 1,
+        "shootout@125+0": 1,
+        "shootout@124+0": 1,
+        "shootout@123+0": 1,
+        "shootout@122+0": 1,
+        "set-piece@120+2": 2
       },
       "penalty_sit_at_120_plus": 1
     },
@@ -241,23 +285,23 @@
         "incidents:period_second": 66
       },
       "incident_types": {
-        "period": 1589,
-        "card": 2830,
-        "goal": 2378,
-        "injuryTime": 1298,
-        "substitution": 7240,
-        "varDecision": 220
+        "period": 1591,
+        "card": 2831,
+        "goal": 2385,
+        "injuryTime": 1299,
+        "substitution": 7250,
+        "varDecision": 221
       },
       "sequence_events": {
-        "goal": 2237,
-        "pass": 4424,
+        "goal": 2244,
+        "pass": 4429,
         "ball-touch": 118,
-        "ball-movement": 476,
-        "cross": 500,
+        "ball-movement": 477,
+        "cross": 501,
         "miss": 70,
         "post": 19,
-        "save": 103,
-        "tackle": 68,
+        "save": 104,
+        "tackle": 69,
         "throw-in": 64,
         "clearance": 23,
         "interception": 57,
@@ -266,7 +310,7 @@
         "penalty-save": 1
       },
       "sequence_events_with_a_time_key": 0,
-      "sequence_events_total": 8166
+      "sequence_events_total": 8182
     },
     "shared": {
       "minutes": 308,
