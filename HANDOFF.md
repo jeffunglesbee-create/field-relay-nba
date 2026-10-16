@@ -13,6 +13,11 @@ jubilant-bassoon or this repo gets its own credentials; both events over week
 order; `ball_snap` is missing from 4 of 1,809 plays; 5 plays carry
 `pass_shovel`.
 
+The first two were ruled the same day by delegation ("Go with Claude's best
+recommendations"): the builder runs in jubilant-bassoon, and the ceiling is
+2,000,000 bytes with both events kept. Conditions are under Task 1 in the
+CC-CMD.
+
 Session doc: `outbox/cc-session-2026-10-16-build-bdb-frames-task0.md`
 
 ## SESSION CLOSE-OUT — 2026-10-16 — three defects in data this relay serves, all found from outside it

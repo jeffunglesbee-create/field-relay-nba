@@ -1,7 +1,8 @@
 # Claude Code Command — `build-bdb-frames`
 
 **Branch:** main — commit directly, do not create a feature branch or PR
-**Repo:** field-relay-nba
+**Repo:** field-relay-nba (route, allow-list, docs). The builder runs in
+jubilant-bassoon (ruled 2026-10-16, under Task 1).
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-15 by chat, against HEAD and measured probes
 **Status:** PARTIAL — Task 0 DONE 2026-10-16, event vocabulary and sample rate over week 2
@@ -83,6 +84,12 @@ Tracking is ~10 Hz over a ~4–6 second play, so a per-tick extraction is roughl
 about a **20× reduction before any other bound applies**, and it loses nothing —
 every one of the four metrics is defined at an instant, not over a series.
 
+> **CC, 2026-10-16.** Not quite: The Root is specified over a span, "DT XY
+> from `snap` through `pass_forward`" (field-laboratory
+> `docs/DATA-VERIFICATION-2026-10-15-vault-kinetic-root.md`), and two named
+> frames give only its endpoints. Emitting only those is a scope cut, to be
+> stated as one. Gravity Well's NFL instant is not written down anywhere.
+
 Then bound the scope on top of that:
 
 - **One week, all teams.** Preferred over one team's games: the metrics need
@@ -102,6 +109,60 @@ become the next one.
 
 **The artifact is fetched on demand, never bundled.** It is a `/nflverse/`
 route like its six siblings.
+
+**Ruled 2026-10-16 (owner), by delegation.** Task 0
+(`outbox/cc-session-2026-10-16-build-bdb-frames-task0.md`) left two
+questions; the owner answered "Go with Claude's best recommendations". CC's
+recommendations, each argued against by a reviewer before being recorded,
+are the ruling:
+
+1. **The builder runs in jubilant-bassoon**, as its own script and
+   dispatch-only workflow (as `bdb-frames-task0-probe` does). It is not a
+   seventh function in `build-bdb-data.py` or a step in `bdb-update.yml`,
+   which are the existing builders this CC-CMD must not modify. Reasons: no
+   workflow or script in field-relay-nba references a Kaggle credential
+   (secret names were not listed), so building here would mean adding a
+   second copy of it, with its Rule 80 exposure and a second place every
+   rotation must reach; and the siblings' emit path already works there. Its
+   monthly run 36880327214 logged `✅ R2 OK` after each file it uploaded and
+   committed all six `outbox/nfl/bdb_*.json` (`2fdcea0e`). Task 0's run
+   38926713081 shows only that the Kaggle credential and a dispatch-only
+   workflow work there. Conditions:
+   - Task 3's entry goes in `NFL_R2_FILES` (the R2-first read) as well as
+     `NFLVERSE_OUT_ALLOWED` (the raw-GitHub fallback). An entry in
+     `NFLVERSE_OUT_ALLOWED` alone never reads the R2 object.
+   - The builder and the route both take the R2 key's year from the clock
+     (`nfl/{year}/`, which turns over each August). A dispatch-only builder's
+     object stops being read on 2027-08-01 unless the builder also writes
+     the `outbox/nfl/` fallback copy, as the siblings do.
+   - Task 3's "in the same change that lands the builder" cannot hold
+     across two repos. It is replaced (see Task 3): builder committed and
+     run in jubilant-bassoon, the R2 object confirmed, then the relay
+     commit.
+2. **The ceiling is 2,000,000 bytes**, measured on the served response. It
+   is the stricter reading of "2 MB", so it meets both, and it is the unit
+   the client's own size gate uses (`smoke.js`: `size < 3000000`). The
+   figures below are compact JSON (`separators=(",", ":")`) without Task 2's
+   coordinate-convention fields; the siblings' `upload_to_r2` serializes
+   with default separators, which is larger. The builder serializes compact
+   and gates on the exact bytes it uploads. Keep both
+   events: `ball_snap` is an input of The Root ("DT XY from `snap` through
+   `pass_forward`"). Cut whole games in gameId order. Task 1 measures two
+   variants in one run and records both:
+   - (a) `ball_snap` on every play: the spec's literal order. Week 2 keeps
+     at most 5 of 16 games (6 measured at 2,008,434 bytes).
+   - (b) `ball_snap` only on plays that are dropbacks or carry a
+     `pass_forward` frame, with that filter declared in the envelope. About
+     7-8 games, by a frame-proportional estimate, not a measurement.
+
+   If (b) keeps more whole games under the ceiling, Task 1 uses (b) and
+   records it as a stated deviation from "fewer games, then fewer event
+   frames", made under this delegation: the spec's stated reason for
+   preferring one week of all teams is league-wide coverage, which (b)
+   serves better. If any of the four metrics' written definitions needs a
+   snap frame on a play that is not a dropback, Task 1 uses (a). The NFL
+   instant for Gravity Well is not written down anywhere; Task 1 settles
+   that before choosing (b).
 
 ## TASK 2 — the wire contract
 
@@ -145,16 +206,33 @@ conventions differ**, and say which play.
 Add the artifact to the `/nflverse/` allow-list in `src/index.js` beside the six
 BDB entries, with a comment naming its builder.
 
+> **Ruled 2026-10-16 (by delegation, under Task 1).** "The allow-list" is two
+> arrays: `NFL_R2_FILES` (the R2-first read) and `NFLVERSE_OUT_ALLOWED` (the
+> raw-GitHub fallback). The entry goes in both; in `NFLVERSE_OUT_ALLOWED`
+> alone the R2 object is never read.
+
 Note the warning already in that block: five files were removed 2026-08-15
 because they *"were allow-listed but had NO builder and NO client consumer —
 every request 404'd against a file nothing produced."* **An allow-list entry is
 not evidence that data exists.** Add the entry in the same change that lands the
 builder, never ahead of it.
 
+> **Ruled 2026-10-16 (by delegation, under Task 1).** The builder lands in
+> jubilant-bassoon, so "the same change" cannot span both repos. The order
+> instead: builder committed and run there, the R2 object confirmed to exist,
+> then the relay commit with the allow-list entry. Never ahead of it still
+> holds.
+
 ## TASK 4 — verification, in this session
 
 1. Fetch the deployed route and assert `season`, `sourceDataset`, `week`,
    `events` and a non-empty `data`.
+
+   > **CC, 2026-10-16.** Assert also that it was served from R2: the route
+   > sets `X-Source: r2` on that path. jubilant-bassoon's
+   > `scripts/bdb-serve-probe.mjs` reads `x-nflverse-src`, which the relay
+   > never sets, so its `src=?` cannot tell R2 from the raw-GitHub fallback
+   > and is not evidence for this.
 2. Assert the artifact is under the ceiling, measured on the served response.
 3. Pick one play and verify by hand that the 22 players resolve, that offense
    and defense split correctly, and that the coordinate convention matches the
@@ -168,7 +246,9 @@ builder, never ahead of it.
 - Week, sizes and event vocabulary from Task 0 written down with numbers.
 - Any scope cut taken to stay under the ceiling stated explicitly.
 - `outbox/cc-session-2026-10-15-build-bdb-frames.md` is the **last** task
-  (Rule 87), and names itself in `HANDOFF.md` (Rule 67).
+  (Rule 87), and names itself in `HANDOFF.md` (Rule 67). Both in
+  field-relay-nba; jubilant-bassoon's `HANDOFF.md` points to it, since the
+  builder lands there.
 
 ## Constraints
 

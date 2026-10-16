@@ -11,6 +11,11 @@ artifact `outbox/bdb-frames-task0-latest.json` in jubilant-bassoon, written
 
 ## What Task 1 has to settle first
 
+Items 1 and 2 were ruled on 2026-10-16 by delegation ("Go with Claude's best
+recommendations"): the builder runs in jubilant-bassoon, and the ceiling is
+2,000,000 bytes, with both events kept and two cut variants measured in Task
+1. The ruling and its conditions are under Task 1 in the CC-CMD.
+
 1. **Where the builder runs.** The Kaggle credentials are jubilant-bassoon's
    secrets. No workflow or script in this repo references Kaggle credentials
    (this session cannot list secret names). The six existing BDB files are
