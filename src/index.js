@@ -1032,6 +1032,13 @@ const NFLVERSE_OUT_ALLOWED = [
     'bdb_xblock_pass_rush.json',    // build_bdb_pass_rush — pressure generated per rusher
     'bdb_tendency_fingerprint.json',// build_bdb_tendency — team PA/dropback/formation profile
     'bdb_time_to_throw.json',       // build_bdb_time_to_throw — team avg time-to-throw (s)
+    // BDB event frames: one row per player per ball_snap / pass_forward frame,
+    // 2022 week 2, 7 whole games. Built by jubilant-bassoon
+    // scripts/build-bdb-frames.py (build-bdb-frames.yml, dispatch-only), which
+    // also writes R2 nfl/<year>/ — see NFL_R2_FILES. docs/CC-CMD-2026-10-15-build-bdb-frames.md.
+    // STAGED — consumer: field-laboratory Gravity Well (CC-CMD-2026-10-15-empowerment-metrics
+    // Task 4), being built in the same session; unblocked when that module reads this route.
+    'bdb_event_frames.json',
     // NFL-B: nflverse parquet pipeline (ngs-update.yml)
     'ngs-passing.json',
     'ngs-receiving.json',
@@ -19377,6 +19384,9 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 'bdb_speed.json', 'bdb_separation.json', 'bdb_route_entropy.json',
                 'bdb_xblock_pass_rush.json', 'bdb_tendency_fingerprint.json',
                 'bdb_time_to_throw.json',
+                // BDB event frames (jubilant-bassoon scripts/build-bdb-frames.py), the
+                // R2-first read; NFLVERSE_OUT_ALLOWED holds the raw-GitHub fallback entry.
+                'bdb_event_frames.json',
             ];
             // Dynamic year: use current NFL season year
             const nflYear = (new Date().getMonth() >= 7) ? new Date().getFullYear() : new Date().getFullYear() - 1;
