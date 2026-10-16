@@ -5,9 +5,9 @@ name: Empowerment Premises
 # counting over every non-shell BSD capture in R2 and over 328 NHL games of the
 # 2025-26 regular season; no metric is computed. DISPATCH ONLY.
 #
-# The R2 walk is copied from field-laboratory scripts/probe-empowerment.mjs
-# (that repo is private; run 38962039219 could not fetch it), and the artifact
-# checks the copy against the source's own census count of 786.
+# The R2 walk is field-laboratory's own scripts/probe-empowerment.mjs (and the
+# checks.mjs it imports), fetched at ONE lab commit recorded in the artifact.
+# Two runs used a copy while the lab was private; it is public since 2026-10-16.
 # BSD_API_TOKEN is read for P4's kickoff rows only; without it P4 says UNMEASURED.
 
 on:
@@ -25,10 +25,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Fetch field-laboratory's R2 walk at one commit
+        run: |
+          sha=$(git ls-remote https://github.com/jeffunglesbee-create/field-laboratory refs/heads/main | cut -f1)
+          test -n "$sha" || { echo "FAIL: could not resolve field-laboratory main"; exit 1; }
+          echo "LAB_SHA=$sha" >> "$GITHUB_ENV"
+          mkdir -p /tmp/lab/scripts
+          for f in probe-empowerment.mjs checks.mjs; do
+            curl -sSLf --max-time 30 -o "/tmp/lab/scripts/$f" \
+              "https://raw.githubusercontent.com/jeffunglesbee-create/field-laboratory/$sha/scripts/$f"
+            wc -c "/tmp/lab/scripts/$f"
+          done
       - name: Self-test (every counter is driven non-zero, and kept at zero, on purpose)
         run: node scripts/empowerment-premises.mjs --self-test
       - name: Premise pass
         env:
+          LAB_PROBE_PATH: /tmp/lab/scripts/probe-empowerment.mjs
           BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
         run: node scripts/empowerment-premises.mjs
       - name: Commit the artifact
