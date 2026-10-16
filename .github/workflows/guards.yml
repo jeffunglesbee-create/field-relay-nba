@@ -314,6 +314,21 @@ jobs:
           node scripts/hockey-wp-market.mjs --self-test
           node scripts/hockey-wp-probe.mjs --self-test
 
+      # /bsd/contract declared incidents[].sequence[].pos per-team from ONE away
+      # goal, and for the away side the two candidate frames predict identical
+      # numbers. This re-measures every declared frame against the R2 captures,
+      # split by side, own goals excluded, and treats a side with too few
+      # records as INSUFFICIENT (exit 3) rather than as agreement. Unlike most
+      # steps here it reaches the relay: the measurement is the captures, and
+      # a copy of them would be the substitution this repo's rules prohibit.
+      # docs/CC-CMD-2026-10-16-bsd-list-and-contract.md.
+      - name: every BSD frame the contract declares matches the captures
+        if: always()
+        run: |
+          node scripts/check-bsd-frame-contract.mjs --self-test
+          node scripts/mutate-bsd-frame-contract.mjs
+          node scripts/check-bsd-frame-contract.mjs
+
       # LAST, AND THAT IS THE POINT. This checked HANDOFF.md's staleness from
       # step 6, and the gates here are sequential steps in ONE job, so its red
       # SKIPPED every step after it: the credential scan's siblings, the odds
