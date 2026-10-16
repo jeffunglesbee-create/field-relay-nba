@@ -1,5 +1,104 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-16 — three defects in data this relay serves, all found from outside it
+
+**HEAD:** `c078a70` → `81856af` · **Branch:** main
+
+Written by chat from the committed artifacts. **There is no session doc,
+because there was no session** — this records work that landed without a
+close-out, not work it performed.
+
+`check-handoff-current.mjs` went red on 2026-10-15: work had post-dated the
+2026-10-13b close-out by more than a day and nothing had been written. The
+guard is doing exactly what it was built for, and this is the answer to it.
+
+### What landed, and what proved itself
+
+`verify-pending-checks` is green on **every scheduled run since `41dfb4b`** —
+first 38640918363, `codex write status=200` (`27fc2a4`). That closes the proof
+the 2026-10-14 check-in had to leave open: the step writes D1, so it could not
+be dispatched and a scheduled run was the only evidence available.
+`espn-reachability-monitor` is likewise green on schedule since the `2142bad`
+re-point, and **both dropped off silently-dead-crons' NEW list**.
+
+The tennis draw route verified against three real slam editions twice,
+`bfdf301` and `b24267f` — `outbox/verify-tennis-draw-latest.json`.
+
+Daily read: `outbox/odds-watches-daily-read-2026-10-15.md`.
+
+### The odds residual is shrinking and is not closing
+
+`odds-daily-vs-vendor` **RED**: `we-overcharge-ourselves`, residual **−94**
+against tolerance 81 — counter 1612, vendor 1618, known CI 100, with
+`unreconciled estimate : 0`.
+
+Read across the week the residuals are **−616, −561, −94**, all in the same
+direction as the pairing watch's −198 over its own 23.8 h interval. The
+mechanism is the one `docs/CC-CMD-2026-10-13-vendor-residual-window.md` (OPEN)
+names: the vendor window ran 10-14T04:46Z → 10-15T04:29Z against a UTC-day
+counter.
+
+**A shrinking residual is not a closing one.** A window offset predicts a
+residual that varies with the window, which is what three different numbers in
+one direction look like. Do not read −94 as progress toward zero.
+
+### Three defects in relay-served data, every one found from field-laboratory
+
+None was found by a relay session. All three are the relay's.
+
+**1. All six BDB files serve 2022 under `targetYear: 2026`.** Every
+`/nflverse/bdb_*.json` reads `season: 2022`, sourced from
+`kaggle alexandermeau/nfl-big-data-bowl-archived-data-2025`, while
+`ngs-passing.json` reads `season: 2026`. The two vintages **collide on field
+names** — `bdb_time_to_throw` and `ngs-passing` both carry `avgTimeToThrow`, so
+joining them mixes seasons with no error and a plausible result.
+`bdb_separation` and `bdb_route_entropy` **already have client consumers**.
+Codex `incident-2026-10-15-bdb-tables-2022-season-served-as-2026`, OPEN.
+Whether this is a knowing proxy or unnoticed staleness is **not established**;
+`targetYear` suggests someone thought about the mapping, which is not the same
+as consumers knowing.
+
+**2. `/bsd/r2/list` answers a request with NO prefix from `bsd/wc26/`.** It also
+ignores `limit` and exposes no cursor, returning at most 100 keys. A first page
+cannot carry a population claim — and the default prefix is precisely why one
+looked like it could. Chat read it on 2026-10-15 and concluded R2 held wc26
+only; a field-laboratory census that **walks** the store found **887 events
+across 10 competitions, uploads through 2026-10-15**. The wrong conclusion was
+chat's; the route is what made it reachable, and it will do the same to the
+next caller.
+
+**3. `/bsd/contract` misdeclares `incidents[].sequence[].pos`.** Revision
+`2026-10-10-1` calls it `target-goal-relative, perTeam: true`. It is **one
+shared pitch frame**: a laboratory census over 427 non-own goals reads home
+scorers high x 246/246 and away low x 181/181. `shotmap[].pos` and
+`shotmap[].gm` hold exactly as declared, so the two frames share a key shape
+and differ in origin — **mixing them mirrors the away team silently.**
+
+The declaration was verified against event 223324, whose only goal sequence is
+an **away** goal — and for the away side the two candidate frames are
+numerically identical. It generalized `perTeam` from a sample structurally
+incapable of testing it (Rule 91). Diagnostic:
+`field-laboratory docs/BSD-FRAME-DIAGNOSTIC-2026-10-15.md`.
+
+Also measured there: **only 47 of 786** non-shell captures are of a finished
+match. The club writer fires from minute 80 and drops finished events, so 734
+stop while the second half is live.
+
+### Filed, not started
+
+`docs/CC-CMD-2026-10-15-build-bdb-frames.md` (`82a3974`; its missing Status
+line added in `81856af`) — bounded event-frame extraction from BDB tracking,
+one row per player per **named event frame** rather than per tick, hard 2 MB
+ceiling enforced as a build gate. Unblocks four field-laboratory metrics. Not
+dispatched, no outbox session doc.
+
+### Still the owner's
+
+`rotate-relay-secret.yml` with `confirm=ROTATE`: **0 runs**, unchanged since
+2026-10-13. The 2026-10-14 decisions remain open too — `/archive/game`
+unauthenticated write, the `sports.core.api` sources, and the push cron's dead
+live-game poll.
+
 ## CHECK-IN — 2026-10-14 — ESPN moved its Worker block; five hidden secrets
 
 **ESPN was down for every sport without a secondary from 2026-10-13T21:39Z.**
