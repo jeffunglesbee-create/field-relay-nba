@@ -214,5 +214,13 @@
     "ceiling": 3800,
     "vendor_month_used": 16977,
     "ledger_month_used": 27126
+  },
+  {
+    "at": "2026-10-16T04:24:18.084Z",
+    "day": "2026-10-15",
+    "day_used": 720,
+    "ceiling": 3800,
+    "vendor_month_used": 17751,
+    "ledger_month_used": 27792
   }
 ]
