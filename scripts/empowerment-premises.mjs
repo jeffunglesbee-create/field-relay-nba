@@ -21,9 +21,13 @@
 //   NHL (2025-26 regular season, every 4th game id):
 //     N1-N6      — shift rows, roster positions, credited keys, TOI bands
 //
-// The R2 walk is field-laboratory's own (scripts/probe-empowerment.mjs, fetched
-// at a pinned sha by the workflow), not a copy: the census that produced
-// "786" is the census this pass extends.
+// The R2 walk below is COPIED from field-laboratory scripts/probe-empowerment.mjs
+// at 8eaf5a0 (pool, enumerate, slugWalk, groupCaptures, SHELL_BYTES), because
+// that repo is private and a runner here cannot fetch it (run 38962039219:
+// "Repository not found"). A copy can drift, so the copy is checked against
+// the source's own result: the artifact counts the captures uploaded at or
+// before Task 0's census time, which the source counted as 786. A different
+// number there means the copy, not the store, changed.
 
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
@@ -304,6 +308,72 @@ export function nhlPremises(games) {
   return { ...N, regulation_toi_seconds: { skater_games: toi.length, ...qs }, bands, by_toi_decile: byDecile }
 }
 
+
+// ── the R2 walk, copied from field-laboratory (see the header) ──────────────
+const SHELL_BYTES = 1000
+const WALK_CHARS = '-/0123456789_abcdefghijklmnopqrstuvwxyz'
+const LIST_CALL_CAP = 12000
+async function pool(items, n, fn) {
+  const out = new Array(items.length); let next = 0
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (next < items.length) { const i = next++; out[i] = await fn(items[i], i) }
+  }))
+  return out
+}
+async function enumerate(listPage, root, cap = LIST_CALL_CAP, alphabet = WALK_CHARS, budget = { calls: 0 }) {
+  const keys = new Map(); let capped = false
+  const queue = [root]
+  while (queue.length) {
+    const prefix = queue.shift()
+    if (budget.calls >= cap) { capped = true; break }
+    budget.calls++
+    const page = await listPage(prefix)
+    if (!page) continue
+    for (const k of page.keys) keys.set(k.key, k)
+    if (page.truncated && page.keys.length) {
+      const last = page.keys[page.keys.length - 1].key
+      const cLast = last[prefix.length]
+      if (cLast === undefined) continue
+      queue.push(prefix + cLast)
+      for (const c of alphabet) if (c > cLast) queue.push(prefix + c)
+    }
+  }
+  return { keys: [...keys.values()], calls: budget.calls, capped, unvisited: queue.length }
+}
+async function slugWalk(listPage, cap = LIST_CALL_CAP, budget = { calls: 0 }, alphabet = WALK_CHARS) {
+  const slugs = new Set(); const queue = ['bsd/']; let capped = false
+  while (queue.length) {
+    if (budget.calls >= cap) { capped = true; break }
+    const prefix = queue.shift(); budget.calls++
+    const page = await listPage(prefix)
+    if (!page) continue
+    for (const k of page.keys) { const m = /^bsd\/([^/]+)\//.exec(k.key); if (m) slugs.add(m[1]) }
+    if (prefix !== 'bsd/' && prefix.endsWith('/')) continue
+    if (!page.truncated || !page.keys.length) continue
+    const c = page.keys[page.keys.length - 1].key[prefix.length]
+    if (c === undefined) continue
+    if (c !== '/') queue.push(prefix + c)
+    for (const x of alphabet) if (x > c) queue.push(prefix + x)
+  }
+  return { slugs: [...slugs].sort(), capped, unvisited: queue.length }
+}
+function groupCaptures(keys) {
+  const comps = {}
+  for (const k of keys) {
+    const m = /^bsd\/([^/]+)\/([^/]+)\/([^/]+)$/.exec(k.key)
+    if (!m) continue
+    const [, comp, event, file] = m
+    const c = comps[comp] ??= { events: {}, first: null, last: null }
+    const e = c.events[event] ??= { files: [], uploaded: null }
+    e.files.push(file)
+    if (!e.uploaded || k.uploaded > e.uploaded) e.uploaded = k.uploaded
+    if (!c.first || k.uploaded < c.first) c.first = k.uploaded
+    if (!c.last || k.uploaded > c.last) c.last = k.uploaded
+  }
+  return comps
+}
+const lab = { pool, enumerate, slugWalk, groupCaptures, SHELL_BYTES }
+
 // ── fetch ──────────────────────────────────────────────────────────────────
 async function getJson(url, headers = {}, tries = 3) {
   for (let i = 0; i < tries; i++) {
@@ -319,7 +389,7 @@ async function getJson(url, headers = {}, tries = 3) {
   return { ok: false, status: 429 }
 }
 
-async function soccerLive(lab) {
+async function soccerLive() {
   const failedPages = []
   const listPage = async (prefix) => {
     const r = await getJson(`${RELAY}/bsd/r2/list?prefix=${encodeURIComponent(prefix)}`)
@@ -367,7 +437,7 @@ async function soccerLive(lab) {
   const premises = soccerPremises(readable, events)
   const task0 = nonShell.filter(x => String(x.uploaded) <= TASK0_AT).length
   const complete = !capped && failedPages.length === 0 && readFailures === 0
-  return { premises, eventsNote, complete,
+  return { premises, eventsNote, complete, task0_count: task0,
     coverage: `${readable.length} of ${nonShell.length} non-shell captures read (stats.json; incidents.json for ${readable.filter(c => c.incidents).length} of ${nonShell.filter(x => x.hasIncidents).length} that have one); ${task0} uploaded at or before Task 0's census (${TASK0_AT}); ${walk.slugs.length} slugs, ${budget.calls} list calls${capped ? ', CAPPED' : ''}${failedPages.length ? `, ${failedPages.length} list page(s) failed` : ''}${readFailures ? `, ${readFailures} read(s) failed` : ''}` }
 }
 
@@ -447,12 +517,12 @@ function selfTest() {
 
 async function main() {
   if (process.argv.includes('--self-test')) { process.exitCode = selfTest() ? 1 : 0; return }
-  const lab = await import(pathToFileURL(process.env.LAB_PROBE_PATH || '/tmp/lab/scripts/probe-empowerment.mjs').href)
   const ranAt = new Date().toISOString()
-  const [soccer, nhl] = await Promise.all([soccerLive(lab), nhlLive()])
+  const [soccer, nhl] = await Promise.all([soccerLive(), nhlLive()])
   const art = { cc_cmd: 'field-laboratory docs/CC-CMD-2026-10-15-empowerment-metrics.md (Tasks 1-3, premise pass)', ran_at: ranAt,
-    relay: RELAY, lab_sha: process.env.LAB_SHA || null, run_id: process.env.GITHUB_RUN_ID || null,
-    soccer: { coverage: soccer.coverage, census_complete: soccer.complete, kickoff_rows: soccer.eventsNote, ...soccer.premises },
+    relay: RELAY, r2_walk: 'copied from field-laboratory scripts/probe-empowerment.mjs at 8eaf5a0', run_id: process.env.GITHUB_RUN_ID || null,
+    soccer: { coverage: soccer.coverage, census_complete: soccer.complete,
+      walk_copy_check: `${soccer.task0_count} non-shell captures uploaded at or before ${TASK0_AT}; the source's own census counted 786`, kickoff_rows: soccer.eventsNote, ...soccer.premises },
     nhl: { coverage: nhl.coverage, ...nhl.premises } }
   mkdirSync('outbox', { recursive: true })
   writeFileSync(OUT, JSON.stringify(art, null, 2) + '\n')
