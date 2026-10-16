@@ -100,7 +100,10 @@ definition. Both predict `shot 7.3, gk 5.4` exactly.
 
 **Only a home goal discriminates** — shared absolute predicts ~88/~99, per-team
 predicts ~12/~2 — and 223324 has none. The contract asserted `perTeam: true`
-from a sample structurally incapable of testing it. Rule 91.
+from a sample structurally incapable of testing it. **SAMPLE-COVERAGE-A**
+(`field-relay-nba/CLAUDE.md`) — cited by tag because the bare number resolves
+only in this repo, and this finding is cross-referenced from field-laboratory,
+where Rule 91 is SCOPE-LEGIBLE-A.
 
 `shotmap[].pos` and `shotmap[].gm` were re-measured and **hold exactly as
 declared**. Do not touch them. That is what makes this dangerous: the two pitch
