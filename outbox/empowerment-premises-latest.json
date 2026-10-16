@@ -1,0 +1,435 @@
+{
+  "cc_cmd": "field-laboratory docs/CC-CMD-2026-10-15-empowerment-metrics.md (Tasks 1-3, premise pass)",
+  "ran_at": "2026-10-16T20:27:35.803Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "r2_walk": "copied from field-laboratory scripts/probe-empowerment.mjs at 8eaf5a0",
+  "run_id": "38962367310",
+  "soccer": {
+    "coverage": "788 of 788 non-shell captures read (stats.json; incidents.json for 786 of 786 that have one); 786 uploaded at or before Task 0's census (2026-10-16T09:35:05.514Z); 10 slugs, 2184 list calls",
+    "census_complete": true,
+    "walk_copy_check": "786 non-shell captures uploaded at or before 2026-10-16T09:35:05.514Z; the source's own census counted 786",
+    "kickoff_rows": "event rows for league ids 1,3,4,5,6,7,8,12,18,27, 2026-06-20 to 2026-10-16: 968 rows, pages {\"1\":1,\"3\":1,\"4\":1,\"5\":1,\"6\":1,\"7\":2,\"8\":2,\"12\":2,\"18\":3,\"27\":1}",
+    "P1": {
+      "shots": 21020,
+      "xg_number": 20897,
+      "xg_null": 123,
+      "xg_absent": 0,
+      "xg_other_type": 0,
+      "xg_zero": 0,
+      "xg_negative": 0,
+      "estimated": 496,
+      "estimated_zero": 0,
+      "min_not_whole_number": 0,
+      "min_string": 0,
+      "added_absent": 19536,
+      "added_null": 0,
+      "added_not_whole_number": 0,
+      "home_not_boolean": 0,
+      "captures_with_a_gap": [
+        {
+          "slug": "mls",
+          "id": "5139",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "mls",
+          "id": "5150",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "ucl",
+          "id": "210771",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "ucl",
+          "id": "210772",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "ucl",
+          "id": "210773",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "ucl",
+          "id": "210774",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "wc26",
+          "id": "8344",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "wc26",
+          "id": "8372",
+          "gaps": [
+            "xg"
+          ]
+        },
+        {
+          "slug": "wc26",
+          "id": "8373",
+          "gaps": [
+            "xg"
+          ]
+        }
+      ],
+      "captures_with_a_gap_count": 9
+    },
+    "P2": {
+      "added_shots_by_min": {
+        "45": 686,
+        "90": 777,
+        "105": 8,
+        "120": 13
+      },
+      "added_incidents_by_min": {
+        "45": 183,
+        "90": 435,
+        "105": 2,
+        "120": 7
+      },
+      "shots_beyond_90_without_extra_marker": 0,
+      "shots_at_105_with_added": 8,
+      "shots_106_plus": 79,
+      "shots_over_120": 8,
+      "incidents_at_105_with_added": {
+        "card": 2
+      },
+      "captures_with_extra_marker": 17,
+      "examples": []
+    },
+    "P3": {
+      "period_text_sets": {
+        "HT,Second half(live)": 735,
+        "FT,HT": 30,
+        "Extra time(live),FT,HT": 14,
+        "(none)": 2,
+        "First half(live)": 1,
+        "ET,FT,HT": 2,
+        "HT,Second half": 3,
+        "ET,FT,HT,PEN": 1
+      },
+      "period_texts": {
+        "Second half(live)": 735,
+        "HT": 785,
+        "FT": 47,
+        "Extra time(live)": 14,
+        "First half(live)": 1,
+        "ET": 3,
+        "Second half": 3,
+        "PEN": 1
+      },
+      "finishing_and_live": 14,
+      "finishing_without_both_scores": 0,
+      "ft_beside_extra_marker": 17,
+      "ft_beside_shootout_marker": 1,
+      "ft_only_level_score_with_extra_marker": 13,
+      "no_incidents": 2
+    },
+    "P4": {
+      "stats_top_keys": {
+        "event_id": 788,
+        "stats": 788,
+        "xg_estimated": 643,
+        "shotmap": 788,
+        "momentum": 788,
+        "average_positions": 788,
+        "xg_per_minute": 788
+      },
+      "incidents_top_keys": {
+        "event_id": 786,
+        "incidents": 786
+      },
+      "kickoff_like_keys": {},
+      "captures": 788,
+      "event_row_found": 788,
+      "event_date_parseable": 788,
+      "event_row_keys": {
+        "id": 968,
+        "league_id": 968,
+        "season_id": 968,
+        "home_team_id": 968,
+        "home_team": 968,
+        "away_team_id": 968,
+        "away_team": 968,
+        "home_coach_id": 968,
+        "away_coach_id": 968,
+        "referee_id": 968,
+        "venue_id": 968,
+        "event_date": 968,
+        "status": 968,
+        "replaced_by": 968,
+        "round_number": 968,
+        "round_name": 968,
+        "group_name": 968,
+        "stage": 968,
+        "stage_name": 968,
+        "round_label": 968,
+        "period": 968,
+        "current_minute": 968,
+        "home_score": 968,
+        "away_score": 968,
+        "home_score_ht": 968,
+        "away_score_ht": 968,
+        "penalty_shootout": 968,
+        "extra_time_score": 968,
+        "is_local_derby": 968,
+        "is_neutral_ground": 968,
+        "travel_distance_km": 968,
+        "weather": 968,
+        "pitch_condition": 968,
+        "attendance": 968,
+        "live_websocket": 968,
+        "websocket_plus": 968,
+        "highlights": 968,
+        "head_to_head": 968,
+        "has_xg": 968,
+        "previous_leg_event_id": 968
+      },
+      "missing_examples": []
+    },
+    "P5": {
+      "own_goal_incidents": 74,
+      "shot_goal_same_minute_credited_side": 70,
+      "shot_goal_same_minute_other_side": 0,
+      "shot_goal_same_minute_none": 4,
+      "shot_keys": {
+        "gm": 21020,
+        "xg": 21020,
+        "gml": 21020,
+        "min": 21020,
+        "pos": 21020,
+        "sit": 21020,
+        "body": 21020,
+        "home": 21020,
+        "type": 21020,
+        "xgot": 21020,
+        "added": 1484,
+        "gtype": 2386,
+        "player_id": 21020,
+        "xg_estimated": 17352,
+        "block": 12131
+      }
+    },
+    "P6": {
+      "captures_with_shootout_marker": 1,
+      "shots_at_120_plus_in_shootout_captures_by_sit": {
+        "shootout": 8,
+        "set-piece": 2
+      },
+      "penalty_sit_at_120_plus": 1
+    },
+    "T": {
+      "subminute_keys": {
+        "incidents:period_second": 66
+      },
+      "incident_types": {
+        "period": 1589,
+        "card": 2830,
+        "goal": 2378,
+        "injuryTime": 1298,
+        "substitution": 7240,
+        "varDecision": 220
+      },
+      "sequence_events": {
+        "goal": 2237,
+        "pass": 4424,
+        "ball-touch": 118,
+        "ball-movement": 476,
+        "cross": 500,
+        "miss": 70,
+        "post": 19,
+        "save": 103,
+        "tackle": 68,
+        "throw-in": 64,
+        "clearance": 23,
+        "interception": 57,
+        "block": 4,
+        "free-kick": 2,
+        "penalty-save": 1
+      },
+      "sequence_events_with_a_time_key": 0,
+      "sequence_events_total": 8166
+    },
+    "shared": {
+      "minutes": 308,
+      "captures_with_one": 260,
+      "zero_xg_shots_by_side_of_a_same_minute_pair": 0
+    }
+  },
+  "nhl": {
+    "coverage": "328 of 328 play-by-play and 328 of 328 shift charts read (2025-26 regular season, ids 2025020001+4k to 2025021309)",
+    "games": 328,
+    "pbp_present": 328,
+    "shifts_present": 328,
+    "game_state": {
+      "OFF": 328
+    },
+    "game_type": {
+      "2": 328
+    },
+    "roster_spots": 13118,
+    "roster_without_position": 0,
+    "positions": {
+      "L": 2030,
+      "D": 3972,
+      "G": 1311,
+      "C": 3917,
+      "R": 1888
+    },
+    "attempts": {
+      "blocked-shot": 10071,
+      "shot-on-goal": 16298,
+      "missed-shot": 9872,
+      "goal": 2102
+    },
+    "attempts_without_credit": 0,
+    "attempts_without_clock": 0,
+    "attempts_beyond_regulation": 737,
+    "credited_not_in_roster": 0,
+    "credited_to_goalie": 5,
+    "credited_skater_without_regulation_shifts": 0,
+    "penalties": 2429,
+    "penalties_without_committed": 71,
+    "shift_total_mismatch": 0,
+    "shift_games_without_rows": 0,
+    "shift_rows_by_type": {
+      "505": 2125,
+      "517": 247474
+    },
+    "shift_rows_517": 247474,
+    "shift_517_unreadable_time": 0,
+    "shift_517_end_before_start": 0,
+    "shift_517_zero_length": 0,
+    "shift_517_other_game": 0,
+    "shift_517_beyond_regulation": 2316,
+    "games_with_a_bad_517_row": 0,
+    "bad_row_examples": [],
+    "regulation_toi_seconds": {
+      "skater_games": 11807,
+      "p5": 543,
+      "p10": 631,
+      "p25": 800,
+      "p50": 989,
+      "p75": 1173,
+      "p90": 1334,
+      "p95": 1431
+    },
+    "bands": {
+      "from_1080": {
+        "skater_games": 4331,
+        "first": 5791,
+        "last": 5999
+      },
+      "under_720": {
+        "skater_games": 1971,
+        "first": 1061,
+        "last": 1122
+      },
+      "720_1079": {
+        "skater_games": 5505,
+        "first": 5308,
+        "last": 5286
+      }
+    },
+    "by_toi_decile": [
+      {
+        "decile": 1,
+        "toi_from": 15,
+        "toi_to": 631,
+        "skater_games": 1180,
+        "first": 555,
+        "last": 617
+      },
+      {
+        "decile": 2,
+        "toi_from": 631,
+        "toi_to": 753,
+        "skater_games": 1181,
+        "first": 771,
+        "last": 786
+      },
+      {
+        "decile": 3,
+        "toi_from": 753,
+        "toi_to": 841,
+        "skater_games": 1181,
+        "first": 937,
+        "last": 898
+      },
+      {
+        "decile": 4,
+        "toi_from": 841,
+        "toi_to": 918,
+        "skater_games": 1180,
+        "first": 1103,
+        "last": 1107
+      },
+      {
+        "decile": 5,
+        "toi_from": 918,
+        "toi_to": 989,
+        "skater_games": 1181,
+        "first": 1221,
+        "last": 1224
+      },
+      {
+        "decile": 6,
+        "toi_from": 989,
+        "toi_to": 1057,
+        "skater_games": 1181,
+        "first": 1318,
+        "last": 1341
+      },
+      {
+        "decile": 7,
+        "toi_from": 1057,
+        "toi_to": 1131,
+        "skater_games": 1180,
+        "first": 1456,
+        "last": 1434
+      },
+      {
+        "decile": 8,
+        "toi_from": 1131,
+        "toi_to": 1218,
+        "skater_games": 1181,
+        "first": 1411,
+        "last": 1544
+      },
+      {
+        "decile": 9,
+        "toi_from": 1218,
+        "toi_to": 1334,
+        "skater_games": 1181,
+        "first": 1618,
+        "last": 1578
+      },
+      {
+        "decile": 10,
+        "toi_from": 1334,
+        "toi_to": 3231,
+        "skater_games": 1181,
+        "first": 1770,
+        "last": 1878
+      }
+    ]
+  }
+}
