@@ -7,9 +7,10 @@
 // may assume.
 //
 // Each premise is a count with its denominator, so a reader can see what was
-// measured and over how much (Rule 91). Every counter has a synthetic input in
-// --self-test that drives it non-zero, and a clean input that keeps it at zero
-// (Rule 90): a counter that cannot move is not reported.
+// measured and over how much (SAMPLE-COVERAGE-A, this repo's CLAUDE.md). Every
+// counter has a synthetic input in --self-test that drives it non-zero, and a
+// clean input that keeps it at zero (MUTATE-FIRST-A): a counter that cannot move
+// is not reported.
 //
 //   SOCCER (BSD captures in R2, every non-shell capture, both files):
 //     P1 xg      — is `xg` a number on every shot; how many are 0, estimated
