@@ -1,5 +1,19 @@
 # FIELD Relay — HANDOFF
 
+## Absence-collapse ratchet gates relay pushes — 2026-10-17
+
+**HEAD:** `5914511` → `fea794c` · **Branch:** main
+
+`deploy.yml` and `guards.yml` run `scripts/absence-collapse-ratchet.sh`: no
+op's flagged or suppressed count may rise above this repo's own
+`docs/absence-collapse-baseline.json` (332/18). The check is
+jubilant-bassoon's script, cloned at main, not copied. Each run proves it can
+fail first (a planted collapse must be caught) and then runs for real: green
+in runs 38995577172 and 38995581387. A genuine new site is accepted with a
+baseline bump HERE; jubilant-bassoon reads this file from its clone.
+
+Session doc: `outbox/cc-session-2026-10-17-absence-ratchet-relay.md`
+
 ## BDB frames consumer: Gravity Well reads the route — 2026-10-17
 
 **HEAD:** `81d4072` → `62b0dce` · **Branch:** main

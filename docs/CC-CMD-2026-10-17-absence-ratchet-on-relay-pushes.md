@@ -5,7 +5,7 @@
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-17 by CC, as the second CC-CMD Rule 87.4 requires, from
 jubilant-bassoon `docs/CC-CMD-2026-10-16-absence-collapse-ratchet.md`
-**Status:** NOT STARTED — not dispatched.
+**Status:** DONE 2026-10-17 — option 2, owner decision "go with Claude's best recommendations". Session doc: `outbox/cc-session-2026-10-17-absence-ratchet-relay.md`.
 
 ## Why
 
