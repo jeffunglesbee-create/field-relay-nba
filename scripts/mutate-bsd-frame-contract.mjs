@@ -27,6 +27,7 @@ const MUTATIONS = [
   ['a nonzero gm.x passes as the goal plane', 'const ok = [...split.home, ...split.away].every(x => x === 0)', 'const ok = true'],
   ['an upward gm.y passes as goal-mouth-2d', "down(res.home) && down(res.away) ? 'goal-mouth-2d'", "true ? 'goal-mouth-2d'"],
   ['perTeam is not compared', 'const ok = r.frame === decl?.frame && r.perTeam === decl?.perTeam', 'const ok = r.frame === decl?.frame'],
+  ['the live mutation flips a declaration that disagrees', "if (base.find(r => r.path === path)?.outcome !== 'agree') return { path, skipped: true }", '0'],
   ['a measured path the contract drops is tolerated', "rows.push({ path, outcome: 'disagree', why: 'measured path is no longer declared by the contract' })", '0'],
 ]
 

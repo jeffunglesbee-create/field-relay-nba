@@ -211,6 +211,22 @@ export function flip(decl) {
   return { ...decl, frame, perTeam: PITCH_FRAMES[frame]?.perTeam ?? false }
 }
 
+/** Rule 90 on the live data: flip each declaration that AGREES and require the
+ *  flip to be applied and caught. A declaration that already disagrees is not
+ *  flipped — flipping a wrong declaration can make it right, and "not caught"
+ *  there would be the harness reporting its own blind spot as a pass/fail.
+ *  First live run (38984129822) did exactly that on the 2026-10-10 declaration. */
+export function mutationCheck(frames, m) {
+  const base = judge(frames, m).rows
+  return Object.keys(frames).map((path) => {
+    if (base.find(r => r.path === path)?.outcome !== 'agree') return { path, skipped: true }
+    const mutated = { ...frames, [path]: flip(frames[path]) }
+    const applied = mutated[path].frame !== frames[path].frame
+    const row = judge(mutated, m).rows.find(r => r.path === path)
+    return { path, from: frames[path].frame, to: mutated[path].frame, applied, caught: row?.outcome !== 'agree', outcome: row?.outcome }
+  })
+}
+
 // ── reading the declaration ────────────────────────────────────────────────
 /** The `frames: { ... }` object inside the /bsd/contract handler, evaluated.
  *  It is a literal of strings, numbers and booleans; anything else throws. */
@@ -309,15 +325,14 @@ async function live(contractSource) {
   }
 
   // Rule 90: each pitch declaration flipped must be CAUGHT, and must have been APPLIED.
-  let mutFail = 0
-  for (const path of Object.keys(frames)) {
-    const mutated = { ...frames, [path]: flip(frames[path]) }
-    const applied = mutated[path].frame !== frames[path].frame
-    const row = judge(mutated, m).rows.find(r => r.path === path)
-    const caught = row?.outcome !== 'agree'
-    if (!applied || !caught) mutFail++
-    console.log(`mutation ${path}: ${frames[path].frame} -> ${mutated[path].frame}  applied ${applied}  caught ${caught} (${row?.outcome})`)
+  let mutFail = 0, mutRun = 0
+  for (const r of mutationCheck(frames, m)) {
+    if (r.skipped) { console.log(`mutation ${r.path}: not run, the declaration does not agree`); continue }
+    mutRun++
+    if (!r.applied || !r.caught) mutFail++
+    console.log(`mutation ${r.path}: ${r.from} -> ${r.to}  applied ${r.applied}  caught ${r.caught} (${r.outcome})`)
   }
+  console.log(`mutations: ${mutRun} run over the agreeing declarations, ${mutFail} not applied or not caught`)
   if (failed || capped) { console.log(`INSUFFICIENT: ${failed} read(s) failed${capped ? ', reads capped' : ''}; the sample is not the census it claims`); return EXIT.insufficient }
   if (mutFail) { console.log(`FAIL: ${mutFail} mutation(s) not applied or not caught; these assertions prove nothing`); return EXIT.disagree }
   console.log(verdict.outcome === 'agree' ? 'PASS: every declared frame agrees with the captures'
@@ -388,6 +403,11 @@ function selfTest() {
     const mut = { ...truth, [path]: flip(truth[path]) }
     ok(`mutation ${path} applied and caught`, mut[path].frame !== truth[path].frame && judge(mut, world).rows.find(r => r.path === path).outcome === 'disagree')
   }
+  // The in-run mutation, over a world where one declaration is already wrong:
+  // the wrong row is skipped, every agreeing row is flipped and caught.
+  const mc = mutationCheck(wrong, world)
+  ok('the live mutation skips a declaration that already disagrees', mc.find(r => r.path === 'incidents[].sequence[].pos').skipped === true)
+  ok('...and flips and catches every one that agrees', mc.filter(r => !r.skipped).length === 4 && mc.filter(r => !r.skipped).every(r => r.applied && r.caught))
   // The declaration actually in the source, run through the same world.
   try {
     const src = framesFromSource(readFileSync('src/index.js', 'utf8'))
