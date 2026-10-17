@@ -39,6 +39,9 @@ require OK: field-relay-nba/src/index.js flagged as || [] (field-relay-nba/src/i
 ratchet OK: no op in field-relay-nba rose above /home/runner/work/field-relay-nba/field-relay-nba/docs/absence-collapse-baseline.json, flagged or suppressed
 ```
 
+The `require OK` site is `seasonEvents = d.results || d.events || [];`, the line
+at that number when the run happened (`fea794c`).
+
 jubilant-bassoon smoke-and-verify run 38995908718 on `e544e1e9`: the ratchet
 step green with both baselines; the harness's 7 mutations all caught locally
 on the same tree (M1r = a relay rise against the relay's own file).
