@@ -1036,8 +1036,10 @@ const NFLVERSE_OUT_ALLOWED = [
     // 2022 week 2, 7 whole games. Built by jubilant-bassoon
     // scripts/build-bdb-frames.py (build-bdb-frames.yml, dispatch-only), which
     // also writes R2 nfl/<year>/ — see NFL_R2_FILES. docs/CC-CMD-2026-10-15-build-bdb-frames.md.
-    // STAGED — consumer: field-laboratory Gravity Well (CC-CMD-2026-10-15-empowerment-metrics
-    // Task 4), being built in the same session; unblocked when that module reads this route.
+    // Consumer: field-laboratory Gravity Well (CC-CMD-2026-10-15-empowerment-metrics Task 4).
+    // Its scripts/frames-route-check.mjs (gravity-census.yml) hashes this route against the
+    // capture the lab computes over, data/bdb-event-frames-2022-w2.json: equal on lab run
+    // 38995271211 (200, X-Source r2, 1816808 bytes).
     'bdb_event_frames.json',
     // NFL-B: nflverse parquet pipeline (ngs-update.yml)
     'ngs-passing.json',
