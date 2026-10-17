@@ -1,5 +1,24 @@
 # FIELD Relay — HANDOFF
 
+## BDB frames consumer: Gravity Well reads the route — 2026-10-17
+
+**HEAD:** `81d4072` → `62b0dce` · **Branch:** main
+
+The `STAGED` marker on `bdb_event_frames.json` in `src/index.js` is gone: its
+consumer exists. field-laboratory `scripts/frames-route-check.mjs`
+(`gravity-census.yml`) hashes the deployed `/nflverse/bdb_event_frames.json`
+against the capture Gravity Well computes over, and they are equal (lab run
+38995271211: 200, `X-Source: r2`, 1,816,808 bytes). Comment-only change,
+deployed (run 38995848911); the route re-verified 11/11 after it (run
+38996158837). The BDB section below still says STAGED; this supersedes it.
+
+- **Relay contract:** `GET /nflverse/bdb_event_frames.json`, R2-first
+  (`nfl/<year>/`), raw-GitHub fallback, `max-age=86400`. Unchanged.
+- **Consumer:** field-laboratory, read on a runner; no client renders it.
+- **Status:** VERIFIED (byte-equal on the runner, 11/11 on the deployed route).
+
+Session doc: `outbox/cc-session-2026-10-16-empowerment-premises.md`
+
 ## `/bsd/r2/list` scope and `/bsd/contract` frame — 2026-10-16
 
 **HEAD:** `ee4bfc9` → `234707f` · **Branch:** main

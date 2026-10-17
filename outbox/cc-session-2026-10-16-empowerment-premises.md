@@ -42,8 +42,14 @@ situations and extra-time markers). Artifact: `outbox/empowerment-premises-lates
 
 ## 2. The BDB route's consumer
 
-Pending: the `STAGED` marker in `src/index.js` comes off once
-field-laboratory's Gravity Well reads `/nflverse/bdb_event_frames.json`; this doc is updated then.
+**Done 2026-10-17.** field-laboratory's Gravity Well now reads
+`/nflverse/bdb_event_frames.json`: its `scripts/frames-route-check.mjs`, run by
+`gravity-census.yml`, fetched the deployed route and hashed it against the
+capture Gravity Well computes over (lab run 38995271211: HTTP 200, `X-Source:
+r2`, 1,816,808 bytes, sha256 `6be5a282…d249` on both sides). The `STAGED`
+marker came off in `62b0dce` (comment only), deployed by run 38995848911, and
+the route re-verified 11/11 after it (run 38996158837, 2026-10-17T02:45:26Z).
+`81d4072` re-cites this pass's header by rule tag after the owner's `3086406`.
 
 ## HEAD progression
 
