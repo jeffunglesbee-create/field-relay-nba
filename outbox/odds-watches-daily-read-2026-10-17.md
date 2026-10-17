@@ -17,8 +17,10 @@ HEAD at read `22e011c9`.
 
 ## Watch 1
 
-**Not the breach.** Both the breach (`scripts/watch-odds-daily-vs-vendor.mjs:343`)
-and the overcharge (`:349`) exit through `die(1)`, so a red run cannot tell them
+**Not the breach.** Both the breach (`scripts/watch-odds-daily-vs-vendor.mjs:343`,
+after `the ceiling has been guarding a number below the truth`) and the
+overcharge (`:349`, after `A different defect, and it must not be read as the other one`)
+exit through `die(1)`, so a red run cannot tell them
 apart and only the log's words can. Today's log: `our counter recorded 675 MORE
 than the vendor billed. That is not a breach — it is headroom thrown away`. A
 residual this size is not new this month: `-616` (10-12) and `-561` (10-13).
