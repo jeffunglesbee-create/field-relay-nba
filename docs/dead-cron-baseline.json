@@ -57,8 +57,8 @@
       "red_since": "2026-08-31",
       "note": "Latest run 2026-09-14. Not investigated.",
       "unblocked_by": "read field-laboratory run 34839968312",
-      "review_by": "2026-10-20",
-      "reviewed_2026_10_17": "Read. The baseline's run 34839968312 (09-14) and both later scheduled runs, 37318014470 (10-05) and 38262743658 (10-12), failed at 'Confidence gate (>= 95)', each on different rows (docs/confidence-log.jsonl: cf90786 three rows, 106d7c4 'breaking each invariant makes a check fail' and 'this session wrote its outbox'), each since fixed. Dispatched runs pass 530/530 at 53da77f (38998337325) and dc63004 (39044130530) on 10-17. The watch judges scheduled runs only; the next is Monday 2026-10-19 06:00 UTC, and 10-20 leaves room for the runner's measured 104-405 min delay. Green then resolves this entry; red names the row."
+      "review_by": "2026-10-27",
+      "reviewed_2026_10_17": "Read; CORRECTED the same day (the first version named three of the five runs). All five scheduled runs since red_since failed at 'Confidence gate (>= 95)': 34839968312 (09-14), 35596988589 (09-21), 36424833372 (09-28), 37318014470 (10-05), 38262743658 (10-12). Their failing rows (field-laboratory docs/confidence-log.jsonl): the mutation row on all five, 'this session wrote its outbox' on 09-14, 09-28 and 10-12, and other rows once or twice, since fixed. 'this session wrote its outbox' needs an outbox entry dated the Eastern day, and these runs started 07:47-10:25 ET; the mutation row's baseline re-runs it (the 10-12 baseline names it as its one failing expectation). So Monday 10-19's run is expected red for that structural reason, filed as field-laboratory docs/CC-CMD-2026-10-17-verify-full-scheduled-outbox-row.md (an owner decision). Dispatched runs pass 530/530 (38998337325, 39044130530). review_by 10-27 is the day after the following Monday run, so this is re-read against that CC-CMD's outcome."
     }
   }
 }
