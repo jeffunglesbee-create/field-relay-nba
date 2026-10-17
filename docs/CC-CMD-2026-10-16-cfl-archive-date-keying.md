@@ -3,7 +3,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
-**Filed:** 2026-10-16 by chat, read from `src/index.js` at `176f0c7`, measured against live `field-archive` (`cc49101c-0569-4d41-8e7a-be139cde4f26`)
+**Filed:** 2026-10-16 by chat, read from `src/index.js` blob `92478cc` (commit `176f0c7` when filed — cite the blob, not the commit: an agent rebase on this branch orphans the commit sha and leaves the citation unverifiable, which is what happened to the first version of this line), measured against live `field-archive` (`cc49101c-0569-4d41-8e7a-be139cde4f26`)
 **Status:** NOT STARTED — not dispatched.
 
 Found while tracing a different hypothesis. The hypothesis was wrong and the
