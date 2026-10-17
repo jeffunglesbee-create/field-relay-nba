@@ -205,6 +205,14 @@ jobs:
             --control
           node scripts/mutate-empty-catches.mjs
 
+      # DUPLICATED IN guards.yml ON PURPOSE, as the step above is: a collapse
+      # added to src/ is a src-only push, which guards.yml ignores.
+      # Rule 99: no op's flagged OR suppressed count may rise above
+      # docs/absence-collapse-baseline.json. The script is jubilant-bassoon's,
+      # cloned and run, not copied; see scripts/absence-collapse-ratchet.sh.
+      - name: No absence-collapse site appears beyond the baseline
+        run: bash scripts/absence-collapse-ratchet.sh
+
       - name: No claim is wider than its declared scope
         run: |
           node scripts/check-scope-claims.mjs --self-test

@@ -329,6 +329,14 @@ jobs:
           node scripts/mutate-bsd-frame-contract.mjs
           node scripts/check-bsd-frame-contract.mjs
 
+      # Rule 99, the absence-collapse ratchet. deploy.yml carries the same step
+      # for src-only pushes; this one covers scripts/ and workers/ changes that
+      # reach here. Reaches github.com to clone jubilant-bassoon, whose
+      # scripts/check-absence-collapse.mjs it runs rather than copies.
+      - name: No absence-collapse site appears beyond the baseline
+        if: always()
+        run: bash scripts/absence-collapse-ratchet.sh
+
       # LAST, AND THAT IS THE POINT. This checked HANDOFF.md's staleness from
       # step 6, and the gates here are sequential steps in ONE job, so its red
       # SKIPPED every step after it: the credential scan's siblings, the odds
