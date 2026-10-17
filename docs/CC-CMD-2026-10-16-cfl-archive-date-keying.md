@@ -1,4 +1,4 @@
-# Claude Code Command — the CFL archive writer keys `date` on the UTC day; 12 rows are stamped one day ahead
+# Claude Code Command — the CFL archive writer keys `date` on the UTC day; every boundary-crossing row is stamped one day ahead
 
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba
@@ -74,18 +74,24 @@ which keying produced its `date`. Measured 2026-10-16 across the EDT band
 
 | sport | discriminating rows | keyed ET | keyed UTC |
 |---|---|---|---|
-| MLB | 332 | 332 | 0 |
-| MLS | 126 | 126 | 0 |
+| MLB | 333 | 333 | 0 |
+| MLS | 133 | 133 | 0 |
 | WNBA | 104 | 104 | 0 |
-| CFB | 91 | 91 | 0 |
-| NHL | 72 | 72 | 0 |
+| CFB | 100 | 100 | 0 |
+| NHL | 76 | 76 | 0 |
 | NBA | 35 | 35 | 0 |
 | NFL | 34 | 34 | 0 |
-| **CFL** | **12** | **0** | **12** |
+| **CFL** | **13** | **0** | **13** |
 | FIFA World Cup | 6 | 6 | 0 |
 
-**800 ET, 12 UTC, 0 ambiguous.** CFL is the only sport keyed UTC, and it is
-100% of CFL's discriminating rows. The writer is the one at `8947`/`8960`:
+**821 ET, 13 UTC, 0 ambiguous** (re-probed 2026-10-17T14:10Z; 800/12/0 at
+filing on 2026-10-16, and the per-sport figures above are the re-probe). CFL is
+the only sport keyed UTC, and it is 100% of CFL's discriminating rows.
+
+**The set grows while the writer is unfixed** — one row per CFL game that kicks
+off after 20:00 ET. The thirteenth, `CFL_2026-10-17_e13419748`, finalised at
+2026-10-17 10:03 ET, roughly eleven hours after this CC-CMD was filed. Expect a
+higher count at dispatch; TASK 0 says what to do about it. The writer is the one at `8947`/`8960`:
 
 ```js
 const gameDate = String(t.date || '').slice(0, 10);   // 8947
@@ -97,7 +103,7 @@ date: gameDate,                                        // 8960
 ten characters yields the **UTC** calendar day. For a CFL kickoff after 20:00 ET
 that is the following day.
 
-All twelve are stamped exactly one day ahead, and **the error is in the primary
+Every one is stamped exactly one day ahead, and **the error is in the primary
 key as well as the column**, because `id` embeds it
 (`id = ${sport}_${date}_${idTail}`, `src/index.js:13458`–`13462`):
 
@@ -115,6 +121,7 @@ key as well as the column**, because `id` embeds it
 | `CFL_2026-09-26_e13419736` | `2026-09-26T02:30:00+00:00` | 2026-09-25 |
 | `CFL_2026-10-03_e13419740` | `2026-10-03T01:30:00+00:00` | 2026-10-02 |
 | `CFL_2026-10-10_e13419744` | `2026-10-10T02:12:00+00:00` | 2026-10-09 |
+| `CFL_2026-10-17_e13419748` | `2026-10-17T01:30:00+00:00` | 2026-10-16 |
 
 ### The consumer this breaks
 
@@ -131,21 +138,45 @@ viewer on the following day sees it on a day it was not played.
 
 ### CFL scope, measured
 
-41 regular rows, 0 postseason rows, 0 with an empty `start_time`. 29 of the 41
-do not cross UTC midnight and are therefore correct **by accident** — the
-writer is wrong for all 41, the stored value is wrong for 12.
+42 regular rows, 0 postseason rows, 0 with an empty `start_time` (2026-10-17).
+29 of the 42 do not cross UTC midnight and are therefore correct **by
+accident** — the writer is wrong for all 42, the stored value is wrong for 13.
 
 ---
 
 ## TASK 0 — re-probe before writing anything (Rule 87)
 
-Do not trust the numbers above. Re-run them. If any disagrees, **stop and
-report verbatim** — a changed count means something wrote to these tables since
-this was filed and the migration's row set is no longer the one it was written
-for.
+Do not trust the numbers above. Re-run them. **Then pin the shape, not the
+count.**
+
+The first version of this task said "if any number disagrees, stop and report
+verbatim". That was wrong, and it would have halted this CC-CMD on its own
+dispatch. The writer is live and unfixed, so the mis-keyed set **grows by one
+row per CFL game that kicks off after 20:00 ET**: it went from 12 to 13 in the
+eleven hours between filing and the first re-probe, when
+`CFL_2026-10-17_e13419748` finalised. A count higher than the one recorded here
+is the expected state of an unfixed writer, not evidence that the row set is
+untrustworthy. Compute the set at runtime from query B and migrate what it
+returns.
+
+Stop and report verbatim on any of these, each of which means this CC-CMD does
+not describe what is in the table:
+
+| condition | why it halts |
+|---|---|
+| any **non-CFL** sport with `keyed_UTC` > 0 | a second writer has the same defect, and TASK 2 does not touch it |
+| any row keyed as **neither** ET nor UTC | a third keying exists that this CC-CMD does not describe |
+| any **collision** at a corrected id | the operation is a merge, not a rename — not authorised here |
+| any reference in **`briefs`**, **`game_thread_notes`** or **`odds_history`** | TASK 3 re-points `change_log` only |
+| the mis-keyed count is **below 13** | part of the set has already been migrated; stop rather than half-migrate |
+
+A count at or above 13 with all of the above clean is a green light, whatever
+the number.
 
 ```sql
--- A. the discriminating census. Expect 800 ET / 12 UTC / 0 neither.
+-- A. the discriminating census. 821 ET / 13 UTC / 0 neither at 2026-10-17.
+--    Expect keyed_UTC to be CFL-only and keyed_ET+keyed_UTC to equal the
+--    row count for every sport; the CFL figure itself may be higher.
 SELECT sport,
   COUNT(*) AS discriminating_rows,
   SUM(CASE WHEN date = date(start_time,'-4 hours') THEN 1 ELSE 0 END) AS keyed_ET,
@@ -156,7 +187,7 @@ WHERE start_time IS NOT NULL AND start_time <> ''
   AND date(start_time) <> date(start_time,'-4 hours')
 GROUP BY sport;
 
--- B. collisions at the corrected ids. Expect 0 for all 12.
+-- B. the row set to migrate, with collisions. Expect collision 0 on every row.
 SELECT r.id AS old_id,
   'CFL_' || date(r.start_time,'-4 hours') || substr(r.id, length('CFL_' || r.date) + 1) AS new_id,
   (SELECT COUNT(*) FROM regular_season_games x
@@ -167,7 +198,7 @@ WHERE r.sport = 'CFL' AND r.start_time IS NOT NULL AND r.start_time <> ''
   AND date(r.start_time) <> date(r.start_time,'-4 hours');
 
 -- C. inbound references. Expect briefs 0, change_log 4,
---    game_thread_notes 0, odds_history 0.
+--    game_thread_notes 0, odds_history 0 (re-probed 2026-10-17).
 WITH bad AS (
   SELECT id FROM regular_season_games
   WHERE sport = 'CFL' AND start_time IS NOT NULL AND start_time <> ''
@@ -208,9 +239,10 @@ not modify `getFieldDateKey()`.
  * hours a night that are hard to reach.
  *
  * PLAIN ET day, with no 4am rollback, and that is measured rather than
- * preferred: of 812 rows whose UTC day and ET day differ, the 800 non-CFL rows
- * carry the plain ET calendar day of kickoff, 800/800. A rollback here would
- * put CFL out of step with the other 800 rather than into step.
+ * preferred: measured 2026-10-17 over the 834 rows whose UTC day and ET day
+ * differ, the 821 non-CFL rows carry the plain ET calendar day of kickoff,
+ * 821 of 821. A rollback here would put CFL out of step with those 821 rather
+ * than into step.
  *
  * Via the IANA zone name, not a fixed offset. EST resumes on 2026-11-01 and a
  * hardcoded -4 would start mis-dating evening games that day. Same
@@ -265,7 +297,7 @@ run on UTC day U — which moves the window one day earlier, so one of its two
 days now falls **before the game kicks off**. The game is still written on the
 UTC day it completes, so nothing is lost outright, but the retry coverage for
 boundary-crossing CFL games drops from two useful UTC days to one. Those are
-precisely the twelve games this CC-CMD exists for.
+precisely the boundary-crossing games this CC-CMD exists for.
 
 **Split the two uses. Do not touch `_cflToday` or `_cflYday`** — they are a
 "recent two days" window, not a slate identity, and UTC is a fine basis for
@@ -285,11 +317,11 @@ for (const t of (round?.tournaments || [])) {
     if (gameDateUtc !== _cflToday && gameDateUtc !== _cflYday) continue;
 
     // The stamped value. Was `gameDateUtc`, which is the UTC calendar day: a
-    // CFL kickoff after 20:00 ET falls on the next UTC day, so 12 of 41 stored
+    // CFL kickoff after 20:00 ET falls on the next UTC day, so 13 of 42 stored
     // rows were stamped one day ahead -- and the date is embedded in the
     // archive id, so each was a wrong primary key, not just a wrong column.
-    // Measured: 800 of 800 non-CFL discriminating rows key on the ET day;
-    // CFL was 0 of 12, the only sport in the table keyed on UTC.
+    // Measured 2026-10-17: 821 of 821 non-CFL discriminating rows key on the
+    // ET day; CFL was 0 of 13, the only sport in the table keyed on UTC.
     const gameDate = fieldDayOfInstant(t.date);
     if (!gameDate) {
         console.error(`[ARCHIVE-CFL] unparseable vendor date ${JSON.stringify(t.date)} for event ${t.id || '(no id)'} — skipping this archive write rather than stamping a guessed day`);
@@ -310,13 +342,13 @@ the `status !== 'complete'` guard on the next line already uses it.
 a fallback dressed as a guard, and it moves the failure to a place where the
 vendor id is out of scope to log.
 
-`Date.parse` is safe on this feed: all 41 CFL rows carry an explicit `+00:00`
-offset (`2026-10-16T23:00:00+00:00`), 41 of 41 measured, which is also why the
+`Date.parse` is safe on this feed: all 42 CFL rows carry an explicit `+00:00`
+offset (`2026-10-16T23:00:00+00:00`), 42 of 42 measured 2026-10-17, which is also why the
 existing `.slice(0, 10)` really is the UTC day rather than a local one.
 
 ---
 
-## TASK 3 — migrate the 12 rows
+## TASK 3 — migrate the mis-keyed rows (13 at 2026-10-17, and growing)
 
 New file `scripts/migrate-cfl-date-keying.mjs`. Dry-run by default; applies only
 with `--apply`.
@@ -332,7 +364,7 @@ Requirements, each of which is a real hazard:
 
 1. **Compute the new day in JS with the same `Intl` call as TASK 1**, from each
    row's own `start_time`. Do not use `date(start_time,'-4 hours')` in the
-   migration SQL. It is correct for today's twelve rows and becomes wrong the
+   migration SQL. It is correct for every row in today's set and becomes wrong the
    moment this script is re-run after 2026-11-01.
 2. **Rebuild the id by assertion, not by substitution.** Assert
    `old_id.startsWith('CFL_' + old_date)`; if it does not, skip that row and
@@ -341,11 +373,11 @@ Requirements, each of which is a real hazard:
    A blind `replace(old_date, new_date)` would also rewrite a date appearing
    later in the id.
 3. **Re-check the collision at every target id at runtime and abort the whole
-   run if any is non-zero.** Measured 0/12 at filing; a collision would mean a
+   run if any is non-zero.** Measured 0 of 13 on 2026-10-17; a collision would mean a
    correctly-dated sibling row already exists and the operation is a merge, not
    a rename. A merge is NOT authorised by this CC-CMD — stop and report.
 4. **Re-point `change_log.game_id`.** Four rows, `consumed = 0`, on two of the
-   twelve (`CFL_2026-08-23_torontoargonauts_hamiltontigercats`,
+   set (`CFL_2026-08-23_torontoargonauts_hamiltontigercats`,
    `CFL_2026-09-13_e13419731`). `getRecentChanges()` in
    `src/sync-reconciler.js:181` accepts `opts.gameIds` and filters
    `game_id IN (…)`, so an un-repointed row becomes permanently unreachable:
@@ -354,11 +386,11 @@ Requirements, each of which is a real hazard:
 5. **`briefs` needs no change, and this is the opposite of what the code
    comment predicts.** `src/index.js:13440` warns that "briefs.game_id joins
    games.id in src/analytics-engine.js" — true in general, and **measured at 0
-   references for these twelve**. Do not write a briefs migration on the
+   references for this set**, re-probed 2026-10-17. Do not write a briefs migration on the
    strength of that comment. Re-run probe C; if it returns non-zero, stop and
    report rather than extending the script.
 6. `game_thread_notes` and `odds_history` also carry `game_id` — both measured
-   at 0 for these twelve. The code comment names only `briefs`, so the
+   at 0 for this set. The code comment names only `briefs`, so the
    referencing surface is four tables, not one. Probe all four.
 7. Print the full before/after table and the row counts each `UPDATE` reports.
    A `changes` count that is not 1 per statement is a failure, not a warning.
@@ -395,7 +427,9 @@ an inequality direction:
   exits 0 — `scripts/check-absence-collapse.mjs` in jubilant-bassoon prints 263
   flagged rows and exits 0 because `failed` is only ever set by its `--require`
   path, and a guard that cannot fail is documentation.
-- Expected baseline: **12 before TASK 3, 0 after.** Record both in the file.
+- Expected baseline: **whatever count TASK 0 measured before TASK 3, and 0
+  after.** Record both in the file. Do not hardcode 13 — the number at dispatch
+  depends on how many CFL games have crossed UTC midnight since filing.
 
 **Exempt exactly two sport labels, by exact string match:** `'golf'` and
 `'PGA Tour'`. Rule 50 — no substring matching; do not test for `'golf'` as a
@@ -433,7 +467,7 @@ the guard must distinguish them).
 1. Re-run probe A. Every sport, `keyed_UTC` = 0.
 2. Re-run the guard. Exit 0, and its own output states 0 mismatches over the
    full row count it checked — not "no output".
-3. Confirm the twelve new ids exist and the twelve old ids do not.
+3. Confirm every new id exists and every old id does not.
 4. Confirm `change_log` has 4 rows on the two new ids and 0 on the two old ones.
 5. `GET /context/date/2026-10-09` includes `BC Lions` v `Ottawa RedBlacks`, and
    `GET /context/date/2026-10-10` no longer does.
@@ -451,7 +485,7 @@ the guard must distinguish them).
   journalism KV keys and the BSD endgame capture, which are different callers
   with a different question. Touching it to fix a divergence that does not bite
   would be a change with no measurement behind it.
-- **Do not add a 4am rollback to `fieldDayOfInstant`.** 800/800 says plain ET.
+- **Do not add a 4am rollback to `fieldDayOfInstant`.** 821/821 says plain ET.
 - **Do not migrate the 29 CFL rows that currently agree.** Their stored value is
   correct; only the writer was wrong. Rewriting them would churn 29 primary keys
   for no change in value.
@@ -488,7 +522,8 @@ the guard must distinguish them).
 
 The original question — "do the two rollovers diverge?" — had a clean answer
 (yes) and a clean consequence (no). Reporting that and stopping would have left
-twelve wrong primary keys in place, because the hypothesis was aimed at the two
+thirteen wrong primary keys in place, one of them written while this was being
+drafted, because the hypothesis was aimed at the two
 writers that agree and the defect was in the two that were never in frame. The
 discriminating census was cheap, took one query, and did not depend on the
 hypothesis being right. The reusable rule: when a trace is about which
