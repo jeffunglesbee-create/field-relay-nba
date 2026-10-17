@@ -3,7 +3,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
-**Filed:** 2026-10-16 by chat, read from `src/index.js` at `fea794c`, measured against live `field-archive` (`cc49101c-0569-4d41-8e7a-be139cde4f26`)
+**Filed:** 2026-10-16 by chat, read from `src/index.js` at `176f0c7`, measured against live `field-archive` (`cc49101c-0569-4d41-8e7a-be139cde4f26`)
 **Status:** NOT STARTED — not dispatched.
 
 Found while tracing a different hypothesis. The hypothesis was wrong and the
@@ -30,23 +30,23 @@ defect shape, so the column's writer was traced.
 **The trace, and it closes cleanly:**
 
 1. `date` on `regular_season_games` / `postseason_games` is written at INSERT
-   only, by `POST /archive/game` (binds at `src/index.js:13478`, `13515`), from
+   only, by `POST /archive/game` (binds at `src/index.js:13480`, `13517`), from
    the request body. **No `UPDATE` sets it. No `ON CONFLICT` clause re-sets
    it.** Verified by scanning every `UPDATE` against both tables: the eight that
    exist set `importance`, `went_to_ot`, `drama_peak`/`drama_arc`,
    `home_score`/`away_score`/`espn_event_id`/`finalized_at`. None touches
    `date`.
 2. Four in-worker callers, all inside `handleJournalismCycle`
-   (`src/index.js:8084`–`9692`), driven by the `*/15` cron at `9779`:
+   (`src/index.js:8086`–`9694`), driven by the `*/15` cron at `9781`:
 
    | line | `date:` value | keying |
    |---|---|---|
-   | 8681 | `dateKey` = `getFieldDateKey()` | ET, 4am rollback |
-   | 8784 | `dateKey` = same | ET, 4am rollback |
-   | 8885 | `yesterdayKey` = `new Date(Date.now()-86400000).toISOString().slice(0,10)` | **UTC** |
-   | 8958 | `gameDate` = `String(t.date \|\| '').slice(0, 10)` (CFL) | **vendor UTC** |
+   | 8683 | `dateKey` = `getFieldDateKey()` | ET, 4am rollback |
+   | 8786 | `dateKey` = same | ET, 4am rollback |
+   | 8887 | `yesterdayKey` = `new Date(Date.now()-86400000).toISOString().slice(0,10)` | **UTC** |
+   | 8960 | `gameDate` = `String(t.date \|\| '').slice(0, 10)` (CFL) | **vendor UTC** |
 
-3. **The 4am branch cannot execute on this path.** Line 8096:
+3. **The 4am branch cannot execute on this path.** Line 8098:
 
    ```js
    const hour = new Date().getUTCHours();
@@ -54,7 +54,7 @@ defect shape, so the column's writer was traced.
    ```
 
    The dead band is UTC 3–9, and every path inside that block returns
-   (`8353`, `8355`, `8374`, `8377`) before the archive catch-up at `8380`.
+   (`8355`, `8357`, `8376`, `8379`) before the archive catch-up at `8382`.
    `getFieldDateKey()`'s rollback fires at ET 00:00–03:59, which is UTC 04–07
    under EDT and UTC 05–08 under EST. **Both windows sit entirely inside the
    dead band, under both DST regimes.** The only writer that reads that clock
@@ -85,12 +85,12 @@ which keying produced its `date`. Measured 2026-10-16 across the EDT band
 | FIFA World Cup | 6 | 6 | 0 |
 
 **800 ET, 12 UTC, 0 ambiguous.** CFL is the only sport keyed UTC, and it is
-100% of CFL's discriminating rows. The writer is the one at `8945`/`8958`:
+100% of CFL's discriminating rows. The writer is the one at `8947`/`8960`:
 
 ```js
-const gameDate = String(t.date || '').slice(0, 10);   // 8945
+const gameDate = String(t.date || '').slice(0, 10);   // 8947
 ...
-date: gameDate,                                        // 8958
+date: gameDate,                                        // 8960
 ```
 
 `t.date` is the vendor's instant (`2026-10-16T23:00:00+00:00`). Slicing it to
@@ -99,7 +99,7 @@ that is the following day.
 
 All twelve are stamped exactly one day ahead, and **the error is in the primary
 key as well as the column**, because `id` embeds it
-(`id = ${sport}_${date}_${idTail}`, `src/index.js:13456`–`13460`):
+(`id = ${sport}_${date}_${idTail}`, `src/index.js:13458`–`13462`):
 
 | current id | `start_time` | correct ET day |
 |---|---|---|
@@ -234,36 +234,85 @@ function fieldDayOfInstant(value) {
 
 ## TASK 2 — fix the CFL writer
 
-At `src/index.js:8945`, replace:
+**Read the whole loop before editing. `gameDate` does double duty and a
+one-line substitution silently narrows the retry window for exactly the games
+this CC-CMD is about.**
+
+Current, `src/index.js:8946`–`8950`, verbatim:
 
 ```js
-const gameDate = String(t.date || '').slice(0, 10);
+for (const t of (round?.tournaments || [])) {
+    if (t?.status !== 'complete') continue;
+    const gameDate = String(t.date || '').slice(0, 10);
+    if (gameDate !== _cflToday && gameDate !== _cflYday) continue;
 ```
 
-with:
+against, at `8942`–`8943`:
 
 ```js
-// CC-CMD-2026-10-16-cfl-archive-date-keying: was
-//   String(t.date || '').slice(0, 10)
-// which is the UTC calendar day. CFL kickoffs after 20:00 ET fall on the next
-// UTC day, so 12 of 41 stored rows were stamped one day ahead — and the date is
-// embedded in the archive id, so each was a wrong primary key, not just a wrong
-// column. Measured: 800 of 800 non-CFL discriminating rows key on the ET day;
-// CFL was 0 of 12. This is the only sport in the table keyed on UTC.
-const gameDate = fieldDayOfInstant(t.date);
-if (!gameDate) {
-    console.error(`[ARCHIVE-CFL] unparseable vendor date ${JSON.stringify(t.date)} for event ${t.id || '(no id)'} — skipping this archive write rather than stamping a guessed day`);
-    continue;
-}
+const _cflToday = new Date().toISOString().slice(0, 10);
+const _cflYday  = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 ```
 
-**Check the enclosing construct before using `continue`.** If `8945` is not
-inside a loop body where `continue` is valid, skip the POST by whatever control
-flow that construct supports. Do not synthesise a date, and do not let the
-empty-string path through to `/archive/game` on the theory that its
-`if (!sport || !date)` 400 will catch it — that is a fallback dressed as a
-guard, and it moves the failure to a place where the vendor id is no longer in
-scope to log.
+Both bounds are **UTC** days. So the one `gameDate` value is used for two
+different jobs: a recency window (compared against UTC bounds) and the stamped
+archive `date` (which must be the ET day). Replacing it in place with an ET day
+would compare ET days against UTC bounds.
+
+That is not a cosmetic mismatch. For a game whose UTC day V is one ahead of its
+ET day E, the window changes from `V ∈ {U, U−1}` to `E ∈ {U, U−1}` for a cron
+run on UTC day U — which moves the window one day earlier, so one of its two
+days now falls **before the game kicks off**. The game is still written on the
+UTC day it completes, so nothing is lost outright, but the retry coverage for
+boundary-crossing CFL games drops from two useful UTC days to one. Those are
+precisely the twelve games this CC-CMD exists for.
+
+**Split the two uses. Do not touch `_cflToday` or `_cflYday`** — they are a
+"recent two days" window, not a slate identity, and UTC is a fine basis for
+that. Keeping them unchanged makes the window byte-identical to today's
+behaviour.
+
+```js
+for (const t of (round?.tournaments || [])) {
+    if (t?.status !== 'complete') continue;
+    // CC-CMD-2026-10-16-cfl-archive-date-keying. This value was doing two jobs
+    // under one name: the recency window below AND the stamped archive `date`.
+    // Only the second was wrong, so only the second changes. The window stays
+    // on the UTC day and stays compared against the UTC `_cflToday`/`_cflYday`
+    // bounds -- an ET day here would shift the window a day earlier and halve
+    // the retry coverage for the boundary-crossing games this fixes.
+    const gameDateUtc = String(t.date || '').slice(0, 10);
+    if (gameDateUtc !== _cflToday && gameDateUtc !== _cflYday) continue;
+
+    // The stamped value. Was `gameDateUtc`, which is the UTC calendar day: a
+    // CFL kickoff after 20:00 ET falls on the next UTC day, so 12 of 41 stored
+    // rows were stamped one day ahead -- and the date is embedded in the
+    // archive id, so each was a wrong primary key, not just a wrong column.
+    // Measured: 800 of 800 non-CFL discriminating rows key on the ET day;
+    // CFL was 0 of 12, the only sport in the table keyed on UTC.
+    const gameDate = fieldDayOfInstant(t.date);
+    if (!gameDate) {
+        console.error(`[ARCHIVE-CFL] unparseable vendor date ${JSON.stringify(t.date)} for event ${t.id || '(no id)'} — skipping this archive write rather than stamping a guessed day`);
+        continue;
+    }
+```
+
+`date: gameDate` at `8960` then needs no edit, which is the point of keeping the
+name: the POST body is unchanged and the diff is confined to the two lines that
+compute the values.
+
+`continue` is valid here — the site is the inner body of nested `for…of` loops
+(`for (const round of rounds)` at `8945`, `for (const t of …)` at `8946`), and
+the `status !== 'complete'` guard on the next line already uses it.
+
+**Do not route the empty-date case through `/archive/game`'s
+`if (!sport || !date)` 400** on the theory that it already catches this. That is
+a fallback dressed as a guard, and it moves the failure to a place where the
+vendor id is out of scope to log.
+
+`Date.parse` is safe on this feed: all 41 CFL rows carry an explicit `+00:00`
+offset (`2026-10-16T23:00:00+00:00`), 41 of 41 measured, which is also why the
+existing `.slice(0, 10)` really is the UTC day rather than a local one.
 
 ---
 
@@ -303,7 +352,7 @@ Requirements, each of which is a real hazard:
    the retention sweep at `:235` only deletes rows with `consumed = 1`, so it
    would never be cleaned up either.
 5. **`briefs` needs no change, and this is the opposite of what the code
-   comment predicts.** `src/index.js:13438` warns that "briefs.game_id joins
+   comment predicts.** `src/index.js:13440` warns that "briefs.game_id joins
    games.id in src/analytics-engine.js" — true in general, and **measured at 0
    references for these twelve**. Do not write a briefs migration on the
    strength of that comment. Re-run probe C; if it returns non-zero, stop and
@@ -359,7 +408,7 @@ so they are different quantities and the comparison is meaningless. Four rows
 share `espn_event_id = 401850916` and the single `start_time`
 `2026-10-08T04:00Z` while their `date` steps 2026-10-09, -10, -11, -12. This
 matches the per-tournament id convention already documented at
-`src/index.js:13356`–`13362`. Write that reason into the file; an exemption
+`src/index.js:13358`–`13364`. Write that reason into the file; an exemption
 without its reason becomes a tolerance nobody can re-derive.
 
 **Self-test fixtures, run on every invocation.** Include at minimum these two,
@@ -415,7 +464,7 @@ the guard must distinguish them).
 ## Noted, not authorised — each wants its own CC-CMD
 
 1. **`yesterdayKey` asks for the wrong slate for three hours a day.**
-   `src/index.js:8807` computes UTC-now minus 24h. Between UTC 00:00 and 02:59
+   `src/index.js:8809` computes UTC-now minus 24h. Between UTC 00:00 and 02:59
    (ET 20:00–22:59 EDT) that is the **current** ET date, so the "yesterday
    catch-up" re-fetches today and yesterday's late finals go unfilled until
    ET 06:00. It writes no mis-dated row — the same key feeds both the ESPN
