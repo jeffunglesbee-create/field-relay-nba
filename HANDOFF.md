@@ -1,5 +1,30 @@
 # FIELD Relay — HANDOFF
 
+## `/bsd/r2/list` scope and `/bsd/contract` frame — 2026-10-16
+
+**HEAD:** `ee4bfc9` → `234707f` · **Branch:** main
+
+`docs/CC-CMD-2026-10-16-bsd-list-and-contract.md` is DONE. It closes items 2
+and 3 of the 2026-10-16 close-out below.
+
+- `/bsd/r2/list` now names its scope (`prefix`, `prefixSource`), honours
+  `limit` (clamped 1..1000, echoed) and pages by `cursor`. The `bsd/wc26/`
+  default is KEPT on purpose: Task 0 found one no-prefix caller,
+  field-laboratory `probe-empowerment.mjs`'s `r2_list_mechanism`, which
+  measures that default.
+- `/bsd/contract` revision `2026-10-16-1`: `incidents[].sequence[].pos` is one
+  shared pitch, `perTeam: false` (home 1212/1212 at x >= 50, away 0/969, 74
+  own goals excluded), and `supersedes` says `2026-10-10-1` was wrong about it.
+  `shotmap[].pos` / `shotmap[].gm` unchanged; the guard re-measured both as
+  declared.
+- New gate in `guards.yml`: `scripts/check-bsd-frame-contract.mjs`. It
+  re-measures every declared frame from R2, and a side with fewer than 3
+  records is INSUFFICIENT (exit 3), never a pass. It failed on the old
+  declaration (run 38984129822) and passes on the new one (run 38984913896).
+  Deployed contract checked 22/22 (run 38985223115).
+
+Session doc: `outbox/cc-session-2026-10-16-bsd-list-and-contract.md`
+
 ## BDB frames, Tasks 1-4 — 2026-10-16
 
 `docs/CC-CMD-2026-10-15-build-bdb-frames.md` is DONE. `/nflverse/bdb_event_frames.json`
