@@ -11,7 +11,10 @@
 // CI because a CONNECT to the relay host is 403-denied in the sandbox.
 
 export const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
-export const WANT_REVISION = '2026-10-10-1'
+// 2026-10-16-1: incidents[].sequence[].pos corrected from per-team
+// target-goal-relative to ONE shared pitch (docs/CC-CMD-2026-10-16-bsd-list-and-contract.md).
+export const WANT_REVISION = '2026-10-16-1'
+export const SEQ = 'incidents[].sequence[].pos'
 export const MIRROR = 'x = 100 - x; y = 100 - y'
 
 /** Every done-condition assertion, as data, so the list is checkable and the
@@ -28,8 +31,15 @@ export const assertions = (c) => [
     (c?.coordinateSystem?.corrected?.keepers ?? []).length === 6],
   ['...and none of them is near 90',
     (c?.coordinateSystem?.corrected?.keepers ?? []).every(k => k.x < 20)],
-  ['four distinct frames are documented',
-    new Set(Object.values(c?.frames ?? {}).map(f => f.frame)).size === 4],
+  ['five distinct frames are documented',
+    new Set(Object.values(c?.frames ?? {}).map(f => f.frame)).size === 5],
+  ['the goal build-up is ONE shared pitch, not per-team',
+    c?.frames?.[SEQ]?.frame === 'shared-pitch' && c?.frames?.[SEQ]?.perTeam === false],
+  ['the contract says the prior revision was wrong about it',
+    c?.supersedes?.revision === '2026-10-10-1' && (c?.supersedes?.wrongAbout ?? []).includes(SEQ)],
+  ['an own goal is declared a frame discontinuity', /discontinuity/i.test(c?.frames?.[SEQ]?.ownGoal ?? '')],
+  ['the away mirror is NOT for the shared frame',
+    (c?.transformReference?.mirrorAwayNotFor ?? []).some(p => p.startsWith(SEQ))],
   ['the two pitch frames have OPPOSITE origins',
     /DEFENDS/i.test(c?.frames?.['average_positions[]']?.xZero ?? '')
     && /ATTACKS/i.test(c?.frames?.['shotmap[].pos']?.xZero ?? '')],
@@ -64,10 +74,13 @@ function selfTest () {
     frames: {
       'average_positions[]': { frame: 'own-goal-relative', xZero: 'the goal this team DEFENDS' },
       'shotmap[].pos': { frame: 'target-goal-relative', xZero: 'the goal this team ATTACKS' },
+      [SEQ]: { frame: 'shared-pitch', perTeam: false, ownGoal: 'a FRAME DISCONTINUITY' },
       'shotmap[].gm': { frame: 'goal-plane', xZero: 'always 0' },
       'incidents[] goal .gm': { frame: 'goal-mouth-2d', xZero: 'across the mouth' },
     },
-    transformReference: { mirrorAway: MIRROR, mirrorAwayRequired: true, mirrorForAwayPerspective: MIRROR },
+    supersedes: { revision: '2026-10-10-1', wrongAbout: [SEQ] },
+    transformReference: { mirrorAway: MIRROR, mirrorAwayRequired: true, mirrorForAwayPerspective: MIRROR,
+                          mirrorAwayNotFor: [`${SEQ} — already one shared pitch`] },
     frameShapes: {
       shot: { example: { gm: { x: 0 } } },
       avgPosition: { example: { n: 46, name: 'Cleiton' }, n: 'A COUNT, exact definition UNCONFIRMED' },
@@ -86,6 +99,8 @@ function selfTest () {
     ['the two pitch frames given the SAME origin', c => { c.frames['shotmap[].pos'].xZero = 'the goal this team DEFENDS' }],
     ['the invented 88.3 shot example put back', c => { c.frameShapes.shot.example = { x: 88.3, y: 51.5 } }],
     ['n renamed touches on the strength of the old example', c => { c.frameShapes.avgPosition.example = { player: 'x', touches: 71 } }],
+    ['the goal build-up declared per-team again', c => { c.frames[SEQ] = { ...c.frames[SEQ], frame: 'target-goal-relative', perTeam: true } }],
+    ['the record of the wrong revision dropped', c => { delete c.supersedes }],
   ]
   for (const [name, apply] of mutations) {
     const c = JSON.parse(JSON.stringify(good))
@@ -95,7 +110,7 @@ function selfTest () {
     const caught = !assertions(c).every(([, ok]) => ok)
     check(`MUTATION applied and caught: ${name}`, applied && caught)
   }
-  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${9 - failed}/9 self-tests`)
+  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${11 - failed}/11 self-tests`)
   return failed
 }
 

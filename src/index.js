@@ -10504,7 +10504,9 @@ export default {
                         },
                     },
 
-                    // THE FOUR FRAMES. The contract used to document one
+                    // THE FIVE FRAMES (four until 2026-10-16, when the goal
+                    // build-up was measured to be a shared pitch, not the
+                    // shots' per-team frame). The contract used to document one
                     // coordinate system and four payload shapes under it. The
                     // shapes do not share a frame, and the two PITCH frames
                     // have OPPOSITE origins — that is the trap. A reader who
@@ -10527,12 +10529,31 @@ export default {
                                     'event\'s keeper averages read 10.4 and 10.6 under the other convention.',
                         },
                         'incidents[].sequence[].pos': {
-                            frame:  'target-goal-relative',
-                            xZero:  'the goal this team ATTACKS',
-                            perTeam: true,
-                            note:   'Same frame as shotmap[].pos; `.end` and `.gk` are in it too. Confirmed by the ' +
-                                    '73\' goal in 223324: the DEFENDING keeper reads gk.x 5.4 beside the away ' +
-                                    'scorer\'s pos.x 7.3 — in front of the goal being attacked, not his own half.',
+                            frame:  'shared-pitch',
+                            xZero:  'the goal the HOME team defends: home attacks toward x = 100, away toward x = 0',
+                            perTeam: false,
+                            note:   'ONE pitch for both sides, so NOT the frame of shotmap[].pos, though the key ' +
+                                    'shape is identical; `.end` and `.gk` are in it too. Mixing the two mirrors the ' +
+                                    'away team silently. Measured 2026-10-16 by scripts/check-bsd-frame-contract.mjs ' +
+                                    '(run 38984129822) over 791 non-shell R2 captures, 74 own goals excluded: home scorers at x >= 50 ' +
+                                    '1212/1212, away scorers at x >= 50 0/969. A field-laboratory census over 427 ' +
+                                    'non-own goals read 246/246 home high and 181/181 away low ' +
+                                    '(docs/BSD-FRAME-DIAGNOSTIC-2026-10-15.md, 2026-10-15). Only a HOME goal ' +
+                                    'discriminates: a shared pitch puts a home scorer near 88 and his keeper near 99, ' +
+                                    'a per-team frame near 12 and 2. For an away goal both frames predict the same numbers.',
+                            ownGoal: 'A FRAME DISCONTINUITY. `is_home` marks the team CREDITED with the goal; the ' +
+                                     'sequence records the ATTACKING move, by the other team, so its coordinates ' +
+                                     'belong to the side `is_home` does not name. Exclude goal_type "ownGoal" from ' +
+                                     'any side-split reading of these coordinates. field-laboratory ' +
+                                     'docs/BSD-FRAME-DIAGNOSTIC-2026-10-15.md: 8344 min 3, the only ownGoal in its ' +
+                                     'sample, is the only row that broke the pattern.',
+                            corrected: {
+                                on:  '2026-10-16',
+                                was: { frame: 'target-goal-relative', xZero: 'the goal this team ATTACKS', perTeam: true },
+                                why: 'The prior revision cited one goal: the 73\' goal in 223324 (gk.x 5.4, pos.x 7.3). ' +
+                                     'It is an AWAY goal, the only goal sequence in that capture, and for the away side ' +
+                                     'the two frames are numerically identical. That sample could not test perTeam.',
+                            },
                         },
                         'shotmap[].gm': {
                             frame:  'goal-plane',
@@ -10590,12 +10611,14 @@ export default {
                             source: '/bsd/events/{id}/average-positions',
                         },
                         incidentSequence: {
-                            // VERBATIM, same capture — the 73' goal in 223324.
+                            // VERBATIM, same capture — the 73' goal in 223324. An
+                            // AWAY goal: it reads the same under either pitch frame
+                            // and is a shape example, not evidence of one.
                             example: { gk: { x: 5.4, y: 48.4 }, gm: { x: 55.38, y: 94.67 }, pid: 4723,
                                        pos: { x: 7.3, y: 48 }, body: 'left-foot', event: 'goal',
                                        player: 'T. Cuello' },
                             keys:   'event, pid, player, pos{x,y}, end{x,y}?, gk{x,y}?, gm{x,y}?, body?, assist?',
-                            frames: 'pos/end/gk -> target-goal-relative; gm -> goal-mouth-2d, y DOWNWARD',
+                            frames: 'pos/end/gk -> shared-pitch (home attacks x = 100); gm -> goal-mouth-2d, y DOWNWARD',
                             source: '/bsd/events/{id}/incidents',
                         },
                     },
@@ -10618,12 +10641,22 @@ export default {
                         // data correctly; only the prose around it was wrong.
                         mirrorAway: 'x = 100 - x; y = 100 - y',
                         mirrorAwayRequired: true,
-                        mirrorAwayAppliesTo: 'the away side only, for any single-pitch render',
+                        mirrorAwayAppliesTo: 'the away side only, for any single-pitch render, of a perTeam: true frame',
+                        mirrorAwayNotFor: ['incidents[].sequence[].pos — already one shared pitch; mirroring it ' +
+                                           'moves the away build-up into the wrong half'],
                         mirrorForAwayPerspective: 'x = 100 - x; y = 100 - y',
                         mirrorForAwayPerspectiveNote: 'DEPRECATED NAME, kept so existing readers do not break. ' +
                                                       'Same formula; use mirrorAway.',
                     },
-                    revision: '2026-10-10-1',
+                    revision: '2026-10-16-1',
+                    supersedes: {
+                        revision:   '2026-10-10-1',
+                        wrongAbout: ['incidents[].sequence[].pos'],
+                        what:       'declared target-goal-relative, perTeam: true. It is one shared pitch, ' +
+                                    'perTeam: false. A consumer that read it per-team placed every HOME goal ' +
+                                    'build-up at the wrong end of the pitch. mirrorAway does not apply to it.',
+                        unchanged:  'shotmap[].pos and shotmap[].gm were re-measured and hold as declared.',
+                    },
                     status:   'axes measured and settled 2026-10-10. OPEN: average-positions cannot ' +
                               'name the CAUSE of an empty result — "finished but this competition ' +
                               'never carries the tracking tier" (websocket_plus: false) is reported ' +
