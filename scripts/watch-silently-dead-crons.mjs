@@ -133,7 +133,14 @@ export function overdueReviews(carriedKeys, baselineEntries, today = new Date().
 /** Repo-qualified, because `.github/workflows/deploy.yml` exists in all four. */
 export const declaredKey = (repo, path) => `${repo}:${path}`;
 
-export const cronFromSource = (src) => (String(src || '').match(/cron:\s*'([^']+)'/) || [])[1] || null;
+// COMMENTED LINES ARE NOT A SCHEDULE. A schedule retired by commenting it out
+// leaves `#   - cron: '...'` in the file, and the bare regex matched it, so a
+// workflow with no schedule at all was judged as one that never fired:
+// jubilant-bassoon soccer-fbref-mls.yml sat in the baseline as `never_fired`
+// from 2026-09-17 until 2026-10-17. Only a line that STARTS with `#` is
+// dropped, so a live cron followed by a trailing comment still counts.
+export const uncommented = (src) => String(src || '').split('\n').filter(l => !/^\s*#/.test(l)).join('\n');
+export const cronFromSource = (src) => (uncommented(src).match(/cron:\s*'([^']+)'/) || [])[1] || null;
 
 async function cronOf(repo, path) {
   try {
@@ -227,6 +234,14 @@ if (process.argv.includes('--self-test')) {
   one('a workflow with no schedule', cronFromSource('on:\n  push:\n    branches: [main]\n'), null,
       'nothing to judge — this is the bucket that must stay separate');
   one('an empty body', cronFromSource(''), null, 'a failed contents fetch is not a declared cron');
+  // The real shape, from jubilant-bassoon soccer-fbref-mls.yml: a schedule
+  // retired by commenting it out. It has no schedule, so nothing is due.
+  one('a retired, commented-out schedule',
+      cronFromSource("on:\n  # schedule:\n  #   - cron: '0 8 * * 1'\n  workflow_dispatch:\n"), null,
+      'a comment is not a schedule — this one was baselined as never-fired for a month');
+  one('a live cron with a trailing comment',
+      cronFromSource("on:\n  schedule:\n    - cron: '0 6 * * 1'  # weekly\n"), '0 6 * * 1',
+      'only a commented LINE is skipped, not a line that carries a comment');
 
   // ── THE RATCHET ────────────────────────────────────────────────────────
   const BASE = { 'r:a.yml': { review_by: '2026-10-17' }, 'r:b.yml': { review_by: '2026-10-17' } };

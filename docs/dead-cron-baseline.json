@@ -57,14 +57,6 @@
       "note": "Latest run 2026-09-14. Not investigated.",
       "unblocked_by": "read field-laboratory run 34839968312",
       "review_by": "2026-10-17"
-    },
-    "jeffunglesbee-create/jubilant-bassoon:.github/workflows/soccer-fbref-mls.yml": {
-      "kind": "never_fired",
-      "first_seen": "2026-09-17",
-      "red_since": "2026-06-22",
-      "note": "Declares cron '0 8 * * 1' and has never produced a scheduled run in 86.7 days. Twelve Mondays. GitHub disables schedules in inactive repos and silently drops ones it cannot parse; jubilant-bassoon is active, so the parse is the candidate — UNVERIFIED.",
-      "unblocked_by": "check the workflow's schedule block parses, and whether GitHub lists it as disabled",
-      "review_by": "2026-10-17"
     }
   }
 }

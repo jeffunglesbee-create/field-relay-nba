@@ -71,13 +71,18 @@ const MUTATIONS = [
     catches: 'one repo\'s declaration excuses a dead cron of the same name in another' },
 
   { name: 'D11 cron extraction stops distinguishing a scheduled workflow',
-    anchor: "export const cronFromSource = (src) => (String(src || '').match(/cron:\\s*'([^']+)'/) || [])[1] || null;",
+    anchor: "export const cronFromSource = (src) => (uncommented(src).match(/cron:\\s*'([^']+)'/) || [])[1] || null;",
     replace: 'export const cronFromSource = () => null;',
     catches: 'every never-fired cron is filed as "no schedule block" and never judged' },
 
+  { name: 'D18 a commented-out schedule reads as a declared cron again',
+    anchor: "export const uncommented = (src) => String(src || '').split('\\n').filter(l => !/^\\s*#/.test(l)).join('\\n');",
+    replace: "export const uncommented = (src) => String(src || '');",
+    catches: 'a schedule retired by commenting it out is judged as a cron that never fired' },
+
   { name: 'D12 a push-only workflow reads as a declared cron',
-    anchor: "(String(src || '').match(/cron:\\s*'([^']+)'/) || [])[1] || null",
-    replace: "(String(src || '').match(/cron:\\s*'([^']+)'/) || [])[1] || 'unknown'",
+    anchor: "(uncommented(src).match(/cron:\\s*'([^']+)'/) || [])[1] || null",
+    replace: "(uncommented(src).match(/cron:\\s*'([^']+)'/) || [])[1] || 'unknown'",
     catches: 'the no-schedule bucket floods into never-fired and the signal drowns' },
 
   // ── the ratchet: green means NO NEW DECAY, and that must be breakable ──
