@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-16 by chat, read from `src/index.js` at `5193016`
-**Status:** NOT STARTED — not dispatched.
+**Status:** DONE 2026-10-17 — `ad493f9` (list), `234707f` (contract rev 2026-10-16-1), guard in guards.yml. Session doc: `outbox/cc-session-2026-10-16-bsd-list-and-contract.md`.
 
 Two defects in relay-served BSD surfaces. Both were found from
 field-laboratory, not by a relay session. Both have already produced a wrong
