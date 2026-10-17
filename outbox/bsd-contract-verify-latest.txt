@@ -1,5 +1,5 @@
 === bsd contract, DEPLOYED  https://field-relay-nba.jeffunglesbee.workers.dev/bsd/contract
-PASS  revision is 2026-10-10-1
+PASS  revision is 2026-10-16-1
 PASS  status no longer says provisional
 PASS  space is per-team
 PASS  axes.x says the goal this team DEFENDS
@@ -7,7 +7,11 @@ PASS  axes.x no longer says 0 = home goal-line
 PASS  the old wording is recorded, not deleted silently
 PASS  the six keepers are quoted as the measurement
 PASS  ...and none of them is near 90
-PASS  four distinct frames are documented
+PASS  five distinct frames are documented
+PASS  the goal build-up is ONE shared pitch, not per-team
+PASS  the contract says the prior revision was wrong about it
+PASS  an own goal is declared a frame discontinuity
+PASS  the away mirror is NOT for the shared frame
 PASS  the two pitch frames have OPPOSITE origins
 PASS  the mirror is marked REQUIRED
 PASS  the mirror formula is byte-identical
@@ -18,17 +22,17 @@ PASS  n is documented as a count of unconfirmed definition, not renamed touches
 PASS  the incidents sequence shape is documented
 PASS  the open item names the availability state, not the axes
 
-  588245 (finished, websocket_plus false): HTTP 200 empty=true X-AvgPos-State=finished-no-data
-  220875 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
+  588245 (finished, websocket_plus false): HTTP 200 empty=false X-AvgPos-State=null
+  10190 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
 PASS  an empty finished event names a state, not a bare {}
 PASS  ...and that state is NOT in-play
 PASS  a live event that is empty reads in-play
   state coverage: 2 of 2 states exercised
 
-COVERAGE: 18 assertions over the live /bsd/contract response,
-revision 2026-10-10-1. Source is not consulted — this is the served object.
+COVERAGE: 22 assertions over the live /bsd/contract response,
+revision 2026-10-16-1. Source is not consulted — this is the served object.
 
-PASS: 18/18
+PASS: 22/22
 === bsd coordinate frames  fixture=scripts/fixtures/bsd-223324-coordinates.json  event=223324
   shots in capture        : 32
   discriminating (l/r)    : 21   skipped (centre/unlabelled): 11
