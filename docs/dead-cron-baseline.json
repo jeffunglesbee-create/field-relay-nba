@@ -48,7 +48,8 @@
       "red_since": "2026-07-25",
       "note": "Also has not produced ANY scheduled run since 2026-07-31 — failing AND stopped firing, 48 days. The two facts may have one cause or two; neither has been read.",
       "unblocked_by": "read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing",
-      "review_by": "2026-10-17"
+      "review_by": "2027-05-15",
+      "reviewed_2026_10_17": "Read; two causes, both established. STOPPED FIRING by design: its cron is '0 6 */3 6,7 *', months 6 and 7 only, so after 2026-07-31 it has no slot until 2027-06-01. FAILING on all 18 runs ever: the failed step is 'Commit outbox fallback', git exit 128. scripts/nba-clutch-update.py writes outbox/nba/ only after a successful stats.nba.com fetch and swallows a fetch error with exit 0, and outbox/nba/ has never been tracked in jubilant-bassoon's history, so `git add outbox/nba/` has nothing to match. That the fetch failed every time is an inference from those two facts: the job logs are served from a host this sandbox does not reach. Re-dated to two weeks before the next window, so it is fixed before it can fire again."
     },
     "jeffunglesbee-create/field-laboratory:.github/workflows/verify-full.yml": {
       "kind": "dead",
@@ -56,7 +57,8 @@
       "red_since": "2026-08-31",
       "note": "Latest run 2026-09-14. Not investigated.",
       "unblocked_by": "read field-laboratory run 34839968312",
-      "review_by": "2026-10-17"
+      "review_by": "2026-10-20",
+      "reviewed_2026_10_17": "Read. The baseline's run 34839968312 (09-14) and both later scheduled runs, 37318014470 (10-05) and 38262743658 (10-12), failed at 'Confidence gate (>= 95)', each on different rows (docs/confidence-log.jsonl: cf90786 three rows, 106d7c4 'breaking each invariant makes a check fail' and 'this session wrote its outbox'), each since fixed. Dispatched runs pass 530/530 at 53da77f (38998337325) and dc63004 (39044130530) on 10-17. The watch judges scheduled runs only; the next is Monday 2026-10-19 06:00 UTC, and 10-20 leaves room for the runner's measured 104-405 min delay. Green then resolves this entry; red names the row."
     }
   }
 }
