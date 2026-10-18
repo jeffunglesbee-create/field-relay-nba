@@ -1,0 +1,2 @@
+self-test: all cases pass
+ERROR: 7403: The given account is not valid or is not authorized to access this service
