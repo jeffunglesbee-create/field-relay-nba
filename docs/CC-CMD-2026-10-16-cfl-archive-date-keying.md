@@ -30,6 +30,29 @@ Wiring a guaranteed-red guard into push CI is the wallpaper failure
 **The tenth review finding is an order, not code** (`147f375`): push the writer
 fix only after 2026-10-19T00:00Z, apply only after 00:15Z.
 
+**THIS DOCUMENT IS THE SOURCE OF THE WRITER FIX. A STASH IS A COPY.** Added
+2026-10-18 by chat, for the resuming session.
+
+TASK 1 and TASK 2 below specify the change verbatim — the whole
+`fieldDayOfInstant` helper, and the `gameDateUtc` / `gameDate` split with its
+comments. **Apply them from here.** The scheduled resume task's step 1 names a
+`git stash` entry "CFL writer fix (TASK 1/2)" and
+`scratchpad/cfl-writer-fix.patch`. Both live on one session's container disk,
+which is reclaimed after inactivity, and neither is on any ref: verified
+2026-10-18, `origin/main:src/index.js` still reads `_cflToday` /`_cflYday` from
+`new Date().toISOString()` at 8940–8941 and `const gameDate = String(t.date ||
+'').slice(0, 10)` at 8947.
+
+So: if a stash or patch is there, use it as a convenience and then confirm the
+diff matches this document. **If it does not match, this document wins. If it is
+gone, that is not a blocker** — write the change from TASK 1 and TASK 2 and say
+in the session doc that you did. The fix was never at risk; only a copy of it
+was.
+
+This is the repo's own question from `CLAUDE.md`, asked of the fix itself:
+*"Is this the source, or a copy of the source?"* A stash is almost always
+locally true, which is what would have made it convincing.
+
 **Live state, measured 2026-10-18:** 13 CFL rows still keyed UTC, 0 keyed ET,
 and the writer still accrues one per CFL game kicking off after 20:00 ET.
 
