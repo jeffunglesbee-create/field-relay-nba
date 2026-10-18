@@ -68,6 +68,16 @@ jobs:
       # because a job log is not an artifact. Before the apply it is EXPECTED
       # to fail and name every off-day row: that output is the before-baseline.
       # In verify mode anything but exit 0 fails this run.
+      #
+      # Its self-test runs first and on its own, and the dry-run tolerance
+      # needs the live comparison to have printed its count. Otherwise a guard
+      # that died before reading D1 (its self-test reads the writer's helper
+      # from src/index.js) would be recorded as an "expected" failure and read
+      # as a baseline (found by review, 2026-10-18).
+      - name: Archive date-keying guard self-test
+        if: always()
+        run: node scripts/check-archive-date-keying.mjs --self-test
+
       - name: Archive date-keying guard
         if: always()
         env:
@@ -79,6 +89,9 @@ jobs:
           code=$?
           echo "guard exit $code" >> "$OUT"
           cat "$OUT"
+          if ! grep -q 'compared against their ET day:' "$OUT"; then
+            echo "FAIL: the guard exited $code without reaching the live comparison"; exit 1
+          fi
           if [ "$MODE" = verify ] && [ "$code" -ne 0 ]; then exit 1; fi
           exit 0
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // CC-CMD-2026-10-16-cfl-archive-date-keying, TASK 4.
 //
-// Every archived game's `date` is the America/New_York calendar day of its own
-// `start_time`. Exits 1 on any row where it is not, naming every one.
+// Every archived row that carries a `start_time` has a `date` equal to the
+// America/New_York calendar day of that instant. Exits 1 on any row where it is
+// not, naming every one. Rows with no start_time cannot be checked this way;
+// each run prints how many there are per table, beside the rows it did check.
 //
 //   node scripts/check-archive-date-keying.mjs --self-test   fixtures only
 //   node scripts/check-archive-date-keying.mjs               fixtures, then the live tables
@@ -42,10 +44,12 @@
 // inheriting one. Exempt rows are counted and printed, never silently dropped.
 //
 // THE CHECK FAILS ON PURPOSE EVERY RUN (MUTATE-FIRST-A, CLAUDE.md Rule 90).
-// After the live comparison, one real row that passed is shifted by a day in
-// memory and fed back through the same comparison; if that does not come back
-// as a mismatch, the run fails, because a guard that cannot fail is
-// documentation.
+// After the live comparison, the same live rows go through evaluate() again,
+// the function whose result IS the exit code, with one passing row moved by a
+// day. Unless that run would exit 1 and names exactly that row as one more
+// mismatch, this run fails, because a guard that cannot fail is documentation.
+// (The first version only re-ran classify() on the moved row, which the
+// fixtures already cover; review caught it, 2026-10-18.)
 
 import fs from 'node:fs';
 
@@ -99,6 +103,8 @@ const FIXTURES = [
     // Exact match only.
     { name: "'Golf' is not 'golf'", row: { sport: 'Golf', date: '2026-10-11', start_time: '2026-10-08T04:00Z' }, want: 'mismatch' },
     { name: "'LPGA' is not exempt", row: { sport: 'LPGA', date: '2026-10-11', start_time: '2026-10-08T04:00Z' }, want: 'mismatch' },
+    { name: "'disc golf' contains 'golf' and is not exempt", row: { sport: 'disc golf', date: '2026-10-11', start_time: '2026-10-08T04:00Z' }, want: 'mismatch' },
+    { name: "'PGA Tour Champions' contains 'PGA Tour' and is not exempt", row: { sport: 'PGA Tour Champions', date: '2026-10-11', start_time: '2026-10-08T04:00Z' }, want: 'mismatch' },
     // Empty is skipped; garbage is reported. etDay() returns null for both.
     { name: 'empty start_time', row: { sport: 'NFL', date: '2026-10-11', start_time: '' }, want: 'no_start' },
     { name: 'null start_time', row: { sport: 'NFL', date: '2026-10-11', start_time: null }, want: 'no_start' },
@@ -106,9 +112,14 @@ const FIXTURES = [
 ];
 
 // The writer's helper, read from src/index.js rather than re-typed, so the
-// helper that stamps the rows is held to the same fixtures as this oracle.
+// helper that stamps the rows is held to the same fixtures as this oracle. And
+// the CFL writer's use of it: the stamped value has to come from it, or the
+// helper agreeing with this oracle says nothing about the rows.
+const WRITER_USE = 'const gameDate = fieldDayOfInstant(t.date);';
 function writerHelper() {
     const src = fs.readFileSync('src/index.js', 'utf8');
+    const uses = src.split(WRITER_USE).length - 1;
+    if (uses !== 1) throw new Error(`"${WRITER_USE}" occurs ${uses} times in src/index.js; expected exactly 1, in the CFL archive writer`);
     const START = 'function fieldDayOfInstant(value) {';
     const n = src.split(START).length - 1;
     if (n !== 1) throw new Error(`anchor "${START}" occurs ${n} times in src/index.js; expected exactly 1`);
@@ -127,10 +138,11 @@ function selfTest() {
     }
     let helper;
     try { helper = writerHelper(); } catch (e) { fails.push(`writer helper: ${e.message}`); }
+    const instants = [...new Set(FIXTURES.map(f => f.row.start_time))];
     if (helper) {
-        for (const f of FIXTURES) {
-            const a = etDay(f.row.start_time), b = helper(f.row.start_time);
-            if (a !== b) fails.push(`writer's fieldDayOfInstant(${JSON.stringify(f.row.start_time)}) = ${b}, this oracle says ${a}`);
+        for (const st of instants) {
+            const a = etDay(st), b = helper(st);
+            if (a !== b) fails.push(`writer's fieldDayOfInstant(${JSON.stringify(st)}) = ${b}, this oracle says ${a}`);
         }
     }
     if (fails.length) {
@@ -138,8 +150,9 @@ function selfTest() {
         for (const f of fails) console.error(`  ${f}`);
         process.exit(1);
     }
-    console.log(`self-test: ${FIXTURES.length} of ${FIXTURES.length} fixtures classify as expected; `
-              + `the writer's fieldDayOfInstant agrees with this oracle on all ${FIXTURES.length}`);
+    console.log(`self-test: ${FIXTURES.length} of ${FIXTURES.length} fixtures classify as expected; the writer's `
+              + `fieldDayOfInstant agrees with this oracle on all ${instants.length} distinct start_time values, `
+              + `and the CFL writer stamps its date from it`);
 }
 
 async function relayRead(sql) {
@@ -161,26 +174,56 @@ async function relayRead(sql) {
 
 const nextDay = d => new Date(Date.parse(`${d}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
 
+// The verdict, from rows alone. Its `code` is the process exit code.
+function evaluate(rows) {
+    const t = tally(rows);
+    const compared = t.ok.length + t.mismatch.length + t.unparseable.length;
+    const bad = t.mismatch.length + t.unparseable.length;
+    return { t, compared, bad, code: bad ? 1 : 0 };
+}
+
+const TABLES = ['regular_season_games', 'postseason_games'];
+
 async function main() {
     selfTest();
     if (SELF_TEST_ONLY) return 0;
 
-    const cols = `id, sport, date, start_time`;
-    const where = `WHERE start_time IS NOT NULL AND start_time != ''`;
-    const regular = await relayRead(`SELECT ${cols} FROM regular_season_games ${where}`);
-    const post = await relayRead(`SELECT ${cols} FROM postseason_games ${where}`);
-    const rows = [...regular.map(r => ({ ...r, table: 'regular_season_games' })),
-                  ...post.map(r => ({ ...r, table: 'postseason_games' }))];
+    const rows = [];
+    const census = {};
+    for (const table of TABLES) {
+        const [c] = await relayRead(`SELECT COUNT(*) AS total, SUM(start_time IS NULL OR start_time = '') AS without FROM ${table}`);
+        const got = await relayRead(`SELECT id, sport, date, start_time FROM ${table} WHERE start_time IS NOT NULL AND start_time != ''`);
+        if (!c) {
+            console.error(`FAIL — the count query on ${table} returned no row. An empty read is not a pass.`);
+            return 1;
+        }
+        census[table] = { total: c.total, without: c.without, read: got.length };
+        // A floor per table, and the two reads must agree: a truncated or empty
+        // read is not a pass.
+        if (!c.total) {
+            console.error(`FAIL — ${table} reports 0 rows. An empty table read is not a pass.`);
+            return 1;
+        }
+        if (got.length !== c.total - c.without) {
+            console.error(`FAIL — ${table}: read ${got.length} rows with a start_time, but its count says ${c.total - c.without} (${c.total} total, ${c.without} without).`);
+            return 1;
+        }
+        rows.push(...got.map(r => ({ ...r, table })));
+    }
     if (!rows.length) {
         console.error('FAIL — 0 rows with a start_time came back. An empty read is not a pass.');
         return 1;
     }
-    const t = tally(rows);
-    const compared = t.ok.length + t.mismatch.length + t.unparseable.length;
+
+    const { t, compared, bad, code } = evaluate(rows);
     const exemptBy = {};
     for (const r of t.exempt) exemptBy[r.sport] = (exemptBy[r.sport] || 0) + 1;
-
-    console.log(`\nchecked ${rows.length} rows with a start_time (regular_season_games ${regular.length}, postseason_games ${post.length})`);
+    console.log('');
+    for (const table of TABLES) {
+        const c = census[table];
+        console.log(`${table}: ${c.total} rows; ${c.read} with a start_time, checked; ${c.without} without, not checkable this way`);
+    }
+    console.log(`checked ${rows.length} rows with a start_time`);
     console.log(`  exempt by exact label: ${t.exempt.length}${t.exempt.length ? ` (${Object.entries(exemptBy).map(([k, v]) => `${k} ${v}`).join(', ')})` : ''}`);
     console.log(`  compared against their ET day: ${compared}`);
     console.log(`  off their ET day: ${t.mismatch.length}`);
@@ -192,24 +235,31 @@ async function main() {
         console.log(`    UNPARSEABLE  ${r.table}  ${r.id}  sport=${r.sport}  start_time=${JSON.stringify(r.start_time)}`);
     }
 
-    // Fail on purpose: a real row that passed, moved a day, must not pass.
+    // Fail on purpose, through the same verdict path: the live rows with one
+    // passing row moved a day must exit 1 and name exactly that row as the one
+    // extra mismatch.
     if (!t.ok.length) {
-        console.error('FAIL — no row passed, so the in-memory mutation has nothing to shift.');
+        console.error('FAIL — no row passed, so the mutation has nothing to move.');
         return 1;
     }
-    const probe = { ...t.ok[0], date: nextDay(t.ok[0].date) };
-    const caught = classify(probe) === 'mismatch';
-    console.log(`\nmutation: ${t.ok[0].id} with date ${t.ok[0].date} -> ${probe.date} classifies as ${classify(probe)}: ${caught ? 'CAUGHT' : 'NOT CAUGHT'}`);
+    const victim = t.ok[0];
+    const moved = { ...victim, date: nextDay(victim.date) };
+    const m = evaluate(rows.map(r => (r === victim ? moved : r)));
+    const caught = m.code === 1
+        && m.t.mismatch.length === t.mismatch.length + 1
+        && m.t.mismatch.some(r => r.id === victim.id && r.date === moved.date);
+    console.log(`\nmutation: ${victim.id} date ${victim.date} -> ${moved.date}; the same verdict path then exits ${m.code} `
+              + `with ${m.t.mismatch.length} mismatch(es): ${caught ? 'CAUGHT' : 'NOT CAUGHT'}`);
     if (!caught) {
-        console.error('FAIL — a row moved by a day still passed. This guard cannot fail.');
+        console.error('FAIL — moving a passing row by a day did not turn the verdict. This guard cannot fail.');
         return 1;
     }
 
-    const bad = t.mismatch.length + t.unparseable.length;
     console.log(bad
         ? `\nFAIL — ${t.mismatch.length} mismatch(es) and ${t.unparseable.length} unparseable over ${compared} compared rows`
-        : `\nPASS — 0 mismatches over ${compared} compared rows (${t.exempt.length} exempt, ${rows.length} checked)`);
-    return bad ? 1 : 0;
+        : `\nPASS — 0 mismatches over ${compared} compared rows (${t.exempt.length} exempt, ${rows.length} checked, `
+          + `${TABLES.reduce((n, tb) => n + census[tb].without, 0)} without a start_time not checkable)`);
+    return code;
 }
 
 main().then(code => process.exit(code), e => { console.error(`ERROR: ${e.message}`); process.exit(1); });

@@ -63,6 +63,7 @@
 //
 //   change_log guard        json('{')                    "malformed JSON"
 //   regular_season_games    abs(-9223372036854775807-1)  "integer overflow"
+//   the row as written      json_extract('{}', 'bad-path') "bad JSON path"
 //   an id that already exists                            "UNIQUE constraint"
 //
 // change_log's expected count is the number of rows the dry run read for that
@@ -70,10 +71,18 @@
 // statement" is about the games row, which is one row by primary key.
 //
 // The games UPDATE matches on id AND sport AND the old date AND the start_time
-// the new day was computed from. So a row that changed after the dry run, or a
-// statement mistyped on its way to the endpoint, matches 0 rows and the guard
-// rolls the whole transaction back. Nothing in the batch is trusted for being
-// what the dry run printed; it has to be true of the live row.
+// the new day was computed from, so a row that changed after the dry run, or a
+// WHERE clause mistyped on its way to the endpoint, matches 0 rows and the
+// guard rolls the whole transaction back.
+//
+// That alone does not cover the SET side: a mistyped new id or new date would
+// still match, change 1 row and commit (found by review, 2026-10-18). So a third
+// guard reads the row back AS WRITTEN and checks it against the old values
+// rather than against the new literals: its date must be the old date minus
+// one day, and its id must be 'CFL_' + that date + the old id's own tail. Every
+// row this script plans has that shape, because a UTC day runs at most one day
+// ahead of the ET day it should have been; planRow() skips and reports any row
+// that does not.
 //
 // WHAT THIS DOES NOT DO, BY THE CC-CMD
 //
@@ -116,11 +125,12 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^CFL_\d{4}-\d{2}-\d{2}_[A-Za-z0-9_-]+$/;
 // Both forms the table carries: `2026-10-10T02:12:00+00:00` and `2026-05-23T02:00Z`.
 const INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+const TAIL_RE = /^_[A-Za-z0-9_-]+$/;
 
 // A literal for the multi-statement batch. Closed patterns only: nothing that
 // could carry a quote, a semicolon or whitespace reaches the SQL text.
 function lit(value, kind) {
-    const re = { date: DATE_RE, id: ID_RE, instant: INSTANT_RE }[kind];
+    const re = { date: DATE_RE, id: ID_RE, instant: INSTANT_RE, tail: TAIL_RE }[kind];
     if (!re) throw new Error(`lit(): unknown kind ${kind}`);
     if (typeof value !== 'string' || !re.test(value)) {
         throw new Error(`lit(): refusing ${JSON.stringify(value)} as ${kind}`);
@@ -147,12 +157,18 @@ function planRow(row) {
     if (typeof old_id !== 'string' || !old_id.startsWith(prefix)) {
         return { old_id, old_date, new_date, start_time: row.start_time, skip: `id does not start with ${prefix}` };
     }
-    const new_id = `CFL_${new_date}${old_id.slice(prefix.length)}`;
-    return { old_id, old_date, new_date, new_id, start_time: row.start_time };
+    const dayBefore = new Date(Date.parse(`${old_date}T12:00:00Z`) - 86400000).toISOString().slice(0, 10);
+    if (new_date !== dayBefore) {
+        return { old_id, old_date, new_date, start_time: row.start_time, skip: `ET day ${new_date} is not the day before ${old_date}` };
+    }
+    const tail = old_id.slice(prefix.length);
+    const new_id = `CFL_${new_date}${tail}`;
+    return { old_id, old_date, new_date, new_id, tail, start_time: row.start_time };
 }
 
-// One row's four statements. Order matters only for the guards: each SELECT
-// reads changes() of the statement immediately before it.
+// One row's five statements. Order matters for the guards: the first two
+// SELECTs read changes() of the statement immediately before them, and the
+// last reads the row the UPDATE left behind.
 function rowStatements(p, changeLogCount) {
     return [
         `UPDATE change_log SET game_id = ${lit(p.new_id, 'id')} WHERE game_id = ${lit(p.old_id, 'id')}`,
@@ -161,8 +177,13 @@ function rowStatements(p, changeLogCount) {
             + `WHERE id = ${lit(p.old_id, 'id')} AND sport = 'CFL' AND date = ${lit(p.old_date, 'date')} `
             + `AND start_time = ${lit(p.start_time, 'instant')}`,
         `SELECT CASE WHEN changes() = 1 THEN 'ok' ELSE abs(-9223372036854775807 - 1) END AS games_guard`,
+        `SELECT CASE WHEN (SELECT COUNT(*) FROM regular_season_games WHERE sport = 'CFL' `
+            + `AND start_time = ${lit(p.start_time, 'instant')} AND date = date(${lit(p.old_date, 'date')}, '-1 day') `
+            + `AND id = 'CFL_' || date || ${lit(p.tail, 'tail')}) = 1 THEN 'ok' ELSE json_extract('{}', 'bad-path') END AS written_row_guard`,
     ];
 }
+
+const STATEMENTS_PER_ROW = 5;
 
 // The whole set as ONE call, so ONE transaction.
 function migrationSql(plan) {
@@ -172,6 +193,7 @@ function migrationSql(plan) {
 function whichGuard(message) {
     if (/malformed JSON/i.test(message)) return 'change_log count differed from the count read before the batch';
     if (/integer overflow/i.test(message)) return 'regular_season_games UPDATE did not change exactly 1 row';
+    if (/bad JSON path/i.test(message)) return 'the renamed row is not the old date minus one day under the old id tail';
     if (/UNIQUE constraint/i.test(message)) return 'the target id already exists';
     return 'unclassified';
 }
@@ -191,7 +213,10 @@ function selfTest() {
     // Real rows from the set, 2026-10-18.
     eq('plan e13419744', planRow({ id: 'CFL_2026-10-10_e13419744', date: '2026-10-10', start_time: '2026-10-10T02:12:00+00:00' }),
         { old_id: 'CFL_2026-10-10_e13419744', old_date: '2026-10-10', new_date: '2026-10-09',
-          new_id: 'CFL_2026-10-09_e13419744', start_time: '2026-10-10T02:12:00+00:00' });
+          new_id: 'CFL_2026-10-09_e13419744', tail: '_e13419744', start_time: '2026-10-10T02:12:00+00:00' });
+    // A day two back is not this defect's shape: skipped and reported, never renamed.
+    eq('two days back skipped', planRow({ id: 'CFL_2026-10-11_e1', date: '2026-10-11', start_time: '2026-10-10T02:00:00Z' }).skip,
+        'ET day 2026-10-09 is not the day before 2026-10-11');
     eq('plan slug id', planRow({ id: 'CFL_2026-08-23_torontoargonauts_hamiltontigercats', date: '2026-08-23', start_time: '2026-08-23T00:06:00+00:00' }).new_id,
         'CFL_2026-08-22_torontoargonauts_hamiltontigercats');
     // One of the 29 that agree: untouched.
@@ -223,21 +248,26 @@ function selfTest() {
     // Each row's guards sit after the statement they read, and the games
     // UPDATE matches on everything the new day was derived from.
     const r1 = { old_id: 'CFL_2026-09-13_e13419731', old_date: '2026-09-13', new_date: '2026-09-12',
-                 new_id: 'CFL_2026-09-12_e13419731', start_time: '2026-09-13T02:14:00+00:00', change_log_rows: 2 };
+                 new_id: 'CFL_2026-09-12_e13419731', tail: '_e13419731', start_time: '2026-09-13T02:14:00+00:00', change_log_rows: 2 };
     const r2 = { old_id: 'CFL_2026-10-10_e13419744', old_date: '2026-10-10', new_date: '2026-10-09',
-                 new_id: 'CFL_2026-10-09_e13419744', start_time: '2026-10-10T02:12:00+00:00', change_log_rows: 0 };
+                 new_id: 'CFL_2026-10-09_e13419744', tail: '_e13419744', start_time: '2026-10-10T02:12:00+00:00', change_log_rows: 0 };
     const stmts = migrationSql([r1, r2]).trimEnd().split(';\n');
-    eq('two rows, four statements each, one call', stmts.length, 8);
+    eq('two rows, five statements each, one call', stmts.length, 10);
     eq('change_log first', /^UPDATE change_log SET game_id = 'CFL_2026-09-12_e13419731' WHERE game_id = 'CFL_2026-09-13_e13419731'$/.test(stmts[0]), true);
     eq('change_log guard reads the counted rows', /changes\(\) = 2 THEN 'ok' ELSE json\('\{'\)/.test(stmts[1]), true);
     eq('games matches id, sport, old date and start_time',
        stmts[2], "UPDATE regular_season_games SET id = 'CFL_2026-09-12_e13419731', date = '2026-09-12' "
                + "WHERE id = 'CFL_2026-09-13_e13419731' AND sport = 'CFL' AND date = '2026-09-13' AND start_time = '2026-09-13T02:14:00+00:00'");
     eq('games guard is exactly 1', /changes\(\) = 1 THEN 'ok' ELSE abs\(/.test(stmts[3]), true);
-    eq('second row guards a zero change_log count', /changes\(\) = 0 THEN/.test(stmts[5]), true);
+    eq('written row read back against the OLD date and tail',
+       stmts[4], "SELECT CASE WHEN (SELECT COUNT(*) FROM regular_season_games WHERE sport = 'CFL' AND start_time = '2026-09-13T02:14:00+00:00' "
+               + "AND date = date('2026-09-13', '-1 day') AND id = 'CFL_' || date || '_e13419731') = 1 THEN 'ok' ELSE json_extract('{}', 'bad-path') END AS written_row_guard");
+    eq('second row guards a zero change_log count', /changes\(\) = 0 THEN/.test(stmts[6]), true);
     eq('guard names', [whichGuard('malformed JSON: SQLITE_ERROR'), whichGuard('integer overflow: SQLITE_ERROR'),
-                       whichGuard('UNIQUE constraint failed: regular_season_games.id')].map(x => x.split(' ')[0]),
-        ['change_log', 'regular_season_games', 'the']);
+                       whichGuard("bad JSON path: 'bad-path': SQLITE_ERROR"),
+                       whichGuard('UNIQUE constraint failed: regular_season_games.id')],
+        ['change_log count differed from the count read before the batch', 'regular_season_games UPDATE did not change exactly 1 row',
+         'the renamed row is not the old date minus one day under the old id tail', 'the target id already exists']);
 
     if (fails.length) {
         console.error(`SELF-TEST FAILED (${fails.length}):`);
@@ -439,14 +469,18 @@ async function main() {
     const built = await buildPlan(manifest);
     if (built.abort) return finish(1, 'ABORT', built.abort);
     const { plan } = built;
+    if (!plan.length && manifest.skipped.length) {
+        return finish(1, 'SKIPPED-ONLY', `${manifest.skipped.length} CFL row(s) are off their ET day and every one was skipped; nothing is planned and nothing is fixed`);
+    }
     if (!plan.length) return finish(0, 'NOTHING-TO-DO', 'every CFL row already carries its ET day');
     const sql = migrationSql(plan);
 
     fs.writeFileSync(`${base}.sql`, sql);
     manifest.sql_file = `${base}.sql`;
-    manifest.statements = plan.length * 4;
-    console.log(`\nthe transaction, ${plan.length * 4} statements, one call: ${base}.sql`);
-    return finish(0, 'DRY-RUN', `${plan.length} row(s) would be renamed; nothing was written`);
+    manifest.statements = plan.length * STATEMENTS_PER_ROW;
+    console.log(`\nthe transaction, ${plan.length * STATEMENTS_PER_ROW} statements, one call: ${base}.sql`);
+    return finish(0, 'DRY-RUN', `${plan.length} row(s) would be renamed; nothing was written`
+        + (manifest.skipped.length ? `; ${manifest.skipped.length} more off-day row(s) skipped and listed above` : ''));
 }
 
 main().then(code => process.exit(code), e => { console.error(`ERROR: ${e.message}`); process.exit(1); });
