@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched. Owner decision first: two of the options change effective spend, and one is a structural routing change.
+**Status:** PARTIAL — option 1 chosen 2026-10-18 (owner delegated: "go with Claude's best recommendations"); options 2 and 3 and TASK 0's CFL half held, reasons under "Decision".
 **Filed by:** CC, from TASK 1 of `docs/CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md`, which measures and may not fix.
 
 ---
@@ -80,6 +80,32 @@ outbox document.
 
 The no-header estimates (`ambientFetchLiveOdds`) are a separate class, and none
 of these options addresses them.
+
+## Decision, 2026-10-18 (owner delegated)
+
+The owner delegated the choice. Recorded here, with the reason for each:
+
+1. **Option 1: yes, now.**
+   - **Why it is safe:** it is the same three increments with the same
+     predicates, sent as one batch. No stop can land between the day write and
+     the month write, whatever the cause.
+   - **What it changes:** it raises no effective spend. The month can only
+     stop being short, so the 85,000 monthly limit binds earlier if anything,
+     never later. It does not touch the vendor-side over-record, which the
+     2026-10-18 ruling holds back.
+   - **What it proves:** if the month gap still grows after it lands, the
+     "lost between batches" cause is refuted, and the cause is another writer
+     (`/d1/execute`) or something unlisted.
+2. **TASK 0, month half: replaced** by option 1's done condition, which tests
+   the same thing with a fix in place.
+3. **TASK 0, CFL half (why CFL calls strand): held.** It only informs option
+   2.
+4. **Option 2: held.** It closes the vendor-side over-record, which raises
+   effective spend toward the real ceiling. That is the capacity change the
+   2026-10-18 ruling defers to a later CC-CMD.
+5. **Option 3: held until 2026-11-24.** Changing `/cfl/odds-probs` now would
+   change what `CC-CMD-2026-10-18-odds-counter-internal-then-calendar`'s TASK 2
+   measures over 2026-11-08 to 11-23. Revisit after its judgment run.
 
 ## Done condition
 
