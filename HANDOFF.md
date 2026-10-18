@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-18 (later) — /bsd/events/by-date pages and caches
+
+- `b492e58` forwards `offset` and `limit` and edge-caches the route (25 s for
+  today, 300 s for a past day). Before, offset=50 returned page one, so a busy
+  day's events past 50 were unreachable, and every call reached BSD.
+- `10916f5` fixes the probe, after an absence-ratchet red on the first deploy.
+- Deploy run 39169419458 is green. Done condition verified live by run
+  39169712056: disjoint pages, X-Cache HIT, both TTLs.
+
+Session doc: outbox/cc-session-2026-10-18-bsd-by-date.md
+
 ## SESSION CLOSE-OUT — 2026-10-18
 
 **HEAD:** `fea794c` → `d1d1ad0` · **Branch:** main

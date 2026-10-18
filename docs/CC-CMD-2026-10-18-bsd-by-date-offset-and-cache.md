@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-18 by CC, from field-laboratory's metrics-tab work (Rule 87.4)
-**Status:** FILED
+**Status:** DONE 2026-10-18. `b492e58` + `10916f5`, deploy run 39169419458, done condition verified by run 39169712056. Session doc: `outbox/cc-session-2026-10-18-bsd-by-date.md`.
 
 ## Measured 2026-10-18
 
