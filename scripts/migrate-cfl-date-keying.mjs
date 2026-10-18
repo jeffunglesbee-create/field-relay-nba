@@ -342,12 +342,25 @@ async function buildPlan(manifest) {
     return { plan };
 }
 
+// The consumer's view: GET /context/date/<day>, games.regular. Fresh per run.
+async function contextDay(date, stamp) {
+    const r = await fetch(`${RELAY}/context/date/${date}?verify=${stamp}`);
+    const text = await r.text();
+    let j;
+    try { j = JSON.parse(text); } catch (e) { throw new Error(`/context/date/${date} HTTP ${r.status}, not JSON (${e.message})`); }
+    if (!r.ok || j.ok !== true || !j.games || !Array.isArray(j.games.regular)) {
+        throw new Error(`/context/date/${date} HTTP ${r.status}: ${j.error || text.slice(0, 200)}`);
+    }
+    if (Array.isArray(j._errors) && j._errors.length) throw new Error(`/context/date/${date} reported ${JSON.stringify(j._errors)}`);
+    return j.games.regular;
+}
+
 // Read back by id, from the tables themselves, against a committed plan.
 async function verify(manifest, plan) {
     const oldIds = plan.map(p => p.old_id);
     const newIds = plan.map(p => p.new_id);
     const nowOld = await relayRead(`SELECT id FROM regular_season_games WHERE id IN (${placeholders(oldIds.length)})`, oldIds);
-    const nowNew = await relayRead(`SELECT id, date, start_time FROM regular_season_games WHERE id IN (${placeholders(newIds.length)})`, newIds);
+    const nowNew = await relayRead(`SELECT id, date, start_time, home, away FROM regular_season_games WHERE id IN (${placeholders(newIds.length)})`, newIds);
     const clOld = await countBy('change_log', oldIds);
     const clNew = await countBy('change_log', newIds);
     const byNew = Object.fromEntries(nowNew.map(r => [r.id, r]));
@@ -370,7 +383,25 @@ async function verify(manifest, plan) {
     manifest.cfl_rows_checked = cfl.length;
     manifest.cfl_still_off_day = still.map(x => x.old_id);
     console.log(`\nCFL rows still keyed on another day: ${still.length} of ${cfl.length} checked`);
-    return { bad, still };
+
+    // TASK 5.5 names one game (BC Lions v Ottawa RedBlacks on 10-09, not 10-10).
+    // Every planned row gets the same test through the same consumer: listed on
+    // its new day under its new id, and nothing with its teams and start_time
+    // left on its old day.
+    const stamp = Date.now();
+    const days = {};
+    for (const d of new Set(plan.flatMap(p => [p.new_date, p.old_date]))) days[d] = await contextDay(d, stamp);
+    const consumer = plan.map(p => {
+        const row = byNew[p.new_id];
+        const onNew = days[p.new_date].some(g => g.id === p.new_id);
+        const onOld = row ? days[p.old_date].some(g => g.home === row.home && g.away === row.away && g.start_time === p.start_time) : null;
+        return { new_id: p.new_id, game: row ? `${row.home} v ${row.away}` : 'absent', on_new_day: onNew, still_on_old_day: onOld };
+    });
+    manifest.context_date = consumer;
+    const consumerBad = consumer.filter(c => !c.on_new_day || c.still_on_old_day !== false);
+    console.log('\n' + table(consumer, ['new_id', 'game', 'on_new_day', 'still_on_old_day']));
+    console.log(`\n/context/date: ${consumer.length - consumerBad.length} of ${consumer.length} planned rows listed on their new day and gone from their old one`);
+    return { bad: [...bad, ...consumerBad.filter(c => !bad.some(b => b.new_id === c.new_id)).map(c => plan.find(p => p.new_id === c.new_id))], still };
 }
 
 async function main() {
@@ -400,9 +431,9 @@ async function main() {
         }
         manifest.plan_from = PLAN_ARG;
         const { bad, still } = await verify(manifest, planned.plan);
-        if (bad.length) return finish(1, 'FAILED', `read-back disagrees for ${bad.length} of ${planned.plan.length}: ${bad.map(b => b.old_id).join(', ')}`);
+        if (bad.length) return finish(1, 'FAILED', `read-back or /context/date disagrees for ${bad.length} of ${planned.plan.length}: ${bad.map(b => b.old_id).join(', ')}`);
         if (still.length) return finish(1, 'FAILED', `${still.length} CFL row(s) still keyed on another day: ${still.map(x => x.old_id).join(', ')}`);
-        return finish(0, 'VERIFIED', `${planned.plan.length} of ${planned.plan.length} renamed and read back; 0 CFL rows off their ET day`);
+        return finish(0, 'VERIFIED', `${planned.plan.length} of ${planned.plan.length} renamed, read back, and listed by /context/date on their new day only; 0 CFL rows off their ET day`);
     }
 
     const built = await buildPlan(manifest);
