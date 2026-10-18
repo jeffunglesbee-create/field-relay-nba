@@ -11825,11 +11825,32 @@ export default {
                 let bsdQs = `?date_from=${dateParam}&date_to=${dateParam}`;
                 if (leagueId)  bsdQs += `&league_id=${leagueId}`;
                 if (season)    bsdQs += `&season_id=${season}`;
+                // Paging, passed through (docs/CC-CMD-2026-10-18-bsd-by-date-offset-and-cache.md).
+                // BSD pages at 50 and its own `next` link names offset/limit, but
+                // this route dropped both, so offset=50 returned page one again
+                // (measured 2026-10-18: count 211, `previous` null) and events 51+
+                // of a busy day were unreachable. Digits only; anything else is
+                // not forwarded.
+                for (const p of ['offset', 'limit']) {
+                    const v = url.searchParams.get(p);
+                    if (v !== null && /^\d{1,5}$/.test(v)) bsdQs += `&${p}=${v}`;
+                }
+                // Edge cache, the /bsd/events/live pattern above. Every call used
+                // to reach BSD. Today and later carry live status, so 25 s, as the
+                // live route; a past day is settled, so 300 s, the TTL this route
+                // already advertised to clients.
+                const ttl = dateParam < new Date().toISOString().slice(0, 10) ? 300 : 25;
+                const cacheKey = new Request(`${BSD_BASE}/api/v2/events/${bsdQs}`);
+                const hit = await caches.default.match(cacheKey);
+                if (hit) return new Response(hit.body, { status: 200,
+                    headers: { 'Content-Type': 'application/json', 'X-Cache': 'HIT', ...CORS } });
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${bsdQs}`,
                     { headers: bsdHeaders });
-                return new Response(await r.text(), { status: r.status,
+                const resp = new Response(await r.text(), { status: r.status,
                     headers: { 'Content-Type': 'application/json',
-                               'Cache-Control': 'public, max-age=300', ...CORS } });
+                               'Cache-Control': `public, max-age=${ttl}`, 'X-Cache': 'MISS', ...CORS } });
+                if (r.ok) ctx.waitUntil(caches.default.put(cacheKey, resp.clone()));
+                return resp;
             }
 
             // /bsd/events/season?league_id=X&season=Y → BSD all events for a competition
