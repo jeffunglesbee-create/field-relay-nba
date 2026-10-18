@@ -89,10 +89,27 @@ The owner delegated the choice. Recorded here, with the reason for each:
    - **Why it is safe:** it is the same three increments with the same
      predicates, sent as one batch. No stop can land between the day write and
      the month write, whatever the cause.
-   - **What it changes:** it raises no effective spend. The month can only
-     stop being short, so the 85,000 monthly limit binds earlier if anything,
-     never later. It does not touch the vendor-side over-record, which the
-     2026-10-18 ruling holds back.
+   - **What it changes:** when the batch commits, nothing changes: the same
+     increments and the same vetoes. When a D1 call throws, it changes in
+     both directions. (Corrected 2026-10-18 by the branch's adversarial
+     review; this bullet first said "the 85,000 monthly limit binds earlier
+     if anything, never later", which is false on a thrown batch.)
+     - **Stricter:** a fault that would have hit the second (month) call has
+       no second call to hit. The one batch that commits also charges the
+       month, and the limit can veto. Before, the day committed and then the
+       month missed the charge.
+     - **Looser:** a fault on the one batch charges neither counter, and the
+       hard limit cannot veto that call. Before, a thrown day batch still ran
+       the month batch, which charged the month and could refuse the call at
+       85,000.
+
+     So on a thrown batch the month can record less than the two-batch code
+     did, and the limit can bind later. The `charge:` degrade-open count and
+     its credits on `/budget/odds` bound that loss. The review also found a
+     third path: a KV failure while recording a veto reached the outer catch
+     and let a refused call spend. That is fixed on the branch: a veto now
+     stays a veto whatever KV does. Option 1 does not touch the vendor-side
+     over-record, which the 2026-10-18 ruling holds back.
    - **What it proves:** if the month gap still grows after it lands, the
      "lost between batches" cause is refuted, and the cause is another writer
      (`/d1/execute`) or something unlisted.
