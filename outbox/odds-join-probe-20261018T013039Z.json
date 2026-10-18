@@ -1,0 +1,200 @@
+{
+  "probed_at": "2026-10-18T01:30:39.462Z",
+  "probe_date": "2026-10-18",
+  "sports_requested": [
+    "CFB",
+    "NFL",
+    "Bundesliga",
+    "MLS"
+  ],
+  "http": 200,
+  "report": {
+    "date": "2026-10-18",
+    "probed": 4,
+    "matched": 7,
+    "unmatched": 1,
+    "key_substituted": 0,
+    "key_substituted_cross_sport": 0,
+    "sports": {
+      "CFB": {
+        "sport_key": "americanfootball_ncaaf",
+        "odds_events": 26,
+        "d1_missing": 0,
+        "matched": 0,
+        "key_substituted": [],
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "Oregon State Beavers",
+            "odds_away": "Washington State Cougars",
+            "key": "oregonstatebeavers|washingtonstatecougars"
+          },
+          {
+            "odds_home": "South Florida Bulls",
+            "odds_away": "Kent State Golden Flashes",
+            "key": "southfloridabulls|kentstategoldenflashes"
+          },
+          {
+            "odds_home": "North Dakota State Bison",
+            "odds_away": "Nevada Wolf Pack",
+            "key": "northdakotastatebison|nevadawolfpack"
+          },
+          {
+            "odds_home": "Southern Mississippi Golden Eagles",
+            "odds_away": "Arkansas State Red Wolves",
+            "key": "southernmississippigoldeneagles|arkansasstateredwolves"
+          },
+          {
+            "odds_home": "Vanderbilt Commodores",
+            "odds_away": "Arkansas Razorbacks",
+            "key": "vanderbiltcommodores|arkansasrazorbacks"
+          },
+          {
+            "odds_home": "Miami Hurricanes",
+            "odds_away": "Florida State Seminoles",
+            "key": "miamihurricanes|floridastateseminoles"
+          }
+        ]
+      },
+      "NFL": {
+        "sport_key": "americanfootball_nfl",
+        "odds_events": 24,
+        "d1_missing": 0,
+        "matched": 0,
+        "key_substituted": [],
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "Jacksonville Jaguars",
+            "odds_away": "Houston Texans",
+            "key": "jacksonvillejaguars|houstontexans"
+          },
+          {
+            "odds_home": "Atlanta Falcons",
+            "odds_away": "Chicago Bears",
+            "key": "atlantafalcons|chicagobears"
+          },
+          {
+            "odds_home": "Cleveland Browns",
+            "odds_away": "Baltimore Ravens",
+            "key": "clevelandbrowns|baltimoreravens"
+          },
+          {
+            "odds_home": "Philadelphia Eagles",
+            "odds_away": "Carolina Panthers",
+            "key": "philadelphiaeagles|carolinapanthers"
+          },
+          {
+            "odds_home": "Indianapolis Colts",
+            "odds_away": "Tennessee Titans",
+            "key": "indianapoliscolts|tennesseetitans"
+          },
+          {
+            "odds_home": "New England Patriots",
+            "odds_away": "New York Jets",
+            "key": "newenglandpatriots|newyorkjets"
+          }
+        ]
+      },
+      "Bundesliga": {
+        "sport_key": "soccer_germany_bundesliga",
+        "odds_events": 11,
+        "d1_missing": 0,
+        "matched": 0,
+        "key_substituted": [],
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "Bayer Leverkusen",
+            "odds_away": "SC Freiburg",
+            "key": "bayerleverkusen|scfreiburg"
+          },
+          {
+            "odds_home": "Borussia Monchengladbach",
+            "odds_away": "TSG Hoffenheim",
+            "key": "borussiamonchengladbach|tsghoffenheim"
+          },
+          {
+            "odds_home": "VfB Stuttgart",
+            "odds_away": "Borussia Monchengladbach",
+            "key": "vfbstuttgart|borussiamonchengladbach"
+          },
+          {
+            "odds_home": "1. FC Köln",
+            "odds_away": "FC Schalke 04",
+            "key": "1fckoln|fcschalke04"
+          },
+          {
+            "odds_home": "Augsburg",
+            "odds_away": "Union Berlin",
+            "key": "augsburg|unionberlin"
+          },
+          {
+            "odds_home": "RB Leipzig",
+            "odds_away": "Elversberg",
+            "key": "rbleipzig|elversberg"
+          }
+        ]
+      },
+      "MLS": {
+        "sport_key": "soccer_usa_mls",
+        "odds_events": 25,
+        "d1_missing": 8,
+        "matched": 7,
+        "key_substituted": [],
+        "unmatched": [
+          {
+            "d1_home": "FC Cincinnati",
+            "d1_away": "Columbus Crew",
+            "d1_key": "fccincinnati|columbuscrew"
+          }
+        ],
+        "odds_sample": [
+          {
+            "odds_home": "New England Revolution",
+            "odds_away": "Chicago Fire",
+            "key": "newenglandrevolution|chicagofirefc"
+          },
+          {
+            "odds_home": "Orlando City SC",
+            "odds_away": "D.C. United",
+            "key": "orlandocity|dcunited"
+          },
+          {
+            "odds_home": "New York City FC",
+            "odds_away": "Los Angeles FC",
+            "key": "newyorkcityfc|losangelesfc"
+          },
+          {
+            "odds_home": "New York Red Bulls",
+            "odds_away": "Toronto FC",
+            "key": "newyorkredbulls|torontofc"
+          },
+          {
+            "odds_home": "Atlanta United FC",
+            "odds_away": "Inter Miami CF",
+            "key": "atlantaunited|intermiamicf"
+          },
+          {
+            "odds_home": "Austin FC",
+            "odds_away": "Vancouver Whitecaps FC",
+            "key": "austinfc|vancouverwhitecapsfc"
+          }
+        ]
+      }
+    },
+    "sports_compared": [
+      "CFB",
+      "NFL",
+      "Bundesliga",
+      "MLS"
+    ]
+  },
+  "verdict": {
+    "CFB": "NO_ROWS: no NULL-opening rows on 2026-10-18 (vendor had 26 events)",
+    "NFL": "NO_ROWS: no NULL-opening rows on 2026-10-18 (vendor had 24 events)",
+    "Bundesliga": "NO_ROWS: no NULL-opening rows on 2026-10-18 (vendor had 11 events)",
+    "MLS": "COVERED: 7 matched of 8 rows (25 vendor events, 1 unmatched)"
+  },
+  "error": null
+}
