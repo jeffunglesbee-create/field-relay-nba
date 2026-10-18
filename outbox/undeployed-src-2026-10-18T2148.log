@@ -1,0 +1,17 @@
+=== undeployed src  repo=jeffunglesbee-create/field-relay-nba  utc=2026-10-18T21:48:01.915Z ===
+
+  deploy triggers on : src/**, wrangler.toml, workers/**   (read from deploy.yml)
+  last GREEN deploy  : 62b0dce  2026-10-17T02:40:30Z
+  a deploy running   : true
+
+  verdict            : in_flight
+  commits unbuilt    : 1   oldest 0h ago
+      b492e58  2026-10-18T21:45:16Z  fix: /bsd/events/by-date passes offset and limit through, and edge-caches
+
+COVERAGE: compares HEAD against the last SUCCESSFUL deploy run's head_sha
+over 3 declared path(s), reading those paths from deploy.yml rather
+than restating them. It does NOT verify the running worker matches that SHA —
+no build stamp exists to check — only that every deploy-triggering commit has
+been through a successful run.
+
+OK: 1 commit(s) pending, and a deploy is running now.
