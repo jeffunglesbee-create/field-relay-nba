@@ -1,5 +1,67 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-18
+
+**HEAD:** `fea794c` → `d1d1ad0` · **Branch:** main
+
+Fourteen work commits since the 2026-10-16 close-out, in four groups.
+
+### Three owner rulings recorded (`d1d1ad0`)
+
+- **`CC-CMD-2026-09-19-daily-vs-vendor`** gains a **fourth outcome**: a
+  consistent NEGATIVE residual — the ceiling guarding a number ABOVE real
+  spend. Not a breach and it cannot become one by that path. 26 closed days
+  across 31 logs: 24 `we-overcharge-ourselves`, 2 `tracks-the-bill`, **0
+  `counter-under-counts`**. Cumulative ledger-minus-vendor +10,587 against a
+  3,800/month ceiling. **Its done condition is now met**, which it could not be
+  against three outcomes none of which the series matched. The ruling
+  explicitly does NOT authorise fixing the over-record: correcting it raises
+  effective spend toward the real ceiling and buys no information about the
+  breach path.
+- **`CC-CMD-2026-10-14-archive-game-unauthenticated-write`**: option 1, gate
+  it — BLOCKED behind rotation, unreorderable. The gate would check a value
+  present in this repo's current tree **33 times across 19 markdown files** in a
+  public repo. No interim mitigation authorised.
+- **`CC-CMD-2026-10-14-push-cron-gambit-path`**: option 1, delete the loop,
+  done condition amended to require a **stated absence**. `continue` on a 403
+  is indistinguishable from `continue` on "no live games".
+
+Filed with them: `CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md` and
+`CC-CMD-2026-10-18-redact-shared-secret-prose.md`.
+
+### The dead-cron watch judged a schedule that did not exist (`c6c2256`)
+
+`cronFromSource` matched its regex against raw text including comments, so
+`soccer-fbref-mls.yml` — schedule commented out since 2026-06-23 — read as
+`never_fired`. Two files across 99 cron-matching workflows in four repos have
+that shape. Verified here 2026-10-18: self-test **33/33**, mutation harness
+**17 of 17**, including the new **D18 "a commented-out schedule reads as a
+declared cron again"**. Three dead-cron entries due 10-17 were read and acted
+on (`5d51d81`, `92287ba`), one of them re-dated after a verifier found five
+failing runs where the first reason named three.
+
+### The odds watches daily read (`125e656`, `ab19f86`, `7a55dd7`)
+
+`outbox/odds-watches-daily-read-2026-10-17.md`. Its secret-exposure count was
+reproduced independently 2026-10-18: 33 occurrences, 19 files, all markdown, no
+code. `scripts/check-exposed-secrets.mjs` reads `at most 33 occurrence(s)` —
+**a budget, not a count of zero**, and the count is exactly 33 because the
+guard prints no `note: n of a declared …` line.
+
+### BDB event frames went live (`62b0dce`, `d20d4fa`, `aaeb9d9`)
+
+The `STAGED` marker came off `bdb_event_frames.json`; the deployed route
+re-verified after it.
+
+### Why this close-out exists
+
+`d1d1ad0` landed work this document did not name, and **Repo guards run
+39139129698 failed on it at "HANDOFF.md is not stale"** — 2 of 14 unrecorded
+commits more than `GRACE_DAYS` past the 2026-10-16 close-out. Guards was green
+on `7a55dd7` immediately before. Four of guards.yml's 33 steps were run locally
+before that push and reported as "guards run clean"; the staleness step was not
+among them. A subset measured and described as the whole.
+
 ## Absence-collapse ratchet gates relay pushes — 2026-10-17
 
 **HEAD:** `5914511` → `fea794c` · **Branch:** main
