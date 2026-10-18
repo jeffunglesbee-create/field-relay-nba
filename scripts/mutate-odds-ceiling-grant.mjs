@@ -13,6 +13,13 @@ const sh = (c, a, t = 60000) => execFileSync(c, a, { encoding: 'utf8', stdio: ['
 const dirty = sh('git', ['status', '--porcelain', '--', SRC]).trim();
 if (dirty) { console.error(`FAIL — ${SRC} is dirty; refusing to mutate.\n${dirty}`); process.exit(1); }
 
+// A BASELINE. Without one, a check already red on clean source "caught" every
+// mutation whose expected FAIL line it was already printing — measured: R4
+// passed that way with the check red from a window overflow.
+try { sh('node', [CHECK]); }
+catch (e) { console.error(`FAIL — ${CHECK} is already red on clean source; no verdict below would mean anything.\n${(e.stdout || '').slice(0, 600)}`); process.exit(1); }
+console.log(`baseline: ${CHECK} passes on clean source\n`);
+
 const MUTATIONS = [
   { name: 'R1  the standing ceiling is raised instead of a day being granted',
     anchor: 'const ODDS_DAILY_CEILING = 3800;',
@@ -38,6 +45,10 @@ const MUTATIONS = [
     anchor: 'extra: 2500,',
     replace: 'extra: 500000,',
     expect: 'every grant is bounded' },
+  { name: 'R7  the month charge checks the standing ceiling, ignoring the grant',
+    anchor: 'db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling),',
+    replace: 'db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT, date, units, ODDS_DAILY_CEILING),',
+    expect: 'the month charge carries the same granted ceiling' },
 ];
 
 let bad = 0;

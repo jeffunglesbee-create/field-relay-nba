@@ -64,12 +64,29 @@ eq('an ordinary day reports grant_today as null, not absent',
 // Both halves are load-bearing. Drop the first and mutation R4 (swap
 // `_dailyCeiling()` for `ODDS_DAILY_CEILING`) stops being caught; drop the
 // second and the ceiling could be computed correctly and then never sent.
+//
+// BOUNDED BY THE FUNCTION, NOT BY A CHARACTER COUNT. This was a 1600-char
+// window after `const ceiling = _dailyCeiling();`. When the month joined the
+// day's batch on 2026-10-18 the distance grew, and three more lines of comment
+// would have overflowed it: a window overflow reported as "the guard ignores
+// the grant", which is a false semantic failure. Raising the number would only
+// move the cliff, so the slice now runs to the end of the function that
+// computes the ceiling, whatever that function is called.
+const _gi = SRC.indexOf('const ceiling = _dailyCeiling();');
+const _gj = _gi < 0 ? -1 : SRC.indexOf('\n}\n', _gi);
+const guard = (_gi < 0 || _gj < 0) ? '' : SRC.slice(_gi, _gj);
 eq('the guard compares against the granted ceiling',
-   /const ceiling = _dailyCeiling\(\);[\s\S]{0,1600}ODDS_BUDGET_SQL\.charge\)\.bind\([^)]*ceiling\)/.test(SRC), true);
+   /ODDS_BUDGET_SQL\.charge\)\.bind\([^)]*ceiling\)/.test(guard), true);
 // And the site statement carries the SAME ceiling, or a vetoed call writes one
 // counter and not the other — which is the divergence Task 2 exists to remove.
 eq('the site write carries the same granted ceiling',
-   /ODDS_BUDGET_SQL\.site\)\.bind\([^)]*ceiling\)/.test(SRC), true);
+   /ODDS_BUDGET_SQL\.site\)\.bind\([^)]*ceiling\)/.test(guard), true);
+// AND THE MONTH, since it carries the day's predicate (2026-10-18). Its LAST
+// bind is the day ceiling; bound to the standing one, a granted day would veto
+// the month as soon as the pre-charge day passed 3,800 — the call refused while
+// the site and the day still charged, and the grant silently revoked.
+eq('the month charge carries the same granted ceiling',
+   /ODDS_BUDGET_SQL\.monthCharge\)\.bind\([^)]*,\s*ceiling\)/.test(guard), true);
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked}`
           + ` — ${grants.length} grant(s), standing ceiling ${base}`);
