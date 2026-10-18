@@ -365,24 +365,31 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
             // One warn per day per ceiling-hit isolate. The monthly guard
             // emits its own warn separately.
             const warnedKey = `${key}:warned`;
-            const already = await env.FIELD_JOURNALISM.get(warnedKey);
-            if (!already) {
-                console.warn(`[odds-daily-guard] daily ceiling reached — +${units} would exceed ${ceiling}; suppressing further fetches`);
-                // THE TIMESTAMP, NOT '1'. This key was a boolean, written once
-                // per day per isolate, and nothing outside the worker could read
-                // it — so "the ceiling was reached" was only ever inferable from
-                // used === ceiling, and the hour it happened was invisible.
-                //
-                // Measured 2026-09-23 from outbox/odds-site-drift-series.json:
-                // on 2026-09-19 `used` was already 3800 at 19:39 and still 3800
-                // at 22:32, so odds fetches were refused for at least three
-                // hours. A boolean cannot say that; a timestamp can, and it
-                // costs nothing extra because this write happens once a day.
-                //
-                // Written as an ISO string. A legacy '1' still reads as reached
-                // with no time rather than as an error — three states, not two.
-                await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),
-                    { expirationTtl: 86400 });
+            try {
+                const already = await env.FIELD_JOURNALISM.get(warnedKey);
+                if (!already) {
+                    console.warn(`[odds-daily-guard] daily ceiling reached — +${units} would exceed ${ceiling}; suppressing further fetches`);
+                    // THE TIMESTAMP, NOT '1'. This key was a boolean, written once
+                    // per day per isolate, and nothing outside the worker could read
+                    // it — so "the ceiling was reached" was only ever inferable from
+                    // used === ceiling, and the hour it happened was invisible.
+                    //
+                    // Measured 2026-09-23 from outbox/odds-site-drift-series.json:
+                    // on 2026-09-19 `used` was already 3800 at 19:39 and still 3800
+                    // at 22:32, so odds fetches were refused for at least three
+                    // hours. A boolean cannot say that; a timestamp can, and it
+                    // costs nothing extra because this write happens once a day.
+                    //
+                    // Written as an ISO string. A legacy '1' still reads as reached
+                    // with no time rather than as an error — three states, not two.
+                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),
+                        { expirationTtl: 86400 });
+                }
+            } catch (e) {
+                // A day veto whose warning cannot be recorded is still a veto.
+                // Falling to the outer catch would degrade open with no counter
+                // charged and the month limit never asked.
+                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${String(e && e.message || e).slice(0, 160)}`);
             }
             return false;
         }
@@ -394,10 +401,15 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
         // day did not veto, and ceiling_reached_at must not say it did.
         if (!monthOut.charged) {
             const warnedKey = `odds:credits:${month}:warned:limit`;
-            const already = await env.FIELD_JOURNALISM.get(warnedKey);
-            if (!already) {
-                console.warn(`[odds-month-guard] HARD LIMIT — +${units} would exceed ${ODDS_HARD_LIMIT}; suppressing odds calls for the rest of the month`);
-                await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });
+            try {
+                const already = await env.FIELD_JOURNALISM.get(warnedKey);
+                if (!already) {
+                    console.warn(`[odds-month-guard] HARD LIMIT — +${units} would exceed ${ODDS_HARD_LIMIT}; suppressing odds calls for the rest of the month`);
+                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });
+                }
+            } catch (e) {
+                // A limit veto whose warning cannot be recorded is still a veto.
+                console.warn(`[odds-month-guard] veto held; limit key not recorded: ${String(e && e.message || e).slice(0, 160)}`);
             }
             return false;
         }

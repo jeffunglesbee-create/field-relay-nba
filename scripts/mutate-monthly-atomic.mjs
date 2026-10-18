@@ -129,6 +129,21 @@ const MUTATIONS = [
    'two batches is two commits, and a stop between them is the 2,766-credit month gap of 2026-10-18'],
 
   // ── the wiring, which had no mutation at all ─────────────────────────────
+  [H, 'M16 the month\'s day predicate is bound with 0 units',
+   'bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling)',
+   'bind(units, month, units, ODDS_HARD_LIMIT, date, 0, ceiling)',
+   'one credit below the day boundary the month charges and the day refuses: the month runs ahead of the day on every capped day'],
+
+  [H, 'M17 a day veto whose warned key cannot be written degrades open',
+   "                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${String(e && e.message || e).slice(0, 160)}`);",
+   '                throw e;',
+   'a KV 429 on the first ceiling hit lets a refused call spend at the vendor, with no counter charged and the month limit unasked'],
+
+  [H, 'M18 a month veto whose limit key cannot be written degrades open',
+   "                console.warn(`[odds-month-guard] veto held; limit key not recorded: ${String(e && e.message || e).slice(0, 160)}`);",
+   '                throw e;',
+   'past 85,000 a KV failure on the limit key lets the call spend anyway'],
+
   ['index', 'W1 index.js consumeOddsCredit goes back to two calls',
    '  return chargeOdds(env, units, site);\n}',
    '  if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;\n  return chargeMonthlyOdds(env, units);\n}',

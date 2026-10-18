@@ -201,20 +201,29 @@ function fakeD1(db, { throwOnCharge = null } = {}) {
 }
 // KV by PATTERN, so the case does not depend on predicting the worker's clock:
 // the day's and the month's carried totals answer for whatever date it reads.
-function fakeKV({ day = null, month = null } = {}) {
+// `failVeto` makes KV refuse the veto's warned key, as a 429 does when
+// concurrent isolates write that key inside one second on the first ceiling hit.
+function fakeKV({ day = null, month = null, failVeto = null } = {}) {
   const m = new Map(), puts = [];
+  const veto = (k) => failVeto && /:warned(?::limit)?$/.test(k);
   return {
-    get: async (k) => m.has(k) ? m.get(k)
-      : /^odds:daily:\d{4}-\d{2}-\d{2}$/.test(k) ? day
-      : /^odds:credits:\d{4}-\d{2}$/.test(k) ? month : null,
-    put: async (k, v) => { m.set(k, String(v)); puts.push([k, String(v)]); },
+    get: async (k) => {
+      if (veto(k) && failVeto === 'get') throw new Error('KV GET failed: 429 Too Many Requests');
+      return m.has(k) ? m.get(k)
+        : /^odds:daily:\d{4}-\d{2}-\d{2}$/.test(k) ? day
+        : /^odds:credits:\d{4}-\d{2}$/.test(k) ? month : null;
+    },
+    put: async (k, v) => {
+      if (veto(k) && failVeto === 'put') throw new Error('KV PUT failed: 429 Too Many Requests');
+      m.set(k, String(v)); puts.push([k, String(v)]);
+    },
     puts,
   };
 }
-async function call({ day = null, month = null, units = 3, throwOnCharge = null } = {}) {
+async function call({ day = null, month = null, units = 3, throwOnCharge = null, failVeto = null } = {}) {
   const mod = await charger();
   const db = new DatabaseSync(':memory:');               // ensureOddsBudgetTables makes the tables
-  const kv = fakeKV({ day, month });
+  const kv = fakeKV({ day, month, failVeto });
   const warn = console.warn; console.warn = () => {};
   let r;
   try { r = await mod.chargeOdds({ FIELD_JOURNALISM: kv, ARCHIVE_DB: fakeD1(db, { throwOnCharge }) }, units, 'probe'); }
@@ -242,6 +251,35 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
     c.puts.some((k) => DAY_KEY.test(k) && /^\d{4}-\d{2}-\d{2}T/.test(c.vals[k])), JSON.stringify(c.vals));
   ok("F  ...and NOT the month's limit key", !c.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(c.puts));
   eq('F  ...and moves nothing', [c.day, c.site, c.month], [BIG, null, 0]);
+}
+{
+  // AT THE DAY BOUNDARY, through chargeOdds's OWN binds. The day veto above uses
+  // a pre-day of 1e9, past every ceiling, so it cannot tell a right bind in the
+  // month's day predicate from a wrong one. Here the pre-day sits one credit
+  // either side of ceiling - units. The ceiling is read from the module, so a
+  // grant day does not move the boundary out from under the case.
+  const CEIL = (await (await charger()).peekDailyOdds({ FIELD_JOURNALISM: fakeKV() })).ceiling;
+  const lo = await call({ day: String(CEIL - 3), month: '1000' });
+  eq('G  pre-day = ceiling - units: chargeOdds returns true', lo.r, true);
+  eq('G  ...day, site and month all move by units', [lo.day, lo.site, lo.month], [CEIL, 3, 1003]);
+  const hi = await call({ day: String(CEIL - 2), month: '1000' });
+  eq('G  pre-day = ceiling - units + 1: chargeOdds returns false', hi.r, false);
+  eq('G  ...and day, site and month are all unmoved', [hi.day, hi.site, hi.month], [CEIL - 2, null, 1000]);
+  ok('G  ...filed as the DAY veto', hi.puts.some((k) => DAY_KEY.test(k)) && !hi.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(hi.puts));
+}
+{
+  // (H) A VETO STAYS A VETO WHEN ITS WARNING CANNOT BE RECORDED. The batch has
+  // committed its verdict; a KV throw on the warned key reaching the outer
+  // catch would degrade open, let the call spend, and leave the month limit
+  // unasked. Found by the 2026-10-18 review with a differential harness.
+  for (const op of ['get', 'put']) {
+    const d = await call({ day: String(BIG), month: '84999', failVeto: op });
+    eq(`H  a day veto with the warned-key ${op} throwing: chargeOdds returns false`, d.r, false);
+    ok(`H  ...and is not counted as a degrade-open`, !d.puts.some((k) => /^odds:degraded:/.test(k)), JSON.stringify(d.puts));
+    const mo = await call({ month: '84999', failVeto: op });
+    eq(`H  a month veto with the limit-key ${op} throwing: chargeOdds returns false`, mo.r, false);
+    ok(`H  ...and is not counted as a degrade-open`, !mo.puts.some((k) => /^odds:degraded:/.test(k)), JSON.stringify(mo.puts));
+  }
 }
 {
   const c = await call({ month: '84999' });
