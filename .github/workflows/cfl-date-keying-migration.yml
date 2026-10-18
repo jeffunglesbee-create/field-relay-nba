@@ -1,0 +1,87 @@
+name: CFL date-keying migration
+
+# CC-CMD-2026-10-16-cfl-archive-date-keying, TASK 3. Live D1 mutation of the
+# CFL rows the archive writer keyed on the UTC day, authorised by that CC-CMD.
+#
+# TWO MODES, AND THE ORDER IS THE SAFETY.
+#   dry-run  plan, collisions, references          writes nothing
+#   apply    rename, one transaction per row        WRITES
+#
+# apply cannot be reached by a schedule or a path trigger. It needs a manual
+# dispatch that types the mode AND the row count the dry run printed, so the
+# rows written are the rows a human read. scripts/migrate-cfl-date-keying.mjs
+# says why it uses the Cloudflare D1 REST API rather than /d1/execute: one call
+# is one transaction, measured on 2026-10-18; /d1/execute takes one statement.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run | apply"
+        required: true
+        default: "dry-run"
+      expect:
+        description: "apply only: the planned row count the dry run printed"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cfl-date-keying-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Resolved once, so the run step, the file name and the commit message
+      # cannot disagree about which mode ran.
+      MODE: ${{ github.event.inputs.mode }}
+      EXPECT: ${{ github.event.inputs.expect }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Self-test
+        run: node scripts/migrate-cfl-date-keying.mjs --self-test
+
+      - name: Migrate (${{ github.event.inputs.mode }})
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          OUT="outbox/cfl-date-keying-migration-${MODE}-${STAMP}"
+          case "$MODE" in
+            dry-run) node scripts/migrate-cfl-date-keying.mjs --out="$OUT.json" 2>&1 | tee "$OUT.log" ;;
+            apply)   node scripts/migrate-cfl-date-keying.mjs --apply --expect="$EXPECT" --out="$OUT.json" 2>&1 | tee "$OUT.log" ;;
+            *)       echo "mode must be dry-run or apply, got '$MODE'" | tee "$OUT.log"; exit 1 ;;
+          esac
+
+      - name: Commit the manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          # Separate adds: `git add` is atomic across pathspecs, and an
+          # unmatched glob would abort the other.
+          git add outbox/cfl-date-keying-migration-*.json || echo "no manifest"
+          git add outbox/cfl-date-keying-migration-*.log || echo "no log"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: CFL date-keying migration ($MODE)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop exits 0 when every attempt fails (its last command is
+          # sleep). is-ancestor, not HEAD equality: another bot pushing after us
+          # is normal and must not read as our failure.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 5 attempts"; exit 1; }
