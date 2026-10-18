@@ -142,6 +142,48 @@ all four numbers present and a stated verdict, and one of:
 An inconclusive mixture is a third real outcome and is reported as such, never
 rounded to the first.
 
+### A FOURTH outcome, added 2026-10-18 because the series is it
+
+**Ruled by the owner 2026-10-18 (delegated: "go with Claude's best
+recommendations").**
+
+- **a consistent NEGATIVE residual across the series** → the ceiling has been
+  guarding a number **above** real spend. This is **not** a breach and cannot
+  become one by this path: every unit of error is headroom thrown away, never
+  money spent. It is a capacity loss with a measured size, and it does **not**
+  get priority over the breach case.
+
+This outcome was missing, and its absence is why a watch with 26 closed days of
+verdicts could not close its own done condition. The series: 24
+`we-overcharge-ourselves`, 2 `tracks-the-bill` (10-01, 10-06), **0
+`counter-under-counts`** across 31 committed logs. One-directional error over 26
+days is a systematic over-record, not noise — a bug that could go either way
+would have shown both directions by now.
+
+Size, for the record: cumulative ledger-minus-vendor is **+10,587** (30,651
+against 20,064, series row 2026-10-17T04:17Z) against a 3,800/month ceiling.
+Latest close, 2026-10-16: `2313 − 2868 − 120 = −675`, tolerance 116; prior
+closes −616 (10-12) and −561 (10-13).
+
+**The done condition is now MET**, on the fourth outcome.
+
+### What the ruling does NOT authorise
+
+**Do not fix the over-record yet.** Correcting it raises effective spend toward
+the real ceiling — it moves the system from "cannot breach by this path" toward
+the breach line, and buys no information about whether the breach path exists.
+The safe-side error is currently doing protective work. It gets fixed when the
+capacity is wanted, as a capacity change with its own CC-CMD, not as a
+correctness emergency.
+
+Two follow-ups are authorised instead, in this order, and both are in
+`docs/CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md`:
+
+1. the daily-vs-monthly disagreement, which is entirely inside this project's
+   own D1 and costs no credits;
+2. a calendar-run natural experiment on the suspected cause, which costs
+   nothing and requires no code.
+
 ## Task 5 — outbox manifest (last)
 
 Commit hash, workflow run IDs for the three days, the series file verbatim, the

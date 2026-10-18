@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (dead path) — touches push, so ADR-002 Rule A applies
-**Status:** **OPEN — owner decision.** Filed, not built.
+**Status:** **RULED 2026-10-18 — option 1, delete the loop.** Ready to dispatch; the ruling is below and amends the done condition.
 
 ## What was measured
 
@@ -44,8 +44,37 @@ first decision is whether this loop should exist at all.
    `/v2/games`), after an ADR-002 review of what it pushes.
 3. Leave it, and record why a loop that cannot succeed stays.
 
+## Ruling, 2026-10-18 (owner, delegated: "go with Claude's best recommendations")
+
+**Option 1. Delete the loop and its `SPORT_CONFIG` gates from the cron.**
+
+Three reasons, and the third is the one that decides it.
+
+1. **Deletion changes no behaviour**, because the loop already does nothing:
+   every poll 403s on `espn-gambit-path-not-whitelisted`, every iteration
+   `continue`s, `live` stays empty. It is the safest change available.
+2. **Repair reopens a settled ruling for a feature nobody has missed.** Option 2
+   requires an ADR-002 review of what the loop would push, and ADR-002 Rule A
+   has already answered it: the relay serves on pull and never pushes a
+   value-based alert unprompted. Restoring a value-based live-game push means
+   relitigating that to regain something absent for an unmeasured period with
+   no one noticing.
+3. **Option 3 is the only genuinely bad choice.** `continue` on a 403 is
+   indistinguishable from `continue` on "no live games". That is the Rule 99
+   shape at system level — an absence wearing the costume of a value — and this
+   path held that disguise long enough that nobody noticed, which is the
+   evidence it would hold it again.
+
+**Amendment to the done condition: delete it as a STATED absence.** A silent
+removal leaves a future session to read the gap as an oversight and restore it.
+Record, beside the code the deletion touches, one line saying that the
+live-game half of the push heartbeat does not exist and why (ADR-002 Rule A,
+and this ruling). The string check below then guards the decision and not only
+the deletion.
+
 ## Done condition
 
-Option 1: no `espn-gambit/apis/site` string in `src/`, and a deploy green.
+Option 1: no `espn-gambit/apis/site` string in `src/`, the stated-absence note
+present beside the deletion, and a deploy green.
 Option 2: one cron tick's log shows at least one sport's scoreboard read with
 HTTP 200, and the ADR-002 review is written down beside the code.
