@@ -64,6 +64,24 @@ jobs:
             *)       echo "mode must be dry-run or verify, got '$MODE'" | tee "$OUT.log"; exit 1 ;;
           esac
 
+      # TASK 4's guard, run against the same tables and committed with them,
+      # because a job log is not an artifact. Before the apply it is EXPECTED
+      # to fail and name every off-day row: that output is the before-baseline.
+      # In verify mode anything but exit 0 fails this run.
+      - name: Archive date-keying guard
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          set +e
+          OUT="outbox/cfl-date-keying-guard-${MODE}-$(date -u +%Y%m%dT%H%M%SZ).log"
+          node scripts/check-archive-date-keying.mjs > "$OUT" 2>&1
+          code=$?
+          echo "guard exit $code" >> "$OUT"
+          cat "$OUT"
+          if [ "$MODE" = verify ] && [ "$code" -ne 0 ]; then exit 1; fi
+          exit 0
+
       - name: Commit the manifest
         if: always()
         run: |
@@ -74,6 +92,7 @@ jobs:
           git add outbox/cfl-date-keying-migration-*.json || echo "no manifest"
           git add outbox/cfl-date-keying-migration-*.log || echo "no log"
           git add outbox/cfl-date-keying-migration-*.sql || echo "no sql"
+          git add outbox/cfl-date-keying-guard-*.log || echo "no guard log"
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: CFL date-keying migration ($MODE)"
           for i in 1 2 3 4 5; do
