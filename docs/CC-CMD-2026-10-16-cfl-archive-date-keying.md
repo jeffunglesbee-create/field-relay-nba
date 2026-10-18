@@ -4,7 +4,41 @@
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-16 by chat, read from `src/index.js` blob `92478cc` (commit `176f0c7` when filed — cite the blob, not the commit: an agent rebase on this branch orphans the commit sha and leaves the citation unverifiable, which is what happened to the first version of this line), measured against live `field-archive` (`cc49101c-0569-4d41-8e7a-be139cde4f26`)
-**Status:** NOT STARTED — not dispatched.
+**Status:** **PARTIAL — TASKs 3, 4 and 5 landed 2026-10-18; TASKs 1 and 2 held by an explicit order until 2026-10-19T00:00Z; the migration is NOT applied.**
+
+| task | state |
+|---|---|
+| 1 — `fieldDayOfInstant` helper | **not landed.** 0 occurrences in `src/index.js` |
+| 2 — the CFL writer | **not landed.** Line 8947 still reads `const gameDate = String(t.date \|\| '').slice(0, 10);` |
+| 3 — migration | `scripts/migrate-cfl-date-keying.mjs` (`3ad28bd`, `3b2fef2`), dry run by default, **not applied** |
+| 4 — guard | `scripts/check-archive-date-keying.mjs` (`9e76e87`) |
+| 5 — verify | checks `/context/date` for every planned row (`85a95da`) |
+| review | ten adversarial findings, nine fixed (`147f375`) |
+
+**The guard fails on purpose and that is correct.** Run today it exits 1 with
+`writer helper: "const gameDate = fieldDayOfInstant(t.date);" occurs 0 times in src/index.js; expected exactly 1`.
+It was built before the fix it checks for, so it refuses to pass — Rule 90.
+
+**It is deliberately NOT in `guards.yml`**, against TASK 4 as filed, and
+`9e76e87` states why: *"That read needs the writer fix on main, so the guard is
+not yet in guards.yml: the migration workflow runs it and commits its output,
+before the apply (expected to fail, the baseline) and in verify (must pass)."*
+Wiring a guaranteed-red guard into push CI is the wallpaper failure
+`scripts/odds-coverage.mjs` documents at its own cost. Promoting it to
+`guards.yml` is the step that closes TASK 4, and it is not done.
+
+**The tenth review finding is an order, not code** (`147f375`): push the writer
+fix only after 2026-10-19T00:00Z, apply only after 00:15Z.
+
+**Live state, measured 2026-10-18:** 13 CFL rows still keyed UTC, 0 keyed ET,
+and the writer still accrues one per CFL game kicking off after 20:00 ET.
+
+**Status line corrected 2026-10-18 by chat.** It read `NOT STARTED — not
+dispatched` while three commits cited this document by task number. Nothing
+caught that: unlike `field-laboratory`, this repo has no
+`scripts/cc-cmd-status-check.mjs`, so a status may contradict its own
+implementation indefinitely. Filed as
+`docs/CC-CMD-2026-10-18-relay-governance-guards.md`.
 
 Found while tracing a different hypothesis. The hypothesis was wrong and the
 trace found a real defect next to it; both halves are recorded because the

@@ -62,6 +62,28 @@ on `7a55dd7` immediately before. Four of guards.yml's 33 steps were run locally
 before that push and reported as "guards run clean"; the staleness step was not
 among them. A subset measured and described as the whole.
 
+### Later the same day — the CFL keying work landed partly, on purpose
+
+TASKs 3, 4 and 5 of `CC-CMD-2026-10-16-cfl-archive-date-keying` landed
+(`3ad28bd`, `3b2fef2`, `9e76e87`, `85a95da`, `147f375`). TASKs 1 and 2 — the
+`fieldDayOfInstant` helper and the writer fix — did **not**, held by the tenth
+review finding: push the writer fix only after 2026-10-19T00:00Z, apply only
+after 00:15Z. The migration is dry-run only and 13 CFL rows are still keyed
+UTC.
+
+`scripts/check-archive-date-keying.mjs` fails on purpose until the writer
+lands, and is deliberately out of `guards.yml` for that reason — a
+guaranteed-red guard in push CI is the wallpaper failure
+`scripts/odds-coverage.mjs` paid for. Promoting it closes TASK 4.
+
+That CC-CMD's Status read `NOT STARTED — not dispatched` while three commits
+cited it by task number; corrected by chat the same day. Nothing caught it,
+because this repo has no `scripts/cc-cmd-status-check.mjs` — filed as
+`docs/CC-CMD-2026-10-18-relay-governance-guards.md`, with its budgets measured:
+331 of 386 CC-CMDs carry no status line, 8 of the 55 that do fall outside the
+laboratory's vocabulary (two of them `RULED`, written by chat today), 36 of 57
+close-outs name no session doc, and **0 name one that is missing**.
+
 ## Absence-collapse ratchet gates relay pushes — 2026-10-17
 
 **HEAD:** `5914511` → `fea794c` · **Branch:** main
