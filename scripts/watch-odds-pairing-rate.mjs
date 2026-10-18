@@ -173,10 +173,14 @@ export function degradeVerdict(prevDegraded, currDegraded, escaped, span = {}) {
  *  events, two possible per call. From the cutover
  *  (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md) the day, the
  *  site and the month are ONE batch, which throws at most once, so the unit is
- *  one event per call, keyed `charge:`. The same D1 pressure can therefore read
- *  up to half what it did, and 13 now tolerates up to twice as many overloaded
- *  calls. It is KEPT at 13 on purpose: lowering it is a re-ratchet, and the
- *  rule above says that waits for a measured week on the new unit.
+ *  one event per call, keyed `charge:`. Counted raw, the same D1 pressure would
+ *  read up to half what it did and 13 would tolerate twice as many overloaded
+ *  calls. So 13 stays in its own unit, PATH EVENTS: a legacy `daily:` or
+ *  `month:` overload blinded one ceiling, and a one-batch overload blinds the
+ *  day AND the month, so it counts as two. No re-ratchet and no new
+ *  measurement: the budget's unit is kept, not changed. The weight is keyed on
+ *  the frozen legacy prefixes, so a renamed prefix counts double (fail-closed)
+ *  rather than quietly halving.
  *
  *  FIVE STATES, and four of them are not "fine" (Rule 99):
  *    not-reported  the field is absent at daily.degraded_open — the wrong-nesting
@@ -216,16 +220,17 @@ export function d1OverloadVerdict(block, budget = D1_OVERLOAD_BUDGET) {
   if (!reasons || typeof reasons !== 'object' || Array.isArray(reasons)) {
     return { state: 'unattributed', overloads: null, events };
   }
-  let overloads = 0, monthBatch = 0, overflow = 0;
+  let overloads = 0, pathBlind = 0, monthBatch = 0, overflow = 0;
   for (const [k, v] of Object.entries(reasons)) {
     const n = Number(v) || 0;
     if (k.includes(D1_OVERLOAD_MARK)) overloads += n;
+    if (k.includes(D1_OVERLOAD_MARK)) pathBlind += (k.startsWith('daily:') || k.startsWith('month:')) ? n : 2 * n;
     if (MONTH_BATCH_MARK.test(k)) monthBatch += n;
     if (k === DEGRADE_OTHER_KEY) overflow += n;
   }
-  const base = { overloads, events, monthBatch, overflow, budget };
+  const base = { overloads, pathBlind, events, monthBatch, overflow, budget };
   if (overloads === 0) return { state: 'none', ...base };
-  return { state: overloads > budget ? 'over' : 'within', ...base };
+  return { state: pathBlind > budget ? 'over' : 'within', ...base };
 }
 
 /** CI SPENDS AT THE VENDOR WITHOUT TOUCHING OUR LEDGER, BY CONSTRUCTION.
@@ -541,6 +546,9 @@ if (SELF) {
       `the real message is ${JSON.stringify(SHAPE5)}; a mark fixed to "2 ... expected 3" reads it as 0 for good`);
   one('a single-path overload, keyed charge:, is counted', d1OverloadVerdict(dayCut).overloads, 5,
       'after the cutover an overload is one event per call under charge: — a count keyed to daily:/month: sees none');
+  one('six one-batch overloaded calls read 12 path events, within', d1OverloadVerdict({ events: 6, reasons: { [OVC]: 6 } }).state, 'within', '6 x 2 = 12');
+  one('seven one-batch overloaded calls FAIL, as seven both-path calls did pre-cutover', d1OverloadVerdict({ events: 7, reasons: { [OVC]: 7 } }).state, 'over', '7 x 2 = 14 > 13');
+  one('real 2026-10-10 keeps its calibration: 13 legacy path events, within', d1OverloadVerdict(day10).state, 'within', 'the day the budget was set on');
 
   // RULE 99, and both lessons from the three probe revisions on 2026-10-11.
   one('undefined is not-reported, not zero', d1OverloadVerdict(undefined).state, 'not-reported',
@@ -830,6 +838,7 @@ if (ovlWhy) {
 } else {
   console.log(`  degraded_open        : ${ovl.state}`);
   if (ovl.overloads !== null) console.log(`  D1 overloads         : ${ovl.overloads}   (daily + month paths; one per call from 2026-10-18)`);
+  if (ovl.pathBlind !== undefined) console.log(`  path events          : ${ovl.pathBlind}   (the budget's unit: a one-batch overload blinds the day AND the month, so counts 2)`);
   if (ovl.events !== undefined) console.log(`  all degrade events   : ${ovl.events}`);
   if (ovl.monthBatch !== undefined) console.log(`  month-batch reason   : ${ovl.monthBatch}   (the batch-shape fix of 2026-10-11 should hold this at 0)`);
   if (ovl.overflow) console.log(`  overflow bucket      : ${ovl.overflow}   (reasons past the cap — overloads could be hiding here)`);
@@ -840,7 +849,7 @@ if (ovlWhy || ['over', 'unattributed', 'not-reported', 'unreadable'].includes(ov
     console.log(`\nFAIL: the closed-day degrade counter for ${OVL_DAY} could not be read (${ovlWhy}).`);
     console.log(`      A watch that cannot see the thing it watches does not get to pass.`);
   } else if (ovl.state === 'over') {
-    console.log(`\nFAIL: ${ovl.overloads} D1 overloads on ${OVL_DAY}, over the budget of ${ovl.budget}.`);
+    console.log(`\nFAIL: ${ovl.pathBlind} D1-overload path events (${ovl.overloads} overloads) on ${OVL_DAY}, over the budget of ${ovl.budget}.`);
     console.log(`      Each is a degrade-OPEN: a vendor call the counter did not see, and after`);
     console.log(`      the daily ceiling a veto turned into a spend. The odds guard REPORTS this;`);
     console.log(`      it is the only D1 caller that counts its failures, which makes it the`);

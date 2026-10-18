@@ -61,9 +61,14 @@ const MUTATIONS = [
     catches: 'every overload after the cutover is keyed charge:, so the watch would report none while D1 failed' },
 
   { name: 'P5 the budget becomes inclusive',
-    anchor: "  return { state: overloads > budget ? 'over' : 'within', ...base };",
-    replace: "  return { state: overloads >= budget ? 'over' : 'within', ...base };",
+    anchor: "  return { state: pathBlind > budget ? 'over' : 'within', ...base };",
+    replace: "  return { state: pathBlind >= budget ? 'over' : 'within', ...base };",
     catches: 'the day the budget was set on would fail its own calibration' },
+
+  { name: 'P14 a one-batch overload counts once against a two-path budget',
+    anchor: "(k.startsWith('daily:') || k.startsWith('month:')) ? n : 2 * n;",
+    replace: "n;",
+    catches: 'the budget silently doubles in calls at the cutover' },
 
   { name: 'P6 the overflow bucket is dropped',
     anchor: "    if (k === DEGRADE_OTHER_KEY) overflow += n;",
