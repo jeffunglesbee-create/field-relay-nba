@@ -58,9 +58,11 @@ import { readFileSync } from 'node:fs';
 // SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
-// A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds is
-// deliberately NOT in this list -- it is the daily layer only, and treating it
-// as sufficient is exactly the defect _captureClosingOdds had.
+// A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds was
+// deliberately NOT in this list -- it was the daily layer only, and treating it
+// as sufficient is exactly the defect _captureClosingOdds had. Since 2026-10-18
+// it no longer exists (chargeOdds charges the day, site and month in one
+// batch); the self-test fixture below keeps its name as the daily-only shape.
 const MONTHLY_GUARDS = ['consumeOddsCredit(', '_consumeAmbientOddsCredit('];
 
 // A line that builds a URL we will fetch and be billed for. The sport key may be
