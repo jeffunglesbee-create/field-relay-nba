@@ -48,6 +48,18 @@ const MUTATIONS = [
     replace: "    if (k.startsWith('daily:') && k.includes(D1_OVERLOAD_MARK)) overloads += n;",
     catches: 'reports 77 of 155 on 2026-10-11 — half the failures, from a check that still looks like it works' },
 
+  // 2026-10-18: one batch, one catch, one `charge:` prefix. P12 and P13 are the
+  // two ways the watch could keep reading the old shape and go quietly blind.
+  { name: 'P12 the batch-shape mark goes back to the old two-of-three message',
+    anchor: "export const MONTH_BATCH_MARK   = /odds budget batch returned \\d+ result\\(s\\), expected \\d+/;",
+    replace: "export const MONTH_BATCH_MARK   = /odds budget batch returned 2 result\\(s\\), expected 3/;",
+    catches: 'a shape mismatch in the five-statement batch reads 0 for good — the 10-09 incident class, unseen' },
+
+  { name: 'P13 only the old per-batch prefixes are counted',
+    anchor: "    if (k.includes(D1_OVERLOAD_MARK)) overloads += n;",
+    replace: "    if ((k.startsWith('daily:') || k.startsWith('month:')) && k.includes(D1_OVERLOAD_MARK)) overloads += n;",
+    catches: 'every overload after the cutover is keyed charge:, so the watch would report none while D1 failed' },
+
   { name: 'P5 the budget becomes inclusive',
     anchor: "  return { state: overloads > budget ? 'over' : 'within', ...base };",
     replace: "  return { state: overloads >= budget ? 'over' : 'within', ...base };",
@@ -107,7 +119,7 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: d1OverloadVerdict (P1-P7) and degradeVerdict (P8-P11) only.`);
+console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12, P13) and degradeVerdict (P8-P11) only.`);
 console.log(`It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
 console.log(`predicates in this watch; the fetch is verified by a scheduled run.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);

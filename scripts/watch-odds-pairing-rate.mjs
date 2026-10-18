@@ -166,6 +166,18 @@ export function degradeVerdict(prevDegraded, currDegraded, escaped, span = {}) {
  *  says so. Lower it when a measured week runs lower; raise it only with a
  *  written reason in the same commit.
  *
+ *  THE UNIT CHANGED ON 2026-10-18, AND THE NUMBER DID NOT. Until then a charge
+ *  was two D1 batches, the day's and the month's, and an overloaded call could
+ *  throw in both: the daily catch degraded open, then the month batch ran and
+ *  could throw again. 13 was set on 2026-10-10 as daily 6 + month 7, i.e. in
+ *  events, two possible per call. From the cutover
+ *  (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md) the day, the
+ *  site and the month are ONE batch, which throws at most once, so the unit is
+ *  one event per call, keyed `charge:`. The same D1 pressure can therefore read
+ *  up to half what it did, and 13 now tolerates up to twice as many overloaded
+ *  calls. It is KEPT at 13 on purpose: lowering it is a re-ratchet, and the
+ *  rule above says that waits for a measured week on the new unit.
+ *
  *  FIVE STATES, and four of them are not "fine" (Rule 99):
  *    not-reported  the field is absent at daily.degraded_open — the wrong-nesting
  *                  failure that cost three probe revisions on 2026-10-11
@@ -178,11 +190,16 @@ export function degradeVerdict(prevDegraded, currDegraded, escaped, span = {}) {
  *  read and empty, and the one case where no reasons map is correct. */
 export const D1_OVERLOAD_BUDGET = 13;
 export const D1_OVERLOAD_MARK   = 'D1 DB is overloaded';
-export const MONTH_BATCH_MARK   = 'odds budget batch returned 2 result(s), expected 3';
+// COUNT-AGNOSTIC since 2026-10-18. It matched only the old month batch's
+// `returned 2 result(s), expected 3`; a shape mismatch in the five-statement
+// batch reads `returned N result(s), expected 5 (...)` and would have counted 0
+// here for good — this column passing vacuously on exactly the 10-09 incident
+// class it exists to see.
+export const MONTH_BATCH_MARK   = /odds budget batch returned \d+ result\(s\), expected \d+/;
 // The overflow bucket's NAME comes from the writer, not a copy of it: if
 // budget-helpers.js renames it, a copied string here would silently stop
 // matching and an overflowed overload would read as none.
-const { DEGRADE_OTHER_KEY } = await import('../src/budget-helpers.js');
+const { DEGRADE_OTHER_KEY, chargedFromBatch, ODDS_CHARGE_ORDER } = await import('../src/budget-helpers.js');
 export { DEGRADE_OTHER_KEY };
 
 export function d1OverloadVerdict(block, budget = D1_OVERLOAD_BUDGET) {
@@ -203,7 +220,7 @@ export function d1OverloadVerdict(block, budget = D1_OVERLOAD_BUDGET) {
   for (const [k, v] of Object.entries(reasons)) {
     const n = Number(v) || 0;
     if (k.includes(D1_OVERLOAD_MARK)) overloads += n;
-    if (k.includes(MONTH_BATCH_MARK)) monthBatch += n;
+    if (MONTH_BATCH_MARK.test(k)) monthBatch += n;
     if (k === DEGRADE_OTHER_KEY) overflow += n;
   }
   const base = { overloads, events, monthBatch, overflow, budget };
@@ -296,7 +313,7 @@ export function ledgerIntegrityVerdict(prev, curr, outsideLedger = 0) {
 
 /**
  * Was the daily ceiling breached? Asked of odds:daily:* directly, because that
- * is the counter checkAndIncrementDailyOdds compares against. No interval, no
+ * is the counter chargeOdds compares against. No interval, no
  * proration — the guard does not prorate, so neither does this.
  */
 export function ceilingVerdict(daily) {
@@ -511,6 +528,19 @@ if (SELF) {
       'the 12x day; a watch that passed it would be the reason this document exists');
   one('the month-batch reason is reported beside it', d1OverloadVerdict(day11).monthBatch, 1075,
       'a free daily runtime check on the batch-shape fix: post-fix this must read 0');
+
+  // FROM THE 2026-10-18 CUTOVER: one batch, one catch, one prefix. Both keys are
+  // built from what the worker would write, not typed out: the shape error is
+  // the message chargedFromBatch really throws for the five-statement batch.
+  let SHAPE5 = null;
+  try { chargedFromBatch([{ results: [] }, { results: [] }, { results: [] }], ODDS_CHARGE_ORDER); }
+  catch (e) { SHAPE5 = `charge: ${e.message}`; }
+  const OVC = 'charge: D1_ERROR: D1 DB is overloaded. Requests queued for too long.';
+  const dayCut = { events: 9, credits: 27, reasons: { [OVC]: 5, [SHAPE5]: 4 } };
+  one('a five-statement shape error is counted as a batch-shape reason', d1OverloadVerdict(dayCut).monthBatch, 4,
+      `the real message is ${JSON.stringify(SHAPE5)}; a mark fixed to "2 ... expected 3" reads it as 0 for good`);
+  one('a single-path overload, keyed charge:, is counted', d1OverloadVerdict(dayCut).overloads, 5,
+      'after the cutover an overload is one event per call under charge: — a count keyed to daily:/month: sees none');
 
   // RULE 99, and both lessons from the three probe revisions on 2026-10-11.
   one('undefined is not-reported, not zero', d1OverloadVerdict(undefined).state, 'not-reported',
@@ -799,7 +829,7 @@ if (ovlWhy) {
   console.log(`  NOT READ: ${ovlWhy}`);
 } else {
   console.log(`  degraded_open        : ${ovl.state}`);
-  if (ovl.overloads !== null) console.log(`  D1 overloads         : ${ovl.overloads}   (daily + month paths)`);
+  if (ovl.overloads !== null) console.log(`  D1 overloads         : ${ovl.overloads}   (daily + month paths; one per call from 2026-10-18)`);
   if (ovl.events !== undefined) console.log(`  all degrade events   : ${ovl.events}`);
   if (ovl.monthBatch !== undefined) console.log(`  month-batch reason   : ${ovl.monthBatch}   (the batch-shape fix of 2026-10-11 should hold this at 0)`);
   if (ovl.overflow) console.log(`  overflow bucket      : ${ovl.overflow}   (reasons past the cap — overloads could be hiding here)`);
@@ -833,7 +863,7 @@ if (integrity.over) {
   console.log(`and ${integrity.outsideLedger} of the difference is known CI spend. ${integrity.unexplained} credits are UNEXPLAINED —`);
   console.log(`they reached the provider without reaching a counter. Both guards`);
   console.log(`degrade OPEN — consumeOddsCredit returns true when FIELD_JOURNALISM is unbound,`);
-  console.log(`checkAndIncrementDailyOdds returns true on any KV error — so spend that the`);
+  console.log(`chargeOdds returns true on any KV error — so spend that the`);
   console.log(`vendor saw and we did not is the signature of a guard that stopped guarding.`);
   console.log(`This compares the two counters to EACH OTHER, so it is not the standing`);
   console.log(`cumulative gap (19,582 on 2026-09-16); it is new divergence in this interval.`);
@@ -842,7 +872,7 @@ if (integrity.over) {
 if (cap.over) {
   failed = true;
   console.log(`\nFAIL: odds:daily is ${cap.used} against a ceiling of ${cap.ceiling}.`);
-  console.log(`checkAndIncrementDailyOdds compares this exact counter to this exact number`);
+  console.log(`chargeOdds compares this exact counter to this exact number`);
   console.log(`and refuses the call that would exceed it, so a total above it means the`);
   console.log(`guard returned true when it should not have. Investigate the guard (Rule 77).`);
 }
