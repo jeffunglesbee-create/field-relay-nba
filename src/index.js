@@ -110,7 +110,7 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
-import { checkAndIncrementDailyOdds, chargeMonthlyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_BUDGET_ORDER } from './budget-helpers.js';
+import { chargeOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_CHARGE_ORDER } from './budget-helpers.js';
 
 // The CI-only route gate, named once so a new CI route does not mean a new
 // hard-coded copy of it. scripts/check-exposed-secrets.mjs ratchets on the
@@ -6821,22 +6821,14 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK, captu
 // `units` is the credit cost of the planned fetch (1 for live odds with one
 // market; up to 30 for historical calls). Increments AFTER returning true.
 //
-// Two-layer guard: shared daily ceiling first (src/budget-helpers.js),
-// then the monthly hard limit. Either layer can veto. The daily layer
-// is shared with AmbientDO's _consumeAmbientOddsCredit + _captureClosingOdds
-// so a runaway in any one consumer can't burn the monthly quota in a day.
+// Two-layer guard: shared daily ceiling and the monthly hard limit, both
+// in chargeOdds (src/budget-helpers.js), written in ONE D1 batch. Either
+// layer can veto. The daily layer is shared with AmbientDO's
+// _consumeAmbientOddsCredit + _captureClosingOdds so a runaway in any one
+// consumer can't burn the monthly quota in a day.
 async function consumeOddsCredit(env, units, site = 'unattributed') {
   if (!env.FIELD_JOURNALISM) return true; // KV unavailable: degrade-open
-  // Daily layer first — cheaper failure path. checkAndIncrementDailyOdds
-  // also increments on pass, so don't double-count below.
-  if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
-  // THE LAST OF THE THREE COPIES. This held a get/parseInt/put on
-  // odds:credits:YYYY-MM, as did wp-resolver.js and ambient-do.js, all on the
-  // same key from concurrent isolates — so the second write erased the first
-  // and the monthly counter lost charges the atomic daily counter kept.
-  // chargeMonthlyOdds is one D1 transaction and carries the threshold ladder
-  // that used to live here.
-  return chargeMonthlyOdds(env, units);
+  return chargeOdds(env, units, site);
 }
 
 // Fetch current odds for one sport. Returns { games, quotaRemaining, ok }.
@@ -16690,17 +16682,24 @@ export default {
         //   - the guard does NOT do four KV ops any more. Task 2 replaced them.
         //     The four-op form is the BASELINE here, reconstructed, not observed.
         //   - `DB` was removed 2026-09-20. Task 2 landed on ARCHIVE_DB.
-        //   - the new path is not one call either. checkAndIncrementDailyOdds
-        //     also calls ensureOddsBudgetTables and _seedFromKv, both guarded by
-        //     module-level flags, so a FIRST call on an isolate makes three round
-        //     trips and every later call makes one. Reporting only the batch
-        //     would flatter the new form and answer a question nobody asked.
+        //   - the new path is not one call either. chargeOdds also calls
+        //     ensureOddsBudgetTables, _seedFromKv and _seedMonthFromKv, all
+        //     guarded by module-level flags, so a FIRST call on an isolate makes
+        //     four round trips and every later call makes one. Reporting only the
+        //     batch would flatter the new form and answer a question nobody asked.
+        //   - since 2026-10-18 that one call is the FIVE-statement batch: the
+        //     month joined the day and the site
+        //     (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md). This
+        //     route times that batch, in that order, and reports the order.
         //
         // WRITES, AND THEY ARE BOUNDED. Everything lands on the sentinel day
-        // '0000-00-00' and two sentinel KV keys, all deleted before the response
-        // is built. No real day is touched, and every reader of odds_budget
-        // filters `WHERE day = ?` (checked: three call sites), so the sentinel is
-        // invisible to them even in the window before cleanup.
+        // '0000-00-00', the sentinel month '0000-00' and two sentinel KV keys,
+        // all deleted before the response is built. No real day or month is
+        // touched: every reader of odds_budget filters `WHERE day = ?` (checked
+        // 2026-10-18: four call sites -- peekDailyOdds, and the site, charge and
+        // month-charge statements), and every reader of odds_budget_month
+        // filters `WHERE month = ?`, so the sentinels are invisible to them even
+        // in the window before cleanup.
         // GET /debug/odds-fallback-key — IS THE FALLBACK KEY ANY GOOD?
         //
         // It had no probe at all until 2026-10-12, which is the gap that made
@@ -16793,10 +16792,13 @@ export default {
             }
             const N       = 7;               // odd, so the median is a real sample
             const DAY     = '0000-00-00';    // sentinel: not a date any caller can produce
+            const MON     = '0000-00';       // sentinel: not a month any caller can produce
             const KV_A    = 'odds:latency-probe:daily';
             const KV_B    = 'odds:latency-probe:site';
+            const KV_M    = 'odds:latency-probe:month';  // read for the month seed, never written
             const CEILING = 1000000000;      // high on purpose: a vetoed charge does
                                              // less work, and would time the wrong path
+            const MONTH_LIMIT = 1000000000;  // the same, for the month's hard limit
             const med = (a) => { const t = [...a].sort((x, y) => x - y); return t[(t.length - 1) >> 1]; };
             const time = async (fn) => { const t0 = Date.now(); await fn(); return Date.now() - t0; };
             const out = { task: '0d', n: N, day: DAY, samples: {}, median_ms: {}, note: {} };
@@ -16821,13 +16823,15 @@ export default {
                 for (let i = 0; i < N; i++) b.push(await time(async () => {
                     await db.batch([
                         db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
+                        db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(MON, 0),
                         db.prepare(ODDS_BUDGET_SQL.site).bind(DAY, 'latency-probe', 1, DAY, 1, CEILING),
+                        db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(1, MON, 1, MONTH_LIMIT, DAY, 1, CEILING),
                         db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, 1, CEILING),
                     ]);
                 }));
                 out.samples.d1_batch_warm = b;
 
-                // (c) COLD — the three round trips a first call on a fresh isolate
+                // (c) COLD — the four round trips a first call on a fresh isolate
                 // makes. A RECONSTRUCTION, and labelled as one: the real cold path
                 // is gated by module-level flags this route cannot reset, so this
                 // performs the same work rather than observing it happen.
@@ -16836,20 +16840,24 @@ export default {
                     await db.batch([
                         db.prepare('CREATE TABLE IF NOT EXISTS odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)'),
                         db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site))'),
+                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)'),
                     ]);
                     await env.FIELD_JOURNALISM.get(KV_A);
+                    await env.FIELD_JOURNALISM.get(KV_M);
                     await db.batch([
                         db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
+                        db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(MON, 0),
                         db.prepare(ODDS_BUDGET_SQL.site).bind(DAY, 'latency-probe', 1, DAY, 1, CEILING),
+                        db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(1, MON, 1, MONTH_LIMIT, DAY, 1, CEILING),
                         db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, 1, CEILING),
                     ]);
                 }));
                 out.samples.d1_first_call_on_isolate = c;
 
                 for (const k in out.samples) out.median_ms[k] = med(out.samples[k]);
-                out.statement_order = ODDS_BUDGET_ORDER;
+                out.statement_order = ODDS_CHARGE_ORDER;
                 out.note.baseline = 'kv_four_ops is RECONSTRUCTED. The guard has not done this since Task 2; it is here as the thing Task 2 replaced.';
-                out.note.cold = 'd1_first_call_on_isolate is RECONSTRUCTED too — ensureOddsBudgetTables and _seedFromKv are gated by module-level flags this route cannot reset.';
+                out.note.cold = 'd1_first_call_on_isolate is RECONSTRUCTED too — ensureOddsBudgetTables, _seedFromKv and _seedMonthFromKv are gated by module-level flags this route cannot reset.';
                 out.note.kv_cache = 'The four KV ops reuse one key pair across all ' + N + ' iterations, which is the shape the real guard had: one hot daily key all day. A cold-key measurement would be a different number and a different question.';
                 out.note.coverage = 'ONE isolate, ' + N + ' iterations each, on whichever colo answered. It does NOT measure contention, cold starts, or any other region.';
             } catch (e) {
@@ -16861,6 +16869,7 @@ export default {
                 out.cleaned = [];
                 try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget WHERE day = ?').bind(DAY).run(); out.cleaned.push('odds_budget'); } catch (_) {}
                 try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_site WHERE day = ?').bind(DAY).run(); out.cleaned.push('odds_budget_site'); } catch (_) {}
+                try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_month WHERE month = ?').bind(MON).run(); out.cleaned.push('odds_budget_month'); } catch (_) {} // catch-ok: a cleanup that failed is reported by its absence from out.cleaned
                 try { await env.FIELD_JOURNALISM.delete(KV_A); out.cleaned.push(KV_A); } catch (_) {}
                 try { await env.FIELD_JOURNALISM.delete(KV_B); out.cleaned.push(KV_B); } catch (_) {}
             }

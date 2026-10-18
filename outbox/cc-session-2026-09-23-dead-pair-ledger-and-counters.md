@@ -197,7 +197,8 @@ same function increments alongside it.
 ### What the probe establishes
 
 `checkAndIncrementDailyOdds` returns false at the ceiling and the callers at
-`src/index.js:1176`, `:3277` and `:3422` return null rather than fetching. The
+`src/index.js:1176` (`'getWCPregameLambdas'))) return null`), `:3277` and
+`:3422` return null rather than fetching. The
 counter reaches the ceiling on **four of the last five days**, and on 2026-09-19
 it was already at 3800 by 19:39 and still at 3800 at 22:32 — **at least three
 hours during which every odds fetch was refused**, while the monthly ledger sat

@@ -273,6 +273,26 @@ function _monthKeyUtc(d = new Date()) {
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+/** The month's verdict and post-charge total, read from monthCharge's own result.
+ *
+ *  BY NAME, NEVER BY POSITION. When the month was its own two-statement batch
+ *  this read the LAST result, which was the month's charge. In the shared batch
+ *  the last statement is the DAY's charge (chargedFromBatch reads it), so a
+ *  last-position read would feed the day's total -- a few thousand -- into the
+ *  month's 50/75/90% ladder, whose first cutoff is 42,500. Every warning would
+ *  stop firing and nothing would fail.
+ *
+ *  A missing results array is a shape this code has never seen, not a veto, so
+ *  it throws to the degrade path where it is counted -- chargedFromBatch's rule. */
+function _monthFromBatch(results) {
+    const r = results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')];
+    if (!r || !Array.isArray(r.results)) {
+        throw new Error('odds budget batch: the month charge statement returned no results array');
+    }
+    const v = r.results.length ? r.results[0].used : null;
+    return { charged: r.results.length > 0, used: (typeof v === 'number') ? v : null };
+}
+
 /**
  * ONE IMPLEMENTATION. This replaces three copies of the same rule — index.js's
  * consumeOddsCredit, wp-resolver.js's, and ambient-do.js's
@@ -280,81 +300,34 @@ function _monthKeyUtc(d = new Date()) {
  * duplication is why the count reached three before anyone noticed, and why
  * IMPACT-2026-09-16-odds-ceilings.md had to correct a session that claimed one.
  *
+ * ONE BATCH FOR THE DAY, THE SITE AND THE MONTH, since 2026-10-18
+ * (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md, option 1). This
+ * was two functions: the day and the site in one D1 batch, then the month in a
+ * SECOND batch, sent only after the first had returned. Anything that stopped
+ * between the two -- a month batch that threw before committing, or an
+ * invocation cancelled mid-request -- kept the day's charge and lost the
+ * month's. By 2026-10-18 odds_budget_month read 2,766 short of the daily rows
+ * (outbox/odds-counter-internal-2026-10-18.md). In one batch there is no
+ * "between", whatever the cause was.
+ *
+ * THE SAME INCREMENTS AND THE SAME PREDICATES, moved, not changed:
+ *   - the day and the site carry the day ceiling over the PRE-charge day total,
+ *     exactly as before;
+ *   - the month keeps its hard limit and gains the day's predicate, over the
+ *     same pre-charge total. A batch cannot skip a statement on an earlier
+ *     statement's result, so "the month batch only ran after the day charged"
+ *     becomes "the month statement refuses on the day's own condition";
+ *   - `charge` stays LAST, so chargedFromBatch still reads the day's verdict.
+ *
  * @returns {Promise<boolean>} true = charged (or degraded open), false = vetoed.
  */
-/** The post-charge total from the month batch's RETURNING, or null. */
-function _usedFromBatch(results) {
-    try {
-        const rows = results?.[results.length - 1]?.results;
-        const v = Array.isArray(rows) && rows.length ? rows[0].used : null;
-        return (typeof v === 'number') ? v : null;
-    } catch (_) { return null; }
-}
-
-async function chargeMonthlyOdds(env, units = 1) {
-    if (!env || !env.FIELD_JOURNALISM) return true;
-    try {
-        if (!(await ensureOddsBudgetTables(env))) throw new Error('ARCHIVE_DB unavailable');
-        const month = _monthKeyUtc();
-        const carried = await _seedMonthFromKv(env, month);
-        const db = env.ARCHIVE_DB;
-        const results = await db.batch([
-            db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(month, carried),
-            db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT),
-        ]);
-        const charged = chargedFromBatch(results, ODDS_MONTH_ORDER);
-        if (charged) {
-            // The post-charge total is what RETURNING gives, so the crossing is
-            // read from the transaction rather than recomputed from a stale
-            // pre-charge read — which is how the KV version could warn twice or
-            // not at all under concurrency.
-            const next = _usedFromBatch(results);
-            if (next !== null) {
-                for (const t of ODDS_THRESHOLDS) {
-                    const cutoff = Math.floor(ODDS_HARD_LIMIT * (t.pct / 100));
-                    if (next >= cutoff && next - units < cutoff) {
-                        const wk = `odds:credits:${month}:warned:${t.pct}`;
-                        try {
-                            if (!(await env.FIELD_JOURNALISM.get(wk))) {
-                                console.warn(`[odds-month-guard] ${t.label} of monthly limit reached — used=${next}/${ODDS_HARD_LIMIT}`);
-                                await env.FIELD_JOURNALISM.put(wk, '1', { expirationTtl: 60 * 86400 });
-                            }
-                        } catch (_) { /* a warning that cannot be recorded must not
-                                         fail a charge that already landed */ }
-                    }
-                }
-            }
-            return true;
-        }
-
-        const warnedKey = `odds:credits:${month}:warned:limit`;
-        const already = await env.FIELD_JOURNALISM.get(warnedKey);
-        if (!already) {
-            console.warn(`[odds-month-guard] HARD LIMIT — +${units} would exceed ${ODDS_HARD_LIMIT}; suppressing odds calls for the rest of the month`);
-            await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });
-        }
-        return false;
-    } catch (e) {
-        // Degrade-open, witnessed on the same counter the daily guard uses. The
-        // call is about to spend while the month did not move, and an
-        // unattributed discrepancy is what cost a day of elimination on 09-17.
-        //
-        // `e`, not `_`: this was an empty catch, so 1263 credits of degraded
-        // spend on 2026-10-07 had no attributable cause. The message is named
-        // rather than logged only, because a console line is not readable from
-        // outside the worker and /budget/odds is.
-        console.warn(`[odds-month-guard] degrade-open: ${String(e && e.message || e).slice(0, 160)}`);
-        await _countDegradeOpen(env, units, `month: ${String(e && e.message || e)}`);
-        return true;
-    }
-}
-
-async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed') {
+async function chargeOdds(env, units = 1, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
     try {
         const key = _dailyKey();
         const date = key.slice('odds:daily:'.length);
         const ceiling = _dailyCeiling();
+        const month = _monthKeyUtc();
 
         // ONE BATCH, FOUR KV ROUND TRIPS REPLACED BY ONE D1 CALL. The previous
         // form did get + put on odds:daily:* and then get + put on odds:site:*
@@ -366,18 +339,29 @@ async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed')
         // right, which is why it survived the diagnosis being wrong twice.
         if (!(await ensureOddsBudgetTables(env))) throw new Error('ARCHIVE_DB unavailable');
         const carried = await _seedFromKv(env, date);
+        const carriedMonth = await _seedMonthFromKv(env, month);
         const db = env.ARCHIVE_DB;
         const results = await db.batch([
             db.prepare(ODDS_BUDGET_SQL.seed).bind(date, carried),
+            db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(month, carriedMonth),
             db.prepare(ODDS_BUDGET_SQL.site).bind(date, site, units, date, units, ceiling),
+            db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling),
             db.prepare(ODDS_BUDGET_SQL.charge).bind(units, date, units, ceiling),
         ]);
-        if (chargedFromBatch(results)) return true;
+        const dayCharged = chargedFromBatch(results, ODDS_CHARGE_ORDER);
+        const monthOut = _monthFromBatch(results);
 
-        // Vetoed. Nothing was written -- the site statement carries the same
-        // predicate over the same pre-charge total, so there is no compensating
-        // write to make and no window in which the split is ahead of the total.
-        {
+        // Vetoed by the DAY. Nothing was written -- the site and month
+        // statements carry the same predicate over the same pre-charge total,
+        // so there is no compensating write to make and no window in which the
+        // split is ahead of the total.
+        //
+        // THE DAY IS READ BEFORE THE MONTH, AND THE ORDER IS THE POINT. On a day
+        // veto monthCharge returns no row either, because it carries the day's
+        // predicate. Asked first, the month would file a day veto as a month
+        // veto: its limit key written, the day's key never, and /budget/odds
+        // reporting ceiling_reached_at null on a day that refused calls.
+        if (!dayCharged) {
             // One warn per day per ceiling-hit isolate. The monthly guard
             // emits its own warn separately.
             const warnedKey = `${key}:warned`;
@@ -402,6 +386,43 @@ async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed')
             }
             return false;
         }
+
+        // The day charged and the MONTH refused: the 85,000 hard limit. The day
+        // and the site keep their charge and the call is refused -- what the
+        // two-batch code did too, because its day batch had committed before
+        // the month batch ran. The day's warned key is NOT written here: the
+        // day did not veto, and ceiling_reached_at must not say it did.
+        if (!monthOut.charged) {
+            const warnedKey = `odds:credits:${month}:warned:limit`;
+            const already = await env.FIELD_JOURNALISM.get(warnedKey);
+            if (!already) {
+                console.warn(`[odds-month-guard] HARD LIMIT — +${units} would exceed ${ODDS_HARD_LIMIT}; suppressing odds calls for the rest of the month`);
+                await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });
+            }
+            return false;
+        }
+
+        // Both charged. The post-charge month total is what monthCharge's
+        // RETURNING gives, so the crossing is read from the transaction rather
+        // than recomputed from a stale pre-charge read — which is how the KV
+        // version could warn twice or not at all under concurrency.
+        const next = monthOut.used;
+        if (next !== null) {
+            for (const t of ODDS_THRESHOLDS) {
+                const cutoff = Math.floor(ODDS_HARD_LIMIT * (t.pct / 100));
+                if (next >= cutoff && next - units < cutoff) {
+                    const wk = `odds:credits:${month}:warned:${t.pct}`;
+                    try {
+                        if (!(await env.FIELD_JOURNALISM.get(wk))) {
+                            console.warn(`[odds-month-guard] ${t.label} of monthly limit reached — used=${next}/${ODDS_HARD_LIMIT}`);
+                            await env.FIELD_JOURNALISM.put(wk, '1', { expirationTtl: 60 * 86400 });
+                        }
+                    } catch (_) { /* a warning that cannot be recorded must not
+                                     fail a charge that already landed */ }
+                }
+            }
+        }
+        return true;
     } catch (e) {
         // DEGRADE-OPEN, AND NOW WITNESSED. The call is about to spend at the
         // vendor while odds:daily:* did not move; without this line the only
@@ -414,8 +435,17 @@ async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed')
         // shape, ensureOddsBudgetTables throws when ARCHIVE_DB is missing, and
         // db.batch can throw on its own — three causes with three different
         // fixes, indistinguishable while the error was discarded.
-        console.warn(`[odds-daily-guard] degrade-open: ${String(e && e.message || e).slice(0, 160)}`);
-        await _countDegradeOpen(env, units, `daily: ${String(e && e.message || e)}`);
+        //
+        // THE ONE SEMANTIC CHANGE OF THE SINGLE BATCH IS HERE, ON THE FAILURE
+        // PATH. With two batches, a thrown daily batch degraded open and the
+        // wrapper still ran the month batch, so the 85,000 hard limit could
+        // veto while the day path was broken. With one batch a throw charges
+        // neither counter: the call degrades open on both and is counted ONCE.
+        // The reason prefix is `charge:`, new on purpose, so a closed day's
+        // histogram keeps these one-per-call keys apart from the old per-batch
+        // `daily:` and `month:` ones.
+        console.warn(`[odds-charge-guard] degrade-open: ${String(e && e.message || e).slice(0, 160)}`);
+        await _countDegradeOpen(env, units, `charge: ${String(e && e.message || e)}`);
         return true; // degrade-open
     }
 }
@@ -724,9 +754,18 @@ const SQL_FIX_SITE = `INSERT INTO odds_budget_site (day, site, used) VALUES (?, 
 // THE MONTH, SAME SHAPE AS THE DAY. Seed then charge, the ceiling inside the
 // UPDATE's WHERE so there is no read-then-decide window, and RETURNING as the
 // verdict: zero rows back is a veto, unambiguously.
+//
+// AND THE DAY'S PREDICATE, since the month joined the day's batch (2026-10-18).
+// The same text SQL_SITE carries, over the same PRE-charge day total, because
+// monthCharge runs before charge. The month therefore moves only when the day
+// does, as it did when the month batch was sent only after the day charged.
+// LAST in the WHERE, so `ceiling` is the last bind argument and
+// check-odds-ceiling-grant.mjs can assert the GRANTED ceiling reaches it; on
+// its own line, so the month limit's line above is byte-for-byte unchanged.
 const SQL_MONTH_SEED   = 'INSERT OR IGNORE INTO odds_budget_month (month, used) VALUES (?, ?)';
 const SQL_MONTH_CHARGE = `UPDATE odds_budget_month SET used = used + ?
              WHERE month = ? AND used + ? <= ?
+               AND (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
             RETURNING used`;
 // A correction is not a charge, so it carries no ceiling — same reason as the
 // day's. Clamped at zero so a lost race cannot hand back headroom truly spent.
@@ -762,28 +801,37 @@ export const ODDS_BUDGET_SQL = { seed: SQL_SEED, site: SQL_SITE, charge: SQL_CHA
                                  monthSeed: SQL_MONTH_SEED, monthCharge: SQL_MONTH_CHARGE,
                                  fixMonth: SQL_FIX_MONTH,
                                  reconcileTally: SQL_RECONCILE_TALLY };
+// The day's three statements. No charge sends this batch any more; it stays as
+// chargedFromBatch's DEFAULT, so a call that forgets to name its order is read
+// against three statements, throws on every call and is counted as a degrade,
+// rather than quietly reading the wrong one.
 export const ODDS_BUDGET_ORDER = ['seed', 'site', 'charge'];
-// THE MONTHLY BATCH IS TWO STATEMENTS, and until 2026-10-11 nothing said so.
+// THE CHARGE, ONE BATCH, since 2026-10-18: day, site and month together, so no
+// stop can land between the day's write and the month's. `charge` is LAST
+// because chargedFromBatch reads the last statement as the verdict; the month's
+// verdict is read by name, in _monthFromBatch.
+//
+// THE MONTHLY BATCH WAS TWO STATEMENTS, and until 2026-10-11 nothing said so.
 // chargeMonthlyOdds sent those two to a helper hard-coded to three, so it threw
 // on EVERY monthly charge — the exact string /budget/odds reported as the
 // degrade reason, `month: odds budget batch returned 2 result(s), expected 3`.
 // The charge landed (db.batch commits before anything inspects results), but
 // the return value was lost to the catch, which degrades open. Consequence:
-// the `return false` on the hard limit below was unreachable, and so were the
+// the `return false` on the hard limit was unreachable, and so were the
 // ODDS_THRESHOLDS warnings, so a monthly ceiling of 85,000 could not veto and
-// no warning could fire. The expected length now comes from the statement list
+// no warning could fire. The expected length comes from the statement list
 // itself rather than a number written beside it, because a number beside it is
 // what drifted.
-export const ODDS_MONTH_ORDER = ['monthSeed', 'monthCharge'];
+export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'site', 'monthCharge', 'charge'];
 
 /** Did the batch charge? The UPDATE returns its row only when the ceiling
  *  allowed it, so zero rows is a veto and not an error. Absent results (a shape
  *  this code has never seen) are NOT read as a veto: that would silently stop
  *  every odds call, so it throws to the degrade path where it is counted.
  *
- *  `order` is the batch these results came from — ODDS_BUDGET_ORDER (daily,
- *  three) or ODDS_MONTH_ORDER (monthly, two). The charge is the LAST statement
- *  in both, which is the same convention _usedFromBatch already reads by. */
+ *  `order` is the batch these results came from — ODDS_CHARGE_ORDER, five
+ *  statements. The day's charge is the LAST of them; the month's verdict is not
+ *  read here but by name, in _monthFromBatch. */
 export function chargedFromBatch(results, order = ODDS_BUDGET_ORDER) {
   const want = Array.isArray(order) ? order.length : 0;
   if (!Array.isArray(results) || results.length !== want) {
@@ -856,11 +904,10 @@ export const ODDS_BUDGET_TABLES = ['odds_budget', 'odds_budget_site'];
 
 export {
     ODDS_DAILY_CEILING,
-    checkAndIncrementDailyOdds,
+    chargeOdds,
     peekDailyOdds,
     peekMonthlyOdds,
     ensureOddsBudgetTables,
-    chargeMonthlyOdds,
 };
 
 // Derives a call's credit cost from the URL it is about to fetch, so the cost
@@ -1036,7 +1083,7 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
         const d     = new Date();
         const month = `odds:credits:${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
         // THE CORRECTION FOLLOWS THE CHARGE INTO D1. Leaving this on KV while
-        // checkAndIncrementDailyOdds charges D1 would recreate the exact defect
+        // chargeOdds charges D1 would recreate the exact defect
         // the comment above describes, one layer down: the two stores would
         // disagree by every reconciliation, and the disagreement would again
         // wear the name of a gap.
@@ -1049,7 +1096,7 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
                     db.prepare(ODDS_BUDGET_SQL.fixDay).bind(out.delta, out.day || day.slice('odds:daily:'.length)),
                     db.prepare(ODDS_BUDGET_SQL.fixSite).bind(day.slice('odds:daily:'.length), site, out.delta, out.delta),
                     // THE MONTH TOO, since 2026-09-23. Leaving this on KV while
-                    // chargeMonthlyOdds writes D1 would recreate the exact split
+                    // chargeOdds writes D1 would recreate the exact split
                     // the day had: the refund would land in the store nobody
                     // reads and the ledger would sit permanently above the bill.
                     db.prepare(ODDS_BUDGET_SQL.fixMonth).bind(out.delta, month.slice('odds:credits:'.length)),

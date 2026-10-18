@@ -43,9 +43,12 @@ const MUTATIONS = [
    "                await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 86400 });",
    'THE STATE THIS ENDS: on 2026-09-19 the counter sat at the ceiling from before 19:39 until at least 22:32. A boolean says the cap was hit; it cannot say for how long, which is the difference between a budget spent and a service suppressed'],
 
+  // Anchored on the day's warned key as well: since 2026-10-18 the month's
+  // hard-limit block in the same function has the same two lines, and the
+  // shorter anchor matched twice — NOTHING MUTATED.
   ['C2 the veto is written on EVERY refusal',
-   '            const already = await env.FIELD_JOURNALISM.get(warnedKey);\n            if (!already) {',
-   '            const already = null;\n            if (true) {',
+   '            const warnedKey = `${key}:warned`;\n            const already = await env.FIELD_JOURNALISM.get(warnedKey);\n            if (!already) {',
+   '            const warnedKey = `${key}:warned`;\n            const already = null;\n            if (true) {',
    'a KV round trip on every vetoed call, for the hours a capped day keeps refusing — the write is once a day precisely so this field costs nothing'],
 
   ['C3 the reader infers the veto from the counter instead of the key',

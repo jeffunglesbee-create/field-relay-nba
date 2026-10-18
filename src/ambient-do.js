@@ -57,7 +57,7 @@ import { resolveTeamKey } from './identity-resolver.js';
 import { stampKickoff } from './odds-kickoff.js';
 import { AMBIENT_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 const ODDS_SPORT_KEYS = AMBIENT_SPORT_TO_ODDS_KEY;
-import { checkAndIncrementDailyOdds, chargeMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
+import { chargeOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { withKvProvenance } from './kv-provenance.js';
 
 // `/v4/sports/{sport}/odds-live` is a 404 at the vendor — measured, see
@@ -821,7 +821,7 @@ export class AmbientDO {
         // src/index.js fetchSportOddsLive charges 3. Two sites cannot disagree
         // about the price of the same request.
         //
-        // _consumeAmbientOddsCredit calls checkAndIncrementDailyOdds itself, so
+        // _consumeAmbientOddsCredit charges the daily layer itself, so
         // this is a substitution and not an addition -- the daily layer is still
         // charged exactly once, now with the right number, and the monthly layer
         // is charged for the first time.
@@ -1158,14 +1158,7 @@ function _todayUTC() {
 // minus 15 K reserved for special projects, per commit 0f39fdf).
 async function _consumeAmbientOddsCredit(env, units, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
-    // Shared daily ceiling first — the cheaper failure path.
-    if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
-    // THE MONTHLY GUARD IS NO LONGER A COPY. This function held its own
-    // get/parseInt/put on odds:credits:YYYY-MM, one of three identical
-    // implementations plus reconcile's loop. Concurrent isolates read the same
-    // value and the second put erased the first, so the monthly counter lost
-    // charges the daily one kept. chargeMonthlyOdds is one D1 transaction.
-    return chargeMonthlyOdds(env, units);
+    return chargeOdds(env, units, site);
 }
 
 // Spec Gap 6: priority-tier cooldown for odds polling.

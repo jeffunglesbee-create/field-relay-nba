@@ -6,9 +6,10 @@
 // 19:39 until at least 22:32 and refused everything for hours
 // (outbox/odds-site-drift-series.json, 29 samples).
 //
-// checkAndIncrementDailyOdds writes `odds:daily:<date>:warned` ONLY when it
-// vetoes. That key was a boolean nothing outside the worker could read. It now
-// carries the moment of the first veto, and /budget/odds reports it.
+// The charge (chargeOdds; checkAndIncrementDailyOdds until 2026-10-18) writes
+// `odds:daily:<date>:warned` ONLY when the DAY vetoes. That key was a boolean
+// nothing outside the worker could read. It now carries the moment of the first
+// veto, and /budget/odds reports it.
 //
 // This checks the SOURCE, because the behaviour lives in a Worker that cannot
 // be imported here: the writer stores a timestamp, the reader distinguishes the
@@ -29,13 +30,27 @@ const whole = readFileSync(SRC, 'utf8');
 //
 // The reader must be aimed at the function it is about. Slicing the body is the
 // same technique declaredTables uses in check-odds-budget-schema.mjs.
-const _i = whole.indexOf('async function checkAndIncrementDailyOdds');
+//
+// AND SINCE 2026-10-18, AT THE DAY'S VETO BLOCK, NOT THE FUNCTION. The day and
+// the month are one batch in chargeOdds, so the month's hard-limit block — the
+// same get / if (!already) / put(warnedKey, ISO timestamp) shape — lives in the
+// same function. A function-wide slice would let that block satisfy C1 and C2
+// again, which is the 2026-09-23 defect in a new place. The slice is the day's
+// veto block: from its warned key to its `return false;`.
+const _i = whole.indexOf('async function chargeOdds');
 const _j = whole.indexOf('\n}\n', _i);
 if (_i < 0 || _j < 0) {
-  console.log('FAIL  checkAndIncrementDailyOdds was not found in the source — nothing below ran.');
+  console.log('FAIL  chargeOdds was not found in the source — nothing below ran.');
   process.exit(1);
 }
-const src = whole.slice(_i, _j);
+const fn = whole.slice(_i, _j);
+const _bi = fn.indexOf('const warnedKey = `${key}:warned`;');
+const _bj = fn.indexOf('return false;', _bi);
+if (_bi < 0 || _bj < 0) {
+  console.log('FAIL  the day veto block (const warnedKey = `${key}:warned`; ... return false;) was not found — nothing below ran.');
+  process.exit(1);
+}
+const src = fn.slice(_bi, _bj);
 // The reader half lives in peekDailyOdds, not in the guard, so it gets its own
 // slice rather than being checked against the whole file.
 const _pi = whole.indexOf('async function peekDailyOdds');
@@ -80,7 +95,7 @@ ok('a failed read does not invent a veto',
 // check would pass by finding a DIFFERENT function's warn block.
 ok('the guard slice does not contain the monthly guard',
   !/odds-month-guard/.test(src) && !/odds-credits/.test(src.replace(/odds:credits/g, 'odds-credits')),
-  'the slice has widened past checkAndIncrementDailyOdds, so these regexes can be satisfied by chargeMonthlyOdds instead');
+  "the slice has widened past the day's veto block, so these regexes can be satisfied by the month veto block instead");
 
 ok('the reader slice is peekDailyOdds, not the whole file',
   reader.length > 0 && reader.length < whole.length / 2 && !/odds-month-guard/.test(reader),

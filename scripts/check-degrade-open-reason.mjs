@@ -1,16 +1,24 @@
 // THE GUARD FELL OPEN 245 TIMES AND NOTHING SAID WHAT THREW.
 //
-// checkAndIncrementDailyOdds and chargeMonthlyOdds both end in a catch that
-// degrades OPEN: the odds call proceeds and spends at the vendor while the
-// counter never moves. Both were `catch (_)` — the error discarded — so
-// /budget/odds could say how often it happened and never why. Measured from the
+// The odds charge ends in a catch that degrades OPEN: the odds call proceeds
+// and spends at the vendor while the counter never moves. There were two such
+// catches, the daily guard's and the monthly guard's, until 2026-10-18 put the
+// day and the month in one batch in chargeOdds; there is now one. Both were
+// `catch (_)` — the error discarded — so /budget/odds could say how often it
+// happened and never why. Measured from the
 // route: 245 events and 1263 credits on 2026-10-07, 125 and 821 by 17:42 on
 // 10-08. Three different causes reach that catch (ensureOddsBudgetTables
 // throwing with no ARCHIVE_DB, db.batch throwing, chargedFromBatch throwing by
 // design on an unexpected shape) and they have three different fixes.
 //
-// Two halves: the HISTOGRAM is pure and is imported and run; the CATCHES are in
-// a Worker and are checked as source.
+// ONE PREFIX, MATCHED EXACTLY. The single catch names its reason `charge:`, a
+// prefix neither old catch used, so a closed day's histogram keeps the
+// one-per-call events apart from the old per-batch `daily:` and `month:` ones.
+// No alternation: a pattern accepting any of three prefixes is only as strong as
+// its weakest branch (check-odds-ceiling-grant.mjs records the case).
+//
+// Two halves: the HISTOGRAM is pure and is imported and run; the CATCH is in
+// a Worker and is checked as source.
 import { readFileSync } from 'node:fs';
 import { bumpReason, DEGRADE_REASON_CAP, DEGRADE_OTHER_KEY } from '../src/budget-helpers.js';
 
@@ -21,9 +29,10 @@ export function findings(src) {
 
   // WALK BACK FROM THE CALL, don't scan forward from a catch. The first version
   // matched `} catch (X) { ... _countDegradeOpen(env, units` with a 1400-char
-  // window, and inside chargeMonthlyOdds there is an unrelated `catch (_)`
+  // window, and inside the monthly charger there was an unrelated `catch (_)`
   // around the threshold warn a few lines above the degrade catch — so it
-  // reported the monthly guard as still discarding its error when it does not.
+  // reported the monthly guard as still discarding its error when it did not.
+  // That threshold catch now sits inside chargeOdds, above its degrade catch.
   // The positive control caught that; reading the regex had not.
   // The DEFINITION matches the same pattern — `async function
   // _countDegradeOpen(env, units, reason = '')` — so it has to be excluded by
@@ -32,12 +41,12 @@ export function findings(src) {
   // the one that named it was the unmutated positive control.
   const calls = [...src.matchAll(/_countDegradeOpen\(env, units([^)]*)\)/g)]
     .filter((m) => !/function\s+$/.test(src.slice(Math.max(0, m.index - 24), m.index)));
-  if (calls.length !== 2) {
-    out.push(`expected 2 calls to _countDegradeOpen, found ${calls.length} — a third degrade site would be unchecked here`);
+  if (calls.length !== 1) {
+    out.push(`expected 1 call to _countDegradeOpen, found ${calls.length} — a second degrade site would be unchecked here`);
     return out;
   }
-  for (const [i, m] of calls.entries()) {
-    const which = i === 0 ? 'the monthly guard' : 'the daily guard';
+  for (const m of calls) {
+    const which = 'the odds charge guard';
     const before = src.slice(0, m.index);
     const k = before.lastIndexOf('} catch (');
     if (k < 0) { out.push(`${which}: no enclosing catch found before the call`); continue; }
@@ -46,7 +55,7 @@ export function findings(src) {
     if (/^\} catch \(_\)/.test(head)) {
       out.push(`${which} still uses \`catch (_)\` — the error is discarded and the cause is unknowable`);
     }
-    if (!/,\s*`(month|daily):/.test(m[1])) {
+    if (!/,\s*`charge:/.test(m[1])) {
       out.push(`${which} passes no reason to _countDegradeOpen — the count would say how often, never why`);
     }
     if (!/console\.warn\(/.test(body)) out.push(`${which} does not log the error`);
@@ -88,29 +97,43 @@ if (process.argv.includes('--self-test')) {
   ok('no findings against the live source', findings(live).length === 0, JSON.stringify(findings(live)));
 
   console.log('\nMUTATIONS — each must be CAUGHT:');
-  const M = (from, to) => findings(live.replace(from, to));
-  ok('M1 the daily catch back to `catch (_)`',
+  // The anchor must occur exactly once and the replacement must change the
+  // text. Without that, a missing anchor mutated nothing and the mutation
+  // "passed" on whatever the live source already said — measured on the draft
+  // of this revision, where M2's anchor was absent and M2 still printed PASS.
+  const M = (from, to) => {
+    const hits = live.split(from).length - 1;
+    if (hits !== 1) return [`MUTATION ANCHOR matched ${hits} times, expected 1 — NOTHING MUTATED: ${from.slice(0, 60)}`];
+    const text = live.replace(from, to);
+    if (text === live) return [`MUTATION NOT APPLIED: ${from.slice(0, 60)}`];
+    return findings(text);
+  };
+  ok('M1 the charge catch back to `catch (_)`',
      M(`} catch (e) {
         // DEGRADE-OPEN, AND NOW WITNESSED.`, `} catch (_) {
         // DEGRADE-OPEN, AND NOW WITNESSED.`).some((x) => x.includes('discarded')));
-  ok('M2 the daily reason dropped',
-     M("await _countDegradeOpen(env, units, `daily: ${String(e && e.message || e)}`);",
+  ok('M2 the reason dropped',
+     M("await _countDegradeOpen(env, units, `charge: ${String(e && e.message || e)}`);",
        'await _countDegradeOpen(env, units);').some((x) => x.includes('passes no reason')));
-  ok('M3 the monthly reason dropped',
-     M("await _countDegradeOpen(env, units, `month: ${String(e && e.message || e)}`);",
-       'await _countDegradeOpen(env, units);').some((x) => x.includes('passes no reason')));
+  // The console.warn assertion had no mutation of its own until this revision.
+  ok('M3 the catch stops logging',
+     M("        console.warn(`[odds-charge-guard] degrade-open: ${String(e && e.message || e).slice(0, 160)}`);\n", '')
+       .some((x) => x.includes('does not log')));
+  ok('M3b the reason reverts to a per-batch prefix',
+     M("`charge: ${String(e && e.message || e)}`", "`month: ${String(e && e.message || e)}`")
+       .some((x) => x.includes('passes no reason')));
   ok('M4 the histogram no longer written',
      M('            reasons,\n', '').some((x) => x.includes('not written into the degrade counter')));
   ok('M5 bumpReason un-exported',
      M('export function bumpReason(', 'function bumpReason(').some((x) => x.includes('not exported')));
-  ok('M6 a third degrade site refuses rather than checking two of three',
+  ok('M6 a second degrade site refuses rather than checking one of two',
      M('export const DEGRADE_REASON_CAP = 8;',
        'async function _x() { try { x(); } catch (_) { await _countDegradeOpen(env, units); } }\nexport const DEGRADE_REASON_CAP = 8;')
-       .some((x) => x.includes('found 3')));
+       .some((x) => x.includes('found 2')));
 
   console.log(fail ? `\n${fail} FAILED of ${ran}` : `\nself-test: ${ran}/${ran}`);
   console.log(`COVERAGE: ${ran} assertion(s) — bumpReason RUN including at and past its`);
-  console.log(`cap, and both catches checked as source with six mutations. It does NOT`);
+  console.log(`cap, and the one charge catch checked as source with seven mutations. It does NOT`);
   console.log(`read the live counter; degraded_open.reasons on /budget/odds is where the`);
   console.log(`cause actually appears.`);
   process.exit(fail ? 1 : 0);
@@ -122,6 +145,6 @@ if (found.length) {
   found.forEach((x) => console.log(`   ${x}`));
   process.exit(1);
 }
-console.log(`PASS  both degrade-open catches name their error and count it by reason (${SRC})`);
+console.log(`PASS  the degrade-open catch names its error and counts it by reason, under charge: (${SRC})`);
 console.log(`COVERAGE: source and the pure histogram. The reasons themselves appear as`);
 console.log(`degraded_open.reasons on /budget/odds, which is the only place they are readable.`);

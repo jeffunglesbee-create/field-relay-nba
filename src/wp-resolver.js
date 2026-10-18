@@ -9,7 +9,7 @@
 
 import { resolveTeamKey } from './identity-resolver.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
-import { checkAndIncrementDailyOdds, chargeMonthlyOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
+import { chargeOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
@@ -207,10 +207,7 @@ export function isWpUnsupportedSport(sport) {
 
 async function consumeOddsCredit(env, units, site = 'unattributed') {
     if (!env.FIELD_JOURNALISM) return true;
-    if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
-    // One implementation, in budget-helpers. See chargeMonthlyOdds — this was
-    // the second of three copies of the same non-atomic read-modify-write.
-    return chargeMonthlyOdds(env, units);
+    return chargeOdds(env, units, site);
 }
 
 async function fetchSportOddsLive(env, sportKey) {
