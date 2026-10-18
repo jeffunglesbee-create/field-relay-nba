@@ -25,7 +25,8 @@ export const PREDICATES = {
   'an identical second request is served from the edge': r => [
     r.repeat.xcache === 'HIT', `X-Cache ${r.repeat.xcache}`],
   'a past day advertises 300 s and today 25 s': r => [
-    /max-age=300\b/.test(r.page0.cacheControl) && /max-age=25\b/.test(r.today.cacheControl),
+    typeof r.page0.cacheControl === 'string' && typeof r.today.cacheControl === 'string'
+      && /max-age=300\b/.test(r.page0.cacheControl) && /max-age=25\b/.test(r.today.cacheControl),
     `past ${r.page0.cacheControl}; today ${r.today.cacheControl}`],
 }
 
@@ -38,7 +39,7 @@ const good = () => ({
 const MUTATIONS = {
   'page two is not page one: disjoint ids, and page two names a previous page': r => { r.page1 = { ...r.page0 } },
   'an identical second request is served from the edge': r => { r.repeat.xcache = 'MISS' },
-  'a past day advertises 300 s and today 25 s': r => { r.today.cacheControl = 'public, max-age=300' },
+  'a past day advertises 300 s and today 25 s': r => { r.today.cacheControl = null },
 }
 
 const run = (record) => Object.entries(PREDICATES).map(([name, p]) => { const [pass, detail] = p(record); return { name, pass, detail } })
@@ -61,7 +62,7 @@ const get = async (path) => {
   let body = {}
   try { body = JSON.parse(text) } catch { body = {} }
   return { status: r.status, ids: (Array.isArray(body.results) ? body.results : []).map(e => e.id),
-    previous: body.previous ?? null, cacheControl: r.headers.get('cache-control') ?? '', xcache: r.headers.get('x-cache') ?? '' }
+    previous: body.previous ?? null, cacheControl: r.headers.get('cache-control'), xcache: r.headers.get('x-cache') }
 }
 const today = new Date().toISOString().slice(0, 10)
 const record = {
