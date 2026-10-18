@@ -118,8 +118,14 @@ export function findings(src) {
     if (mi < 0 || mj < 0) {
       out.push("_monthFromBatch was not found — the month verdict's read cannot be checked");
     } else {
-      const reader = src.slice(mi, mj);
-      if (!reader.includes(`${orderName}.indexOf('monthCharge')`) || /length\s*-\s*1/.test(reader)) {
+      // CODE ONLY, AND THE WHOLE INDEX. A substring test passed with the name
+      // left in a comment and with `indexOf('monthCharge') + 1` -- both read
+      // the DAY's charge. The index must be exactly the lookup, and it must be
+      // the reader's only index into `results`.
+      const reader = src.slice(mi, mj).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+      const byName = new RegExp(`(?<![.\\w$])results\\s*(?:\\?\\.)?\\s*\\[\\s*${orderName}\\.indexOf\\(\\s*'monthCharge'\\s*\\)\\s*\\]`);
+      const reads = reader.match(/(?<![.\w$])results\s*(?:\?\.)?\s*(?:\[|\.at\s*\()/g) || [];
+      if (!byName.test(reader) || reads.length !== 1) {
         out.push(`the month verdict is not read at ${orderName}.indexOf('monthCharge') — a read from the last result is the DAY's charge, and the month's 50/75/90% warnings would never fire`);
       }
       if (!/_monthFromBatch\(results\)/.test(charger)) {
@@ -205,6 +211,15 @@ if (process.argv.includes('--self-test')) {
   // The month verdict read from the last result — the day's charge.
   ok('M9 the month verdict read from the last result',
      M(["results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')]", 'results?.[results.length - 1]'])
+       .some((x) => x.includes('month verdict is not read')));
+
+  // The two a substring test passed: an off-by-one that lands on the DAY's
+  // charge, and the name kept only in a comment.
+  ok('M12 the month verdict read one past monthCharge (the day)',
+     M(["results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')]", "results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge') + 1]"])
+       .some((x) => x.includes('month verdict is not read')));
+  ok('M13 the month verdict read from the last result, the name left in a comment',
+     M(["results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')];", "results?.at(-1); // ODDS_CHARGE_ORDER.indexOf('monthCharge');"])
        .some((x) => x.includes('month verdict is not read')));
 
   // The charger stops reading the month through the checked helper.
