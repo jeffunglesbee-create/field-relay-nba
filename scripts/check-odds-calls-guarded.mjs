@@ -75,6 +75,72 @@ const BILLED = /(the-odds-api\.com|\$\{ODDS_BASE\})\/v4\/(sports\/[^\/`'"\s]+\/o
 const SPORTS_LIST = /the-odds-api\.com\/v4\/sports\?|\$\{ODDS_BASE\}\/v4\/sports[`'"]/;
 const FREE_MARK = 'ODDS-FREE:';
 
+// COMMENTS AND QUOTED STRINGS BLANKED, string-aware. Finding 4 of
+// docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md: a guard NAMED in a
+// comment credited a site whose real guard call was gone. The first fix dropped
+// whole-line `//` comments only; the 2026-10-19 review then credited sites from
+// a /* */ block, a trailing // comment, a string literal and the next
+// function's doc block. This walks the text once, tracking '...', "...",
+// `...` (with ${...} code inside), // and /* */, and replaces comment and
+// '/" string bodies with spaces, newlines kept so line numbers hold. Template
+// text is kept: billed URLs live there, and `//` inside `https://` is not a
+// comment. The dropped 2026-10-18 stripper cut code after a " //" inside a
+// string; this one cannot, because it knows it is in a string.
+export function blankCommentsAndStrings(src) {
+    let out = '', i = 0;
+    const stack = [];            // 'tpl' for a template, 'code' for a ${...} inside one
+    let braces = 0;
+    const blank = (c) => (c === '\n' ? '\n' : ' ');
+    while (i < src.length) {
+        const c = src[i], d = src[i + 1];
+        const inTpl = stack.length && stack[stack.length - 1] === 'tpl';
+        if (inTpl) {
+            if (c === '\\') { out += c + (d ?? ''); i += 2; continue; }
+            if (c === '`') { stack.pop(); out += c; i++; continue; }
+            if (c === '$' && d === '{') { stack.push('code'); out += '${'; i += 2; braces = 0; continue; }
+            out += c; i++; continue;
+        }
+        if (c === '/' && d === '/') { while (i < src.length && src[i] !== '\n') { out += ' '; i++; } continue; }
+        if (c === '/' && d === '*') {
+            out += '  '; i += 2;
+            while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { out += blank(src[i]); i++; }
+            if (i < src.length) { out += '  '; i += 2; }
+            continue;
+        }
+        if (c === "'" || c === '"') {
+            out += c; i++;
+            while (i < src.length && src[i] !== c && src[i] !== '\n') {
+                if (src[i] === '\\') { out += '  '; i += 2; continue; }
+                out += ' '; i++;
+            }
+            if (i < src.length) { out += src[i]; i++; }
+            continue;
+        }
+        if (c === '`') { stack.push('tpl'); out += c; i++; continue; }
+        if (stack.length && stack[stack.length - 1] === 'code') {
+            if (c === '{') braces++;
+            if (c === '}') { if (braces === 0) { stack.pop(); out += c; i++; continue; } braces--; }
+        }
+        out += c; i++;
+    }
+    return out;
+}
+
+// A guard whose verdict is not used is not a guard: `await consumeOddsCredit(...)`
+// on its own line charges, and a refusal no longer stops the fetch (review,
+// 2026-10-19; the site-level twin of the CC-CMD's finding 2). Credited forms:
+// the call negated, as every live site has it, `if (!(await G(...))) return`
+// or `... && !(await G(...))`; or `const|let x = await G(...)` then `!x`.
+const GUARD_NAMES = ['consumeOddsCredit', '_consumeAmbientOddsCredit'];
+function guardsWithVerdict(code) {
+    for (const g of GUARD_NAMES) {
+        if (new RegExp(`!\\s*\\(\\s*await\\s+${g}\\(`).test(code)) return true;
+        const m = new RegExp(`\\b(?:const|let)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+${g}\\(`).exec(code);
+        if (m && new RegExp(`!\\s*${m[1].replace(/\$/g, '\\$')}\\b`).test(code.slice(m.index + m[0].length))) return true;
+    }
+    return false;
+}
+
 // The guard may sit either side of the URL line -- deriving the cost from the URL
 // means the const is often declared first. So the window is the WHOLE enclosing
 // function, not the lines above the call. The 'guarded and derived passes'
@@ -113,8 +179,7 @@ function scan(file, src) {
         // gate printed PASS (docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md,
         // finding 4). Whole lines only: a string-blind trailing-comment stripper
         // cut a guard call after a " //" inside a string, a false red.
-        const body = lines.slice(from, functionEnd(lines, from))
-            .filter(L => !L.trimStart().startsWith('//')).join('\n');
+        const body = blankCommentsAndStrings(lines.slice(from, functionEnd(lines, from)).join('\n'));
         if (list) {
             const window = lines.slice(Math.max(0, i - 12), i + 3).join('\n');
             out.push({
@@ -124,12 +189,12 @@ function scan(file, src) {
             });
             return;
         }
-        const guarded = MONTHLY_GUARDS.some(g => body.includes(g));
+        const guarded = MONTHLY_GUARDS.some(g => body.includes(g)) && guardsWithVerdict(body);
         const derived = body.includes('oddsCreditCost(');
         out.push({
             file, line: i + 1, kind: 'billed',
             ok: guarded && derived,
-            why: !guarded ? 'no monthly guard (consumeOddsCredit / _consumeAmbientOddsCredit) in the enclosing function'
+            why: !guarded ? 'no monthly guard whose verdict stops the call (`if (!(await consumeOddsCredit(...))) return`, or _consumeAmbientOddsCredit) in the enclosing function — a guard named only in a comment or string, or called with its verdict ignored, does not count'
                : !derived ? 'guarded, but the cost is hardcoded — must be oddsCreditCost(url) so it cannot drift from the URL'
                : '',
         });
@@ -187,6 +252,36 @@ async function f(env) {
 async function f(env) {
   // const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
 }`, null],
+        ['a guard inside a /* */ block is not a guard', `
+async function f(env) {
+  /* if (!(await consumeOddsCredit(env, oddsCreditCost(u)))) return; */
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+}`, false],
+        ['a guard in a trailing comment is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`; // if (!(await consumeOddsCredit(env, oddsCreditCost(u)))) return;
+}`, false],
+        ['a guard in a string literal is not a guard', `
+async function f(env) {
+  const note = "if (!(await consumeOddsCredit(env, oddsCreditCost(u)))) return;";
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+}`, false],
+        ['a guard called with its verdict ignored is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  await consumeOddsCredit(env, oddsCreditCost(u), 'f');
+}`, false],
+        ['a guard whose verdict is named, then tested, IS a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
+  if (!ok) return;
+}`, true],
+        ['a " //" inside a string does not hide the guard after it', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const note = "proxy //odds"; if (!(await consumeOddsCredit(env, oddsCreditCost(u), "s"))) return;
+}`, true],
         ['a guard named only in a comment line is not a guard (finding 4)', `
 async function f(env) {
   // Mirrors consumeOddsCredit() and oddsCreditCost( -- same KV key scheme.
@@ -205,12 +300,16 @@ async function f(env) {
     // guard call, keep its comment, and the site must go red. The anchor must
     // match exactly once, or nothing was tested.
     {
+        // BY SHAPE: the one code line that calls the ambient guard with the
+        // live poll's site, whatever its spelling. An exact-text anchor here
+        // would block a deploy on a correct reformat (review, 2026-10-19).
         const amb = readFileSync('src/ambient-do.js', 'utf8');
-        const anchor = "            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl('')), 'ambientFetchLiveOdds'))) return;\n";
-        const hits = amb.split(anchor).length - 1;
-        if (hits !== 1) { fail++; console.error(`  SELFTEST FAIL: finding-4 live anchor matched ${hits} times, expected 1 — NOTHING MUTATED`); }
+        const blanked = blankCommentsAndStrings(amb).split('\n');
+        const rawLines = amb.split('\n');
+        const at = rawLines.map((L, n) => n).filter((n) => blanked[n].includes('_consumeAmbientOddsCredit(') && rawLines[n].includes("'ambientFetchLiveOdds'"));
+        if (at.length !== 1) { fail++; console.error(`  SELFTEST FAIL: the ambient live poll's guard call was found on ${at.length} code lines, expected 1 — NOTHING MUTATED`); }
         else {
-            const r = scan('src/ambient-do.js', amb.replace(anchor, ''));
+            const r = scan('src/ambient-do.js', rawLines.filter((_, n) => n !== at[0]).join('\n'));
             if (r.some(x => x.kind === 'billed' && !x.ok)) pass++;
             else { fail++; console.error('  SELFTEST FAIL: ambient live poll with its guard deleted still passed — a comment is crediting it'); }
         }
