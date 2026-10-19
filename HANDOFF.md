@@ -1,5 +1,36 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 (later) — odds day, site and month charged in one D1 batch
+
+`CC-CMD-2026-10-18-odds-charge-survives-cancellation`, option 1. The owner
+delegated the choice.
+
+- **Landed** as 13 commits, `7ec2d03f`..`c8a45be7`, in one push. Deploy run
+  39183315552 and guards run 39183315565 are green.
+  - `chargeOdds` replaces `checkAndIncrementDailyOdds` and
+    `chargeMonthlyOdds`. The three wrappers delegate to it.
+  - Degrade reasons are keyed `charge:` from the cutover.
+- **Reviewed twice, adversarially:**
+  - round 1: 7 confirmed, fixed or filed;
+  - round 2: 17 confirmed, mostly docs.
+  - The one real behaviour bug found, a KV failure on a committed veto
+    degrading open, is fixed and tested.
+- **Done condition STAGED.** Month row minus the sum of daily rows must not
+  change over a CFL-active day.
+  - Baseline −2,790 at 01:06Z.
+  - Reads are scheduled at 01:57Z today and at 2026-10-25T06:30Z, after
+    CFL's 10-23 and 10-24 games.
+- **Filed, not landed:** `docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md`.
+  Nine odds guards, check-monthly-atomic among them, run only in
+  `guards.yml`, which ignores `src/**`, so a src-only revert would deploy
+  green. That predates this change. Its option (a) must widen
+  check-monthly-atomic's exact-text W-check in the same commit, or it blocks
+  correct code.
+- **For the 11-15 and 11-24 TASK 2 runs:** the prediction doc now says
+  `chargeOdds` is the function to check for VOID.
+
+Session doc: outbox/cc-session-2026-10-19-odds-single-batch.md
+
 ## SESSION CLOSE-OUT — 2026-10-19 (chat)
 
 **HEAD:** `d1d1ad0` → `1747982` · **Branch:** main

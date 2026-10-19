@@ -144,6 +144,16 @@ judged:
 The judging run checks with `git log --since=2026-11-08` on those files in
 both repos.
 
+**Added 2026-10-19, before kickoff, so the VOID check stays meaningful.**
+`checkAndIncrementDailyOdds` and `chargeMonthlyOdds` no longer exist. Option 1
+of the charge CC-CMD landed on 2026-10-19 (`7ec2d03f`, outside the window) and
+replaced both with `chargeOdds` in `src/budget-helpers.js`. The judging run
+treats a change to `chargeOdds` in the window as VOID, exactly as it would
+have treated a change to either of the two it replaced. The landing itself
+falls on 10-19 and voids nothing. It does change one input: from 10-19 the
+month row is written in the same batch as the day, so the internal gap should
+stop growing. The residual rows above are vendor-side and are not affected.
+
 ## How this will be judged
 
 Two runs are scheduled into this session as one-shot tasks. Their ids are
