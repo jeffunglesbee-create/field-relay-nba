@@ -1,11 +1,18 @@
-checked 295 of 295 cc-cmd-queue rows — the instrument partitions every row, so the denominator is the whole table
+checked 302 of 302 cc-cmd-queue rows — the instrument partitions every row, so the denominator is the whole table
 
 {
-  "total": 295,
-  "open": 26,
-  "undetermined": 0,
-  "closed": 269
+  "total": 302,
+  "open": 28,
+  "undetermined": 1,
+  "closed": 273
 }
 
-PASS  no queue row is undetermined
-      0 of 295 rows are undetermined
+FAIL  no queue row is undetermined
+      → 1 row(s) state no disposition and carry no status:
+  cc-cmd-2026-10-15-bsd-live-capture-path
+      REVISED 2026-10-16 -- the capture path exists; the real gap is that captures stop before full time (47 of 786 finished)
+
+Adjudicating a row is a judgement and belongs to the queue owner, not to this
+cron. Read each row's BODY — the title is what made it undetermined — and give
+it a leading disposition word, or set a deliberate status. The 2026-09-10 pass
+is the worked example: outbox/cc-session-2026-09-10-queue-adjudication.md
