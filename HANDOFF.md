@@ -1,5 +1,45 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 (night) — daily odds read, and the CFB record: exercised, defects in three places
+
+**The daily read** is in `outbox/odds-watches-daily-read-2026-10-19.md`.
+- **Watch 1** is red on `we-overcharge-ourselves` for 10-18 (residual
+  −1093, tolerance 128), and its daily-vs-monthly step fails too. That is not
+  the breach: 28 judged days, 0 of them `counter-under-counts`.
+- **The other six** are green.
+- **The stored prompt** for the read carries two stale numbers. Pairing
+  tolerance is computed daily (133 today), and the scheduled delay measures
+  193-539 min. The routine was not edited.
+
+**The CFB record.** 09-16d §7.6 said "UNTESTED". The production backfill has
+run CFB on all 19 slate dates since 2026-09-17, with pairing non-zero (164
+paired, 150 priced), and the job logs say so. They are readable through the
+GitHub MCP `get_job_logs` tool, though `gh api` cannot fetch them. §7.6 never
+stated a pass criterion. Read against D1, it has defects in three components:
+- **`matchSlate` stage 2, 1 of 150 pairs:** `CFB_2026-09-19_e401856686`,
+  Georgia @ Arkansas, is priced from GA Southern @ Jax State. It was paired
+  on one side, and the module reproduces it.
+- **The sync:** `CFB_2026-09-19_e401856802` is priced backwards, because
+  `home_ml` is written by position.
+- **The single 23:59Z snapshot:** 171 of 288 Saturday rows are unpriced
+  (117 priced). 154 of them kicked off before 22:00Z, and on 10-17 every game
+  at or before 21:00Z is unpriced. 76 priced rows carry after-kickoff
+  "opening" prices that several `opening_odds` readers do not check, the
+  client's `_isUpset` among them.
+- **CC-CMD-2026-09-11 Task 3's route** never got `matchSlate`. Its Saturday
+  probe's 6 scheduled runs all dated the UTC Sunday, and CFB reads NO_ROWS in
+  7 of 7 artifacts.
+
+Filed, not fixed: `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md` and
+`docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`.
+- **Owner decisions gate:** the D1 repair (stage2 TASK 3), the snapshot
+  choice (coverage A1), and what Task 3 measures (B1).
+- **No owner decision needed for:** stage2 TASKs 0-2 and coverage A0 (0
+  credits).
+- **Nothing was written to D1 and no credits were spent.**
+
+Session doc: outbox/odds-watches-daily-read-2026-10-19.md
+
 ## 2026-10-19 (late) — the odds guard's condition and refusal path
 
 `CC-CMD-2026-10-19-odds-guard-condition-and-exit` is **DONE**: 6 commits,
@@ -1800,6 +1840,15 @@ regardless. The number was true and the inference from it was not.
 
 **The CFB done condition is still UNTESTED** — 2026-09-15 was a Monday with no
 CFB fixtures. Silence on CFB is not evidence either way.
+
+> **SUPERSEDED 2026-10-19.** Exercised in production on 19 CFB dates since
+> 2026-09-17: pairing is non-zero (164 paired, 150 priced). Also found:
+> - 1 wrong stage-2 pair of 150 checked: 09-19 Georgia @ Arkansas, priced
+>   from GA Southern @ Jax State;
+> - 1 pair priced backwards by the sync;
+> - 171 of 288 Saturday rows unpriced by the 23:59Z snapshot.
+> See the 09-16d session doc §7.6 and the two `CC-CMD-2026-10-19-cfb-*`
+> documents.
 
 **COST WHILE OPEN: 80 credits/day, pairing zero.** `odds-pairing-rate-watch.yml`
 will now fail daily on exactly this, which is the watcher working.

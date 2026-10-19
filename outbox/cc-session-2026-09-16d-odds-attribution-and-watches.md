@@ -282,6 +282,13 @@ defect.
   had no access to.
 
 ### 7.4 The targeted fill — 123 pairs / 2,460 credits · APPROVED, UNRUN
+
+> **Corrected 2026-10-19:** this heading is stale.
+> - **The fill ran:** a 10-pair, 200-credit fill ran on 2026-09-19 (run
+>   `35418498902`, 143 `odds_history` rows; HANDOFF).
+> - **"80/80" was the offline fixture.** The same 2026-09-12 slate priced
+>   66/80 live (`outbox/cc-session-2026-09-19-odds-counters-and-fill.md` §2).
+> - **The newest plan** is the 2026-09-23 dry run: 134 pairs, 2,680 credits.
 - Approved earlier in the session; never executed. The last 1-pair probe spent
   20 credits and inserted 0 rows **on the old matcher**. The matcher is now
   80/80 CFB and 15/15 MLB, so the economics changed and the fill should be
@@ -296,6 +303,51 @@ defect.
 ### 7.6 CFB done condition · UNTESTED
 - No CFB slate on Monday 2026-09-15. The 80/80 fixture result is offline only.
 - **Unblocked by:** the next CFB date reaching the backfill window.
+
+> **Status 2026-10-19: EXERCISED IN PRODUCTION on 19 CFB dates (2026-09-17 to
+> 10-17) · pairing is non-zero (164 paired, 150 priced) · no pass criterion
+> was ever stated, so there is no PASS or FAIL · defects found and filed ·
+> unblocked since 2026-09-18.**
+>
+> *What "done condition" means here.* This section borrowed the term without
+> stating an artifact or a pass criterion. Its context is production pairing
+> above zero: run 35110321483 "paired nothing". It means the backfill's
+> `matchSlate`, not `CC-CMD-2026-09-11` Task 3, which is a different route
+> and is still not met (see that document's status). Closing this section
+> does not close Task 3.
+>
+> *Exercised.*
+> - **Runs read:** all 34 odds-backfill runs from 2026-09-16 to 10-19, read
+>   2026-10-19 through the GitHub MCP `get_job_logs` tool. The same logs are
+>   refused through `gh api`, which is why the 10-16 to 10-18 daily reads
+>   called this blocked.
+> - **Coverage:** every one of the 19 CFB slate dates in D1 has an
+>   `americanfootball_ncaaf` line.
+> - **Counters:** 150 by name, 14 by elimination, 161 unmatched and 6
+>   ambiguous. All three main counters count archive game rows: 150 + 14 + 161
+>   = 325, the D1 CFB row count over the 19 dates. 164 paired became 150
+>   priced in D1.
+> - **First production line:** 2026-09-17 (run `35354836961`). The first full
+>   slate was 09-19.
+>
+> *Defects found* (D1 read 2026-10-19, reproduced with the real module). They
+> sit in three components:
+> - **`matchSlate` stage 2, 1 of 150 pairs checked:** Georgia @ Arkansas
+>   (`CFB_2026-09-19_e401856686`, kickoff 16:00Z) carries the odds of
+>   GA Southern @ Jax State (commence 23:02Z), paired on one side. The real
+>   GA Southern row is unpriced.
+> - **The sync:** Virginia / West Virginia (`CFB_2026-09-19_e401856802`) is
+>   priced backwards, because `home_ml` is written by position. Both of these
+>   are filed as `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`.
+> - **The single 23:59Z snapshot:** 171 of 288 CFB rows over five Saturdays
+>   are unpriced by the backfill (117 priced). 154 of them kicked off before
+>   22:00Z, and on 10-17 every game at or before 21:00Z is unpriced (30 of
+>   30). 76 of the priced rows carry after-kickoff "opening" prices, which
+>   several `opening_odds` readers do not check. Filed as
+>   `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`.
+>
+> Evidence: `outbox/cfb-wrong-pair-repro-2026-10-19.log`, and
+> `outbox/odds-watches-daily-read-2026-10-19.md` §CFB.
 
 ### 7.7 `silently-dead-crons` · MEASURED, NOT FIXED
 **This is the one item in this doc where work was started and not finished.**

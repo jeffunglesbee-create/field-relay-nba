@@ -1,7 +1,30 @@
 # CC-CMD-2026-09-11 — the odds identity join drops every CFB and Bundesliga row
 
-**STATUS: Task 0 DONE. Tasks 1-5 BLOCKED on
-`CC-CMD-2026-09-13-team-key-sport-blind.md`.**
+**STATUS (corrected 2026-10-19):**
+- **Task 0:** DONE.
+- **Tasks 1-2:** SUPERSEDED, not met as specified. `src/odds-name-match.js`
+  `matchSlate` (2026-09-16) was built without Task 1's collision corpus
+  (`scripts/check-odds-matcher.mjs` has no Virginia or Washington case) and
+  without the leading-token constraint Task 2's mutation targets:
+  `nameMatches('Virginia', 'West Virginia Mountaineers')` is true. Its
+  stage 2 pairs on one side, against this document's "Match on the PAIR,
+  never a single team". It is wired only to `.github/scripts/odds-backfill.js`
+  and `scripts/targeted-odds-fill.mjs` (`scripts/check-odds-matcher-wiring.mjs`).
+- **Task 3:** NOT MET, and not meetable as built:
+  - `/identity/mismatches` still joins on exact `resolveTeamKey` keys;
+  - the Saturday probe's 6 scheduled runs all dated the UTC Sunday. Its 7th
+    run (dispatch 34667508348) was dated Saturday 2026-09-12 but ran at
+    02:23Z, before that slate was played. CFB reads NO_ROWS in all 7
+    artifacts.
+- **Tasks 4-5:** NOT DONE.
+- **Successors:** in production the matcher made one confirmed wrong CFB
+  pair, the very collision Task 1's corpus was meant to stop:
+  `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`. Task 3's route and probe
+  are in `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`
+  Part B.
+- **Previous status line, kept:** "Task 0 DONE. Tasks 1-5 BLOCKED on
+  `CC-CMD-2026-09-13-team-key-sport-blind.md`." That was stale from
+  2026-09-16.
 
 Task 0 probed a real Saturday (2026-09-12, 80 games / 24 vendor events / 0
 matched) as this document instructed, and the sample did not survive:

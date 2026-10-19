@@ -1,0 +1,31 @@
+# CFB production pairing — the wrong pair and the backwards pair, reproduced 2026-10-19
+# Method: src/odds-name-match.js at HEAD, run locally; D1 SELECTs on field-archive cc49101c (0 rows written).
+
+## matchSlate on a reduced slate: the two real 2026-09-19 archive rows involved and the one vendor event involved (the full slate had 44 events, 40 in pool)
+nameMatches(Georgia, Georgia Southern Eagles) = true
+nameMatches(GA Southern, Georgia Southern Eagles) = false
+nameMatches(Jax State, Jacksonville State Gamecocks) = false
+nameMatches(Arkansas, Jacksonville State Gamecocks) = false
+stage1 0 stage2 1 unmatched 1 ambiguous 0 pool 1
+PAIR CFB_2026-09-19_e401856686 -> Georgia Southern Eagles @ Jacksonville State Gamecocks stage 2 swapped false
+
+## D1, regular_season_games
+CFB_2026-09-19_e401856686 | home Arkansas | away Georgia | start 2026-09-19T16:00Z | finalized 2026-09-19 19:30:39 | opening_odds {"source":"draftkings","captured_at":"2026-09-19T23:55:18Z","moneyline":{"home":311,"away":-435},"total":{"over":52.5,"under":52.5},"_kickoff":{"at":"2026-09-19T16:00Z","verified":false,"late_minutes":475}}
+CFB_2026-09-19_e401869948 | home Jax State | away GA Southern | start 2026-09-19T23:00Z | finalized 2026-09-20 02:15:31 | opening_odds NULL
+
+## D1, odds_history for the same game_ids
+CFB_2026-09-19_e401856686 | home_team Jacksonville State Gamecocks | away_team Georgia Southern Eagles | commence 2026-09-19T23:02:23Z | draftkings | close | snapshot 2026-09-19T23:55:18Z | created 2026-09-20 14:00:43
+(no odds_history row for CFB_2026-09-19_e401869948)
+
+## The backwards pair: regular_season_games joined to odds_history
+CFB_2026-09-19_e401856802 | home Virginia | away West Virginia | row moneyline home 870 / away -1667 | odds_history home_team West Virginia Mountaineers 9.7 / away_team Virginia Cavaliers 1.06
+CFB_2026-09-19_e401858232 | home Maryland | away Virginia Tech | row moneyline home 170 / away -227 | odds_history home_team Maryland Terrapins 2.7 / away_team Virginia Tech Hokies 1.44   (control: orientation agrees)
+
+## Saturday CFB coverage, D1
+date | total | priced | unpriced | priced with _kickoff.late_minutes > 0 | unpriced with start_time before 22:00Z
+2026-09-19 | 71 | 34 | 37 | 22 | 30
+2026-09-26 | 65 | 25 | 40 | 16 | 33
+2026-10-03 | 54 | 21 | 33 | 14 | 31
+2026-10-10 | 46 | 15 | 31 | 11 | 30
+2026-10-17 | 52 | 22 | 30 | 13 | 30
+total | 288 | 117 (41%) | 171 (59%) | 76 | 154 (of 163 rows with kickoff before 22:00Z)
