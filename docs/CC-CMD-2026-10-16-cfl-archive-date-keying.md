@@ -4,16 +4,16 @@
 **Repo:** field-relay-nba
 **Confidence gate:** >= 95 before any commit
 **Filed:** 2026-10-16 by chat, read from `src/index.js` blob `92478cc` (commit `176f0c7` when filed — cite the blob, not the commit: an agent rebase on this branch orphans the commit sha and leaves the citation unverifiable, which is what happened to the first version of this line), measured against live `field-archive` (`cc49101c-0569-4d41-8e7a-be139cde4f26`)
-**Status:** **PARTIAL — TASKs 3, 4 and 5 landed 2026-10-18; TASKs 1 and 2 held by an explicit order until 2026-10-19T00:00Z; the migration is NOT applied.**
+**Status:** **DONE — 2026-10-19.** Writer fixed and deployed, 13 rows migrated and verified, guard live in both gates. Session doc: `outbox/cc-session-2026-10-18-cfl-archive-date-keying.md`.
 
 | task | state |
 |---|---|
-| 1 — `fieldDayOfInstant` helper | **not landed.** 0 occurrences in `src/index.js` |
-| 2 — the CFL writer | **not landed.** Line 8947 still reads `const gameDate = String(t.date \|\| '').slice(0, 10);` |
-| 3 — migration | `scripts/migrate-cfl-date-keying.mjs` (`3ad28bd`, `3b2fef2`), dry run by default, **not applied** |
-| 4 — guard | `scripts/check-archive-date-keying.mjs` (`9e76e87`) |
-| 5 — verify | checks `/context/date` for every planned row (`85a95da`) |
-| review | ten adversarial findings, nine fixed (`147f375`) |
+| 1 — `fieldDayOfInstant` helper | **landed** `e6a5078e`, pushed 00:05Z, deploy run 39179159880 green |
+| 2 — the CFL writer | **landed** `e6a5078e`. The window stays on `gameDateUtc`; the stamped `date` is `fieldDayOfInstant(t.date)` |
+| 3 — migration | **applied** 2026-10-19T00:16Z: one 65-statement transaction through the session's D1 connector (the runner token gets 7403), all 39 guards `ok`. Dry run 39179186247, verify 39180106033: **VERIFIED 13 of 13** |
+| 4 — guard | `scripts/check-archive-date-keying.mjs`: 13 → **0 mismatches over 3385 compared rows**. Live in `guards.yml` (`4bd33e08`, run 39180185016) and `deploy.yml` verify (`5e1c067b`, run 39180192675), both green |
+| 5 — verify | probe A `keyed_UTC = 0` for every sport (836 rows). New ids 13, old 0. change_log 4 on the new ids, 0 on the old. `/context/date` 13 of 13. Guard mutation CAUGHT on live data in both runs |
+| review | ten adversarial findings, nine fixed (`147f375`); the tenth, the timing order, kept |
 
 **The guard fails on purpose and that is correct.** Run today it exits 1 with
 `writer helper: "const gameDate = fieldDayOfInstant(t.date);" occurs 0 times in src/index.js; expected exactly 1`.
