@@ -293,6 +293,13 @@ function _monthFromBatch(results) {
     return { charged: r.results.length > 0, used: (typeof v === 'number') ? v : null };
 }
 
+// A veto's catch must reach `return false`, so its warning cannot throw.
+// String() throws on a null-prototype object and on a throwing message or
+// toString getter; this never does.
+function _vetoErrText(e) {
+    try { return String(e && e.message || e).slice(0, 160); } catch (_) { return '(unprintable rejection)'; }
+}
+
 /**
  * ONE IMPLEMENTATION. This replaces three copies of the same rule — index.js's
  * consumeOddsCredit, wp-resolver.js's, and ambient-do.js's
@@ -389,7 +396,7 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
                 // A day veto whose warning cannot be recorded is still a veto.
                 // Falling to the outer catch would degrade open with no counter
                 // charged and the month limit never asked.
-                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${String(e && e.message || e).slice(0, 160)}`);
+                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${_vetoErrText(e)}`);
             }
             return false;
         }
@@ -409,7 +416,7 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
                 }
             } catch (e) {
                 // A limit veto whose warning cannot be recorded is still a veto.
-                console.warn(`[odds-month-guard] veto held; limit key not recorded: ${String(e && e.message || e).slice(0, 160)}`);
+                console.warn(`[odds-month-guard] veto held; limit key not recorded: ${_vetoErrText(e)}`);
             }
             return false;
         }

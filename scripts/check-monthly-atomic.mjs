@@ -203,18 +203,22 @@ function fakeD1(db, { throwOnCharge = null } = {}) {
 // the day's and the month's carried totals answer for whatever date it reads.
 // `failVeto` makes KV refuse the veto's warned key, as a 429 does when
 // concurrent isolates write that key inside one second on the first ceiling hit.
+// 'get' / 'put' fail the day's AND the month's veto key; a '-day' suffix fails
+// only the day's, so a day-veto error that falls through to the month block is
+// visible. 'unprintable' rejects with a value String() cannot convert.
 function fakeKV({ day = null, month = null, failVeto = null } = {}) {
   const m = new Map(), puts = [];
-  const veto = (k) => failVeto && /:warned(?::limit)?$/.test(k);
+  const veto = (k) => failVeto && (failVeto.endsWith('-day') ? DAY_KEY.test(k) : /:warned(?::limit)?$/.test(k));
   return {
     get: async (k) => {
-      if (veto(k) && failVeto === 'get') throw new Error('KV GET failed: 429 Too Many Requests');
+      if (veto(k) && failVeto.startsWith('get')) throw new Error('KV GET failed: 429 Too Many Requests');
+      if (veto(k) && failVeto === 'unprintable') throw Object.create(null);
       return m.has(k) ? m.get(k)
         : /^odds:daily:\d{4}-\d{2}-\d{2}$/.test(k) ? day
         : /^odds:credits:\d{4}-\d{2}$/.test(k) ? month : null;
     },
     put: async (k, v) => {
-      if (veto(k) && failVeto === 'put') throw new Error('KV PUT failed: 429 Too Many Requests');
+      if (veto(k) && failVeto.startsWith('put')) throw new Error('KV PUT failed: 429 Too Many Requests');
       m.set(k, String(v)); puts.push([k, String(v)]);
     },
     puts,
@@ -259,23 +263,38 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
   // either side of ceiling - units. The ceiling is read from the module, so a
   // grant day does not move the boundary out from under the case.
   const CEIL = (await (await charger()).peekDailyOdds({ FIELD_JOURNALISM: fakeKV() })).ceiling;
-  const lo = await call({ day: String(CEIL - 3), month: '1000' });
-  eq('G  pre-day = ceiling - units: chargeOdds returns true', lo.r, true);
-  eq('G  ...day, site and month all move by units', [lo.day, lo.site, lo.month], [CEIL, 3, 1003]);
-  const hi = await call({ day: String(CEIL - 2), month: '1000' });
-  eq('G  pre-day = ceiling - units + 1: chargeOdds returns false', hi.r, false);
-  eq('G  ...and day, site and month are all unmoved', [hi.day, hi.site, hi.month], [CEIL - 2, null, 1000]);
-  ok('G  ...filed as the DAY veto', hi.puts.some((k) => DAY_KEY.test(k)) && !hi.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(hi.puts));
+  // SEVERAL UNIT SIZES. With units = 3 only, a literal 3 in a day-predicate
+  // bind is indistinguishable from `units`; real costs are markets x regions,
+  // x10 for /v4/historical/.
+  for (const u of [1, 3, 30]) {
+    const lo = await call({ day: String(CEIL - u), month: '1000', units: u });
+    eq(`G  units=${u}, pre-day = ceiling - units: chargeOdds returns true`, lo.r, true);
+    eq(`G  units=${u} ...day, site and month all move by units`, [lo.day, lo.site, lo.month], [CEIL, u, 1000 + u]);
+    const hi = await call({ day: String(CEIL - u + 1), month: '1000', units: u });
+    eq(`G  units=${u}, pre-day = ceiling - units + 1: chargeOdds returns false`, hi.r, false);
+    eq(`G  units=${u} ...and day, site and month are all unmoved`, [hi.day, hi.site, hi.month], [CEIL - u + 1, null, 1000]);
+    ok(`G  units=${u} ...filed as the DAY veto`, hi.puts.some((k) => DAY_KEY.test(k)) && !hi.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(hi.puts));
+  }
 }
 {
   // (H) A VETO STAYS A VETO WHEN ITS WARNING CANNOT BE RECORDED. The batch has
   // committed its verdict; a KV throw on the warned key reaching the outer
   // catch would degrade open, let the call spend, and leave the month limit
   // unasked. Found by the 2026-10-18 review with a differential harness.
-  for (const op of ['get', 'put']) {
+  // 'unprintable': the catch's own warning must not throw on into the outer
+  // catch, which would degrade open.
+  for (const op of ['get', 'put', 'unprintable']) {
     const d = await call({ day: String(BIG), month: '84999', failVeto: op });
     eq(`H  a day veto with the warned-key ${op} throwing: chargeOdds returns false`, d.r, false);
     ok(`H  ...and is not counted as a degrade-open`, !d.puts.some((k) => /^odds:degraded:/.test(k)), JSON.stringify(d.puts));
+    if (op !== 'unprintable') {
+      // Only the DAY's key failing, the month far from its limit: a day-veto
+      // error must not fall through and file the month's hard limit, whose key
+      // gates a once-a-month warning for 60 days.
+      const d2 = await call({ day: String(BIG), month: '1000', failVeto: `${op}-day` });
+      eq(`H  a day veto with ONLY the day's warned-key ${op} throwing: chargeOdds returns false`, d2.r, false);
+      ok(`H  ...and is NOT filed as the month's hard limit`, !d2.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(d2.puts));
+    }
     const mo = await call({ month: '84999', failVeto: op });
     eq(`H  a month veto with the limit-key ${op} throwing: chargeOdds returns false`, mo.r, false);
     ok(`H  ...and is not counted as a degrade-open`, !mo.puts.some((k) => /^odds:degraded:/.test(k)), JSON.stringify(mo.puts));

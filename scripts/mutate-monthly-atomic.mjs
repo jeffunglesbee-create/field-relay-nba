@@ -134,15 +134,38 @@ const MUTATIONS = [
    'bind(units, month, units, ODDS_HARD_LIMIT, date, 0, ceiling)',
    'one credit below the day boundary the month charges and the day refuses: the month runs ahead of the day on every capped day'],
 
+  [H, 'M19 the site\'s day predicate is bound with a literal 3',
+   'bind(date, site, units, date, units, ceiling)',
+   'bind(date, site, units, date, 3, ceiling)',
+   'a 30-credit historical call is admitted to by_site on a day it overflows: the split runs ahead of the total'],
+
+  [H, 'M20 the month\'s day predicate is bound with a literal 3',
+   'bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling)',
+   'bind(units, month, units, ODDS_HARD_LIMIT, date, 3, ceiling)',
+   'a 30-credit call charges the month on a day the day refuses it'],
+
+  // The return value stays false, so a return-value check passes it. What
+  // changes is that a day-veto KV error falls through into the month block,
+  // which files the month's hard limit at 1,000 and burns its 60-day key.
+  [H, 'M21 a day veto whose KV fails falls through to the month block',
+   "                        { expirationTtl: 86400 });\n                }\n            } catch (e) {\n                // A day veto whose warning cannot be recorded is still a veto.\n                // Falling to the outer catch would degrade open with no counter\n                // charged and the month limit never asked.\n                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${_vetoErrText(e)}`);\n            }\n            return false;\n        }",
+   "                        { expirationTtl: 86400 });\n                }\n                return false;\n            } catch (e) {\n                // A day veto whose warning cannot be recorded is still a veto.\n                // Falling to the outer catch would degrade open with no counter\n                // charged and the month limit never asked.\n                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${_vetoErrText(e)}`);\n            }\n        }",
+   'the month hard-limit key is written on a day veto, so when the month really reaches 85,000 no HARD LIMIT warning fires'],
+
   [H, 'M17 a day veto whose warned key cannot be written degrades open',
-   "                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${String(e && e.message || e).slice(0, 160)}`);",
+   "                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${_vetoErrText(e)}`);",
    '                throw e;',
    'a KV 429 on the first ceiling hit lets a refused call spend at the vendor, with no counter charged and the month limit unasked'],
 
   [H, 'M18 a month veto whose limit key cannot be written degrades open',
-   "                console.warn(`[odds-month-guard] veto held; limit key not recorded: ${String(e && e.message || e).slice(0, 160)}`);",
+   "                console.warn(`[odds-month-guard] veto held; limit key not recorded: ${_vetoErrText(e)}`);",
    '                throw e;',
    'past 85,000 a KV failure on the limit key lets the call spend anyway'],
+
+  [H, 'M22 the veto warning\'s formatter can throw',
+   "    try { return String(e && e.message || e).slice(0, 160); } catch (_) { return '(unprintable rejection)'; }",
+   "    return String(e && e.message || e).slice(0, 160);",
+   'a rejection String() cannot convert throws out of the veto catch into the outer one, which degrades open and lets the refused call spend'],
 
   ['index', 'W1 index.js consumeOddsCredit goes back to two calls',
    '  return chargeOdds(env, units, site);\n}',
