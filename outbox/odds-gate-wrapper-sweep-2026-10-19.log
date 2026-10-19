@@ -1,0 +1,48 @@
+# odds gate wrapper sweep, 2026-10-19
+
+For docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md, item 3.
+Source: the single-batch branch at its review-fix head, extracted with
+`git archive`. No network, and RELAY_SHARED_SECRET unset.
+
+Population: `ls scripts | grep -E '^check-.*\.(mjs|js|sh)$' | grep -iE
+'odds|budget|month|ceiling|degrade|charge|batch|quota'`, which gives 27
+scripts. **Checked 26 of 27.** The 27th, check-odds-fallback-binding-type.sh,
+calls the Cloudflare API and was not run.
+
+Each was run four times: on clean source, then with one wrapper's
+`return chargeOdds(env, units, site);` replaced by `return true;`. That
+replacement was made in src/index.js consumeOddsCredit, src/wp-resolver.js
+consumeOddsCredit, and src/ambient-do.js _consumeAmbientOddsCredit (anchor
+asserted unique). Columns are exit codes.
+
+Result: only check-monthly-atomic.mjs changes rc (0 to 1), for each of the
+three wrappers. Every other check passes a gutted wrapper.
+
+script clean index wp-resolver ambient-do
+check-batch-order.mjs 0 0 0 0
+check-ceiling-reached.mjs 0 0 0 0
+check-closing-odds-kickoff-guard.mjs 0 0 0 0
+check-closing-odds-not-prefilled.mjs 0 0 0 0
+check-d1-batch-param-cap.mjs 0 0 0 0
+check-daily-vs-monthly.mjs 0 0 0 0
+check-degrade-open-reason.mjs 0 0 0 0
+check-monthly-atomic.mjs 0 1 1 1
+check-monthly-counter-writers.mjs 0 0 0 0
+check-odds-attribution.mjs 0 0 0 0
+check-odds-backfill-attribution.mjs 0 0 0 0
+check-odds-budget-batch.mjs 0 0 0 0
+check-odds-budget-schema.mjs 0 0 0 0
+check-odds-calls-guarded.mjs 0 0 0 0
+check-odds-capture-provenance.mjs 0 0 0 0
+check-odds-ceiling-grant.mjs 0 0 0 0
+check-odds-consumer-rules.mjs 0 0 0 0
+check-odds-consumer-wiring.mjs 0 0 0 0
+check-odds-fallback-binding-type.sh SKIPPED(calls-Cloudflare-API)
+check-odds-key-equivalence.mjs 0 0 0 0
+check-odds-live-disabled.mjs 0 0 0 0
+check-odds-matcher-wiring.mjs 0 0 0 0
+check-odds-matcher.mjs 0 0 0 0
+check-odds-reconciled.mjs 0 0 0 0
+check-odds-writers-sport-scoped.mjs 0 0 0 0
+check-opening-odds-not-at-finalisation.mjs 0 0 0 0
+check-quota-gate-ordering.mjs 0 0 0 0
