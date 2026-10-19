@@ -2327,6 +2327,38 @@ function getFieldDateKey() {
     return etDateBase.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); // YYYY-MM-DD
 }
 
+/**
+ * The FIELD-zone (America/New_York) calendar day containing a GIVEN instant.
+ *
+ * NOT getFieldDateKey(), which reads the CURRENT clock and rolls back before
+ * 4am ET to answer "which slate is live now". This answers "which day did this
+ * kickoff belong to" — a different question — and takes the instant as an
+ * argument, so it is testable at fixed points rather than only during the four
+ * hours a night that are hard to reach.
+ *
+ * PLAIN ET day, with no 4am rollback, and that is measured rather than
+ * preferred: measured 2026-10-17 over the 834 rows whose UTC day and ET day
+ * differ, the 821 non-CFL rows carry the plain ET calendar day of kickoff,
+ * 821 of 821. A rollback here would put CFL out of step with those 821 rather
+ * than into step.
+ *
+ * Via the IANA zone name, not a fixed offset. EST resumes on 2026-11-01 and a
+ * hardcoded -4 would start mis-dating evening games that day. Same
+ * `toLocaleDateString('en-CA', { timeZone: … })` idiom as getFieldDateKey()'s
+ * own last line, so the runtime's ICU support for it is already proven in
+ * production rather than assumed here.
+ *
+ * Returns null on absent or unparseable input. There is deliberately no
+ * fallback: the date is embedded in the archive primary key, so a guessed day
+ * is a wrong key, and a wrong key is silent where a skip is loud.
+ */
+function fieldDayOfInstant(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const t = Date.parse(value);
+    if (Number.isNaN(t)) return null;
+    return new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
 function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const comp       = ev.competitions?.[0] || {};
     const teams      = comp.competitors   || [];
@@ -8944,8 +8976,26 @@ async function handleJournalismCycle(env, opts = {}) {
       for (const round of rounds) {
         for (const t of (round?.tournaments || [])) {
           if (t?.status !== 'complete') continue;          // THE GATE
-          const gameDate = String(t.date || '').slice(0, 10);
-          if (gameDate !== _cflToday && gameDate !== _cflYday) continue;
+          // CC-CMD-2026-10-16-cfl-archive-date-keying. This value was doing two jobs
+          // under one name: the recency window below AND the stamped archive `date`.
+          // Only the second was wrong, so only the second changes. The window stays
+          // on the UTC day and stays compared against the UTC `_cflToday`/`_cflYday`
+          // bounds -- an ET day here would shift the window a day earlier and halve
+          // the retry coverage for the boundary-crossing games this fixes.
+          const gameDateUtc = String(t.date || '').slice(0, 10);
+          if (gameDateUtc !== _cflToday && gameDateUtc !== _cflYday) continue;
+
+          // The stamped value. Was `gameDateUtc`, which is the UTC calendar day: a
+          // CFL kickoff after 20:00 ET falls on the next UTC day, so 13 of 42 stored
+          // rows were stamped one day ahead -- and the date is embedded in the
+          // archive id, so each was a wrong primary key, not just a wrong column.
+          // Measured 2026-10-17: 821 of 821 non-CFL discriminating rows key on the
+          // ET day; CFL was 0 of 13, the only sport in the table keyed on UTC.
+          const gameDate = fieldDayOfInstant(t.date);
+          if (!gameDate) {
+            console.error(`[ARCHIVE-CFL] unparseable vendor date ${JSON.stringify(t.date)} for event ${t.id || '(no id)'} — skipping this archive write rather than stamping a guessed day`);
+            continue;
+          }
 
           await fetch(cflRelayBase + '/archive/game', {
             method: 'POST',
