@@ -130,7 +130,7 @@ function enclosingIf(code, at) {
                 else if (c === ';' && depth === 0) { e++; break; }
             }
         }
-        return { ifAt: m.index, consStart: s, consEnd: e };
+        return { ifAt: m.index, condOpen: open, condClose: close, consStart: s, consEnd: e };
     }
     return null;
 }
@@ -197,20 +197,77 @@ function runsBeforeFetch(code, f) {
     return calls.length > 0 && !!b && calls.every((k) => k >= f.consEnd && k > b[0] && k < b[1]);
 }
 
-// 'ok', or why not: 'none' (no negated verdict), 'no-exit', 'after-fetch'.
-function guardVerdict(code) {
-    let best = 'none';
-    for (const at of verdictTests(code)) {
-        const f = enclosingIf(code, at);
-        if (!f || !consequentExits(code, f.consStart, f.consEnd)) { if (best === 'none') best = 'no-exit'; continue; }
-        if (runsBeforeFetch(code, f)) return 'ok';
-        best = 'after-fetch';
-    }
-    return best;
+// AND THE VERDICT MUST BE THE WHOLE CONDITION (docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md,
+// task 1). The rule above credited any `if` whose condition merely CONTAINED a
+// negated verdict, so `X && !(await G(...))` passed for any X: a guard that is
+// never evaluated. The second review of 2026-10-19 showed one `!` at the proxy
+// (`!oddsBillablePath(cleanPath) && ...`, metering only the free paths) passing
+// all 25 deploy-path odds steps. The condition must now be exactly:
+//   - `!(await G(...))`, nothing else inside the negation and nothing beside it;
+//   - or `!x`, where the nearest declaration of x before the `if`, in the same
+//     block, is `const x = await G(...);` with nothing else in the initializer.
+//     A `let` can be overwritten before the test (R1), `|| flag` overrules the
+//     refusal at the source (R2), and a nearer or inner declaration is not the
+//     verdict, so none of those count;
+//   - at the /odds/* proxy only, `oddsBillablePath(cleanPath) && !(await G(...))`.
+//     Its sports list is free and is not charged; the one conjunct is written
+//     exactly, so its negation (P3) or a second conjunct is red.
+// All nine live guard sites have one of these shapes (TASK 0 probe, 2026-10-19).
+const VERDICT_CALL = new RegExp(`^await\\s+(?:${GUARD_NAMES.join('|')})\\s*\\(`);
+const PROXY_CONJUNCT = /^oddsBillablePath\s*\(\s*cleanPath\s*\)\s*&&\s*/;
+
+// True if `text` (blanked) is exactly `await G(...)`, ignoring whitespace.
+function isBareVerdictCall(text) {
+    const t = text.trim();
+    const m = VERDICT_CALL.exec(t);
+    if (!m) return false;
+    const close = closeOf(t, m[0].length - 1);
+    return close === t.length - 1;
 }
 
-function guardsWithVerdict(code) {
-    return guardVerdict(code) === 'ok';
+// True if the `if` at `f` has a credited condition (the three shapes above).
+function exactCondition(code, f, { proxyConjunct = false } = {}) {
+    let cond = code.slice(f.condOpen + 1, f.condClose).trim();
+    if (proxyConjunct) {
+        const m = PROXY_CONJUNCT.exec(cond);
+        if (m) cond = cond.slice(m[0].length);
+    }
+    if (cond.startsWith('!')) {
+        const inner = cond.slice(1).trim();
+        if (inner.startsWith('(') && closeOf(inner, 0) === inner.length - 1) return isBareVerdictCall(inner.slice(1, -1));
+    }
+    const named = /^!\s*([A-Za-z_$][\w$]*)$/.exec(cond);
+    if (!named) return false;
+    const x = named[1].replace(/\$/g, '\\$');
+    const decls = [...code.slice(0, f.ifAt).matchAll(new RegExp(`\\b(const|let|var)\\s+${x}\\s*=`, 'g'))];
+    const d = decls.pop();
+    if (!d || d[1] !== 'const') return false;
+    const b = blockAround(code, f.ifAt), bd = blockAround(code, d.index);
+    if (!b || !bd || b[0] !== bd[0]) return false;
+    const from = d.index + d[0].length;
+    const semi = (() => { for (let k = from, depth = 0; k < f.ifAt; k++) {
+        const c = code[k];
+        if (c === '(' || c === '[' || c === '{') depth++;
+        else if (c === ')' || c === ']' || c === '}') depth--;
+        else if (c === ';' && depth === 0) return k;
+    } return -1; })();
+    return semi > 0 && isBareVerdictCall(code.slice(from, semi));
+}
+
+// 'ok', or why not: 'none' (no negated verdict), 'condition', 'no-exit',
+// 'after-fetch'. The most specific reason seen wins.
+function guardVerdict(code, opts = {}) {
+    let best = 'none';
+    const rank = { none: 0, condition: 1, 'no-exit': 2, 'after-fetch': 3 };
+    const note = (r) => { if (rank[r] > rank[best]) best = r; };
+    for (const at of verdictTests(code)) {
+        const f = enclosingIf(code, at);
+        if (!f || !exactCondition(code, f, opts)) { note('condition'); continue; }
+        if (!consequentExits(code, f.consStart, f.consEnd)) { note('no-exit'); continue; }
+        if (runsBeforeFetch(code, f)) return 'ok';
+        note('after-fetch');
+    }
+    return best;
 }
 
 // The guard may sit either side of the URL line -- deriving the cost from the URL
@@ -267,7 +324,8 @@ function scan(file, src) {
         out.push({
             file, line: i + 1, kind: 'billed',
             ok: guarded && derived,
-            why: verdict === 'after-fetch' ? 'the monthly guard does not run before the vendor call — a fetch-like call (fetch, relayFetch, oddsFetchWithFallback) comes before it, sits outside the block that holds it, or is missing — so a refusal arrives after the credits are spent'
+            why: verdict === 'condition' ? 'the negated verdict is not the whole `if` condition — a conjunct or disjunct beside it (`X && !(await G(...))`, `!(await G(...) || X)`), or a verdict held in a `let` or a const whose initializer is more than the call, lets the guard go unevaluated or its refusal be overruled'
+               : verdict === 'after-fetch' ? 'the monthly guard does not run before the vendor call — a fetch-like call (fetch, relayFetch, oddsFetchWithFallback) comes before it, sits outside the block that holds it, or is missing — so a refusal arrives after the credits are spent'
                : !guarded ? 'no monthly guard whose verdict stops the call (`if (!(await consumeOddsCredit(...))) return`, or _consumeAmbientOddsCredit) in the enclosing function — a guard named only in a comment or string, or called with its verdict ignored, does not count'
                : !derived ? 'guarded, but the cost is hardcoded — must be oddsCreditCost(url) so it cannot drift from the URL'
                : '',
@@ -388,13 +446,81 @@ async function f(env) {
   }
   const r = await fetch(u);
 }`, true],
-        ['a verdict inside a compound condition, ending in a throw, IS a guard', `
+        // Corrected 2026-10-19: this fixture was written as an equivalent and
+        // encoded the hole (condition-and-exit task 1). A conjunct in front of
+        // the verdict can skip it, whatever the consequent ends in.
+        ['a verdict behind a conjunct is not a guard, even ending in a throw', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   if (billable(u) && !(await consumeOddsCredit(
         env, oddsCreditCost(u), 'f'))) throw new Error('declined');
   const r = await fetch(u);
+}`, false],
+        ['a verdict wrapped across lines, ending in a throw, IS a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!(await consumeOddsCredit(
+        env, oddsCreditCost(u), 'f'))) throw new Error('declined');
+  const r = await fetch(u);
 }`, true],
+        // THE VERDICT IS THE WHOLE CONDITION (condition-and-exit task 1).
+        ['an env flag in front of the verdict is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (env.FLAG && !(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await fetch(u);
+}`, false],
+        ['a negated oddsBillablePath in front of the verdict is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!oddsBillablePath(p) && !(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await fetch(u);
+}`, false],
+        ['oddsBillablePath in front of the verdict, outside the proxy, is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await fetch(u);
+}`, false],
+        ['a flag or-ed inside the negation is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f') || env.FLAG)) return;
+  const r = await fetch(u);
+}`, false],
+        ['a let verdict overwritten before its test is not a guard (R1)', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  let ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
+  if (env.FLAG) ok = true;
+  if (!ok) return;
+  const r = await fetch(u);
+}`, false],
+        ['a const verdict or-ed with a flag at its declaration is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f') || env.FLAG;
+  if (!ok) return;
+  const r = await fetch(u);
+}`, false],
+        ['a verdict declared in a closed sibling block is not the one tested', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const ok = true;
+  { const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f'); }
+  if (!ok) return;
+  const r = await fetch(u);
+}`, false],
+        ['a nearer const of the same name is not the verdict', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
+  {
+    const ok = true;
+    if (!ok) return;
+    const r = await fetch(u);
+  }
+}`, false],
         ['a " //" inside a string does not hide the guard after it', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
@@ -550,6 +676,57 @@ class D {
         else { fail++; console.error(`  SELFTEST FAIL: live guard sites moved below their fetch: ${caught} of ${sites} caught`); }
         console.log(`  live guard sites moved below their fetch: ${caught} of ${sites} caught`);
     }
+    // EVERY LIVE GUARD SITE, AN ENV FLAG PUT IN FRONT OF ITS VERDICT (Rule 90
+    // for the exact-condition rule, on the real source): `if (env.X && !(...))`
+    // skips the guard whenever the flag is unset. The site, or the proxy, must
+    // go red.
+    {
+        let sites = 0, caught = 0;
+        for (const f of FILES) {
+            const raw = readFileSync(f, 'utf8');
+            const code = blankCommentsAndStrings(raw);
+            for (const at of verdictTests(code)) {
+                sites++;
+                const iff = enclosingIf(code, at);
+                if (!iff) { console.error(`  SELFTEST FAIL: ${f} offset ${at}: a negated guard verdict outside any if — NOTHING MUTATED`); continue; }
+                const mutated = raw.slice(0, iff.condOpen + 1) + 'env.ODDS_GUARD_BYPASS && ' + raw.slice(iff.condOpen + 1);
+                const red = scan(f, mutated).some((x) => x.kind === 'billed' && !x.ok)
+                    || (f === 'src/index.js' && !proxyGuarded(mutated));
+                if (red) caught++;
+                else console.error(`  SELFTEST FAIL: ${f} line ${raw.slice(0, at).split('\n').length}: a flag put in front of its verdict, and nothing went red`);
+            }
+        }
+        if (sites > 0 && caught === sites) pass++;
+        else { fail++; console.error(`  SELFTEST FAIL: live guard sites given a conjunct: ${caught} of ${sites} caught`); }
+        console.log(`  live guard sites given a conjunct: ${caught} of ${sites} caught`);
+    }
+    // THE PROXY'S ONE CONJUNCT, written exactly (condition-and-exit task 1).
+    {
+        const P = (cond) => `
+async function h(request, env, ctx) {
+        if (pathname.startsWith('/odds')) {
+            const cleanPath = pathname.replace(/^\\/odds/, '') || '/';
+            const targetUrl = oddsUrl(cleanPath, url.search, env?.ODDS_API_KEY);
+            if (${cond}) {
+                return new Response('declined', { status: 429 });
+            }
+            const _proxyResp = await relayFetch(targetUrl, {}, 60, 'odds', ctx);
+            return _proxyResp;
+        }
+}`;
+        const G = "!(await consumeOddsCredit(env, oddsCreditCost(targetUrl), 'oddsProxyRoute'))";
+        const pc = [
+            ['the proxy\'s exact conjunct IS a guard', `oddsBillablePath(cleanPath) && ${G}`, true],
+            ['the proxy with the conjunct negated is not a guard (P3)', `!oddsBillablePath(cleanPath) && ${G}`, false],
+            ['the proxy with a second conjunct is not a guard', `env.FLAG && oddsBillablePath(cleanPath) && ${G}`, false],
+            ['the proxy with || in place of && is not a guard', `oddsBillablePath(cleanPath) || ${G}`, false],
+        ];
+        for (const [name, cond, expect] of pc) {
+            const got = proxyGuarded(P(cond));
+            if (got === expect) pass++;
+            else { fail++; console.error(`  SELFTEST FAIL: ${name} — expected ${expect}, got ${got}`); }
+        }
+    }
     // THE PROXY IS READ TO ITS CLOSING BRACE, not a 1600-character window. A
     // long comment after the block's head pushed the guard out of the window
     // and turned the deploy red on correct code (second review, 2026-10-19).
@@ -652,7 +829,7 @@ function proxyGuarded(src) {
     if (close < 0) return false;
     const body = code.slice(start, close + 1);
     return body.includes('oddsBillablePath(')
-        && guardsWithVerdict(body)
+        && guardVerdict(body, { proxyConjunct: true }) === 'ok'
         && body.includes('oddsCreditCost(');
 }
 const proxyOk = proxyGuarded(readFileSync('src/index.js', 'utf8'));
