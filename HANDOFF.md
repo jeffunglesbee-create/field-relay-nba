@@ -1,5 +1,30 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 — CFL archive rows keyed on the ET day; migration applied
+
+`CC-CMD-2026-10-16-cfl-archive-date-keying` is **DONE**.
+
+- **The writer:** `e6a5078e` adds `fieldDayOfInstant`, and the CFL writer now
+  stamps the ET day of kickoff. Before, it stamped the UTC day. Pushed at
+  00:05Z, after the order's 00:00Z. Deploy run 39179159880 is green.
+- **The migration:** 13 mis-keyed CFL rows renamed in one 65-statement D1
+  transaction at 00:16Z. Every guard read `ok`.
+  - It was sent through the session's D1 connector. The runner's Cloudflare
+    token gets 7403 on D1.
+  - Verify run 39180106033: **VERIFIED 13 of 13**, and `/context/date`
+    agrees 13 of 13.
+- **The guard:** 13 → **0 mismatches over 3,385 compared rows**, and its
+  in-memory mutation is CAUGHT. Probe A reads `keyed_UTC = 0` for every
+  sport, 836 discriminating rows. change_log has 4 rows on the new ids, 0 on
+  the old.
+- **The gates:** the guard now runs live in `guards.yml` (`4bd33e08`, run
+  39180185016) and in `deploy.yml`'s verify job (`5e1c067b`, dispatched run
+  39180192675). Both are green.
+- **Watch:** the CC-CMD's hand-run SQL probes use `-4 hours`, which is wrong
+  for rows from 2026-11-01 (EST). The guard uses `Intl` and is unaffected.
+
+Session doc: outbox/cc-session-2026-10-18-cfl-archive-date-keying.md
+
 ## 2026-10-18 (later) — /bsd/events/by-date pages and caches
 
 - `b492e58` forwards `offset` and `limit` and edge-caches the route (25 s for
