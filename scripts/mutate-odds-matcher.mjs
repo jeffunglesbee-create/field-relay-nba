@@ -109,8 +109,8 @@ const MUTATIONS = [
 
   // ── the call sites ────────────────────────────────────────────────────────
   { file: CRON, check: WIRING, name: 'M12 the cron gets its private normTeam back',
-    anchor: 'import { matchSlate, h2hPrices }',
-    replace: 'function normTeam(s) { return String(s || "").toLowerCase(); }\nimport { matchSlate, h2hPrices }',
+    anchor: 'import { matchSlate, h2hPrices, pricesByTeam }',
+    replace: 'function normTeam(s) { return String(s || "").toLowerCase(); }\nimport { matchSlate, h2hPrices, pricesByTeam }',
     catches: 'a private normalizer beside the shared one' },
 
   { file: CRON, check: WIRING, name: 'M13 the cron reverts to a local events.find matcher',
@@ -324,6 +324,32 @@ const MUTATIONS = [
     anchor: '      contradicted++;\n      continue;',
     replace: '      continue;',
     catches: 'the backfill line reports 0 refused while refusing' },
+
+  // ── the sync's orientation (task 2)
+  { file: MODULE, check: CHECK, name: 'M53 pricesByTeam keeps the vendor position',
+    anchor: "  const [home, away] = orientation === 'swapped'\n    ? [row.away_ml, row.home_ml]\n    : [row.home_ml, row.away_ml];",
+    replace: '  const [home, away] = [row.home_ml, row.away_ml];',
+    catches: 'Virginia gets West Virginia\'s 9.7 again (e401856802)' },
+
+  { file: MODULE, check: CHECK, name: 'M54 pricesByTeam guesses when the direction is unreadable',
+    anchor: '  if (!orientation) return null;',
+    replace: "  if (!orientation) return { home: row.home_ml ?? null, away: row.away_ml ?? null, orientation: 'straight' };",
+    catches: 'two unrelated teams are written a price by position' },
+
+  { file: MODULE, check: CHECK, name: 'M55 pairOrientation trusts one side',
+    anchor: "  if (straightBoth !== swappedBoth) return straightBoth ? 'straight' : 'swapped';",
+    replace: "  if (hh || aa) return 'straight';",
+    catches: '"Virginia" reads West Virginia Mountaineers as itself and the swap is missed' },
+
+  { file: CRON, check: WIRING, name: 'M56 the sync goes back to converting by position',
+    anchor: '        home: decimalToAmerican(byTeam.home),\n        away: decimalToAmerican(byTeam.away),',
+    replace: '        home: decimalToAmerican(row.home_ml),\n        away: decimalToAmerican(row.away_ml),',
+    catches: 'the archive home team takes the vendor home team\'s price whichever team that is' },
+
+  { file: CRON, check: WIRING, name: 'M57 the sync stops calling pricesByTeam',
+    anchor: '    const byTeam = pricesByTeam(',
+    replace: '    const byTeam = ((g, r) => ({ home: r.home_ml, away: r.away_ml }))(',
+    catches: 'a private positional copy of the price read sits where the shared one was' },
 
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",

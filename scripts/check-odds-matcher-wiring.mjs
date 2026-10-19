@@ -49,6 +49,27 @@ for (const f of CONSUMERS) {
   }
 }
 
+// THE SYNC GIVES EACH TEAM ITS OWN PRICE (docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md
+// task 2). syncOddsToGameTables wrote `home: decimalToAmerican(row.home_ml)` by
+// position, and a swapped pairing gave Virginia West Virginia's +870. The price
+// must be re-keyed through pricesByTeam, whose behaviour check-odds-matcher.mjs
+// tests on that real row; this check holds the sync to calling it.
+{
+  const f = '.github/scripts/odds-backfill.js';
+  const src = fs.readFileSync(f, 'utf8');
+  const at = src.indexOf('async function syncOddsToGameTables');
+  const body = at > -1 ? src.slice(at) : '';
+  if (!body) { failed++; console.log(`  FAIL  ${f}: syncOddsToGameTables not found — nothing to check`); }
+  else {
+    /\bpricesByTeam\s*\(/.test(body)
+      ? console.log(`  PASS  ${f}: the sync re-keys prices through pricesByTeam`)
+      : (failed++, console.log(`  FAIL  ${f}: the sync does not call pricesByTeam`));
+    /decimalToAmerican\(\s*row\.(home|away)_ml\s*\)/.test(body)
+      ? (failed++, console.log(`  FAIL  ${f}: the sync converts row.home_ml / row.away_ml by position`))
+      : console.log(`  PASS  ${f}: the sync does not convert a price by position`);
+  }
+}
+
 // THE PROVIDER READING MUST SURVIVE A FAILING VERDICT. The first live run of
 // this watcher exited at the pairing FAIL before it ever recorded the day's
 // spend — and a failing day is exactly the one whose cost you want. Same shape

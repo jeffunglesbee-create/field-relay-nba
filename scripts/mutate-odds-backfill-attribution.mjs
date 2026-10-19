@@ -72,8 +72,8 @@ const MUTATIONS = [
     expect: "the blob's source is the odds_history row's bookmaker" },
 
   { name: 'B10  the blob stops converting the decimal price',
-    anchor: "        home: decimalToAmerican(row.home_ml),",
-    replace: "        home: row.home_ml,",
+    anchor: "        home: decimalToAmerican(byTeam.home),",
+    replace: "        home: byTeam.home,",
     expect: 'the blob converts the odds_history decimal price' },
 
   { name: 'B11  the blob stops carrying the total',

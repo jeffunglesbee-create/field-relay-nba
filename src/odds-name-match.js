@@ -146,6 +146,62 @@ export function findVendorEvent(game, events) {
 }
 
 /**
+ * Which way round a stored pairing is: does the vendor's home team name the
+ * archive's home team ('straight') or its away team ('swapped')?
+ *
+ * WHY IT EXISTS (docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md, task 2).
+ * odds_history keeps the vendor's orientation, so a swapped pairing is
+ * consistent THERE. The sync into the game tables then wrote
+ * `moneyline.home = home_ml` by position. That gave the archive's home team the
+ * vendor's home team's price, which was the other team.
+ *
+ * Measured 2026-10-19 on CFB_2026-09-19_e401856802:
+ * - archive: home Virginia, away West Virginia;
+ * - vendor: home West Virginia Mountaineers 9.7, away Virginia Cavaliers 1.06;
+ * - game row as synced: home +870, away −1667, the two teams' prices exchanged.
+ *
+ * Both sides must agree before a direction is named, because one side alone is
+ * not evidence here: "Virginia" also prefix-matches "West Virginia
+ * Mountaineers". When neither or both directions hold on both sides, the
+ * single-side reading decides only if it is unambiguous. Stage 2 pairs are
+ * straight by construction, so this gives 'straight' for them. Anything else
+ * is null, and the caller must not guess.
+ *
+ * @param {{home: string, away: string}} game  archive row
+ * @param {{home_team: string, away_team: string}} pair the vendor's teams
+ * @returns {'straight'|'swapped'|null}
+ */
+export function pairOrientation(game, pair) {
+  const hh = nameMatches(game?.home, pair?.home_team), aa = nameMatches(game?.away, pair?.away_team);
+  const ah = nameMatches(game?.away, pair?.home_team), ha = nameMatches(game?.home, pair?.away_team);
+  const straightBoth = hh && aa, swappedBoth = ah && ha;
+  if (straightBoth !== swappedBoth) return straightBoth ? 'straight' : 'swapped';
+  if (straightBoth) return null;                 // both directions fit on both sides
+  const straightSide = hh || aa, swappedSide = ah || ha;
+  if (straightSide !== swappedSide) return straightSide ? 'straight' : 'swapped';
+  return null;
+}
+
+/**
+ * A stored odds_history row's moneylines, keyed to the ARCHIVE game's sides.
+ * This is what the sync into the game tables writes, so the price follows the
+ * team rather than the position. Null when pairOrientation cannot read the
+ * direction: the caller writes nothing rather than guess.
+ *
+ * @param {{home: string, away: string}} game  archive row
+ * @param {{home_team: string, away_team: string, home_ml: number, away_ml: number}} row odds_history row
+ * @returns {{home: number|null, away: number|null, orientation: 'straight'|'swapped'}|null}
+ */
+export function pricesByTeam(game, row) {
+  const orientation = pairOrientation(game, row);
+  if (!orientation) return null;
+  const [home, away] = orientation === 'swapped'
+    ? [row.away_ml, row.home_ml]
+    : [row.home_ml, row.away_ml];
+  return { home: home ?? null, away: away ?? null, orientation };
+}
+
+/**
  * Read the home/away/draw moneyline out of an h2h market.
  *
  * WHY THIS IS HERE AND NOT AT EACH CALL SITE. Outcome names are the VENDOR's,

@@ -71,7 +71,10 @@ ok(() => /neither logged to change_log/.test(SRC),
 // --- the blob shape that proved odds-backfill innocent must stay derivable
 ok(() => /source: row\.bookmaker \|\| 'odds-api-historical'/.test(SRC),
    "the blob's source is the odds_history row's bookmaker");
-ok(() => /home: decimalToAmerican\(row\.home_ml\)/.test(SRC),
+// Since 2026-10-19 the price is re-keyed to the archive's team first
+// (pricesByTeam, docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md task 2); the
+// conversion of the odds_history decimal price is unchanged.
+ok(() => /home: decimalToAmerican\(byTeam\.home\)/.test(SRC),
    'the blob converts the odds_history decimal price');
 ok(() => /odds\.total = \{ over: row\.over_under, under: row\.over_under \}/.test(SRC),
    "the blob carries the odds_history row's total when it has one");

@@ -27,7 +27,7 @@
 // checkout, not from the bundled worker.
 import { stampKickoff } from '../../src/odds-kickoff.js';
 import { backfillSportToOddsKey } from '../../src/odds-sport-keys.js';
-import { matchSlate, h2hPrices } from '../../src/odds-name-match.js';
+import { matchSlate, h2hPrices, pricesByTeam } from '../../src/odds-name-match.js';
 
 // ── Config (all from GitHub secrets) ────────────────────────────────────────
 const ODDS_KEY    = process.env.ODDS_API_KEY;
@@ -444,6 +444,17 @@ async function syncOddsToGameTables() {
   const candidates = await d1Query(
     `SELECT oh.game_id, oh.sport, oh.home_ml, oh.away_ml, oh.draw_ml,
             oh.over_under, oh.bookmaker, oh.snapshot_time,
+            -- Both sides' team names, so the price follows the TEAM and not the
+            -- position (docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md, task 2).
+            oh.home_team AS v_home, oh.away_team AS v_away,
+            COALESCE(
+              (SELECT home FROM regular_season_games WHERE id = oh.game_id),
+              (SELECT home FROM postseason_games     WHERE id = oh.game_id)
+            ) AS game_home,
+            COALESCE(
+              (SELECT away FROM regular_season_games WHERE id = oh.game_id),
+              (SELECT away FROM postseason_games     WHERE id = oh.game_id)
+            ) AS game_away,
             COALESCE(
               (SELECT date FROM regular_season_games WHERE id = oh.game_id),
               (SELECT date FROM postseason_games     WHERE id = oh.game_id)
@@ -495,8 +506,23 @@ async function syncOddsToGameTables() {
     return;
   }
 
-  let attempted = 0, skippedUndated = 0, skippedNoTable = 0, skippedFilled = 0;
+  let attempted = 0, skippedUndated = 0, skippedNoTable = 0, skippedFilled = 0, skippedUnoriented = 0;
   for (const row of candidates) {
+    // THE PRICE FOLLOWS THE TEAM. odds_history keeps the vendor's orientation,
+    // and this loop used to write `home: home_ml` by position. For a swapped
+    // pairing that gave each team the other's price: CFB_2026-09-19_e401856802
+    // stored Virginia at +870, which was West Virginia's 9.7. A pairing whose
+    // direction cannot be read from the names is not written at all; a guess
+    // here would be a price on the wrong team.
+    const byTeam = pricesByTeam(
+      { home: row.game_home, away: row.game_away },
+      { home_team: row.v_home, away_team: row.v_away, home_ml: row.home_ml, away_ml: row.away_ml });
+    if (!byTeam) {
+      skippedUnoriented++;
+      console.warn(`[odds-backfill] sync: ${row.game_id} skipped — cannot tell which vendor team is `
+        + `${row.game_home} (vendor ${row.v_away} @ ${row.v_home}, archive ${row.game_away} @ ${row.game_home})`);
+      continue;
+    }
     // A CAPTURED_AT THIS PROCESS INVENTED IS NOT A MEASUREMENT.
     //
     // `row.snapshot_time || new Date().toISOString()` stamped the moment THIS
@@ -515,8 +541,8 @@ async function syncOddsToGameTables() {
       source: row.bookmaker || 'odds-api-historical',
       captured_at: measuredCapture || new Date().toISOString(),
       moneyline: {
-        home: decimalToAmerican(row.home_ml),
-        away: decimalToAmerican(row.away_ml),
+        home: decimalToAmerican(byTeam.home),
+        away: decimalToAmerican(byTeam.away),
       },
     };
     if (row.draw_ml) odds.moneyline.draw = decimalToAmerican(row.draw_ml);
@@ -617,6 +643,7 @@ async function syncOddsToGameTables() {
   const afterRegClose = await d1Query(`SELECT COUNT(*) as c FROM regular_season_games WHERE closing_odds IS NOT NULL`);
   const afterPostClose = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE closing_odds IS NOT NULL`);
 
+  console.log(`[odds-backfill] sync: ${skippedUnoriented} game(s) skipped because the pairing's direction could not be read from the team names.`);
   console.log(`[odds-backfill] sync: ${skippedNoTable} game(s) in no games table, `
     + `${skippedFilled} game(s) already had every column this run could fill — neither logged to change_log.`);
   console.log(`[odds-backfill] sync: closing_odds left NULL for ${skippedClosing} game(s) dated ${TODAY_UTC} or later — AmbientDO._captureClosingOdds owns those.`);

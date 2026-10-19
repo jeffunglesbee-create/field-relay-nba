@@ -19,7 +19,7 @@
 
 import fs from 'node:fs';
 import { teamTokens, nameMatches, findVendorEvent, h2hPrices, slateWindow, matchSlate,
-  couldAbbreviate } from '../src/odds-name-match.js';
+  couldAbbreviate, pairOrientation, pricesByTeam } from '../src/odds-name-match.js';
 
 const FIXTURE = 'outbox/fixture-cfb-2026-09-12.json';
 let failed = 0;
@@ -431,6 +431,45 @@ for (const [a, v, want, why] of ABBREV) {
   got === want ? ok(`couldAbbreviate("${a}", "${v}") = ${got}  (${why})`)
                : bad(`couldAbbreviate("${a}", "${v}")  (${why})`, got, want);
 }
+
+// ── G. the sync gives each team its own price ──────────────────────────────
+//
+// Task 2. odds_history keeps the vendor's orientation; the sync must re-key it
+// to the archive's teams. The real row priced Virginia at West Virginia's +870.
+console.log('\nG. prices follow the team, not the position (real rows)');
+
+const wvu = pairs.find(r => r.id === 'CFB_2026-09-19_e401856802_draftkings_close');
+const wvuGame = { home: wvu.a_home, away: wvu.a_away };
+const wvuRow  = { home_team: wvu.v_home, away_team: wvu.v_away, home_ml: wvu.home_ml, away_ml: wvu.away_ml };
+eq('e401856802 archive home', wvu.a_home, 'Virginia');
+eq('e401856802 vendor home',  wvu.v_home, 'West Virginia Mountaineers');
+eq('e401856802 orientation', pairOrientation(wvuGame, wvuRow), 'swapped');
+const wp = pricesByTeam(wvuGame, wvuRow);
+wp && wp.home === 1.06 && wp.away === 9.7
+  ? ok('Virginia gets 1.06 (its own price) and West Virginia 9.7')
+  : bad('e401856802 prices by team', JSON.stringify(wp), '{home:1.06, away:9.7}');
+// What the sync stored, from the same row: the archive home team carries +870.
+eq('the stored game row it replaces (home)', wvu.opening_odds_ml_home, 870);
+
+const straightRow = pairs.find(r => r.id === 'CFB_2026-09-19_e401864443_draftkings_close');  // Nevada @ MTSU, stage 2
+const sp = pricesByTeam({ home: straightRow.a_home, away: straightRow.a_away },
+  { home_team: straightRow.v_home, away_team: straightRow.v_away, home_ml: straightRow.home_ml, away_ml: straightRow.away_ml });
+sp && sp.orientation === 'straight' && sp.home === straightRow.home_ml && sp.away === straightRow.away_ml
+  ? ok('a straight stage-2 row (MTSU, one side readable) keeps its prices in place')
+  : bad('straight stage-2 row', JSON.stringify(sp), `{straight, ${straightRow.home_ml}/${straightRow.away_ml}}`);
+
+eq('unrelated names -> null, never a guess',
+  String(pricesByTeam({ home: 'Georgia', away: 'Alabama' }, { home_team: 'Toledo Rockets', away_team: 'Kent State Golden Flashes', home_ml: 1.5, away_ml: 2.6 })), 'null');
+
+// Every stored row: how many the sync can orient. A sync that skips rows it
+// used to write would be a silent loss, so the count is pinned.
+const ori = pairs.reduce((m, r) => {
+  const o = pairOrientation({ home: r.a_home, away: r.a_away }, { home_team: r.v_home, away_team: r.v_away }) ?? 'null';
+  m[o] = (m[o] || 0) + 1; return m;
+}, {});
+eq('stored rows oriented straight', ori.straight, 775);
+eq('stored rows oriented swapped',  ori.swapped,  1);
+eq('stored rows the sync would skip', ori.null ?? 0, 0);
 
 // ── H. the collision corpus (CC-CMD-2026-09-11 task 1, never built) ────────
 //
