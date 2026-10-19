@@ -135,6 +135,23 @@ function enclosingIf(code, at) {
     return null;
 }
 
+// What the refusal itself does is NOT checked here, and that is deliberate
+// (docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md, task 2). The
+// review's two shapes are both already red under the ordering rule below:
+//   - P4, `return relayFetch(targetUrl, ...)` as the refusal: that call sits
+//     before the consequent ends, and every fetch-like call must come after;
+//   - E7, `throw` into a `catch` that only logs: the `if` then sits in the
+//     try block, and a fetch after the catch is outside the block that holds
+//     the `if`, which is red. A fetch inside that try block is skipped by the
+//     throw, which is a working guard, and stays green.
+// Measured at 323990ea: both CAUGHT through all 25 deploy-path odds steps,
+// with no rule of their own. A separate "no fetch in the refusal" or "no
+// swallowing catch" rule could never be the only reason a case goes red, so it
+// could not be made to fail on purpose (Rule 90) and is not added. The
+// fixtures P4 and E7 below hold the ordering rule to it: drop either half of
+// that rule and they go red. A refusal that calls a helper which fetches
+// (anything other than fetch, relayFetch, oddsFetchWithFallback) is not seen,
+// for the same reason as task 3's helper-built calls; see FETCH_CALL.
 function consequentExits(code, s, e) {
     let body = code.slice(s, e).trim();
     if (body.startsWith('{')) body = body.slice(1, -1);
@@ -462,6 +479,30 @@ async function f(env) {
   if (!(await consumeOddsCredit(
         env, oddsCreditCost(u), 'f'))) throw new Error('declined');
   const r = await fetch(u);
+}`, true],
+        // THE REFUSAL MUST NOT REACH THE VENDOR (condition-and-exit task 2),
+        // held by the ordering rule rather than a rule of its own.
+        ['a refusal that returns a fetch is not a guard (P4)', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return relayFetch(u, {}, 60, 'odds', ctx);
+  const r = await fetch(u);
+}`, false],
+        ['a throw into a catch that only logs is not a guard (E7)', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  try {
+    if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) throw new Error('declined');
+  } catch (e) { console.warn(e.message); }
+  const r = await fetch(u);
+}`, false],
+        ['a throw inside the try that holds the fetch IS a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  try {
+    if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) throw new Error('declined');
+    const r = await fetch(u);
+  } catch (e) { console.warn(e.message); }
 }`, true],
         // THE VERDICT IS THE WHOLE CONDITION (condition-and-exit task 1).
         ['an env flag in front of the verdict is not a guard', `
