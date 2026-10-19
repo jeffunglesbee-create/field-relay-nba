@@ -86,14 +86,91 @@ const FREE_MARK = 'ODDS-FREE:';
 // 2026-10-19; the site-level twin of the CC-CMD's finding 2). Credited forms:
 // the call negated, as every live site has it, `if (!(await G(...))) return`
 // or `... && !(await G(...))`; or `const|let x = await G(...)` then `!x`.
+//
+// AND THE VERDICT MUST STOP THE CALL. The final review pass of 2026-10-19 found
+// a negated guard credited when nothing exits: `if (!(await G(...))) {
+// console.warn(...); }` logs the refusal and the fetch below still runs. That
+// passed all 25 deploy-path odds steps, at wp-resolver and at the /odds/*
+// proxy. So the `if` whose condition holds the negated verdict must END in a
+// `return` or `throw`: its consequent's last top-level statement. A `return`
+// that is itself conditional (`{ log(); if (x) return; }`) does not count.
+// All nine live guard sites have this shape; ambient-do's closing capture logs
+// first and returns last.
 const GUARD_NAMES = ['consumeOddsCredit', '_consumeAmbientOddsCredit'];
-function guardsWithVerdict(code) {
-    for (const g of GUARD_NAMES) {
-        if (new RegExp(`!\\s*\\(\\s*await\\s+${g}\\(`).test(code)) return true;
-        const m = new RegExp(`\\b(?:const|let)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+${g}\\(`).exec(code);
-        if (m && new RegExp(`!\\s*${m[1].replace(/\$/g, '\\$')}\\b`).test(code.slice(m.index + m[0].length))) return true;
+
+// Index of the bracket that closes the one at `open`, over blanked code, or -1.
+function closeOf(code, open) {
+    let depth = 0;
+    for (let k = open; k < code.length; k++) {
+        const c = code[k];
+        if (c === '(' || c === '{' || c === '[') depth++;
+        else if ((c === ')' || c === '}' || c === ']') && --depth === 0) return k;
     }
-    return false;
+    return -1;
+}
+
+// The `if` whose parenthesised condition contains offset `at`, and the span of
+// its consequent: a `{...}` block, or one statement up to its `;`. An if
+// cannot sit inside another if's condition, so at most one encloses `at`.
+function enclosingIf(code, at) {
+    for (const m of code.matchAll(/\bif\s*\(/g)) {
+        if (m.index >= at) break;
+        const open = m.index + m[0].length - 1;
+        const close = closeOf(code, open);
+        if (close < at) continue;
+        let s = close + 1;
+        while (/\s/.test(code[s] ?? '')) s++;
+        let e = s;
+        if (code[s] === '{') e = closeOf(code, s) + 1;
+        else {
+            for (let depth = 0; e < code.length; e++) {
+                const c = code[e];
+                if (c === '(' || c === '{' || c === '[') depth++;
+                else if (c === ')' || c === '}' || c === ']') { if (depth-- === 0) break; }
+                else if (c === ';' && depth === 0) { e++; break; }
+            }
+        }
+        return { consStart: s, consEnd: e };
+    }
+    return null;
+}
+
+function consequentExits(code, s, e) {
+    let body = code.slice(s, e).trim();
+    if (body.startsWith('{')) body = body.slice(1, -1);
+    const stmts = [];
+    let depth = 0, cur = '';
+    for (const c of body) {
+        if (c === '(' || c === '{' || c === '[') depth++;
+        else if (c === ')' || c === '}' || c === ']') depth--;
+        if (c === ';' && depth === 0) { stmts.push(cur); cur = ''; } else cur += c;
+    }
+    stmts.push(cur);
+    const last = stmts.map((x) => x.trim()).filter(Boolean).pop() || '';
+    return /^(return|throw)\b/.test(last);
+}
+
+const verdictStops = (code, at) => {
+    const f = enclosingIf(code, at);
+    return !!f && consequentExits(code, f.consStart, f.consEnd);
+};
+
+// Offsets, in blanked code, of each negated guard verdict (`!(await G(` or the
+// `!x` that tests a named one). The live mutation self-test walks these too.
+function verdictTests(code) {
+    const out = [];
+    for (const g of GUARD_NAMES) {
+        for (const m of code.matchAll(new RegExp(`!\\s*\\(\\s*await\\s+${g}\\(`, 'g'))) out.push(m.index);
+        for (const m of code.matchAll(new RegExp(`\\b(?:const|let)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+${g}\\(`, 'g'))) {
+            const from = m.index + m[0].length;
+            for (const n of code.slice(from).matchAll(new RegExp(`!\\s*${m[1].replace(/\$/g, '\\$')}\\b`, 'g'))) out.push(from + n.index);
+        }
+    }
+    return out;
+}
+
+function guardsWithVerdict(code) {
+    return verdictTests(code).some((at) => verdictStops(code, at));
 }
 
 // The guard may sit either side of the URL line -- deriving the cost from the URL
@@ -232,6 +309,36 @@ async function f(env) {
   const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
   if (!ok) return;
 }`, true],
+        ['a guard whose refusal only logs is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) { console.warn('over budget'); }
+}`, false],
+        ['a named verdict whose refusal only logs is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
+  if (!ok) console.warn('over budget');
+}`, false],
+        ['a refusal whose return is itself conditional is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) { console.warn('over'); if (strict) return; }
+}`, false],
+        ['a refusal that logs, then returns, IS a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) {
+    console.warn('[f] declined — skipping');
+    return;
+  }
+}`, true],
+        ['a verdict inside a compound condition, ending in a throw, IS a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (billable(u) && !(await consumeOddsCredit(
+        env, oddsCreditCost(u), 'f'))) throw new Error('declined');
+}`, true],
         ['a " //" inside a string does not hide the guard after it', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
@@ -276,6 +383,31 @@ async function f(env) {
             if (r.some(x => x.kind === 'billed' && !x.ok)) pass++;
             else { fail++; console.error('  SELFTEST FAIL: ambient live poll with its guard deleted still passed — a comment is crediting it'); }
         }
+    }
+    // EVERY LIVE GUARD SITE, ITS REFUSAL MADE TO LOG ONLY (Rule 90 against the
+    // real source, not a fixture). Each negated verdict's `if` keeps its test
+    // and loses its exit: the consequent becomes `{ console.warn('x'); }`. The
+    // site, or the /odds/* proxy, must then go red. A site this cannot find
+    // to mutate is a FAIL, never a pass.
+    {
+        let sites = 0, caught = 0;
+        for (const f of FILES) {
+            const raw = readFileSync(f, 'utf8');
+            const code = blankCommentsAndStrings(raw);
+            for (const at of verdictTests(code)) {
+                sites++;
+                const iff = enclosingIf(code, at);
+                if (!iff) { console.error(`  SELFTEST FAIL: ${f} offset ${at}: a negated guard verdict outside any if — NOTHING MUTATED`); continue; }
+                const mutated = raw.slice(0, iff.consStart) + "{ console.warn('x'); }" + raw.slice(iff.consEnd);
+                const red = scan(f, mutated).some((x) => x.kind === 'billed' && !x.ok)
+                    || (f === 'src/index.js' && !proxyGuarded(mutated));
+                if (red) caught++;
+                else console.error(`  SELFTEST FAIL: ${f} line ${raw.slice(0, at).split('\n').length}: its refusal made to only log, and nothing went red`);
+            }
+        }
+        if (sites > 0 && caught === sites) pass++;
+        else { fail++; console.error(`  SELFTEST FAIL: live guard sites made log-only: ${caught} of ${sites} caught`); }
+        console.log(`  live guard sites made log-only: ${caught} of ${sites} caught`);
     }
     console.log(`  self-tests: ${pass} passed, ${fail} failed`);
     return fail === 0;
@@ -351,13 +483,21 @@ if (findings.length !== EXPECTED_SITES) {
 // and a gate that reported "9 of 9 accounted" while the one publicly reachable
 // billable route stood unguarded would be asserting something false. It gets a
 // structural check instead of a pattern match.
-const routeSrc = readFileSync('src/index.js', 'utf8');
-const proxyStart = routeSrc.indexOf("if (pathname.startsWith('/odds')) {");
-const proxyBody  = proxyStart < 0 ? '' : routeSrc.slice(proxyStart, proxyStart + 1600);
-const proxyOk = proxyStart >= 0
-    && proxyBody.includes('oddsBillablePath(')
-    && proxyBody.includes('consumeOddsCredit(')
-    && proxyBody.includes('oddsCreditCost(');
+// Since 2026-10-19 the proxy is held to the same rule as every scanned site: a
+// guard whose verdict STOPS the call, over code with comments and strings
+// blanked. It used to be a name match, `includes('consumeOddsCredit(')`, and
+// the final review pass showed a proxy that charged and ignored the refusal
+// passing all 25 deploy-path odds steps: the one public billable route,
+// unmetered by its ceiling.
+function proxyGuarded(src) {
+    const start = src.indexOf("if (pathname.startsWith('/odds')) {");
+    if (start < 0) return false;
+    const body = blankCommentsAndStrings(src).slice(start, start + 1600);
+    return body.includes('oddsBillablePath(')
+        && guardsWithVerdict(body)
+        && body.includes('oddsCreditCost(');
+}
+const proxyOk = proxyGuarded(readFileSync('src/index.js', 'utf8'));
 console.log(`    ${proxyOk ? 'ok  ' : 'FAIL'} src/index.js [/odds/* proxy] — variable path, checked structurally`);
 if (!proxyOk) {
     console.error('  FAIL: the /odds/* proxy forwards billable paths with our key.');
