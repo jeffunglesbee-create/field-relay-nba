@@ -89,9 +89,9 @@ The owner delegated the choice. Recorded here, with the reason for each:
    - **Why it is safe:** it is the same three increments with the same
      predicates, sent as one batch. No stop can land between the day write and
      the month write, whatever the cause.
-   - **What it changes:** when the batch commits, nothing changes: the same
-     increments and the same vetoes. When a D1 call throws, it changes in
-     both directions. (Corrected 2026-10-18 by the branch's adversarial
+   - **What it changes:** when the batch commits and KV answers, nothing
+     changes: the same increments and the same vetoes. When a D1 call throws,
+     it changes in both directions. (Corrected 2026-10-18 by the branch's adversarial
      review; this bullet first said "the 85,000 monthly limit binds earlier
      if anything, never later", which is false on a thrown batch.)
      - **Stricter:** a fault that would have hit the second (month) call has
@@ -105,11 +105,32 @@ The owner delegated the choice. Recorded here, with the reason for each:
 
      So on a thrown batch the month can record less than the two-batch code
      did, and the limit can bind later. The `charge:` degrade-open count and
-     its credits on `/budget/odds` bound that loss. The review also found a
-     third path: a KV failure while recording a veto reached the outer catch
-     and let a refused call spend. That is fixed on the branch: a veto now
-     stays a veto whatever KV does. Option 1 does not touch the vendor-side
-     over-record, which the 2026-10-18 ruling holds back.
+     its credits on `/budget/odds` witness that loss, but they do not bound
+     it in either direction:
+     - they count every thrown batch, including ones whose month write would
+       have failed under the old code too;
+     - `_countDegradeOpen` is a best-effort KV read-modify-write. It drops
+       counts when degrades run concurrently, and records nothing when KV
+       refuses the write, which is likeliest in the D1-overload storms this
+       path exists for.
+
+     Its credits are a floor on what degraded open. The month's loss is at
+     most what degraded open.
+
+     A third change, on the KV path, is stricter than the two-batch code.
+     Sometimes a batch commits a veto and then the get or put of its warned
+     key throws. In that case, `b5a95e7c` fell into its degrade-open catch
+     and let the refused call spend:
+     - on a day veto, the month batch still ran and charged the month
+       +units;
+     - on a month-limit veto, the call spent past 85,000 uncharged.
+
+     The single batch now holds the veto whatever KV does: both cases refuse
+     the call, charge nothing, and are not counted as degrade-opens. Its
+     first commit on this branch let these calls through with no counter
+     charged; a follow-up fix commit on the branch closed that. Option 1 does
+     not touch the vendor-side over-record, which the 2026-10-18 ruling holds
+     back.
    - **What it proves:** if the month gap still grows after it lands, the
      "lost between batches" cause is refuted, and the cause is another writer
      (`/d1/execute`) or something unlisted.
