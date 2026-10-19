@@ -120,13 +120,28 @@ export function findings(src) {
     } else {
       // CODE ONLY, AND THE WHOLE INDEX. A substring test passed with the name
       // left in a comment and with `indexOf('monthCharge') + 1` -- both read
-      // the DAY's charge. The index must be exactly the lookup, and it must be
-      // the reader's only index into `results`.
+      // the DAY's charge. So:
+      // - the parameter is read from the signature, not assumed to be `results`;
+      // - the lookup must be exactly `[ORDER.indexOf('monthCharge')]` or
+      //   `.at(ORDER.indexOf('monthCharge'))`, in any quote style;
+      // - and the parameter may appear exactly twice, the signature and that
+      //   lookup. `.slice(-1)[0]`, `[...p].pop()` and `.findLast()` read the last
+      //   row without `[` or `.at(`, so every use is counted, with quoted strings
+      //   blanked. An extra harmless use, an `Array.isArray(p)` guard, also fails:
+      //   fail closed. A lookup hoisted into a local fails too, deliberately.
       const reader = src.slice(mi, mj).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-      const byName = new RegExp(`(?<![.\\w$])results\\s*(?:\\?\\.)?\\s*\\[\\s*${orderName}\\.indexOf\\(\\s*'monthCharge'\\s*\\)\\s*\\]`);
-      const reads = reader.match(/(?<![.\w$])results\s*(?:\?\.)?\s*(?:\[|\.at\s*\()/g) || [];
-      if (!byName.test(reader) || reads.length !== 1) {
-        out.push(`the month verdict is not read at ${orderName}.indexOf('monthCharge') — a read from the last result is the DAY's charge, and the month's 50/75/90% warnings would never fire`);
+      const param = (/^function _monthFromBatch\(\s*([\w$]+)/.exec(reader) || [])[1] || 'results';
+      const p = param.replace(/\$/g, '\\$');
+      // `g` is the backreference number of the quote group in its alternative.
+      const lookup = (g) => `${orderName}\\.indexOf\\(\\s*(['"\`])monthCharge\\${g}\\s*\\)`;
+      const byName = new RegExp(`(?<![.\\w$])${p}\\s*(?:(?:\\?\\.)?\\s*\\[\\s*${lookup(1)}\\s*\\]|\\??\\.\\s*at\\s*\\(\\s*${lookup(2)}\\s*\\))`);
+      const code = reader.replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g, "''");
+      const uses = code.match(new RegExp(`(?<![\\w$])(?<![^.]\\.)${p}(?![\\w$])`, 'g')) || [];
+      if (!order.includes('monthCharge')) {
+        out.push(`${orderName} has no 'monthCharge' -- the month verdict's lookup would be -1, the DAY's charge`);
+      }
+      if (!byName.test(reader) || uses.length !== 2) {
+        out.push(`the month verdict is not read at ${orderName}.indexOf('monthCharge') — a read from the last result is the DAY's charge, and the month's 50/75/90% warnings would never fire (_monthFromBatch uses '${param}' ${uses.length} time(s); exactly 2 are allowed, the signature and the by-name read)`);
       }
       if (!/_monthFromBatch\(results\)/.test(charger)) {
         out.push('the charger does not read its month verdict through _monthFromBatch(results) — the month read is unchecked');
@@ -221,6 +236,32 @@ if (process.argv.includes('--self-test')) {
   ok('M13 the month verdict read from the last result, the name left in a comment',
      M(["results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')];", "results?.at(-1); // ODDS_CHARGE_ORDER.indexOf('monthCharge');"])
        .some((x) => x.includes('month verdict is not read')));
+
+  // The last row read without `[` or `.at(`, the by-name lookup kept as dead
+  // code so a lookup test alone would pass.
+  const LOOKUP = "const r = results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')];";
+  ok('M14 the last row read by .slice(-1)[0], the lookup kept as dead code',
+     M([LOOKUP, "const r = (results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')], results.slice(-1)[0]);"])
+       .some((x) => x.includes('month verdict is not read')));
+  ok('M15 the last row read by [...results].pop(), the lookup kept in a void',
+     M([LOOKUP, "void results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')]; const r = [...results].pop();"])
+       .some((x) => x.includes('month verdict is not read')));
+  ok('M16 .at() one past monthCharge',
+     M([LOOKUP, "const r = results?.at(ODDS_CHARGE_ORDER.indexOf('monthCharge') + 1);"])
+       .some((x) => x.includes('month verdict is not read')));
+  ok('M17 the order loses monthCharge',
+     M([ORDER, "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'site', 'charge'];"])
+       .some((x) => x.includes("has no 'monthCharge'")));
+
+  // EQUIVALENT REWRITES must stay green: the check rejects reading the wrong
+  // row, not a spelling.
+  const noMonth = (f) => !f.some((x) => x.includes('month verdict is not read'));
+  ok('E1 the parameter renamed is still the by-name read',
+     noMonth(M(["function _monthFromBatch(results) {\n    const r = results?.[", "function _monthFromBatch(rs) {\n    const r = rs?.["])));
+  ok('E2 .at(lookup) is the by-name read',
+     noMonth(M([LOOKUP, "const r = results?.at(ODDS_CHARGE_ORDER.indexOf('monthCharge'));"])));
+  ok('E3 a double-quoted key is the by-name read',
+     noMonth(M([LOOKUP, 'const r = results?.[ODDS_CHARGE_ORDER.indexOf("monthCharge")];'])));
 
   // The charger stops reading the month through the checked helper.
   ok('M10 the charger reads the month some other way',
