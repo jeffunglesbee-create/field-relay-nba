@@ -1,5 +1,30 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 (afternoon) — the odds guards stop a deploy, and the wrapper check runs the wrapper
+
+`CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies` is **DONE**.
+
+- **Twelve odds guards now run in deploy.yml** before the deploy step. Before,
+  they ran only in guards.yml, which ignores `src/**`, so a src-only push that
+  gutted an odds wrapper deployed green. They add 4 s.
+- **The wrapper check runs each wrapper** against a stub chargeOdds:
+  - A refusal must come back false and a grant true, each after one charge
+    with (env, units, site).
+  - The review showed the text check passed verdict-dropping rewrites,
+    including a one-`!` early return that makes every call free.
+  - The mutate harness swaps whole wrappers, so a correct rewrite cannot
+    block a deploy.
+- **The odds-call gate** blanks comments and strings (string-aware), and
+  credits only a guard whose verdict is used.
+- **Proof:** `outbox/odds-gate-deploy-mutation-2026-10-19.log` has 9 of 9
+  mutants caught, 3 of 3 equivalents green, and a green control. Deploy run
+  39242815269 is green on `796bb8a6`.
+- **Filed:** `docs/CC-CMD-2026-10-19-guards-only-src-readers.md`. Six non-odds
+  guards still read `src/` from guards.yml alone, relay secret gates among
+  them.
+
+Session doc: outbox/cc-session-2026-10-19-odds-gate-wrapper-bodies.md
+
 ## 2026-10-19 (later still) — the push cron's live-game loop deleted, as a stated absence
 
 `CC-CMD-2026-10-14-push-cron-gambit-path` is **DONE**, option 1.
