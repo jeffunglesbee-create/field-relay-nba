@@ -70,6 +70,11 @@ const MUTATIONS = [
     replace: "n;",
     catches: 'the budget silently doubles in calls at the cutover' },
 
+  { name: 'P15 the weight is keyed on the new prefix instead of the frozen legacy ones',
+    anchor: "pathBlind += (k.startsWith('daily:') || k.startsWith('month:')) ? n : 2 * n;",
+    replace: "pathBlind += k.startsWith('charge:') ? 2 * n : n;",
+    catches: 'a renamed one-batch prefix would count once, halving the budget unit: the failure the comment says the design prevents' },
+
   { name: 'P6 the overflow bucket is dropped',
     anchor: "    if (k === DEGRADE_OTHER_KEY) overflow += n;",
     replace: "",
@@ -124,7 +129,7 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12, P13) and degradeVerdict (P8-P11) only.`);
+console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12-P15) and degradeVerdict (P8-P11) only.`);
 console.log(`It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
 console.log(`predicates in this watch; the fetch is verified by a scheduled run.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);

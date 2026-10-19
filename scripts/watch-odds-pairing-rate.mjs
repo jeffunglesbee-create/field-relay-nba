@@ -169,8 +169,8 @@ export function degradeVerdict(prevDegraded, currDegraded, escaped, span = {}) {
  *  THE UNIT CHANGED ON 2026-10-18, AND THE NUMBER DID NOT. Until then a charge
  *  was two D1 batches, the day's and the month's, and an overloaded call could
  *  throw in both: the daily catch degraded open, then the month batch ran and
- *  could throw again. 13 was set on 2026-10-10 as daily 6 + month 7, i.e. in
- *  events, two possible per call. From the cutover
+ *  could throw again. 13 was set on 2026-10-12 at the 2026-10-10 level, daily
+ *  6 + month 7, i.e. in events, two possible per call. From the cutover
  *  (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md) the day, the
  *  site and the month are ONE batch, which throws at most once, so the unit is
  *  one event per call, keyed `charge:`. Counted raw, the same D1 pressure would
@@ -549,6 +549,7 @@ if (SELF) {
   one('six one-batch overloaded calls read 12 path events, within', d1OverloadVerdict({ events: 6, reasons: { [OVC]: 6 } }).state, 'within', '6 x 2 = 12');
   one('seven one-batch overloaded calls FAIL, as seven both-path calls did pre-cutover', d1OverloadVerdict({ events: 7, reasons: { [OVC]: 7 } }).state, 'over', '7 x 2 = 14 > 13');
   one('real 2026-10-10 keeps its calibration: 13 legacy path events, within', d1OverloadVerdict(day10).state, 'within', 'the day the budget was set on');
+  one('a renamed prefix counts double, not once (fail-closed)', d1OverloadVerdict({ events: 7, reasons: { ['batch: D1_ERROR: D1 DB is overloaded. Requests queued for too long.']: 7 } }).state, 'over', '7 x 2 = 14 > 13');
 
   // RULE 99, and both lessons from the three probe revisions on 2026-10-11.
   one('undefined is not-reported, not zero', d1OverloadVerdict(undefined).state, 'not-reported',
