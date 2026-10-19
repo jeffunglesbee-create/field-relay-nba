@@ -4,7 +4,11 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** **DONE 2026-10-19.** Every fetch-like call must follow the crediting guard and sit inside its block. TASK 0 replaced the "top-level statement" proposal: it would have rejected the live poll's real guard. Shipped in `9b665971` and `4b4a987c`.
+- The six mutants: NOT CAUGHT before, CAUGHT after.
+- Harness 25 of 25; Rule 90 5 of 5.
+- Deploy run 39279546405, green.
+- Proof: `outbox/odds-guard-before-fetch-2026-10-19.log`. Session doc: `outbox/cc-session-2026-10-19-odds-guard-before-fetch.md`.
 **Filed by:** CC. This comes from the second adversarial review of the odds gate
 (`wf_710edc9e-6f5`, 2026-10-19), which ran against `79b17ebc`; it was pushed as
 `293ffcf6..1cca6b40` and the code is unchanged. The owner stopped that review

@@ -1,0 +1,146 @@
+# odds guard before fetch, 2026-10-19 — probe, reproduction, Rule 90, deploy-path harness
+#
+# Pushed as 9b665971 (harness cases) and 4b4a987c (the fix). Both runs below were made before the
+# rebase, at bb323b61 and 8c29d6b8. 'git diff 8c29d6b8 4b4a987c -- src scripts .github' is empty.
+
+## 1. TASK 0: every fetch-like call in each guard's function. All 9 come after the guard.
+##    The live poll's guard sits inside a per-sport callback, so 'top-level statement' would reject it.
+
+src/index.js:1338 fn async function getWCPregameLambdas(env) { [1325-1389] fetches: fetch@1340
+src/index.js:3471 fn async function handleWCOddsProbs(env) { [3459-3607] fetches: fetch@3477
+src/index.js:3616 fn async function handleCFLOddsProbs(env) { [3608-3694] fetches: fetch@3622
+src/index.js:6773 fn async function fetchSportOddsLive(env, sportKey) { [6765-6831] fetches: fetch@6777
+src/index.js:6914 fn async function fetchSportOddsHistorical(env, sport [6901-6950] fetches: fetch@6921
+src/index.js:16978 fn async _fetch(request, env, ctx) { [9905-22201] fetches: (the whole _fetch route handler — the proxy is checked by its own block, where relayFetch@16983 is the one call)
+src/ambient-do.js:652 fn async _fetchLiveOdds() { [563-803] fetches: fetch@657, fetch@669
+src/ambient-do.js:832 fn async _captureClosingOdds({ gameId, sport, home, a [804-956] fetches: fetch@838
+src/wp-resolver.js:221 fn async function fetchSportOddsLive(env, sportKey) { [213-242] fetches: fetch@224
+
+## 2. Reproduction at bb323b61 (harness cases added, checker unchanged): all six NOT CAUGHT
+##    through all 25 deploy-path odds steps
+
+GREEN      CONTROL: HEAD, unmutated
+NOT CAUGHT src/index.js: fetchSportOddsLive: the guard moved below the fetch (S1)
+NOT CAUGHT src/ambient-do.js: closing capture: the guard moved below the fetch (S4)
+NOT CAUGHT src/wp-resolver.js: wp-resolver: the fetch started above the guard, awaited below it (S2)
+NOT CAUGHT src/index.js: getWCPregameLambdas: the verdict named before the fetch, tested after it (S5)
+
+PARTIAL RUN (--only=(S): 4 of 25 cases. Not a verdict on the harness.
+
+0 of 4 cases as expected (control green first): 4 mutants must turn a step red, 0 equivalents must leave all 25 odds steps green.
+COVERAGE: 25 of 96 runnable pre-deploy steps (the odds ones), 3 of 3 wrappers mutated, 4 bodies each, plus 13 site cases: a must-red edit at 5 of the 9 guard sites in HEAD (/odds/* proxy, wp-resolver, closing capture, fetchSportOddsLive, getWCPregameLambdas), must-stay-green edits only at live poll. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other 71 runnable steps, 4 steps needing a secret or with no command, the deploy, and the live verify job.
+rc=1
+
+GREEN      CONTROL: HEAD, unmutated
+NOT CAUGHT src/index.js: /odds/* proxy: a special case returns relayFetch above the guard (P1)
+NOT CAUGHT src/index.js: /odds/* proxy: relayFetch moved above the guard (P2)
+
+PARTIAL RUN (--only=(P): 2 of 25 cases. Not a verdict on the harness.
+
+0 of 2 cases as expected (control green first): 2 mutants must turn a step red, 0 equivalents must leave all 25 odds steps green.
+COVERAGE: 25 of 96 runnable pre-deploy steps (the odds ones), 3 of 3 wrappers mutated, 4 bodies each, plus 13 site cases: a must-red edit at 5 of the 9 guard sites in HEAD (/odds/* proxy, wp-resolver, closing capture, fetchSportOddsLive, getWCPregameLambdas), must-stay-green edits only at live poll. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other 71 runnable steps, 4 steps needing a secret or with no command, the deploy, and the live verify job.
+rc=1
+
+## 3. The new fixtures against the UNFIXED rule (working tree, before the fix was written)
+
+  SELFTEST FAIL: a guard after the fetch is not a guard — expected false, got true (1 finding(s))
+  SELFTEST FAIL: a fetch started before the guard, awaited after it, is not guarded — expected false, got true (1 finding(s))
+  SELFTEST FAIL: a guard in a branch the fetch sits outside of is not a guard — expected false, got true (1 finding(s))
+  SELFTEST FAIL: a named verdict tested only after the fetch is not a guard — expected false, got true (1 finding(s))
+  SELFTEST FAIL: a guarded site with no fetch-like call cannot be ordered, and is red — expected false, got true (1 finding(s))
+  self-tests: 24 passed, 5 failed
+
+## 4. Rule 90 on the ordering rule (working tree = 8c29d6b8's checker)
+
+GREEN      CONTROL
+CAUGHT     R1 ordering not checked
+           SELFTEST FAIL: a guard after the fetch is not a guard — expected false, got true (1 finding(s)) | SELFTEST FAIL: a fetch started before the guard, awaited after it, is not guarded — expected false, got true (1 finding(s)) | SELFTEST FAIL: a guard in a branch the fetch sits outside of is not a guard — expected false, got true (1 finding(s))
+CAUGHT     R2 block containment dropped
+           SELFTEST FAIL: a guard in a branch the fetch sits outside of is not a guard — expected false, got true (1 finding(s))
+CAUGHT     R3 a span with no fetch counts
+           SELFTEST FAIL: a guarded site with no fetch-like call cannot be ordered, and is red — expected false, got true (1 finding(s))
+CAUGHT     R4 proxy back to a 1600-char window
+           SELFTEST FAIL: a 2000-character comment after the /odds/* head hid its guard
+CAUGHT     R5 fetch before the guard allowed
+           SELFTEST FAIL: a guard after the fetch is not a guard — expected false, got true (1 finding(s)) | SELFTEST FAIL: a fetch started before the guard, awaited after it, is not guarded — expected false, got true (1 finding(s)) | SELFTEST FAIL: a named verdict tested only after the fetch is not a guard — expected false, got true (1 finding(s))
+
+5 of 5 ordering-rule mutations caught (control green first).
+
+## 5. Full deploy-path harness at 8c29d6b8
+
+deploy.yml at 8c29d6b8: running 25 odds steps of the 96 runnable steps (no secret) before "Deploy to Cloudflare Workers":
+  - Every odds call is charged to the monthly ledger
+  - a degrade-open names its error and counts it by reason
+  - a batch and the helper reading it agree on their statement count
+  - the odds-live 404 path returns before the charge
+  - the odds budget schema is on ARCHIVE_DB and readable from CI
+  - the monthly charge is atomic and its ceiling binds
+  - the monthly odds counter has not grown another non-atomic writer
+  - a ceiling veto is readable from /budget/odds
+  - the odds budget batch keeps its order and its ceilings
+  - The backfill cannot pay for a payload and pair none of it
+  - the WC lambda call stays gated, and the sport list stays one list
+  - reconcile counts every call once, with no read
+  - every table a script creates is on the /d1/execute allow-list
+  - One team-name matcher, and it can fail
+  - Every odds call names which consumer spent it
+  - Every charged odds call is reconciled against the receipt
+  - Consumers read the last PRE-KICKOFF price, not the closing column
+  - The backfill logs only writes it actually made
+  - the odds-key tables are one table, and unchanged by the move
+  - closing_odds is not pre-filled for unplayed games
+  - no writer can stamp a post-kickoff price as the close
+  - every odds writer fetches its own sport's payload
+  - a budget grant cannot outlive its day
+  - soccer h2h yields a draw, and no other market gains one
+  - no opening line is written onto a finished game
+
+GREEN      CONTROL: HEAD, unmutated
+CAUGHT     src/index.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/index.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/index.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/index.js: the verdict is named, then returned (equivalent)
+CAUGHT     src/wp-resolver.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/wp-resolver.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/wp-resolver.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/wp-resolver.js: the verdict is named, then returned (equivalent)
+CAUGHT     src/ambient-do.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/ambient-do.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/ambient-do.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/ambient-do.js: the verdict is named, then returned (equivalent)
+GREEN      src/ambient-do.js: live poll: the cost hoisted into a const (equivalent)
+GREEN      src/ambient-do.js: live poll: the charge wrapped across lines (equivalent)
+GREEN      src/ambient-do.js: live poll: the 404 guard written with braces (equivalent)
+CAUGHT     src/index.js: /odds/* proxy: charged, the verdict dropped
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/index.js: /odds/* proxy: the refusal only logs
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/wp-resolver.js: wp-resolver: the refusal only logs
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/ambient-do.js: closing capture: the refusal logs and no longer returns
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/index.js: fetchSportOddsLive: the guard moved below the fetch (S1)
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/index.js: /odds/* proxy: a special case returns relayFetch above the guard (P1)
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/index.js: /odds/* proxy: relayFetch moved above the guard (P2)
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/ambient-do.js: closing capture: the guard moved below the fetch (S4)
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/wp-resolver.js: wp-resolver: the fetch started above the guard, awaited below it (S2)
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/index.js: getWCPregameLambdas: the verdict named before the fetch, tested after it (S5)
+           red step: Every odds call is charged to the monthly ledger
+
+25 of 25 cases as expected (control green first): 19 mutants must turn a step red, 6 equivalents must leave all 25 odds steps green.
+COVERAGE: 25 of 96 runnable pre-deploy steps (the odds ones), 3 of 3 wrappers mutated, 4 bodies each, plus 13 site cases: a must-red edit at 5 of the 9 guard sites in HEAD (/odds/* proxy, wp-resolver, closing capture, fetchSportOddsLive, getWCPregameLambdas), must-stay-green edits only at live poll. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other 71 runnable steps, 4 steps needing a secret or with no command, the deploy, and the live verify job.
+rc=0

@@ -1,5 +1,26 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 (evening) — an odds guard counts only if it runs before the vendor fetch
+
+`CC-CMD-2026-10-19-odds-guard-before-fetch` is **DONE**.
+
+- **The gap:** a guard placed below its fetch refuses after the vendor has
+  billed. Six such mutants passed all 25 deploy-path odds steps at
+  `bb323b61` (pre-rebase SHA). They are at fetchSportOddsLive, wp-resolver,
+  the closing capture, getWCPregameLambdas and two at the `/odds/*` proxy.
+- **Now:** every fetch-like call must come after the crediting `if`, and
+  inside the block that holds it. The proxy is read to its closing brace.
+  Every live guard site moved below its fetch goes red: 9 of 9.
+- **Proof:** `outbox/odds-guard-before-fetch-2026-10-19.log`.
+  - Harness 25 of 25 at `8c29d6b8`, the pre-rebase SHA of `4b4a987c`.
+  - Rule 90: 5 of 5.
+  - Deploy run 39279546405 on `4b4a987c` green.
+- **Still filed:** `odds-guard-condition-and-exit`, whose high item is a
+  conjunct in front of the verdict, and `odds-gate-false-reds`. Each
+  CC-CMD's own status line records what this one closed in it.
+
+Session doc: outbox/cc-session-2026-10-19-odds-guard-before-fetch.md
+
 ## 2026-10-19 (afternoon) — the odds guards stop a deploy, and the wrapper check runs the wrapper
 
 `CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies` is **DONE**.

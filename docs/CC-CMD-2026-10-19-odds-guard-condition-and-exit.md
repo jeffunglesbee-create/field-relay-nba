@@ -74,7 +74,7 @@ coverage line must say which applies (Rule 91).
   tokenize them. 20 lines of src/index.js blank differently from acorn, and
   none of them is in a checked window today. A `/'/g` followed by a commented
   guard can credit a guard that is gone.
-- **The harness's COVERAGE line is hardcoded.** It reads "4 of the 9 guard
+- **DONE 2026-10-19 (`9b665971`): the COVERAGE line is now counted.** It was hardcoded: It reads "4 of the 9 guard
   sites", but the red site edits bite at 3 sites; the live poll gets only
   must-stay-green edits. It also says the other 5 are covered by the checker's
   self-test, which in fact covers all 9. Compute both numbers.
