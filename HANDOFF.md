@@ -24,7 +24,9 @@ owner ruling. Commits `87e9235d`..`7f8867bc` on main.
     check-in at 10:45Z reads it (`trig_01AL8GxWydReokRR4AZvgqux`).
 - **Filed, not dispatched:**
   - `docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md`: 17 MLB stage-1
-    next-day and doubleheader pairs. Needs the owner's kickoff ruling.
+    next-day and doubleheader pairs. **Owner ruled 2026-10-19: both** (a
+    kickoff refusal, read as module-wide, and a stage-1 claim check). It is
+    ready to dispatch.
   - `docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md`: 210
     targeted rows in American odds, synced as decimal (`275` → `+27400`).
 - **Caught before it mattered:** the first repair SQL had an unescaped

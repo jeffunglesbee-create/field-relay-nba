@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched. TASK 1 needs an owner ruling first.
+**Status:** FILED, not dispatched. TASK 1 RULED by the owner on 2026-10-19: (c) both.
 **Filed by:** CC, from the TASK 0 census of
 `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md` (Rule 87.4). That document
 asked whether stage 2 is the only path to a wrong pair. It is not.
@@ -69,6 +69,26 @@ KICKOFF INSTANT IS NOT A KEY … never as a filter". Options for the owner:
   otherwise both are refused. This handles the doubleheaders without any
   kickoff, but not the next-day class.
 - (c) Both.
+
+**OWNER RULING, 2026-10-19: (c) both.** The owner chose this in answer to "allow
+a kickoff check, a claim check, or both". That question was put right after
+the stage-2 session, which named two gaps: this document's stage-1 classes, and
+the ~5% of wrong-team names that still pass stage 2's name rule.
+- **What the ruling means:**
+  - **Kickoff:** the standing "THE KICKOFF INSTANT IS NOT A KEY" ruling in
+    `src/odds-name-match.js` is reversed, for a refusal only. A pair whose
+    `|commence_time − start_time|` exceeds N is refused, never re-paired by
+    time. N comes from TASK 0's measured distribution, not from this text.
+  - **Claim check:** stage 1 lets one event pair with one game at most;
+    otherwise every row claiming it is refused.
+- **Read as module-wide.** The refusal sits in `matchSlate`, so it covers
+  stage-2 pairs too. That is the reading recorded here, because the question
+  named both gaps. If the owner meant stage 1 only, this line is what to
+  correct.
+- **A row with no kickoff is not refused for lacking one.** The census has 50
+  rows with no archive `start_time`. The check needs both instants, and a
+  missing one is counted and printed (Rule 91), not treated as a pass or a
+  fail.
 
 Proof: real fixtures from the census, red before and green after. Rule 90
 mutations. Every existing case in `scripts/check-odds-matcher.mjs` stays as it is.
