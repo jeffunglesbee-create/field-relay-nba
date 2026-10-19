@@ -1,0 +1,922 @@
+{
+  "ts": "2026-10-19T10:40:28.211Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "perTier": 5,
+  "tiers": {
+    "grand_slam": {
+      "tournamentsInTier": 25,
+      "singles": 8,
+      "checked": 5
+    },
+    "masters_1000": {
+      "tournamentsInTier": 9,
+      "singles": 9,
+      "checked": 5
+    },
+    "atp_1000": {
+      "tournamentsInTier": 0,
+      "singles": 0,
+      "checked": 0
+    },
+    "wta_1000": {
+      "tournamentsInTier": 12,
+      "singles": 12,
+      "checked": 5
+    },
+    "atp_500": {
+      "tournamentsInTier": 16,
+      "singles": 16,
+      "checked": 5
+    },
+    "wta_500": {
+      "tournamentsInTier": 17,
+      "singles": 17,
+      "checked": 5
+    },
+    "atp_250": {
+      "tournamentsInTier": 32,
+      "singles": 32,
+      "checked": 5
+    },
+    "wta_250": {
+      "tournamentsInTier": 101,
+      "singles": 101,
+      "checked": 5
+    }
+  },
+  "editions": [
+    {
+      "tier": "grand_slam",
+      "tid": 15,
+      "name": "Australian Open",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 14,
+      "name": "Australian Open",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 77,
+      "name": "Roland Garros",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 76,
+      "name": "Roland Garros",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 135,
+      "name": "US Open, Men",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 63,
+      "name": "ATP Madrid Masters",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 67,
+      "name": "ATP Rome Masters",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 42,
+      "name": "Indian Wells",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 45,
+      "name": "Miami",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 56,
+      "name": "Monte Carlo",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 167,
+      "name": "Beijing",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 131,
+      "name": "Cincinnati",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 131,
+      "name": "Cincinnati",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 27,
+      "name": "Doha",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 33,
+      "name": "Dubai",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 37,
+      "name": "Acapulco",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 57,
+      "name": "Barcelona",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 189,
+      "name": "Basel",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 169,
+      "name": "Beijing",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 25,
+      "name": "Dallas",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 22,
+      "name": "Abu Dhabi",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 11,
+      "name": "Adelaide",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=14",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 99,
+      "name": "Bad Homburg",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 95,
+      "name": "Berlin",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 5,
+      "name": "Brisbane",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=16",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 13,
+      "name": "Adelaide",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 180,
+      "name": "Almaty",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [
+        "R32=12",
+        "R16=4"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": "Round of 16",
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 202,
+      "name": "ATP Athens, Greece Men Singles",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 183,
+      "name": "ATP Brussels, Belgium Singles",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [
+        "R32=12",
+        "R16=4"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": "Round of 16",
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 10,
+      "name": "Auckland",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 790,
+      "name": "Adana, Turkiye",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 1,
+      "name": "Angers, France",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 46,
+      "name": "Antalya 2, Turkiye",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [
+        "R32=12",
+        "R16=8"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": "Round of 16",
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 53,
+      "name": "Antalya 3, Turkiye",
+      "status": 409,
+      "body": "{\"error\":\"a player appears twice in one round\",\"tournament\":53,\"season\":\"2026\",\"duplicates\":[{\"round\":\"Round of 32\",\"playerId\":634,\"matches\":[28296,28603]},{\"round\":\"Round of 32\",\"playerId\":233,\"match"
+    },
+    {
+      "tier": "wta_250",
+      "tid": 758,
+      "name": "Antalya 4, Turkiye",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 209,
+      "name": "ATP Finals",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 3,
+      "roundsOutsideMainDraw": {
+        "": 12
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 509,
+      "name": "Billie Jean King Cup",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 7,
+      "roundsOutsideMainDraw": {
+        "": 99,
+        "Qualification Round 1": 7
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 508,
+      "name": "Billie Jean King Cup Group I",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [],
+      "mainDrawMatches": 0,
+      "roundsOutsideMainDraw": {
+        "": 130
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 446,
+      "name": "Davis Cup",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [],
+      "mainDrawMatches": 0,
+      "roundsOutsideMainDraw": {
+        "": 326,
+        "Qualification Final": 7,
+        "Qualification Round 1": 13
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 4,
+      "name": "Next Gen Finals",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 3,
+      "roundsOutsideMainDraw": {
+        "": 12
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 391,
+      "name": "United Cup",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 7,
+      "roundsOutsideMainDraw": {
+        "": 74
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 204,
+      "name": "WTA Finals",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 3,
+      "roundsOutsideMainDraw": {
+        "": 13
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    }
+  ],
+  "census": {
+    "status": 200,
+    "read": 707,
+    "declared": 707,
+    "truncated": false,
+    "pages": 8
+  },
+  "clientSplit": {
+    "deployed": {
+      "where": "DEPLOYED https://jubilant-bassoon.jeffunglesbee.workers.dev/",
+      "excludes": [
+        "Davis Cup",
+        "Billie Jean King Cup Group I"
+      ],
+      "admits": [
+        "ATP Finals",
+        "WTA Finals",
+        "Next Gen Finals",
+        "United Cup",
+        "Billie Jean King Cup"
+      ],
+      "contradictory": []
+    },
+    "source": {
+      "where": "SOURCE jeffunglesbee-create/jubilant-bassoon:src/legacy/field.js@main",
+      "excludes": [
+        "Davis Cup",
+        "Billie Jean King Cup Group I"
+      ],
+      "admits": [
+        "ATP Finals",
+        "WTA Finals",
+        "Next Gen Finals",
+        "United Cup",
+        "Billie Jean King Cup"
+      ],
+      "contradictory": []
+    },
+    "refusals": [],
+    "sourceAgreesWithDeployed": true
+  },
+  "namedEvents": {
+    "matched": 7,
+    "names": [
+      "ATP Finals",
+      "Billie Jean King Cup",
+      "Billie Jean King Cup Group I",
+      "Davis Cup",
+      "Next Gen Finals",
+      "United Cup",
+      "WTA Finals"
+    ],
+    "withKnockout": [
+      "209 ATP Finals (3 match(es))",
+      "509 Billie Jean King Cup (7 match(es))",
+      "4 Next Gen Finals (3 match(es))",
+      "391 United Cup (7 match(es))",
+      "204 WTA Finals (3 match(es))"
+    ],
+    "withoutKnockout": [
+      "508 Billie Jean King Cup Group I (0 match(es))",
+      "446 Davis Cup (0 match(es))"
+    ]
+  },
+  "summary": {
+    "tiersDeclared": 8,
+    "editionsRequested": 42,
+    "editionsRead": 41,
+    "modelHeld": 41,
+    "interiorHoles": [],
+    "unread": [
+      "wta_250 53 Antalya 3, Turkiye HTTP 409"
+    ],
+    "edgeRuleViolations": 0,
+    "clientSplitDrift": [],
+    "clientSplitRefusals": [],
+    "clientSplitContradictions": []
+  }
+}

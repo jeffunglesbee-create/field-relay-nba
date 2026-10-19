@@ -1,5 +1,5 @@
 {
-  "ts": "2026-10-12T13:01:50.847Z",
+  "ts": "2026-10-19T10:40:28.211Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "perTier": 5,
   "tiers": {
@@ -9,8 +9,8 @@
       "checked": 5
     },
     "masters_1000": {
-      "tournamentsInTier": 10,
-      "singles": 10,
+      "tournamentsInTier": 9,
+      "singles": 9,
       "checked": 5
     },
     "atp_1000": {
@@ -19,8 +19,8 @@
       "checked": 0
     },
     "wta_1000": {
-      "tournamentsInTier": 11,
-      "singles": 11,
+      "tournamentsInTier": 12,
+      "singles": 12,
       "checked": 5
     },
     "atp_500": {
@@ -34,8 +34,8 @@
       "checked": 5
     },
     "atp_250": {
-      "tournamentsInTier": 31,
-      "singles": 31,
+      "tournamentsInTier": 32,
+      "singles": 32,
       "checked": 5
     },
     "wta_250": {
@@ -45,27 +45,6 @@
     }
   },
   "editions": [
-    {
-      "tier": "grand_slam",
-      "tid": 14,
-      "name": "Australian Open",
-      "status": 200,
-      "season": "2026",
-      "complete": true,
-      "ladder": [
-        "R128=64",
-        "R64=32",
-        "R32=16",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "entry": "Round of 128",
-      "openInnermost": null,
-      "interiorOff": [],
-      "edgesDeclaredNull": true
-    },
     {
       "tier": "grand_slam",
       "tid": 15,
@@ -89,8 +68,8 @@
     },
     {
       "tier": "grand_slam",
-      "tid": 76,
-      "name": "Roland Garros",
+      "tid": 14,
+      "name": "Australian Open",
       "status": 200,
       "season": "2026",
       "complete": true,
@@ -111,6 +90,27 @@
     {
       "tier": "grand_slam",
       "tid": 77,
+      "name": "Roland Garros",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 76,
       "name": "Roland Garros",
       "status": 200,
       "season": "2026",
@@ -194,27 +194,6 @@
     },
     {
       "tier": "masters_1000",
-      "tid": 130,
-      "name": "Cincinnati",
-      "status": 200,
-      "season": "2026",
-      "complete": true,
-      "ladder": [
-        "R128=32",
-        "R64=32",
-        "R32=16",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "entry": "Round of 128",
-      "openInnermost": null,
-      "interiorOff": [],
-      "edgesDeclaredNull": true
-    },
-    {
-      "tier": "masters_1000",
       "tid": 42,
       "name": "Indian Wells",
       "status": 200,
@@ -254,9 +233,50 @@
       "edgesDeclaredNull": true
     },
     {
+      "tier": "masters_1000",
+      "tid": 56,
+      "name": "Monte Carlo",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
       "tier": "wta_1000",
       "tid": 167,
       "name": "Beijing",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 131,
+      "name": "Cincinnati",
       "status": 200,
       "season": "2026",
       "complete": true,
@@ -331,25 +351,6 @@
         "Final=1"
       ],
       "entry": "Round of 64",
-      "openInnermost": null,
-      "interiorOff": [],
-      "edgesDeclaredNull": true
-    },
-    {
-      "tier": "wta_1000",
-      "tid": 41,
-      "name": "Indian Wells",
-      "status": 200,
-      "season": "2026",
-      "complete": true,
-      "ladder": [
-        "R32=16",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "entry": "Round of 32",
       "openInnermost": null,
       "interiorOff": [],
       "edgesDeclaredNull": true
@@ -569,17 +570,14 @@
       "tid": 180,
       "name": "Almaty",
       "status": 200,
-      "season": "2025",
-      "complete": true,
+      "season": "2026",
+      "complete": false,
       "ladder": [
         "R32=12",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
+        "R16=4"
       ],
       "entry": "Round of 32",
-      "openInnermost": null,
+      "openInnermost": "Round of 16",
       "interiorOff": [],
       "edgesDeclaredNull": true
     },
@@ -607,17 +605,14 @@
       "tid": 183,
       "name": "ATP Brussels, Belgium Singles",
       "status": 200,
-      "season": "2025",
-      "complete": true,
+      "season": "2026",
+      "complete": false,
       "ladder": [
         "R32=12",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
+        "R16=4"
       ],
       "entry": "Round of 32",
-      "openInnermost": null,
+      "openInnermost": "Round of 16",
       "interiorOff": [],
       "edgesDeclaredNull": true
     },
@@ -848,10 +843,10 @@
   ],
   "census": {
     "status": 200,
-    "read": 697,
-    "declared": 697,
+    "read": 707,
+    "declared": 707,
     "truncated": false,
-    "pages": 7
+    "pages": 8
   },
   "clientSplit": {
     "deployed": {
