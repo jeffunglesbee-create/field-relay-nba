@@ -1,0 +1,145 @@
+{
+  "cc_cmd": "CC-CMD-2026-10-16-cfl-archive-date-keying",
+  "task": 3,
+  "mode": "dry-run",
+  "started_at": "2026-10-19T00:05:30.090Z",
+  "db": "cc49101c-0569-4d41-8e7a-be139cde4f26",
+  "verdict": "DRY-RUN",
+  "reason": "13 row(s) would be renamed; nothing was written",
+  "cfl_postseason_rows": 0,
+  "cfl_rows_with_start_time": 44,
+  "cfl_rows_without_start_time": 0,
+  "agreeing": 31,
+  "planned": 13,
+  "skipped": [],
+  "collisions": [],
+  "change_log_already_on_new_ids": 0,
+  "references": {
+    "briefs": 0,
+    "change_log": 4,
+    "game_thread_notes": 0,
+    "odds_history": 0
+  },
+  "plan": [
+    {
+      "old_id": "CFL_2026-06-06_calgarystampeders_winnipegbluebombers",
+      "old_date": "2026-06-06",
+      "new_date": "2026-06-05",
+      "new_id": "CFL_2026-06-05_calgarystampeders_winnipegbluebombers",
+      "tail": "_calgarystampeders_winnipegbluebombers",
+      "start_time": "2026-06-06T01:00:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-08-08_saskatchewanroughriders_ottawaredblacks",
+      "old_date": "2026-08-08",
+      "new_date": "2026-08-07",
+      "new_id": "CFL_2026-08-07_saskatchewanroughriders_ottawaredblacks",
+      "tail": "_saskatchewanroughriders_ottawaredblacks",
+      "start_time": "2026-08-08T01:00:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-08-14_calgarystampeders_bclions",
+      "old_date": "2026-08-14",
+      "new_date": "2026-08-13",
+      "new_id": "CFL_2026-08-13_calgarystampeders_bclions",
+      "tail": "_calgarystampeders_bclions",
+      "start_time": "2026-08-14T01:00:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-08-15_winnipegbluebombers_ottawaredblacks",
+      "old_date": "2026-08-15",
+      "new_date": "2026-08-14",
+      "new_id": "CFL_2026-08-14_winnipegbluebombers_ottawaredblacks",
+      "tail": "_winnipegbluebombers_ottawaredblacks",
+      "start_time": "2026-08-15T00:30:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-08-22_edmontonelks_winnipegbluebombers",
+      "old_date": "2026-08-22",
+      "new_date": "2026-08-21",
+      "new_id": "CFL_2026-08-21_edmontonelks_winnipegbluebombers",
+      "tail": "_edmontonelks_winnipegbluebombers",
+      "start_time": "2026-08-22T01:30:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-08-23_torontoargonauts_hamiltontigercats",
+      "old_date": "2026-08-23",
+      "new_date": "2026-08-22",
+      "new_id": "CFL_2026-08-22_torontoargonauts_hamiltontigercats",
+      "tail": "_torontoargonauts_hamiltontigercats",
+      "start_time": "2026-08-23T00:06:00+00:00",
+      "change_log_rows": 2
+    },
+    {
+      "old_id": "CFL_2026-08-29_winnipegbluebombers_montrealalouettes",
+      "old_date": "2026-08-29",
+      "new_date": "2026-08-28",
+      "new_id": "CFL_2026-08-28_winnipegbluebombers_montrealalouettes",
+      "tail": "_winnipegbluebombers_montrealalouettes",
+      "start_time": "2026-08-29T00:30:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-09-13_e13419731",
+      "old_date": "2026-09-13",
+      "new_date": "2026-09-12",
+      "new_id": "CFL_2026-09-12_e13419731",
+      "tail": "_e13419731",
+      "start_time": "2026-09-13T02:14:00+00:00",
+      "change_log_rows": 2
+    },
+    {
+      "old_id": "CFL_2026-09-26_e13419735",
+      "old_date": "2026-09-26",
+      "new_date": "2026-09-25",
+      "new_id": "CFL_2026-09-25_e13419735",
+      "tail": "_e13419735",
+      "start_time": "2026-09-26T00:00:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-09-26_e13419736",
+      "old_date": "2026-09-26",
+      "new_date": "2026-09-25",
+      "new_id": "CFL_2026-09-25_e13419736",
+      "tail": "_e13419736",
+      "start_time": "2026-09-26T02:30:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-10-03_e13419740",
+      "old_date": "2026-10-03",
+      "new_date": "2026-10-02",
+      "new_id": "CFL_2026-10-02_e13419740",
+      "tail": "_e13419740",
+      "start_time": "2026-10-03T01:30:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-10-10_e13419744",
+      "old_date": "2026-10-10",
+      "new_date": "2026-10-09",
+      "new_id": "CFL_2026-10-09_e13419744",
+      "tail": "_e13419744",
+      "start_time": "2026-10-10T02:12:00+00:00",
+      "change_log_rows": 0
+    },
+    {
+      "old_id": "CFL_2026-10-17_e13419748",
+      "old_date": "2026-10-17",
+      "new_date": "2026-10-16",
+      "new_id": "CFL_2026-10-16_e13419748",
+      "tail": "_e13419748",
+      "start_time": "2026-10-17T01:30:00+00:00",
+      "change_log_rows": 0
+    }
+  ],
+  "sql_file": "outbox/cfl-date-keying-migration-dry-run-20261019T000530Z.sql",
+  "statements": 65,
+  "finished_at": "2026-10-19T00:05:32.707Z"
+}
