@@ -330,7 +330,8 @@ for (const p of plan) {
     ? await recordOutcome(p, { events: events.length, inWindow: slate.poolSize, priced: hit, wanted: p.games.length })
     : classifyPair({ events: events.length, inWindow: slate.poolSize, priced: hit, wanted: p.games.length });
   console.log(`  ${p.date} ${String(p.sport).padEnd(22)} ${events.length} event(s), `
-    + `${slate.poolSize} in window -> ${slate.stage1} by name + ${slate.stage2} by elimination, `
+    + `${slate.poolSize} in window -> ${slate.stage1} by name + ${slate.stage2} by elimination `
+    + `(${slate.contradicted} refused: unread side cannot be that team), `
     + `${hit}/${p.games.length} priced -> ${klass}`);
 }
 

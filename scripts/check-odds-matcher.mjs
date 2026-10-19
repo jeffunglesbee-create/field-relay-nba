@@ -18,8 +18,8 @@
 // pairings the names already chose — never as a filter. See the module header.
 
 import fs from 'node:fs';
-import { teamTokens, nameMatches, findVendorEvent, h2hPrices, slateWindow, matchSlate }
-  from '../src/odds-name-match.js';
+import { teamTokens, nameMatches, findVendorEvent, h2hPrices, slateWindow, matchSlate,
+  couldAbbreviate } from '../src/odds-name-match.js';
 
 const FIXTURE = 'outbox/fixture-cfb-2026-09-12.json';
 let failed = 0;
@@ -292,6 +292,23 @@ many.byGameId.size === 0 && many.unmatched === 1
         `matched ${many.byGameId.size} (${[...many.byGameId.values()].map(m => m.event.id).join()})`,
         'matched 0, unmatched 1');
 
+// Since the stage-2 side rule (2026-10-19) the case above is ALSO refused by
+// that rule, since "ETSU" cannot be Kent State, so it stopped isolating the
+// exactly-one requirement: mutation M17 went NOT CAUGHT. It stays as it is; this
+// case isolates the requirement again. "KSU" could abbreviate either opponent,
+// so only the candidate count can refuse it.
+const MANY_K = [
+  { id: 'k1', home_team: 'Ohio Bobcats',        away_team: 'Kent State Golden Flashes',
+    commence_time: '2026-09-12T18:00:00Z' },
+  { id: 'k2', home_team: 'Ohio State Buckeyes', away_team: 'Kansas State Wildcats',
+    commence_time: '2026-09-12T20:00:00Z' },
+];
+const manyK = matchSlate([{ id: 'g1', home: 'Ohio', away: 'KSU' }], MANY_K, '2026-09-12');
+manyK.byGameId.size === 0 && manyK.contradicted === 0
+  ? ok('two stage-2 candidates the side rule cannot tell apart -> refused for the count alone')
+  : bad('multi-candidate row, side rule satisfied by both',
+        `matched ${manyK.byGameId.size}, contradicted ${manyK.contradicted}`, 'matched 0, contradicted 0');
+
 // Two rows that would force the SAME event are both refused, not ordered.
 const COLLIDE_EVENTS = [{ id: 'x1', home_team: 'Ohio Bobcats', away_team: 'Kent State Golden Flashes',
                           commence_time: '2026-09-12T18:00:00Z' }];
@@ -305,7 +322,159 @@ col.byGameId.size === 0 && col.ambiguous === 2
 // No date: the window changes nothing rather than dropping everything.
 eq('slateWindow with no date returns the payload whole', slateWindow(fx.vendor, null).length, fx.vendor.length);
 
+// ── F. stage 2 may not pair against a contradicting side ───────────────────
+//
+// docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md task 1. Real rows: every
+// odds_history row stored since the shared matcher landed, exported from D1 on
+// 2026-10-19 (outbox/fixture-odds-pairs-2026-10-19.json, 776 rows; its `meta`
+// holds the SELECT and the aggregates it was checked against).
+console.log('\nF. stage 2 — the unread side must be able to be that team (real rows)');
+
+const PX = 'outbox/fixture-odds-pairs-2026-10-19.json';
+const pairs = JSON.parse(fs.readFileSync(PX, 'utf8')).rows;
+eq('rows in the export', pairs.length, 776);
+
+// The real 2026-09-19 slate, reduced to the rows involved: Georgia @ Arkansas
+// took Jacksonville State's event, and that event's own game went unpriced.
+const GA_EVENT = { id: 'ga', home_team: 'Jacksonville State Gamecocks', away_team: 'Georgia Southern Eagles',
+                   commence_time: '2026-09-19T23:02:23Z' };
+const ga = matchSlate([
+  { id: 'CFB_2026-09-19_e401856686', home: 'Arkansas',  away: 'Georgia' },
+  { id: 'CFB_2026-09-19_e401869948', home: 'Jax State', away: 'GA Southern' },
+], [GA_EVENT], '2026-09-19');
+ga.byGameId.size === 0 && ga.contradicted === 1
+  ? ok('Georgia @ Arkansas is refused Jacksonville State\'s event (the 2026-09-19 wrong pair)')
+  : bad('Georgia @ Arkansas', `paired ${ga.byGameId.size}, contradicted ${ga.contradicted}`, 'paired 0, contradicted 1');
+
+// Every one-sided stored pair, on its own reduced slate. These are the rows
+// stage 2 actually produced. The 11 refused for being another team's game are
+// named, and so is the one right pair the rule costs.
+const OTHER_GAME = [
+  'CFB_2026-09-19_e401856686_draftkings_close',   // Arkansas    <- Jacksonville State Gamecocks
+  'MLB_2026-09-16_e401816961_fanduel_close',      // Blue Jays   <- Chicago White Sox
+  'MLB_2026-09-17_e401816975_fanduel_close',      // Brewers     <- Kansas City Royals
+  'MLB_2026-09-20_e401817020_fanduel_close',      // Rangers     <- Baltimore Orioles
+  'MLB_2026-09-20_e401817021_fanduel_close',      // Cardinals   <- Detroit Tigers
+  'MLB_2026-09-24_e401817063_fanduel_close',      // Pirates     <- Milwaukee Brewers
+  'MLB_2026-09-24_e401817065_fanduel_close',      // White Sox   <- Cleveland Guardians
+  'MLB_2026-09-24_e401817067_fanduel_close',      // Rangers     <- Washington Nationals
+  'NHL_2026-10-04_e401892442_draftkings_close',   // Red Wings   <- Pittsburgh Penguins
+  'NHL_2026-10-10_e401892470_draftkings_close',   // Devils      <- New York Rangers
+  'NHL_2026-10-12_e401892485_draftkings_close',   // Sabres      <- Columbus Blue Jackets
+];
+const COST = ['EFL Cup_2026-08-25_doncaster_boro_targeted'];   // Boro <- Middlesbrough: a nickname
+const oneSided = pairs.filter(r => {
+  const hh = nameMatches(r.a_home, r.v_home), aa = nameMatches(r.a_away, r.v_away);
+  const ah = nameMatches(r.a_away, r.v_home), ha = nameMatches(r.a_home, r.v_away);
+  return !((hh && aa) || (ah && ha)) && (hh || aa || ah || ha);
+});
+eq('one-sided stored pairs (the stage-2 class)', oneSided.length, 49);
+const refusedIds = [], keptWrong = [];
+let keptRight = 0;
+for (const r of oneSided) {
+  const s1 = matchSlate([{ id: r.id, home: r.a_home, away: r.a_away }],
+    [{ id: 'ev', home_team: r.v_home, away_team: r.v_away, commence_time: r.commence_time }], r.date);
+  const m = s1.byGameId.get(r.id);
+  if (!m) refusedIds.push(r.id);
+  else if (m.stage === 2) keptRight++;
+  else keptWrong.push(`${r.id} paired at stage ${m.stage}`);
+}
+String([...refusedIds].sort()) === String([...OTHER_GAME, ...COST].sort())
+  ? ok(`refused exactly the 11 other-game pairs and the 1 named cost (${refusedIds.length} of ${oneSided.length})`)
+  : bad('refused set', [...refusedIds].sort().join(' | '), [...OTHER_GAME, ...COST].sort().join(' | '));
+eq('right pairs still paired at stage 2', keptRight, 37);
+eq('one-sided rows paired at another stage', keptWrong.length, 0);
+
+// The other-game pairs share a signature the kickoff cross-check sees and the
+// rule does not use: every one is more than 7 hours off. Independent evidence
+// that the refused 11 are wrong, recorded rather than filtered on.
+const gapMin = (r) => (Date.parse(r.commence_time) - Date.parse(r.start_time)) / 60000;
+eq('of the 11, kickoff gaps over 420 minutes',
+  pairs.filter(r => OTHER_GAME.includes(r.id) && gapMin(r) > 420).length, 11);
+
+// REFUSING MAY ONLY REMOVE PAIRS. A refused row keeps its claim on the event,
+// so the row it collides with is refused too, as before the rule existed.
+// Dropping the refused proposal earlier would hand the event to the other row.
+const clash = matchSlate([
+  { id: 'arkansas', home: 'Arkansas',  away: 'Georgia' },   // refused by the rule
+  { id: 'jax',      home: 'Jax State', away: 'Georgia' },   // passes the rule on its own
+], [GA_EVENT], '2026-09-19');
+clash.byGameId.size === 0 && clash.ambiguous === 2 && clash.contradicted === 0
+  ? ok('a refused row still collides: neither row takes the event')
+  : bad('collision with a refused row', `paired ${clash.byGameId.size}, ambiguous ${clash.ambiguous}, contradicted ${clash.contradicted}`,
+        'paired 0, ambiguous 2, contradicted 0');
+
+// The FIRST vendor token, not any: "Yankees" shares a letter with "New York"'s
+// second word. Same shape as the 7 MLB rows: one team right, the other a
+// different team the next day.
+const nyy = matchSlate([{ id: 'nyy', home: 'Yankees', away: 'Phillies' }],
+  [{ id: 'nym', home_team: 'New York Mets', away_team: 'Philadelphia Phillies', commence_time: '2026-09-20T23:00:00Z' }],
+  '2026-09-20');
+nyy.byGameId.size === 0
+  ? ok('"Yankees" cannot be New York Mets: the first letter is compared with the FIRST vendor word')
+  : bad('first-token rule', 'paired', 'refused');
+
+const ABBREV = [
+  ['Jax State',     'Jacksonville State Gamecocks',     true,  'first letter kept'],
+  ['UAlbany',       'Albany Great Danes',               true,  'contains the vendor\'s first word'],
+  ['The Citadel',   'Citadel Bulldogs',                 true,  '"the" is not stripped; containment reads it'],
+  ['ETSU',          'East Tennessee State Buccaneers',  true,  'an initialism keeps its first letter'],
+  ['Arkansas',      'Jacksonville State Gamecocks',     false, 'the 2026-09-19 wrong pair'],
+  ['Blue Jays',     'Chicago White Sox',                false, 'a nickname against another team'],
+  ['Boro',          'Middlesbrough',                    false, 'the measured cost: a nickname, not an abbreviation'],
+  ['',              'Albany Great Danes',               false, 'an empty name is nothing\'s abbreviation'],
+  ['Alb',           'Albany Great Danes',               true,  'containment needs 4 letters; the first letter carries this'],
+  ['Xalb',          'Alb Tigers',                       false, 'a 3-letter vendor word is too short to contain'],
+];
+for (const [a, v, want, why] of ABBREV) {
+  const got = couldAbbreviate(a, v);
+  got === want ? ok(`couldAbbreviate("${a}", "${v}") = ${got}  (${why})`)
+               : bad(`couldAbbreviate("${a}", "${v}")  (${why})`, got, want);
+}
+
+// ── H. the collision corpus (CC-CMD-2026-09-11 task 1, never built) ────────
+//
+// Names where one school's name sits inside another's. The predicate matches
+// both, by design (B above); the PAIR is what must choose.
+console.log('\nH. collision corpus — one school\'s name inside another\'s');
+
+const COLLIDE = [
+  { why: 'Virginia / West Virginia, the real 2026-09-19 pairing, vendor reversed',
+    games: [{ id: 'g', home: 'Virginia', away: 'West Virginia' }],
+    events: [{ id: 'e', home_team: 'West Virginia Mountaineers', away_team: 'Virginia Cavaliers', commence_time: '2026-09-19T23:35:29Z' }],
+    want: { g: ['e', true] } },
+  { why: 'Virginia and West Virginia on one slate, each against its own opponent',
+    games: [{ id: 'v', home: 'Virginia', away: 'NC State' }, { id: 'w', home: 'West Virginia', away: 'Coastal' }],
+    events: [{ id: 'ev', home_team: 'Virginia Cavaliers', away_team: 'NC State Wolfpack', commence_time: '2026-09-05T23:00:00Z' },
+             { id: 'ew', home_team: 'West Virginia Mountaineers', away_team: 'Coastal Carolina Chanticleers', commence_time: '2026-09-05T23:00:00Z' }],
+    want: { v: ['ev', false], w: ['ew', false] } },
+  { why: 'Georgia and Georgia Southern on one slate, both priced',
+    games: [{ id: 'gb', home: 'Arkansas', away: 'Georgia' }, { id: 'gs', home: 'Jax State', away: 'GA Southern' }],
+    events: [{ id: 'eb', home_team: 'Arkansas Razorbacks', away_team: 'Georgia Bulldogs', commence_time: '2026-09-19T16:00:00Z' },
+             { id: 'es', home_team: 'Jacksonville State Gamecocks', away_team: 'Georgia Southern Eagles', commence_time: '2026-09-19T23:00:00Z' }],
+    want: { gb: ['eb', false], gs: [null, false] } },   // GA Southern @ Jax State: both sides abbreviated, nothing to stand on
+  { why: 'Miami and Miami (OH)',
+    games: [{ id: 'm', home: 'Miami', away: 'Florida St' }, { id: 'o', home: 'Pitt', away: 'Miami OH' }],
+    events: [{ id: 'em', home_team: 'Miami Hurricanes', away_team: 'Florida State Seminoles', commence_time: '2026-09-05T23:00:00Z' },
+             { id: 'eo', home_team: 'Pittsburgh Panthers', away_team: 'Miami (OH) RedHawks', commence_time: '2026-09-05T23:00:00Z' }],
+    want: { m: ['em', false], o: ['eo', false] } },
+  { why: 'Washington and Washington State',
+    games: [{ id: 'w1', home: 'Washington', away: 'Oregon' }, { id: 'w2', home: 'Washington St', away: 'Idaho' }],
+    events: [{ id: 'e1', home_team: 'Washington Huskies', away_team: 'Oregon Ducks', commence_time: '2026-09-05T23:00:00Z' },
+             { id: 'e2', home_team: 'Washington State Cougars', away_team: 'Idaho Vandals', commence_time: '2026-09-05T23:00:00Z' }],
+    want: { w1: ['e1', false], w2: ['e2', false] } },
+];
+for (const c of COLLIDE) {
+  const r = matchSlate(c.games, c.events, c.events[0].commence_time.slice(0, 10));
+  const got = Object.fromEntries(c.games.map(g => { const m = r.byGameId.get(g.id); return [g.id, m ? [m.event.id, m.swapped] : [null, false]]; }));
+  JSON.stringify(got) === JSON.stringify(c.want)
+    ? ok(c.why) : bad(c.why, JSON.stringify(got), JSON.stringify(c.want));
+}
+
 console.log(`\nCOVERAGE: TWO sport-dates (cfb 2026-09-12, mlb 2026-09-15) plus ${PAIRS.length + 6} synthetic cases,\nand ${fx.archive.length + 7} single-gap adversarial runs.`);
+console.log(`Stage 2's side rule: all ${oneSided.length} one-sided pairs stored 2026-09-16 to 2026-10-19 (of ${pairs.length}), each on`);
+console.log(`its own reduced slate, plus ${ABBREV.length} name cases and ${COLLIDE.length} collision slates. Not seen: a full live`);
+console.log(`payload, where a wrong team that shares the first letter (about 5% of name pairs) still passes.`);
 console.log(`Zero ambiguity is measured on a 95-event payload; a larger one has more`);
 console.log(`collision room. No other sport-date has been measured.`);
 console.log(failed ? `\n${failed} FAILED` : `\nall checks passed`);

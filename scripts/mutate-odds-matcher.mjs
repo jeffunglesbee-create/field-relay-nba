@@ -292,6 +292,39 @@ const MUTATIONS = [
     replace: '    if (a.every((t) => v.some(x => x.startsWith(t)))) return true;',
     catches: 'tokens match anywhere in any order — Red Jays finds Red Sox and Blue Jays' },
 
+  // ── stage 2's unread side, 2026-10-19 (docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md task 1)
+  { file: MODULE, check: CHECK, name: 'M47 stage 2 stops checking the unread side',
+    anchor: '        && !(homeHit ? couldAbbreviate(g.away, event.away_team) : couldAbbreviate(g.home, event.home_team))) {',
+    replace: '        && false) {',
+    catches: 'Georgia @ Arkansas takes Jacksonville State\'s event again, and 10 MLB/NHL rows their next-day games' },
+
+  { file: MODULE, check: CHECK, name: 'M48 the first letter is compared with ANY vendor word',
+    anchor: '  if (a[0][0] === v[0][0]) return true;',
+    replace: '  if (v.some(t => t[0] === a[0][0])) return true;',
+    catches: '"Yankees" passes as New York Mets on "York": 10-15% of wrong names pass instead of 5%' },
+
+  { file: MODULE, check: CHECK, name: 'M49 the containment reading is dropped',
+    anchor: '  return v[0].length >= 4 && a.some(t => t.includes(v[0]));',
+    replace: '  return false;',
+    catches: 'UAlbany stops pairing with Albany' },
+
+  { file: MODULE, check: CHECK, name: 'M50 containment accepts a vendor word of any length',
+    anchor: '  return v[0].length >= 4 && a.some(t => t.includes(v[0]));',
+    replace: '  return a.some(t => t.includes(v[0]));',
+    catches: 'a 3-letter vendor word is contained in almost anything' },
+
+  { file: MODULE, check: CHECK, name: 'M51 a refused proposal gives up its claim before the collision test',
+    anchor: '    if (c.length !== 1) continue;            // 0 or many: not forced, never guessed',
+    replace: '    if (c.length !== 1) continue;            // 0 or many: not forced, never guessed\n'
+      + '    { const e = c[0], h = nameMatches(g.home, e.home_team), w = nameMatches(g.away, e.away_team);\n'
+      + '      if (!(h && w) && !(h ? couldAbbreviate(g.away, e.away_team) : couldAbbreviate(g.home, e.home_team))) continue; }',
+    catches: 'the row a refused row collided with now takes the event: refusing ADDS a pair' },
+
+  { file: MODULE, check: CHECK, name: 'M52 a refusal is not counted',
+    anchor: '      contradicted++;\n      continue;',
+    replace: '      continue;',
+    catches: 'the backfill line reports 0 refused while refusing' },
+
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
     replace: '// import removed',

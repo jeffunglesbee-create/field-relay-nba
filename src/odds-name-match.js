@@ -79,6 +79,44 @@ export function nameMatches(archiveName, vendorName) {
 }
 
 /**
+ * Could `archiveName` be an ABBREVIATION of `vendorName`? Weaker than
+ * nameMatches, and used only where nameMatches has already said no: on the
+ * side stage 2 of matchSlate pairs WITHOUT reading.
+ *
+ * WHY (docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md, task 1). Stage 2
+ * exists for names the predicate cannot read, such as "ETSU" or "Jax State".
+ * It never checked that the unread side could be that team at all. Measured
+ * 2026-10-19 over the 49 one-sided pairs stored since 2026-09-16:
+ * - 11 were another team's game: "Arkansas" took Jacksonville State's event,
+ *   7 MLB and 3 NHL rows took a team's NEXT-DAY game, "Blue Jays" against
+ *   Chicago White Sox.
+ * - 38 were the right team under an abbreviation: Jax State, GA Southern,
+ *   MTSU, FIU, QPR, MK Dons, Nottm Forest, Wolves, UAlbany, The Citadel.
+ *
+ * THE RULE. An abbreviation keeps the first letter of the name it shortens,
+ * so the archive name's first letter must be the vendor name's first letter.
+ * "UAlbany" and "The Citadel" keep it differently: one archive token contains
+ * the vendor's whole first token, of 4 letters or more. A leading "the" is not
+ * stripped: containment already reads the one archive name that has it, and
+ * no vendor name in the 776 stored rows starts with it.
+ * On those 49 rows this refuses all 11 wrong ones and 1 right one, "Boro" for
+ * Middlesbrough, a nickname rather than an abbreviation.
+ *
+ * WHAT IT DOES NOT CATCH. A wrong team whose name happens to share the first
+ * letter: about 5% of (archive name, non-matching vendor team) combinations in
+ * MLB, NHL and CFB pass. Comparing against ANY vendor token instead of the
+ * first one passes 10-15%, which is why it is the first.
+ *
+ * @returns {boolean}
+ */
+export function couldAbbreviate(archiveName, vendorName) {
+  const a = teamTokens(archiveName), v = teamTokens(vendorName);
+  if (!a.length || !v.length) return false;
+  if (a[0][0] === v[0][0]) return true;
+  return v[0].length >= 4 && a.some(t => t.includes(v[0]));
+}
+
+/**
  * Find the one vendor event for an archive game.
  *
  * @param {{home: string, away: string}} game   archive row
@@ -196,7 +234,7 @@ export function slateWindow(events, isoDate) {
  * @returns {{
  *   byGameId: Map<string, {event: object, swapped: boolean, stage: 1|2}>,
  *   stage1: number, stage2: number, unmatched: number,
- *   ambiguous: number, poolSize: number, droppedOutOfWindow: number,
+ *   ambiguous: number, contradicted: number, poolSize: number, droppedOutOfWindow: number,
  * }}
  */
 export function matchSlate(games, events, isoDate) {
@@ -236,9 +274,22 @@ export function matchSlate(games, events, isoDate) {
   // Two rows forcing the SAME event is not an elimination, it is a collision.
   // Both are refused — resolving it by iteration order would make the result
   // depend on payload order, which is the defect the ambiguity guard exists for.
-  let stage2 = 0;
+  //
+  // THE UNREAD SIDE MUST BE ABLE TO BE THAT TEAM (couldAbbreviate). It is
+  // checked HERE, after the collision test, and never by dropping a proposal
+  // earlier: a refused row still holds its claim on the event, so a row it
+  // collided with stays refused too. Refusing can only remove pairs, never add.
+  const byId = new Map(rows.map(g => [g.id, g]));
+  let stage2 = 0, contradicted = 0;
   for (const [gameId, event] of proposals) {
     if ((wantedBy.get(event.id) || []).length !== 1) { ambiguous++; continue; }
+    const g = byId.get(gameId);
+    const homeHit = nameMatches(g.home, event.home_team), awayHit = nameMatches(g.away, event.away_team);
+    if (!(homeHit && awayHit)
+        && !(homeHit ? couldAbbreviate(g.away, event.away_team) : couldAbbreviate(g.home, event.home_team))) {
+      contradicted++;
+      continue;
+    }
     byGameId.set(gameId, { event, swapped: false, stage: 2 });
     stage2++;
   }
@@ -249,6 +300,7 @@ export function matchSlate(games, events, isoDate) {
     stage2,
     unmatched: rows.length - byGameId.size,
     ambiguous,
+    contradicted,
     poolSize: pool.length,
     droppedOutOfWindow: all.length - pool.length,
   };
