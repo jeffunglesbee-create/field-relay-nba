@@ -130,7 +130,7 @@ function enclosingIf(code, at) {
                 else if (c === ';' && depth === 0) { e++; break; }
             }
         }
-        return { consStart: s, consEnd: e };
+        return { ifAt: m.index, consStart: s, consEnd: e };
     }
     return null;
 }
@@ -150,11 +150,6 @@ function consequentExits(code, s, e) {
     return /^(return|throw)\b/.test(last);
 }
 
-const verdictStops = (code, at) => {
-    const f = enclosingIf(code, at);
-    return !!f && consequentExits(code, f.consStart, f.consEnd);
-};
-
 // Offsets, in blanked code, of each negated guard verdict (`!(await G(` or the
 // `!x` that tests a named one). The live mutation self-test walks these too.
 function verdictTests(code) {
@@ -169,8 +164,53 @@ function verdictTests(code) {
     return out;
 }
 
+// AND IT MUST RUN BEFORE THE VENDOR CALL (docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md).
+// A stopping guard placed below its fetch refuses after the vendor has billed,
+// and the second review of 2026-10-19 showed that passing all 25 deploy-path
+// odds steps at fetchSportOddsLive, wp-resolver, the closing capture and the
+// /odds/* proxy. So every fetch-like call in the span must come AFTER the
+// crediting `if` ends, and INSIDE the block that holds that `if`. That block is
+// the function body, or the live poll's per-sport callback, so a guard tucked
+// into a branch, a try or a loop the fetch sits outside of does not count. A
+// span with no fetch-like call at all cannot be ordered and does not count.
+//
+// Not "a top-level statement of the function body", which the CC-CMD first
+// proposed: the live poll's real guard sits inside a per-sport callback, and
+// that rule would have blocked the deploy on it (TASK 0 probe, 2026-10-19).
+const FETCH_CALL = /\b(?:fetch|relayFetch|oddsFetchWithFallback)\s*\(/g;
+
+// [open, close] offsets of the innermost {...} block holding offset `at`, or null.
+function blockAround(code, at) {
+    const stack = [];
+    for (let k = 0; k < at; k++) {
+        if (code[k] === '{') stack.push(k);
+        else if (code[k] === '}') stack.pop();
+    }
+    if (!stack.length) return null;
+    const open = stack[stack.length - 1];
+    return [open, closeOf(code, open)];
+}
+
+function runsBeforeFetch(code, f) {
+    const calls = [...code.matchAll(FETCH_CALL)].map((m) => m.index);
+    const b = blockAround(code, f.ifAt);
+    return calls.length > 0 && !!b && calls.every((k) => k >= f.consEnd && k > b[0] && k < b[1]);
+}
+
+// 'ok', or why not: 'none' (no negated verdict), 'no-exit', 'after-fetch'.
+function guardVerdict(code) {
+    let best = 'none';
+    for (const at of verdictTests(code)) {
+        const f = enclosingIf(code, at);
+        if (!f || !consequentExits(code, f.consStart, f.consEnd)) { if (best === 'none') best = 'no-exit'; continue; }
+        if (runsBeforeFetch(code, f)) return 'ok';
+        best = 'after-fetch';
+    }
+    return best;
+}
+
 function guardsWithVerdict(code) {
-    return verdictTests(code).some((at) => verdictStops(code, at));
+    return guardVerdict(code) === 'ok';
 }
 
 // The guard may sit either side of the URL line -- deriving the cost from the URL
@@ -221,12 +261,14 @@ function scan(file, src) {
             });
             return;
         }
-        const guarded = MONTHLY_GUARDS.some(g => body.includes(g)) && guardsWithVerdict(body);
+        const verdict = MONTHLY_GUARDS.some(g => body.includes(g)) ? guardVerdict(body) : 'none';
+        const guarded = verdict === 'ok';
         const derived = body.includes('oddsCreditCost(');
         out.push({
             file, line: i + 1, kind: 'billed',
             ok: guarded && derived,
-            why: !guarded ? 'no monthly guard whose verdict stops the call (`if (!(await consumeOddsCredit(...))) return`, or _consumeAmbientOddsCredit) in the enclosing function — a guard named only in a comment or string, or called with its verdict ignored, does not count'
+            why: verdict === 'after-fetch' ? 'the monthly guard does not run before the vendor call — a fetch-like call (fetch, relayFetch, oddsFetchWithFallback) comes before it, sits outside the block that holds it, or is missing — so a refusal arrives after the credits are spent'
+               : !guarded ? 'no monthly guard whose verdict stops the call (`if (!(await consumeOddsCredit(...))) return`, or _consumeAmbientOddsCredit) in the enclosing function — a guard named only in a comment or string, or called with its verdict ignored, does not count'
                : !derived ? 'guarded, but the cost is hardcoded — must be oddsCreditCost(url) so it cannot drift from the URL'
                : '',
         });
@@ -247,16 +289,19 @@ async function f(env) {
 async function f(env) {
   if (!(await checkAndIncrementDailyOdds(env, 1))) return;
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r = await fetch(u);
 }`, false],
         ['guarded but hardcoded cost is caught', `
 async function f(env) {
   if (!(await consumeOddsCredit(env, 3))) return;
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r = await fetch(u);
 }`, false],
         ['guarded and derived passes', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   if (!(await consumeOddsCredit(env, oddsCreditCost(u)))) return;
+  const r = await fetch(u);
 }`, true],
         ['a guard in a DIFFERENT function does not count', `
 async function a(env) {
@@ -264,6 +309,7 @@ async function a(env) {
 }
 async function b(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r = await fetch(u);
 }`, false],
         ['class method is its own scope', `
 class D {
@@ -288,42 +334,50 @@ async function f(env) {
 async function f(env) {
   /* if (!(await consumeOddsCredit(env, oddsCreditCost(u)))) return; */
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r = await fetch(u);
 }`, false],
         ['a guard in a trailing comment is not a guard', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`; // if (!(await consumeOddsCredit(env, oddsCreditCost(u)))) return;
+  const r = await fetch(u);
 }`, false],
         ['a guard in a string literal is not a guard', `
 async function f(env) {
   const note = "if (!(await consumeOddsCredit(env, oddsCreditCost(u)))) return;";
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r = await fetch(u);
 }`, false],
         ['a guard called with its verdict ignored is not a guard', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   await consumeOddsCredit(env, oddsCreditCost(u), 'f');
+  const r = await fetch(u);
 }`, false],
         ['a guard whose verdict is named, then tested, IS a guard', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
   if (!ok) return;
+  const r = await fetch(u);
 }`, true],
         ['a guard whose refusal only logs is not a guard', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) { console.warn('over budget'); }
+  const r = await fetch(u);
 }`, false],
         ['a named verdict whose refusal only logs is not a guard', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
   if (!ok) console.warn('over budget');
+  const r = await fetch(u);
 }`, false],
         ['a refusal whose return is itself conditional is not a guard', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) { console.warn('over'); if (strict) return; }
+  const r = await fetch(u);
 }`, false],
         ['a refusal that logs, then returns, IS a guard', `
 async function f(env) {
@@ -332,23 +386,70 @@ async function f(env) {
     console.warn('[f] declined — skipping');
     return;
   }
+  const r = await fetch(u);
 }`, true],
         ['a verdict inside a compound condition, ending in a throw, IS a guard', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   if (billable(u) && !(await consumeOddsCredit(
         env, oddsCreditCost(u), 'f'))) throw new Error('declined');
+  const r = await fetch(u);
 }`, true],
         ['a " //" inside a string does not hide the guard after it', `
 async function f(env) {
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
   const note = "proxy //odds"; if (!(await consumeOddsCredit(env, oddsCreditCost(u), "s"))) return;
+  const r = await fetch(u);
 }`, true],
         ['a guard named only in a comment line is not a guard (finding 4)', `
 async function f(env) {
   // Mirrors consumeOddsCredit() and oddsCreditCost( -- same KV key scheme.
   const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r = await fetch(u);
 }`, false],
+        // THE GUARD RUNS BEFORE THE VENDOR CALL (docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md).
+        ['a guard after the fetch is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r = await fetch(u);
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+}`, false],
+        ['a fetch started before the guard, awaited after it, is not guarded', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const p = fetch(u);
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await p;
+}`, false],
+        ['a guard in a branch the fetch sits outside of is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (cheap) { if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return; }
+  const r = await fetch(u);
+}`, false],
+        ['a named verdict tested only after the fetch is not a guard', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const ok = await consumeOddsCredit(env, oddsCreditCost(u), 'f');
+  const r = await fetch(u);
+  if (!ok) return;
+}`, false],
+        ['a guarded site with no fetch-like call cannot be ordered, and is red', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  return u;
+}`, false],
+        ['a guard before its fetch inside a per-sport callback IS a guard (the live poll shape)', `
+class D {
+    async m(env) {
+        await Promise.all(keys.map(async (k) => {
+            const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(u), 'm'))) return;
+            try { const r = await fetch(u); } catch (_) { return; }
+        }));
+    }
+}`, true],
     ];
     let pass = 0, fail = 0;
     for (const [name, src, expect] of cases) {
@@ -408,6 +509,57 @@ async function f(env) {
         if (sites > 0 && caught === sites) pass++;
         else { fail++; console.error(`  SELFTEST FAIL: live guard sites made log-only: ${caught} of ${sites} caught`); }
         console.log(`  live guard sites made log-only: ${caught} of ${sites} caught`);
+    }
+    // EVERY LIVE GUARD SITE, ITS GUARD MOVED BELOW ITS FETCH (Rule 90 for the
+    // ordering rule, on the real source). The whole guard `if` statement is cut
+    // and pasted after the first fetch-like statement that follows it, so the
+    // refusal still stops nothing that matters: the vendor has already billed.
+    // The site, or the /odds/* proxy, must go red.
+    {
+        let sites = 0, caught = 0;
+        for (const f of FILES) {
+            const raw = readFileSync(f, 'utf8');
+            const code = blankCommentsAndStrings(raw);
+            for (const at of verdictTests(code)) {
+                sites++;
+                const iff = enclosingIf(code, at);
+                // A fresh regex: FETCH_CALL is shared, and matchAll() starts from
+                // its lastIndex, so moving that would hide calls from the scan.
+                const re = new RegExp(FETCH_CALL.source, 'g');
+                re.lastIndex = iff ? iff.consEnd : 0;
+                const call = iff ? re.exec(code) : null;
+                let end = -1;
+                if (call) {
+                    for (let k = call.index, depth = 0; k < code.length; k++) {
+                        const c = code[k];
+                        if (c === '(' || c === '[' || c === '{') depth++;
+                        else if (c === ')' || c === ']' || c === '}') depth--;
+                        else if (c === ';' && depth === 0) { end = k + 1; break; }
+                    }
+                }
+                if (end < 0) { console.error(`  SELFTEST FAIL: ${f} line ${raw.slice(0, at).split('\n').length}: no fetch-like statement after its guard to move it below — NOTHING MUTATED`); continue; }
+                const guardStmt = raw.slice(iff.ifAt, iff.consEnd);
+                const mutated = raw.slice(0, iff.ifAt) + raw.slice(iff.consEnd, end) + '\n' + guardStmt + raw.slice(end);
+                const red = scan(f, mutated).some((x) => x.kind === 'billed' && !x.ok)
+                    || (f === 'src/index.js' && !proxyGuarded(mutated));
+                if (red) caught++;
+                else console.error(`  SELFTEST FAIL: ${f} line ${raw.slice(0, at).split('\n').length}: its guard moved below its fetch, and nothing went red`);
+            }
+        }
+        if (sites > 0 && caught === sites) pass++;
+        else { fail++; console.error(`  SELFTEST FAIL: live guard sites moved below their fetch: ${caught} of ${sites} caught`); }
+        console.log(`  live guard sites moved below their fetch: ${caught} of ${sites} caught`);
+    }
+    // THE PROXY IS READ TO ITS CLOSING BRACE, not a 1600-character window. A
+    // long comment after the block's head pushed the guard out of the window
+    // and turned the deploy red on correct code (second review, 2026-10-19).
+    {
+        const src = readFileSync('src/index.js', 'utf8');
+        const head = "if (pathname.startsWith('/odds')) {";
+        const at = src.indexOf(head);
+        const padded = at < 0 ? '' : `${src.slice(0, at + head.length)}\n            // ${'x'.repeat(2000)}${src.slice(at + head.length)}`;
+        if (at >= 0 && proxyGuarded(padded)) pass++;
+        else { fail++; console.error('  SELFTEST FAIL: a 2000-character comment after the /odds/* head hid its guard'); }
     }
     console.log(`  self-tests: ${pass} passed, ${fail} failed`);
     return fail === 0;
@@ -492,7 +644,13 @@ if (findings.length !== EXPECTED_SITES) {
 function proxyGuarded(src) {
     const start = src.indexOf("if (pathname.startsWith('/odds')) {");
     if (start < 0) return false;
-    const body = blankCommentsAndStrings(src).slice(start, start + 1600);
+    // The whole block, bounded by its own braces, not a 1600-character window:
+    // a relayFetch further down the block must be seen to be ordered at all.
+    const code = blankCommentsAndStrings(src);
+    const open = code.indexOf('{', start);
+    const close = closeOf(code, open);
+    if (close < 0) return false;
+    const body = code.slice(start, close + 1);
     return body.includes('oddsBillablePath(')
         && guardsWithVerdict(body)
         && body.includes('oddsCreditCost(');
