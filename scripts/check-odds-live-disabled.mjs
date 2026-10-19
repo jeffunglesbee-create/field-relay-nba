@@ -30,6 +30,15 @@ const SRC = process.env.AMBIENT_DO_SRC || 'src/ambient-do.js';
 // guard or a charge that survives only in a comment is not counted.
 const GUARD_RE  = /if\s*\(\s*ODDS_LIVE_PATH_404\s*\)\s*(?:\{\s*return\s*;?\s*\}|return\s*;?)/;
 const DECL_RE   = /const\s+ODDS_LIVE_PATH_404\s*=\s*(true|false)\s*;?/;
+// ONE DECLARATION, or the guard may read another (docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md,
+// task 4). DECL_RE reads the FIRST declaration in the file, the module-level
+// one. A local `const ODDS_LIVE_PATH_404 = false;` inside _fetchLiveOdds
+// shadows it: the guard reads the local, the poll resumes charging 2 ledger
+// credits per 404, and until 2026-10-19 findings() returned nothing. The
+// deploy still went red then, but only because self-test M2's own assertion
+// broke on the second declaration. Any second declaration is now a finding. A
+// parameter or destructured name of the same spelling is not counted.
+const ANY_DECL_RE = /\b(?:const|let|var)\s+ODDS_LIVE_PATH_404\b/g;
 const CHARGE    = '_consumeAmbientOddsCredit(';
 const GUARD     = 'if (ODDS_LIVE_PATH_404) return;';   // the text a mutation writes back
 
@@ -80,6 +89,10 @@ export function findings(src) {
     return out;
   }
 
+  const decls = (blankCommentsAndStrings(src).match(ANY_DECL_RE) || []).length;
+  if (decls > 1) {
+    out.push(`ODDS_LIVE_PATH_404 is declared ${decls} times — a second declaration shadows the module-level kill switch, and the guard in _fetchLiveOdds may read it instead`);
+  }
   if (!declared) {
     out.push('ODDS_LIVE_PATH_404 is not declared — the guard below has nothing to read and the 404 loop is back');
   } else if (declared[1] !== 'true') {
@@ -150,6 +163,10 @@ if (process.argv.includes('--self-test')) {
        : false,
      'a guard that returns after the credit is taken costs exactly as much as no guard — and this assertion is false if its own anchor is missing or not unique');
 
+  // A LOCAL DECLARATION SHADOWING THE KILL SWITCH (condition-and-exit task 4).
+  ok('M7 a local ODDS_LIVE_PATH_404 = false shadows the kill switch',
+     M(guardText, `const ODDS_LIVE_PATH_404 = false;\n        ${guardText}`).some((x) => x.includes('shadows')));
+
   // The reciprocal.
   ok('M5 the URL repointed while the guard stays',
      M('/odds-live?apiKey=', '/odds?apiKey=').some((x) => x.includes('never called')));
@@ -190,13 +207,15 @@ class D {
      fx(FX_GUARD, '        // if (ODDS_LIVE_PATH_404) return;').some((x) => x.includes('every call is charged')));
   ok('N2 the guard deleted, a copy in a string left, is caught',
      fx(FX_GUARD, "        const note = 'if (ODDS_LIVE_PATH_404) return;';").some((x) => x.includes('every call is charged')));
+  ok('N4 a local declaration shadowing the kill switch is caught',
+     fx(FX_GUARD, `        const ODDS_LIVE_PATH_404 = false;\n${FX_GUARD}`).some((x) => x.includes('shadows')));
   ok('N3 the guard moved into the next method is caught',
      findings(FX.replace(FX_GUARD + '\n', '').replace("    async _captureClosingOdds() {\n", `    async _captureClosingOdds() {\n${FX_GUARD}\n`))
        .some((x) => x.includes('every call is charged')));
 
   console.log(fail ? `\n${fail} FAILED of ${ran}` : `\nself-test: ${ran}/${ran}`);
   console.log(`COVERAGE: ${ran} assertion(s): ${ranLive} over ${SRC} as SOURCE, ${ran - ranLive} on a fixed fixture. It checks the guard's`);
-  console.log(`presence, its value and its position relative to the charge. It does NOT ask`);
+  console.log(`presence, its value, that it is declared once, and its position relative to the charge. It does NOT ask`);
   console.log(`the vendor anything — scripts/probe-odds-live-endpoint.mjs is what measured`);
   console.log(`the 404, and re-running that is how you would learn the path had come back.`);
   process.exitCode = fail ? 1 : 0;
@@ -208,6 +227,6 @@ class D {
     process.exitCode = 1;
   } else {
     console.log(`PASS  the odds-live 404 path returns before the charge (${SRC})`);
-    console.log(`COVERAGE: source only — guard present, true, and ahead of the charge.`);
+    console.log(`COVERAGE: source only — guard present, true, declared once, and ahead of the charge.`);
   }
 }
