@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; do not create a feature branch or a PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** **DONE 2026-10-19.** Option (a) landed, with finding 4 closed (from option (b)). The wrapper check now runs each wrapper against a stub, so it no longer reads text. Twelve odds guards are on the deploy path. Done 1 and 2: `outbox/odds-gate-deploy-mutation-2026-10-19.log` (9 of 9 mutants caught, 3 of 3 equivalents green, control green). Done 3: deploy run 39242815269 on `796bb8a6`, green. Session doc: `outbox/cc-session-2026-10-19-odds-gate-wrapper-bodies.md`. Follow-up filed: `docs/CC-CMD-2026-10-19-guards-only-src-readers.md`.
 **Filed by:** CC, from the 2026-10-18 adversarial review of option 1 in
 `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md`. The hardening
 was briefly on that branch. It was dropped under Rule 69 because option 1 did
