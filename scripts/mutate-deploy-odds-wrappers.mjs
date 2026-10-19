@@ -16,7 +16,12 @@
 // once, so a stale anchor FAILS as NOTHING MUTATED rather than passing.
 // A site case may carry several `edits`, applied in order, each asserted
 // unique in the text as it stands. That is how a guard is MOVED below its
-// fetch (docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md).
+// fetch (docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md). The cases tagged
+// [ce] are docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md: a conjunct
+// or disjunct beside the verdict, a refusal that still reaches the vendor, a
+// billed call built by a helper, a shadowed kill switch, and a regex literal
+// the comment blanker misread. A case with `newCall: true` adds a call rather
+// than editing a guard site, and is tallied apart from the guard sites.
 //
 // `--only=<text>` runs only the cases whose name contains <text>, after the
 // control. Such a run prints its own count and is never the full verdict.
@@ -91,6 +96,10 @@ const BODIES = [
 const AMB_CHARGE = "            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl('')), 'ambientFetchLiveOdds'))) return;";
 const PROXY_IF = "if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(targetUrl), 'oddsProxyRoute'))) {";
 const PROXY_RET = "                return new Response(JSON.stringify({ ok: false, guarded: true,\n                    error: 'odds credit guard declined this call' }),\n                    { status: 429, headers: { 'X-RELAY-Error': 'odds-credit-guard', ...CORS, 'Content-Type': 'application/json' } });";
+const PROXY_HEAD = "        if (pathname.startsWith('/odds')) {";
+const HIST_IF = "  if (!(await consumeOddsCredit(env, oddsCreditCost(url), 'fetchSportOddsHistorical'))) {";
+const WC_IF = "    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas'))) return null;";
+const WP_IF = "    if (!(await consumeOddsCredit(env, oddsCreditCost(_url), 'wpResolver'))) {";
 const SITES = [
   { expect: 'green', file: 'src/ambient-do.js', label: 'live poll: the cost hoisted into a const (equivalent)', from: AMB_CHARGE,
     to: "            const liveCost = oddsCreditCost(buildUrl(''));\n            if (!(await _consumeAmbientOddsCredit(this.env, liveCost, 'ambientFetchLiveOdds'))) return;" },
@@ -137,6 +146,56 @@ const SITES = [
      `    const _wcOk = await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas');`],
     [`        await reconcileOddsCredit(env, oddsCreditCost(_wcUrl), r, 'getWCPregameLambdas');`,
      `        if (!_wcOk) return null;\n        await reconcileOddsCredit(env, oddsCreditCost(_wcUrl), r, 'getWCPregameLambdas');`],
+  ] },
+  // [ce] THE CONDITION (TASK 1). A conjunct or disjunct beside the negated
+  // verdict lets the guard go unevaluated, or its refusal be overruled.
+  { expect: 'red', file: 'src/index.js', label: '/odds/* proxy: one `!` meters only the free paths (P3) [ce]', edits: [
+    [PROXY_IF, PROXY_IF.replace('if (oddsBillablePath(', 'if (!oddsBillablePath(')],
+  ] },
+  { expect: 'red', file: 'src/index.js', label: 'fetchSportOddsHistorical: a dedupe flag in front of the verdict (S3) [ce]', edits: [
+    [HIST_IF, "  const _seen = await env.FIELD_JOURNALISM?.get(`odds:hist:seen:${sportKey}:${isoDate}`);\n" + HIST_IF.replace('if (!(await', 'if (!_seen && !(await')],
+  ] },
+  { expect: 'red', file: 'src/index.js', label: 'getWCPregameLambdas: a let verdict overwritten by an env flag (R1) [ce]', edits: [
+    [WC_IF, "    let _wcOk = await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas');\n    if (env.ODDS_GUARD_BYPASS) _wcOk = true;\n    if (!_wcOk) return null;"],
+  ] },
+  { expect: 'red', file: 'src/index.js', label: 'getWCPregameLambdas: a const verdict or-ed with an env flag (R2) [ce]', edits: [
+    [WC_IF, "    const _wcOk = await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas') || env.ODDS_GUARD_BYPASS;\n    if (!_wcOk) return null;"],
+  ] },
+  { expect: 'red', file: 'src/wp-resolver.js', label: 'wp-resolver: the refusal overruled inside the negation (S6) [ce]', edits: [
+    [WP_IF, WP_IF.replace("'wpResolver'))) {", "'wpResolver') || env.ODDS_GUARD_BYPASS)) {")],
+  ] },
+  { expect: 'green', file: 'src/index.js', label: 'getWCPregameLambdas: the verdict named in a const, then tested (equivalent) [ce]', edits: [
+    [WC_IF, "    const _wcOk = await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas');\n    if (!_wcOk) return null;"],
+  ] },
+  { expect: 'green', file: 'src/index.js', label: '/odds/* proxy: the condition wrapped across lines (equivalent) [ce]', edits: [
+    [PROXY_IF, PROXY_IF.replace(' && !(await', '\n                && !(await')],
+  ] },
+  // [ce] THE REFUSAL PATH (TASK 2). It must not reach the vendor anyway.
+  { expect: 'red', file: 'src/index.js', label: '/odds/* proxy: the refusal serves relayFetch instead (P4) [ce]', edits: [
+    [PROXY_RET, "                return relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);"],
+  ] },
+  { expect: 'red', file: 'src/index.js', label: 'fetchSportOddsHistorical: the refusal throws into a catch that only logs (E7) [ce]', edits: [
+    [HIST_IF + "\n    return { games: [], quotaRemaining: null, ok: false, guarded: true };\n  }",
+     "  try {\n    if (!(await consumeOddsCredit(env, oddsCreditCost(url), 'fetchSportOddsHistorical'))) throw new Error('declined');\n  } catch (e) { console.warn('[odds-hist]', e.message); }"],
+  ] },
+  // [ce] BILLED CALLS BUILT BY A HELPER (TASK 3). The vendor-URL scan cannot
+  // see oddsUrl() / oddsFetchWithFallback(); these add one each, unguarded.
+  { expect: 'red', newCall: true, file: 'src/index.js', label: 'new route: an unguarded event-odds route through oddsUrl (N1) [ce]', edits: [
+    [PROXY_HEAD, "        if (pathname.startsWith('/odds-event/')) {\n            const evUrl = oddsUrl(pathname.replace(/^\\/odds-event/, ''), url.search, env?.ODDS_API_KEY);\n            return relayFetch(evUrl, { 'Accept': 'application/json' }, 60, 'odds', ctx);\n        }\n" + PROXY_HEAD],
+  ] },
+  { expect: 'red', newCall: true, file: 'src/index.js', label: 'new helper call: an unguarded event-odds fetch through oddsFetchWithFallback (N2) [ce]', edits: [
+    ['async function oddsProviderQuota(env) {', "async function oddsEventProbe(env, sk, id) {\n    const { resp } = await oddsFetchWithFallback(env, k => oddsUrl(`/v4/sports/${sk}/events/${id}/odds`, '?markets=h2h', k), {}, 'oddsEventProbe');\n    return resp;\n}\nasync function oddsProviderQuota(env) {"],
+  ] },
+  // [ce] THE KILL SWITCH AND THE BLANKER (TASK 4).
+  { expect: 'red', file: 'src/ambient-do.js', label: 'live poll: a local ODDS_LIVE_PATH_404 = false shadows the kill switch (K1) [ce]', edits: [
+    ['        if (ODDS_LIVE_PATH_404) return;', '        const ODDS_LIVE_PATH_404 = false;\n        if (ODDS_LIVE_PATH_404) return;'],
+  ] },
+  { expect: 'red', file: 'src/wp-resolver.js', label: 'wp-resolver: the guard commented out, on one line, between two regex literals holding a backtick (X1) [ce]', edits: [
+    [WP_IF + "\n        return { games: [], quotaRemaining: null, ok: false, guarded: true };\n    }",
+     "    const _tick = /`/g;\n    // if (!(await consumeOddsCredit(env, oddsCreditCost(_url), 'wpResolver'))) return { games: [], quotaRemaining: null, ok: false, guarded: true };\n    const _tock = /`/g;"],
+  ] },
+  { expect: 'green', file: 'src/wp-resolver.js', label: 'wp-resolver: a regex literal holding a quote above the guard (equivalent) [ce]', edits: [
+    [WP_IF, "    const _quote = /'/g;\n" + WP_IF],
   ] },
 ];
 const CASES = [];
@@ -228,7 +287,9 @@ console.log(`\n${ok} of ${RUN.length} cases as expected (control green first): $
 // Counted, not typed (2026-10-19 review): the guard sites in HEAD's source, and
 // which of them a must-red site case actually bites.
 const siteOf = (t) => t.label.split(':')[0];
-const redSites = new Set(SITES.filter((t) => t.expect === 'red').map(siteOf));
-const greenOnly = new Set(SITES.filter((t) => t.expect === 'green').map(siteOf).filter((x) => !redSites.has(x)));
-console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each, plus ${SITES.length} site cases: a must-red edit at ${redSites.size} of the ${guardSites} guard sites in HEAD (${[...redSites].join(', ')}), must-stay-green edits only at ${[...greenOnly].join(', ') || 'none'}. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
+const guardCases = SITES.filter((t) => !t.newCall);
+const redSites = new Set(guardCases.filter((t) => t.expect === 'red').map(siteOf));
+const greenOnly = new Set(guardCases.filter((t) => t.expect === 'green').map(siteOf).filter((x) => !redSites.has(x)));
+const newCalls = SITES.filter((t) => t.newCall).length;
+console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each, plus ${SITES.length} site cases: a must-red edit at ${redSites.size} of the ${guardSites} guard sites in HEAD (${[...redSites].join(', ')}), must-stay-green edits only at ${[...greenOnly].join(', ') || 'none'}; and ${newCalls} case(s) that add a new unguarded call rather than edit a guard site. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
 process.exit(ok === RUN.length ? 0 : 1);
