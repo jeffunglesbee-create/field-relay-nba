@@ -1,5 +1,116 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-19 (chat)
+
+**HEAD:** `d1d1ad0` → `1747982` · **Branch:** main
+
+Everything from `d1d1ad0` to here. The CFL and by-date threads are written up in
+the two sections below; this records what those do not cover, and closes a lag
+that `check-handoff-current.mjs` was carrying on `GRACE_DAYS = 1` alone.
+
+### The odds counter's internal disagreement, answered (`19c9888d`)
+
+`odds_budget_month` for October is **short against its own days**, read from D1
+by two sessions four hours apart:
+
+| | month row | sum of daily | sum of by-site | gap |
+|---|---|---|---|---|
+| 18:55Z | 34,369 | 37,135 | 37,135 | **−2,766** |
+| ~21:50Z | 34,459 | 37,225 | 37,225 | **−2,766** |
+
+Both counters moved +90 and the gap did not move. That is what a lost month
+write looks like and what a miscount does not.
+
+**The month is short on the write path, not on a vote.** Day and site share one
+`db.batch` (`src/budget-helpers.js:371`–`373`); the month is a separate, later
+batch (`301`–`303`); reconcile corrects all three in one batch (`1048`–`1055`).
+
+Three inputs of `CC-CMD-2026-10-18-odds-counter-internal-then-calendar` were
+wrong, all three chat's own, all three confirmed against source:
+
+- **"Independently written"** — false. Day and site share a batch, so their
+  agreement corroborates nothing and the 2-against-1 vote does not exist.
+- **"Red on every run"** — false. Of 28 `odds-daily-vs-monthly` logs, 5 read
+  `consistent` (10-04 to 10-07, 10-11) and 3 read `month-boundary` (10-01 to
+  10-03). The claim generalised from the three most recent runs.
+- **"CFL's contribution goes to zero when the season ends"** — false.
+  `consumeOddsCredit` runs BEFORE the vendor `fetch` in `handleCFLOddsProbs`
+  (`src/index.js:3582`), gated only on the API key. The season end removes CFL's
+  billing, not its charging.
+
+The Grey Cup prediction (`19c9888d`) is committed 28 days ahead with week-summed
+rules, a VOID condition, and an inconclusive floor below 5 of 7 judged days.
+Two scheduled tasks are live: record the pre-window 2026-11-15T14:00Z, judge the
+post-window 2026-11-24T14:00Z.
+
+### The CFL migration, confirmed independently
+
+Chat re-ran probe A against live D1 rather than reading the verify log:
+
+- **CFL 13 rows differing, 13 keyed ET, 0 keyed UTC.** Every other sport also 0.
+- **836 discriminating rows** across 9 sports, which matches the figure the
+  section below reports.
+
+One caveat on that check, and it is the one the section below raises: the probe
+uses `datetime(start_time,'-4 hours')`, which is wrong once EST resumes. It is
+sound here because **0 of the 836 rows start on or after 2026-11-01** and the
+newest is `2026-10-19T00:20Z` — bounded, not coincidentally right. Any rerun
+after 2026-11-01 needs the `Intl` path the guard uses.
+
+### What chat's `119cee49` was for, and whether it mattered
+
+It stated in `CC-CMD-2026-10-16-cfl-archive-date-keying` that the **document**
+is the source of the writer fix and a stash is a copy, because the 00:03Z resume
+task's step 1 was written to `git stash pop` and that stash lived on one
+container's disk, on no ref.
+
+The session doc records the outcome: the fix was applied from stash `52e745ef`
+**by SHA rather than popped**, then checked line by line against TASK 1 and
+TASK 2 — 51 of 52 lines verbatim, the one difference being an unchanged context
+line carrying a `// THE GATE` comment in src. That is the behaviour the note
+asked for: apply the copy, then verify against the source.
+
+### Still open, carried
+
+- **The shared secret is in 33 places across 19 markdown files** of this public
+  repo. `docs/CC-CMD-2026-10-18-redact-shared-secret-prose.md` is filed, not
+  dispatched. Redaction stops it spreading; only rotation ends it, and that is
+  owner-only with **0 runs**.
+- **`POST /archive/game` is unauthenticated**, ruled option 1 (gate it) and
+  sequenced strictly after rotation and redaction.
+- **`docs/CC-CMD-2026-10-18-relay-governance-guards.md`** filed, not dispatched:
+  **331 of 388** CC-CMDs here carry no `**Status:**` line, so a status can
+  contradict the tree indefinitely, and a close-out need not name a session doc.
+
+### A note on verification shape, since it cost three false verdicts today
+
+Guard verdicts were twice measured against clone artifacts rather than this
+tree, and once against a tree the change was not in:
+
+1. **Sparse checkout** (`.github/workflows`, `docs`, `scripts`, `src`) hid
+   `workers/field-claude-proxy/src/index.js` and
+   `.github/scripts/odds-backfill.js` — four false FAILs. Steps 2, 20 and 22
+   had never run against the real tree.
+2. **Shallow clone** in `field-laboratory` at 60 commits left `check:history`
+   unable to resolve its own boundary sha, which `docs/history-boundary.txt`
+   predicts in four separate entries.
+3. **A failed rebase**: 29/29 was reported on `17479821` while the commit under
+   test had not applied. A PASS measured on a tree without the change is not
+   that change passing, and nothing in the output says so.
+
+The first two failed safe, as visible reds. The third failed **green**, which is
+the direction that matters: a guard scanning files or commits a checkout does not
+contain reports a pass indistinguishable from a clean run. Of this repo's 29
+steps, only step 28 (`checkout dir must be named field-relay-nba`) detects its
+own blindness.
+
+**29/29 at this HEAD** in a full, unshallowed, correctly-named checkout.
+
+Session doc: not written. Chat's write allowlist is `docs/`, `HANDOFF.md` and
+`CODE_MAP.json`, so it cannot write `outbox/`. That gap is TASK 2 of the
+governance-guards CC-CMD, which ratchets at a measured baseline of 36 rather
+than calling this one a violation.
+
 ## 2026-10-19 — CFL archive rows keyed on the ET day; migration applied
 
 `CC-CMD-2026-10-16-cfl-archive-date-keying` is **DONE**.
