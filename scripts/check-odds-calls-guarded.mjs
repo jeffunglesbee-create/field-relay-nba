@@ -317,15 +317,6 @@ function scan(file, src) {
         const billed = BILLED.test(line);
         const list   = SPORTS_LIST.test(line);
         if (!billed && !list) return;
-        const from = functionStart(lines, i);
-        // CODE LINES ONLY, as for the billed URL above. A guard named in a
-        // whole-line comment is not a guard: src/ambient-do.js's live poll
-        // carries `// consumeOddsCredit() — same KV key scheme`, and with its
-        // real guard call deleted that comment alone credited the site and the
-        // gate printed PASS (docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md,
-        // finding 4). Whole lines only: a string-blind trailing-comment stripper
-        // cut a guard call after a " //" inside a string, a false red.
-        const body = blankCommentsAndStrings(lines.slice(from, functionEnd(lines, from)).join('\n'));
         if (list) {
             const window = lines.slice(Math.max(0, i - 12), i + 3).join('\n');
             out.push({
@@ -335,19 +326,87 @@ function scan(file, src) {
             });
             return;
         }
+        out.push(judgeBilled(file, lines, i, 'billed'));
+    });
+    return out;
+}
+
+// One billed call at line i (0-based), judged over its enclosing function.
+function judgeBilled(file, lines, i, kind) {
+        const from = functionStart(lines, i);
+        // CODE LINES ONLY, as for the billed URL above. A guard named in a
+        // whole-line comment is not a guard: src/ambient-do.js's live poll
+        // carries `// consumeOddsCredit() — same KV key scheme`, and with its
+        // real guard call deleted that comment alone credited the site and the
+        // gate printed PASS (docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md,
+        // finding 4). Whole lines only: a string-blind trailing-comment stripper
+        // cut a guard call after a " //" inside a string, a false red.
+        const body = blankCommentsAndStrings(lines.slice(from, functionEnd(lines, from)).join('\n'));
         const verdict = MONTHLY_GUARDS.some(g => body.includes(g)) ? guardVerdict(body) : 'none';
         const guarded = verdict === 'ok';
         const derived = body.includes('oddsCreditCost(');
-        out.push({
-            file, line: i + 1, kind: 'billed',
+        return {
+            file, line: i + 1, kind,
             ok: guarded && derived,
             why: verdict === 'condition' ? 'the negated verdict is not the whole `if` condition — a conjunct or disjunct beside it (`X && !(await G(...))`, `!(await G(...) || X)`), or a verdict held in a `let` or a const whose initializer is more than the call, lets the guard go unevaluated or its refusal be overruled'
                : verdict === 'after-fetch' ? 'the monthly guard does not run before the vendor call — a fetch-like call (fetch, relayFetch, oddsFetchWithFallback) comes before it, sits outside the block that holds it, or is missing — so a refusal arrives after the credits are spent'
                : !guarded ? 'no monthly guard whose verdict stops the call (`if (!(await consumeOddsCredit(...))) return`, or _consumeAmbientOddsCredit) in the enclosing function — a guard named only in a comment or string, or called with its verdict ignored, does not count'
                : !derived ? 'guarded, but the cost is hardcoded — must be oddsCreditCost(url) so it cannot drift from the URL'
                : '',
-        });
-    });
+        };
+}
+
+// BILLED CALLS BUILT BY A HELPER (docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md,
+// task 3; decided: widen the scan, not narrow the claim). BILLED above sees a
+// literal vendor host or ${ODDS_BASE} only, so a call built with oddsUrl() or
+// oddsFetchWithFallback() was invisible: the review's N1, an unguarded
+// event-odds route, passed all 25 deploy-path odds steps with "10 found, 10
+// accounted". So did a real site: oddsProviderQuota's sports-list call, which
+// carried no ODDS-FREE note because nothing could see it (TASK 0, 2026-10-19).
+//
+// Each call of either helper, outside its own definition, is now a site:
+//   - inside the /odds/* proxy block: judged by proxyGuarded(), as before;
+//   - every path it builds is the literal '/v4/sports': the free list, which
+//     must carry an ODDS-FREE note like any other sports-list call;
+//   - anything else: billed, judged exactly like a BILLED site.
+// An oddsUrl() nested in an oddsFetchWithFallback() call is part of that call.
+// A line BILLED or SPORTS_LIST already matched is left to that scan.
+// STILL NOT SEEN, and printed with the result: a vendor URL built by any other
+// function, or passed in from elsewhere.
+const HELPER_CALL = /\b(?:oddsUrl|oddsFetchWithFallback)\s*\(/g;
+const FREE_HELPER_PATH = /^oddsUrl\s*\(\s*['"]\/v4\/sports['"]\s*,/;
+
+function helperScan(file, src) {
+    const code = blankCommentsAndStrings(src);
+    const lines = src.split('\n');
+    const head = src.indexOf("if (pathname.startsWith('/odds')) {");
+    const pOpen = head < 0 ? -1 : code.indexOf('{', head);
+    const pClose = pOpen < 0 ? -1 : closeOf(code, pOpen);
+    const out = [];
+    let inside = -1;
+    for (const m of code.matchAll(HELPER_CALL)) {
+        if (m.index < inside) continue;
+        if (/\bfunction\s*$/.test(code.slice(Math.max(0, m.index - 20), m.index))) continue;
+        const open = m.index + m[0].length - 1;
+        const close = closeOf(code, open);
+        inside = close;
+        const i = code.slice(0, m.index).split('\n').length - 1;
+        const span = src.slice(m.index, close + 1);
+        if (span.split('\n').some((L) => BILLED.test(L) || SPORTS_LIST.test(L))) continue;
+        if (pOpen >= 0 && m.index > pOpen && m.index < pClose) {
+            out.push({ file, line: i + 1, kind: 'helper:proxy', ok: proxyGuarded(src),
+                       why: 'the /odds/* proxy is not guarded — see its own line below' });
+            continue;
+        }
+        const built = [...code.slice(m.index, close + 1).matchAll(/\boddsUrl\s*\(/g)].map((u) => src.slice(m.index + u.index, close + 1));
+        if (built.length && built.every((b) => FREE_HELPER_PATH.test(b))) {
+            const window = lines.slice(Math.max(0, i - 12), i + 3).join('\n');
+            out.push({ file, line: i + 1, kind: 'helper:sports-list', ok: window.includes(FREE_MARK),
+                       why: `a /v4/sports call must carry an ${FREE_MARK} note saying why it is not charged` });
+            continue;
+        }
+        out.push(judgeBilled(file, lines, i, 'helper'));
+    }
     return out;
 }
 
@@ -480,6 +539,40 @@ async function f(env) {
         env, oddsCreditCost(u), 'f'))) throw new Error('declined');
   const r = await fetch(u);
 }`, true],
+        // BILLED CALLS BUILT BY A HELPER (condition-and-exit task 3).
+        ['an unguarded oddsUrl call is caught (N1)', `
+async function f(env) {
+  const u = oddsUrl(\`/v4/sports/\${k}/events/\${id}/odds\`, '?markets=h2h', key);
+  const r = await relayFetch(u, {}, 60, 'odds', ctx);
+}`, false],
+        ['an unguarded oddsFetchWithFallback call is caught (N2)', `
+async function f(env) {
+  const { resp } = await oddsFetchWithFallback(env, k => oddsUrl(\`/v4/sports/\${s}/odds\`, '', k), {}, 'f');
+}`, false],
+        ['a guarded, derived oddsUrl call passes', `
+async function f(env) {
+  const u = oddsUrl(\`/v4/sports/\${k}/odds\`, '?markets=h2h', key);
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await relayFetch(u, {}, 60, 'odds', ctx);
+}`, true],
+        ['a sports-list helper call without ODDS-FREE is caught', `
+async function f(env) {
+  const { resp } = await oddsFetchWithFallback(env, k => oddsUrl('/v4/sports', '', k), {}, 'f');
+}`, false],
+        ['a sports-list helper call with ODDS-FREE passes', `
+async function f(env) {
+  // ODDS-FREE: the sports list is not billed. Disproof: x-requests-last != 0.
+  const { resp } = await oddsFetchWithFallback(env, k => oddsUrl('/v4/sports', '', k), {}, 'f');
+}`, true],
+        ['a helper call building the list AND a billed path is not free', `
+async function f(env) {
+  // ODDS-FREE: the sports list is not billed. Disproof: x-requests-last != 0.
+  const { resp } = await oddsFetchWithFallback(env, k => all ? oddsUrl('/v4/sports', '', k) : oddsUrl(\`/v4/sports/\${s}/odds\`, '', k), {}, 'f');
+}`, false],
+        ['a helper\'s own definition is not a call', `
+function oddsUrl(cleanPath, search, envKey) {
+    return \`\${ODDS_BASE}\${cleanPath}\`;
+}`, null],
         // THE REFUSAL MUST NOT REACH THE VENDOR (condition-and-exit task 2),
         // held by the ordering rule rather than a rule of its own.
         ['a refusal that returns a fetch is not a guard (P4)', `
@@ -620,7 +713,7 @@ class D {
     ];
     let pass = 0, fail = 0;
     for (const [name, src, expect] of cases) {
-        const r = scan('fixture', src);
+        const r = [...scan('fixture', src), ...helperScan('fixture', src)];
         const got = expect === null ? (r.length === 0 ? null : !!r.every(x => x.ok))
                                     : (r.length > 0 && r.every(x => x.ok));
         if (got === expect) { pass++; }
@@ -741,6 +834,27 @@ class D {
         else { fail++; console.error(`  SELFTEST FAIL: live guard sites given a conjunct: ${caught} of ${sites} caught`); }
         console.log(`  live guard sites given a conjunct: ${caught} of ${sites} caught`);
     }
+    // EVERY LIVE FREE HELPER SITE, ITS PATH MADE BILLED (Rule 90 for task 3, on
+    // the real source): '/v4/sports' becomes '/v4/sports/x/odds', and with no
+    // guard beside it the site must go red.
+    {
+        let sites = 0, caught = 0;
+        for (const f of FILES) {
+            const raw = readFileSync(f, 'utf8');
+            for (const h of helperScan(f, raw).filter((x) => x.kind === 'helper:sports-list')) {
+                sites++;
+                const lines = raw.split('\n');
+                const at = lines.findIndex((L, n) => n >= h.line - 1 && /oddsUrl\s*\(\s*'\/v4\/sports'/.test(L));
+                if (at < 0) { console.error(`  SELFTEST FAIL: ${f}:${h.line}: no literal oddsUrl('/v4/sports' to edit — NOTHING MUTATED`); continue; }
+                lines[at] = lines[at].replace(/oddsUrl\(\s*'\/v4\/sports'/, "oddsUrl('/v4/sports/x/odds'");
+                if (helperScan(f, lines.join('\n')).some((x) => x.kind === 'helper' && !x.ok)) caught++;
+                else console.error(`  SELFTEST FAIL: ${f}:${h.line}: its path made billed, and nothing went red`);
+            }
+        }
+        if (sites > 0 && caught === sites) pass++;
+        else { fail++; console.error(`  SELFTEST FAIL: live free helper sites made billed: ${caught} of ${sites} caught`); }
+        console.log(`  live free helper sites made billed: ${caught} of ${sites} caught`);
+    }
     // THE PROXY'S ONE CONJUNCT, written exactly (condition-and-exit task 1).
     {
         const P = (cond) => `
@@ -828,11 +942,20 @@ const okCost = await costTests();
 let findings = [];
 for (const f of FILES) findings = findings.concat(scan(f, readFileSync(f, 'utf8')));
 
+let helperFindings = [];
+for (const f of FILES) helperFindings = helperFindings.concat(helperScan(f, readFileSync(f, 'utf8')));
+
 const bad = findings.filter(x => !x.ok);
-console.log(`  call sites: ${findings.length} found, ${findings.length - bad.length} accounted`);
+const helperBad = helperFindings.filter(x => !x.ok);
+console.log(`  call sites by vendor URL: ${findings.length} found, ${findings.length - bad.length} accounted`);
 for (const x of findings) {
     console.log(`    ${x.ok ? 'ok  ' : 'FAIL'} ${x.file}:${x.line} [${x.kind}]${x.ok ? '' : ' — ' + x.why}`);
 }
+console.log(`  call sites built by oddsUrl/oddsFetchWithFallback: ${helperFindings.length} found, ${helperFindings.length - helperBad.length} accounted`);
+for (const x of helperFindings) {
+    console.log(`    ${x.ok ? 'ok  ' : 'FAIL'} ${x.file}:${x.line} [${x.kind}]${x.ok ? '' : ' — ' + x.why}`);
+}
+console.log('  SCOPE: not seen — a vendor URL built by any other function, or passed in from elsewhere; and a refusal or a call made through any helper other than fetch, relayFetch, oddsFetchWithFallback.');
 
 // A ratchet on the count, so a NEW odds call site is visible even if it is
 // correctly guarded. This table is how the worker spends money; it should not
@@ -845,6 +968,13 @@ const EXPECTED_SITES = 10;
 if (findings.length !== EXPECTED_SITES) {
     console.error(`  FAIL: expected ${EXPECTED_SITES} odds call sites, found ${findings.length}.`);
     console.error(`  If this is a deliberate add or removal, update EXPECTED_SITES in this file in the same commit.`);
+}
+// The same ratchet for helper-built calls (task 3, 2026-10-19): the /odds/*
+// proxy's oddsUrl, and oddsProviderQuota's sports-list oddsFetchWithFallback.
+const EXPECTED_HELPER_SITES = 2;
+if (helperFindings.length !== EXPECTED_HELPER_SITES) {
+    console.error(`  FAIL: expected ${EXPECTED_HELPER_SITES} helper-built odds call sites, found ${helperFindings.length}.`);
+    console.error(`  If this is a deliberate add or removal, update EXPECTED_HELPER_SITES in this file in the same commit.`);
 }
 
 // The tenth site, which the scan above CANNOT see and must not pretend to.
@@ -880,6 +1010,7 @@ if (!proxyOk) {
     console.error('  It must call oddsBillablePath() and charge oddsCreditCost() through consumeOddsCredit().');
 }
 
-const ok = okSelf && okCost && bad.length === 0 && findings.length === EXPECTED_SITES && proxyOk;
+const ok = okSelf && okCost && bad.length === 0 && findings.length === EXPECTED_SITES
+    && helperBad.length === 0 && helperFindings.length === EXPECTED_HELPER_SITES && proxyOk;
 console.log(ok ? 'PASS — every odds call is charged to the monthly ledger' : 'FAIL');
 process.exit(ok ? 0 : 1);

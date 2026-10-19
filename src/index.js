@@ -828,6 +828,14 @@ async function oddsProviderQuota(env) {
             return { ok: false, state: 'no-key', checked_at,
                      note: 'ODDS_API_KEY is not set. A missing credential, not an API outage.' };
         }
+        // ODDS-FREE: the sports LIST is not charged to the monthly ledger, the
+        // same labelled belief as every other /v4/sports site. This one went
+        // unlabelled until 2026-10-19 because it is built by oddsUrl() and
+        // oddsFetchWithFallback(), which the odds gate could not see
+        // (docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md, task 3).
+        // Its disproof is shared: GET /debug/odds-fallback-key returns the
+        // provider's x-requests-last for this same path, and a non-zero value
+        // there means this call needs a guard like every other.
         const { resp, error, key } = await oddsFetchWithFallback(
             env, k => oddsUrl('/v4/sports', '', k),
             { headers: { 'Accept': 'application/json' }, cf: { cacheTtl: 60, cacheEverything: true } },
