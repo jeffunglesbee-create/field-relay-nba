@@ -142,7 +142,7 @@ jobs:
         run: node scripts/check-push-cron-live-absence.mjs --self-test && node scripts/check-push-cron-live-absence.mjs
 
       # ── The odds charger's guards, on the path that deploys ─────────────────
-      # CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies, option (a). These nine
+      # CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies, option (a). The nine
       # ran only in guards.yml, which ignores src/**, so a src-only push that
       # gutted a wrapper or reverted the single batch's veto fixes deployed with
       # every runnable gate green: measured 2026-10-19, 26 of 27 odds checks
@@ -194,6 +194,24 @@ jobs:
 
       - name: The backfill cannot pay for a payload and pair none of it
         run: node scripts/watch-odds-pairing-rate.mjs --self-test
+
+      # Three more odds guards that read src/ and ran only in guards.yml, found
+      # by the 2026-10-19 review's census (the CC-CMD's filename regex missed
+      # them: 'reconcile', 'lambdas' and 'tables' match none of its words).
+      - name: the WC lambda call stays gated, and the sport list stays one list
+        run: |
+          node scripts/check-wc-lambdas-gated.mjs --self-test
+          node scripts/check-wc-lambdas-gated.mjs
+
+      - name: reconcile counts every call once, with no read
+        run: |
+          node scripts/check-reconcile-tally.mjs --self-test
+          node scripts/check-reconcile-tally.mjs
+
+      - name: every table a script creates is on the /d1/execute allow-list
+        run: |
+          node scripts/check-script-created-tables.mjs --self-test
+          node scripts/check-script-created-tables.mjs
 
       # Blocking. The BSD event row carries fields that are null on most rows
       # and false on many others, and the two must never be confused: collapse
