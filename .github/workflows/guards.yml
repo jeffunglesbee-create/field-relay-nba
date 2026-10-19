@@ -20,8 +20,12 @@ name: Repo guards
 # by running the checks by hand two commits later.
 #
 # `paths-ignore` here mirrors deploy.yml's `paths`, so on a src-only push this
-# job does not run and deploy.yml's copies do. A mixed push runs both; that is
-# ~20 seconds and worth it.
+# job does not run, and ONLY the guards that deploy.yml also carries run. That
+# was not every guard: until 2026-10-19 nine odds guards lived here alone, and a
+# src-only push that gutted an odds wrapper deployed green
+# (docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md). A guard that
+# reads src/ must have a copy in deploy.yml; one here alone does not stop a
+# deploy. A mixed push runs both; that is ~20 seconds and worth it.
 
 on:
   push:

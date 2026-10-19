@@ -141,6 +141,60 @@ jobs:
       - name: The push cron's live-game half stays absent, and says so
         run: node scripts/check-push-cron-live-absence.mjs --self-test && node scripts/check-push-cron-live-absence.mjs
 
+      # ── The odds charger's guards, on the path that deploys ─────────────────
+      # CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies, option (a). These nine
+      # ran only in guards.yml, which ignores src/**, so a src-only push that
+      # gutted a wrapper or reverted the single batch's veto fixes deployed with
+      # every runnable gate green: measured 2026-10-19, 26 of 27 odds checks
+      # passed a wrapper reduced to `return true;` and only check-monthly-atomic
+      # (here, now) caught it (outbox/odds-gate-wrapper-sweep-2026-10-19.log).
+      # Copied verbatim from guards.yml, which keeps its own copies for
+      # scripts-only pushes. Each blocks the deploy step below.
+      - name: a degrade-open names its error and counts it by reason
+        run: |
+          node scripts/check-degrade-open-reason.mjs --self-test
+          node scripts/check-degrade-open-reason.mjs
+
+      - name: a batch and the helper reading it agree on their statement count
+        run: |
+          node scripts/check-batch-order.mjs --self-test
+          node scripts/check-batch-order.mjs
+
+      - name: the odds-live 404 path returns before the charge
+        run: |
+          node scripts/check-odds-live-disabled.mjs --self-test
+          node scripts/check-odds-live-disabled.mjs
+
+      - name: the odds budget schema is on ARCHIVE_DB and readable from CI
+        run: |
+          node scripts/check-odds-budget-schema.mjs --self-test
+          node scripts/mutate-odds-budget-schema.mjs
+          node scripts/check-odds-budget-schema.mjs
+
+      - name: the monthly charge is atomic and its ceiling binds
+        run: |
+          node scripts/check-monthly-atomic.mjs
+          node scripts/mutate-monthly-atomic.mjs
+
+      - name: the monthly odds counter has not grown another non-atomic writer
+        run: |
+          node scripts/check-monthly-counter-writers.mjs --self-test
+          node scripts/check-monthly-counter-writers.mjs
+
+      - name: a ceiling veto is readable from /budget/odds
+        run: |
+          node scripts/check-ceiling-reached.mjs
+          node scripts/mutate-ceiling-reached.mjs
+
+      - name: the odds budget batch keeps its order and its ceilings
+        run: |
+          node scripts/check-odds-budget-batch.mjs --self-test
+          node scripts/mutate-odds-budget-batch.mjs
+          node scripts/check-odds-budget-batch.mjs
+
+      - name: The backfill cannot pay for a payload and pair none of it
+        run: node scripts/watch-odds-pairing-rate.mjs --self-test
+
       # Blocking. The BSD event row carries fields that are null on most rows
       # and false on many others, and the two must never be confused: collapse
       # absence into 0 and a brief reports a crowd of nobody; collapse `false`
