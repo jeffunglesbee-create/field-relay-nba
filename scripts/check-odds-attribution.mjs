@@ -17,7 +17,9 @@
 // anchor — it asserts the odds-live 404 guard returns BEFORE that line — and
 // makes no guarded call of its own. Same reason as the two above, and named
 // here rather than letting the list be quietly shorter than the population.
-// SCOPE-EXCLUDES: scripts/check-odds-calls-guarded.mjs scripts/mutate-odds-attribution.mjs scripts/check-odds-live-disabled.mjs
+// mutate-deploy-odds-wrappers.mjs quotes guard call sites as mutation anchors
+// (2026-10-19) and makes no guarded call; excluded for the same reason.
+// SCOPE-EXCLUDES: scripts/check-odds-calls-guarded.mjs scripts/mutate-odds-attribution.mjs scripts/check-odds-live-disabled.mjs scripts/mutate-deploy-odds-wrappers.mjs
 //
 // THIS FILE ALSO SCANS reconcileOddsCredit as of 2026-09-16, and its population
 // is the same three files by construction: the equality it asserts is between

@@ -9,6 +9,11 @@
 //   - charges, then drops the verdict                -> must turn deploy.yml red
 //   - returns early whenever KV is bound (one `!`)   -> must turn deploy.yml red
 //   - names the verdict, then returns it             -> must stay GREEN
+// and, since the final review pass of 2026-10-19, the guard SITES are edited in
+// place (SITES below): a refusal that only logs, or a dropped verdict, must
+// turn deploy.yml red; three correct rewrites of the ambient live poll's guard
+// and charge must not. Site anchors are exact text, each asserted to match
+// once, so a stale anchor FAILS as NOTHING MUTATED rather than passing.
 // A CONTROL, HEAD unmutated, must be all green first, or no verdict is printed.
 //
 // The steps run are READ FROM deploy.yml AT HEAD, out of the same archive the
@@ -75,8 +80,29 @@ const BODIES = [
   { expect: 'red',   label: 'returns early whenever KV is bound (one `!` gone)', body: ['if (!env || env.FIELD_JOURNALISM) return true;', 'return chargeOdds(env, units, site);'] },
   { expect: 'green', label: 'the verdict is named, then returned (equivalent)', body: [KV, 'const charged = await chargeOdds(env, units, site);', 'return charged;'] },
 ];
+const AMB_CHARGE = "            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl('')), 'ambientFetchLiveOdds'))) return;";
+const PROXY_IF = "if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(targetUrl), 'oddsProxyRoute'))) {";
+const PROXY_RET = "                return new Response(JSON.stringify({ ok: false, guarded: true,\n                    error: 'odds credit guard declined this call' }),\n                    { status: 429, headers: { 'X-RELAY-Error': 'odds-credit-guard', ...CORS, 'Content-Type': 'application/json' } });";
+const SITES = [
+  { expect: 'green', file: 'src/ambient-do.js', label: 'live poll: the cost hoisted into a const (equivalent)', from: AMB_CHARGE,
+    to: "            const liveCost = oddsCreditCost(buildUrl(''));\n            if (!(await _consumeAmbientOddsCredit(this.env, liveCost, 'ambientFetchLiveOdds'))) return;" },
+  { expect: 'green', file: 'src/ambient-do.js', label: 'live poll: the charge wrapped across lines (equivalent)', from: AMB_CHARGE,
+    to: "            if (!(await _consumeAmbientOddsCredit(\n                this.env, oddsCreditCost(buildUrl('')), 'ambientFetchLiveOdds'))) return;" },
+  { expect: 'green', file: 'src/ambient-do.js', label: 'live poll: the 404 guard written with braces (equivalent)',
+    from: '        if (ODDS_LIVE_PATH_404) return;', to: '        if (ODDS_LIVE_PATH_404) { return; }' },
+  { expect: 'red', file: 'src/index.js', label: '/odds/* proxy: charged, the verdict dropped', from: PROXY_IF,
+    to: "if (oddsBillablePath(cleanPath)) await consumeOddsCredit(env, oddsCreditCost(targetUrl), 'oddsProxyRoute');\n            if (false) {" },
+  { expect: 'red', file: 'src/index.js', label: '/odds/* proxy: the refusal only logs', from: PROXY_RET,
+    to: "                console.warn('[odds proxy] over budget');" },
+  { expect: 'red', file: 'src/wp-resolver.js', label: 'wp-resolver: the refusal only logs',
+    from: '        return { games: [], quotaRemaining: null, ok: false, guarded: true };', to: "        console.warn('[wp-resolver] over budget');" },
+  { expect: 'red', file: 'src/ambient-do.js', label: 'closing capture: the refusal logs and no longer returns',
+    from: "            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return;",
+    to: "            console.warn('[closing-odds] odds credit guard declined — skipping capture');" },
+];
 const CASES = [];
 for (const [key, w] of Object.entries(W)) for (const b of BODIES) CASES.push({ key, expect: b.expect, name: `${w.path}: ${b.label}`, body: b.body });
+for (const t of SITES) CASES.push({ site: t, expect: t.expect, name: `${t.file}: ${t.label}` });
 
 function replaceWrapper(text, w, body) {
   const i = text.indexOf(`async function ${w.name}(`);
@@ -101,6 +127,14 @@ async function runCase(c) {
       const next = replaceWrapper(readFileSync(join(dir, w.path), 'utf8'), w, c.body);
       if (next == null) return { c, error: `${w.name} was not found in ${w.path} — NOTHING MUTATED` };
       writeFileSync(join(dir, w.path), next);
+    }
+    if (c.site) {
+      const t = readFileSync(join(dir, c.site.file), 'utf8');
+      const n = t.split(c.site.from).length - 1;
+      if (n !== 1) return { c, error: `anchor matched ${n} times in ${c.site.file}, expected 1 — NOTHING MUTATED` };
+      writeFileSync(join(dir, c.site.file), t.replace(c.site.from, c.site.to));
+      const chk = spawnSync('node', ['--check', c.site.file], { cwd: dir, encoding: 'utf8' });
+      if (chk.status !== 0) return { c, error: `the mutant does not parse: ${chk.stderr.split('\n').find(Boolean)}` };
     }
     git(dir, 'init', '-q'); git(dir, 'add', '-A');
     git(dir, '-c', 'user.email=harness@local', '-c', 'user.name=harness', 'commit', '-q', '-m', c.name);
@@ -145,5 +179,5 @@ for (const r of results) {
 }
 const reds = CASES.filter((c) => c.expect === 'red').length;
 console.log(`\n${ok} of ${CASES.length} cases as expected (control green first): ${reds} mutants must turn a step red, ${CASES.length - reds} equivalents must leave all ${steps.length} odds steps green.`);
-console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each. Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
+console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each, plus ${SITES.length} edits at 4 of the 9 guard sites (the other 5 are covered by check-odds-calls-guarded's own live log-only self-test, not by this harness). Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
 process.exit(ok === CASES.length ? 0 : 1);
