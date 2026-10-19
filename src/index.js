@@ -5562,11 +5562,16 @@ async function handleCron(env) {
     // all 8 SPORT_CONFIG paths: espnGambitAllowed returned false for each.
     //
     // Ruled 2026-10-18 (docs/CC-CMD-2026-10-14-push-cron-gambit-path.md):
-    // delete it, do not repair it. ADR-002 Rule A: the relay serves on pull and
-    // never pushes a value-based alert unprompted, and a late-and-close push is
-    // one. jubilant-bassoon's sw.js still handles SCORE_CHANGE; nothing in this
-    // relay sends it any more. scripts/check-push-cron-live-absence.mjs guards
-    // this paragraph and the absence it describes.
+    // delete it, do not repair it. Deleting changed no behaviour, and a
+    // `continue` on a 403 that reads as "no live games" is the shape most
+    // likely to hide again. Whether a relay live-game push is permitted at all
+    // is an ADR-002 question this deletion does not settle: the ruling cited
+    // Rule A against it, while jubilant-bassoon docs/ADR-002-CONTEXT.md Rule B
+    // describes boolean-gated SCORE_CHANGE pushes as permitted. Restoring one
+    // needs the owner to resolve that first. jubilant-bassoon's sw.js still
+    // handles SCORE_CHANGE; nothing in this relay sends it any more.
+    // scripts/check-push-cron-live-absence.mjs guards this paragraph and the
+    // absence it describes.
 }
 
 // ── O(1) Newspaper: Journalism Cycle (Layer 2 — May 25 2026) ─────────────────

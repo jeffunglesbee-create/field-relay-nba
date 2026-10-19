@@ -9,9 +9,11 @@
 // period nobody measured. It was deleted on 2026-10-19.
 //
 // The ruling asked for a STATED absence: a silent removal leaves the next
-// session to read the gap as an oversight and put the loop back. Restoring a
-// late-and-close push reopens ADR-002 Rule A (the relay serves on pull, never
-// pushes a value-based alert unprompted). So this fails when:
+// session to read the gap as an oversight and put the loop back. Whether a
+// relay live-game push is permitted is an open ADR-002 question for the owner
+// (the ruling cited Rule A against it; ADR-002-CONTEXT.md Rule B describes
+// boolean-gated SCORE_CHANGE pushes as permitted), so a restore must be a
+// visible, reviewed change, never a quiet one. So this fails when:
 //   1. any src file again names the gambit site-API scoreboard path;
 //   2. any src file quotes 'SCORE_CHANGE' (the producer, in any spelling);
 //   3. any src file's count of sendWebPush references leaves its pin: a new
@@ -61,7 +63,7 @@ export function findings(files) {
     if (SCORE_CHANGE_QUOTED.test(text)) out.push(`${p} builds a SCORE_CHANGE payload (a quoted 'SCORE_CHANGE') — the live-game push producer is back`);
     const refs = (stripLineComments(text).match(/\bsendWebPush\b/g) || []).length;
     const pin = SEND_WEB_PUSH_PINS[p] || 0;
-    if (refs !== pin) out.push(`${p} references sendWebPush ${refs} time(s), pinned at ${pin} — a new push sender needs the ADR-002 Rule A review before this pin moves`);
+    if (refs !== pin) out.push(`${p} references sendWebPush ${refs} time(s), pinned at ${pin} — a new push sender needs an ADR-002 review before this pin moves`);
   }
   const index = files['src/index.js'];
   const body = index == null ? null : handleCronBody(index);
@@ -70,7 +72,7 @@ export function findings(files) {
     return out;
   }
   const code = stripLineComments(body);
-  if (/scoreboard/i.test(code)) out.push('handleCron fetches a scoreboard — a live-game poll, repaired or not, needs the ADR-002 review the ruling declined');
+  if (/scoreboard/i.test(code)) out.push('handleCron fetches a scoreboard — a live-game poll, repaired or not, needs an ADR-002 decision by the owner first');
   if (/\bSPORT_CONFIG\b/.test(code)) out.push('handleCron reads SPORT_CONFIG — the per-sport live-game loop is back');
   if (/\bsendWebPush\b/.test(code)) out.push('handleCron sends a push itself — the fan-out after the deleted loop is back');
   if (!body.includes(MARKER) || !body.includes(RULING)) out.push(`handleCron lost its stated-absence paragraph ("${MARKER}", citing ${RULING}) — a silent gap reads as an oversight`);
