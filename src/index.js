@@ -174,7 +174,7 @@ import {
 // Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
-import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, recomputePhase, recomputeMorningReport, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES, checkSignatureEventCalendar } from './analytics-engine.js';
+import { analyticsEngine, recomputeNightStars, recomputePhase, recomputeMorningReport, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES, checkSignatureEventCalendar } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
@@ -184,9 +184,11 @@ import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
 // Plumbing/telemetry only (Rule 47 — records success/failure of operations
 // that already happen; computes nothing, no composite interest/drama value).
 // No existing relay-side telemetry store found to extend (confirmed via
-// grep: the sole `captureFieldError` reference at the push-send catch block
-// is an undefined global — typeof-guarded so it silently never fires —
+// grep: the sole `captureFieldError` reference, at the push-send catch block,
+// was an undefined global — typeof-guarded so it silently never fired —
 // vestigial, not a real store; left untouched, out of this CC-CMD's scope).
+// That block went on 2026-10-19 with the push cron's live-game loop, so no
+// reference remains.
 const RELAY_OPERATIONS = {
     recordFailure(failure) {
         console.error(JSON.stringify({ type: 'relay_operation_failure', ...failure }));
@@ -5545,103 +5547,26 @@ async function handleCron(env) {
 
     // ── Tubi free-game pre-game alert (independent of live-game check) ────────
     await handleTubiPreGameAlerts(env);
-    const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
-    // ── Multi-sport ESPN polling ──────────────────────────────────
-    // SPORT_CONFIG imported from analytics-engine.js (shared constant).
-    // minPeriod/maxMargin are per-dimension FACTUAL gates over raw game
-    // state (late phase, close margin). They are separate logical gates,
-    // never summed into a score. No dramaBase — no composite exists.
-    const live = [];
-    for (const cfg of SPORT_CONFIG) {
-        try {
-            const r = await fetch(`${RELAY}/espn-gambit/apis/site/v2/sports/${cfg.path}/scoreboard`);
-            if (!r.ok) continue;
-            const d = await r.json();
-            const games = d?.events || [];
-
-            for (const ev of games) {
-                const comp = ev.competitions?.[0];
-                if (!comp) continue;
-                const status = comp.status?.type;
-                if (status?.completed) continue;
-                const detail = comp.status?.detail || '';
-                // Must be live (has period/time indicator)
-                if (!detail.includes('Q') && !detail.includes('P') && !detail.includes('H') &&
-                    !detail.includes("'") && !detail.includes('Inn') && !detail.includes('Top') &&
-                    !detail.includes('Bot') && !detail.includes('End')) continue;
-                const period = comp.status?.period || 0;
-                const [home, away] = comp.competitors || [];
-                const hScore = parseInt(home?.score||'0');
-                const aScore = parseInt(away?.score||'0');
-                const margin = Math.abs(hScore - aScore);
-
-                // STANDALONE BOOLEAN (ADR-002 Rule D): late phase AND close
-                // margin — two raw-data dimensional gates, logically ANDed.
-                // No score, no sum, no aggregated-value threshold.
-                const latePhase = period >= cfg.minPeriod;
-                const closeGame = margin <= cfg.maxMargin;
-                if (!(latePhase && closeGame)) continue;
-
-                const broadcast = comp.broadcasts?.[0]?.names?.[0] || cfg.sport;
-                live.push({
-                    type: 'SCORE_CHANGE',          // facts only — client evaluates excitement
-                    gameId: ev.id,
-                    sport: cfg.sport,
-                    home: home?.team?.shortDisplayName || home?.team?.name || '',
-                    away: away?.team?.shortDisplayName || away?.team?.name || '',
-                    homeScore: hScore, awayScore: aScore,
-                    period: comp.status?.type?.shortDetail || detail || `Period ${period}`,
-                    clock: comp.status?.displayClock || '',
-                    broadcast,
-                    watchUrl: null,
-                });
-            }
-        } catch (e) { console.error("[PUSH-CRON] sport poll failed:", e.message); /* sport unavailable — skip */ }
-    }
-
-    if (!live.length) return;
-
-    // Get all subscribers — load all keys + values in parallel then fan out
-    // Old pattern: sequential KV.get per subscriber per game — O(subscribers × games) serial.
-    // New pattern: parallel key reads, then parallel push sends.
-    // ctx.waitUntil not available here (handleCron is already inside waitUntil).
-    // Promise.allSettled parallelises the sends; push is best-effort so no retry needed.
-    const list = await env.PUSH_SUBS.list();
-    // Parallel-load all subscriber records
-    const subRecords = await Promise.allSettled(
-        list.keys.map(async key => {
-            const raw = await env.PUSH_SUBS.get(key.name);
-            if (!raw) return null;
-            try {
-                const subData = JSON.parse(raw);
-                if (!subData.subscription?.endpoint) return null;
-                return { keyName: key.name, sub: subData.subscription, prefs: subData.prefs || {} };
-            } catch(_) { return null; }
-        })
-    );
-    const subs = subRecords.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean);
-
-    // Parallel fan-out: one send per (subscriber × game) pair, deduped
-    await Promise.allSettled(subs.flatMap(({ keyName, sub, prefs }) => {
-        const sportAllow = Array.isArray(prefs.sports) ? prefs.sports : null;
-        return live
-            .filter(game => !sportAllow || sportAllow.includes(game.sport))
-            .map(async game => {
-                const firedKey = `${keyName}:${game.gameId}:${game.homeScore}-${game.awayScore}`;
-                const alreadyFired = await env.PUSH_SUBS.get(firedKey);
-                if (alreadyFired) return;
-                try {
-                    const res = await sendWebPush(sub, game, env);
-                    if (res.ok || res.status === 201) {
-                        await env.PUSH_SUBS.put(firedKey, '1', {expirationTtl: 28800});
-                    }
-                } catch(e) {
-                    if (typeof captureFieldError === 'function')
-                        captureFieldError('push-send', e.message);
-                }
-            });
-    }));
+    // THE LIVE-GAME HALF OF THIS HEARTBEAT DOES NOT EXIST, AND THAT IS A
+    // DECISION, NOT AN OVERSIGHT. Do not restore it without reopening the
+    // ruling below.
+    //
+    // Until 2026-10-19 a loop here polled the /espn-gambit proxy for each
+    // SPORT_CONFIG sport's site-API scoreboard, kept games past a late-phase
+    // and close-margin gate, and pushed them to every subscriber as
+    // SCORE_CHANGE. /espn-gambit allows only /apis/v1/challenges/
+    // (espnGambitAllowed), so every poll got a 403 and `continue`d --
+    // indistinguishable from "no live games" -- and the loop pushed nothing,
+    // for a period nobody measured and nobody noticed. Executed 2026-10-19 on
+    // all 8 SPORT_CONFIG paths: espnGambitAllowed returned false for each.
+    //
+    // Ruled 2026-10-18 (docs/CC-CMD-2026-10-14-push-cron-gambit-path.md):
+    // delete it, do not repair it. ADR-002 Rule A: the relay serves on pull and
+    // never pushes a value-based alert unprompted, and a late-and-close push is
+    // one. jubilant-bassoon's sw.js still handles SCORE_CHANGE; nothing in this
+    // relay sends it any more. scripts/check-push-cron-live-absence.mjs guards
+    // this paragraph and the absence it describes.
 }
 
 // ── O(1) Newspaper: Journalism Cycle (Layer 2 — May 25 2026) ─────────────────
