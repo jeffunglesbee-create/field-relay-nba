@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (dead path) — touches push, so ADR-002 Rule A applies
-**Status:** **RULED 2026-10-18 — option 1, delete the loop.** Ready to dispatch; the ruling is below and amends the done condition.
+**Status:** **DONE 2026-10-19** — option 1 landed as `32f7b596`..`2ebddc86`. Deploy run 39194042279 is green, with the absence guard passing in it. All three done-condition probes pass. Session doc: `outbox/cc-session-2026-10-19-push-cron-gambit-path.md`. The client half is filed as jubilant-bassoon `docs/CC-CMD-2026-10-19-sw-score-change-has-no-producer.md`. One ADR-002 question stays open for the owner; see the correction under the ruling.
 
 ## What was measured
 
@@ -71,6 +71,25 @@ Record, beside the code the deletion touches, one line saying that the
 live-game half of the push heartbeat does not exist and why (ADR-002 Rule A,
 and this ruling). The string check below then guards the decision and not only
 the deletion.
+
+## Correction, 2026-10-19 (CC, at dispatch; the ruling above is unaltered)
+
+The ruling's second reason says ADR-002 Rule A "has already answered" a
+late-and-close relay push. jubilant-bassoon `docs/ADR-002-CONTEXT.md`
+**Rule B** says the opposite: the relay's boolean `latePhase && closeGame`
+gates "remain free to trigger the existing `SCORE_CHANGE` push path directly,
+exactly as before". The adversarial review of the deletion found this, and it
+was confirmed against the ADR text.
+
+- **The decision stands without that reason**, on reasons 1 and 3: deleting
+  changed no behaviour, and a `continue` on a 403 that reads as "no live
+  games" is the shape most likely to hide again.
+- **The ADR-002 question is open, and it is the owner's.** Is a relay push
+  gated by raw-state booleans permitted (Rule B), or is it an unprompted
+  value-based alert (Rule A, as reason 2 read it)? Code comments do not settle
+  patent-compliance questions (Rule 45). The stated-absence paragraph in
+  handleCron records the disagreement and says a restore needs it resolved
+  first.
 
 ## Done condition
 
