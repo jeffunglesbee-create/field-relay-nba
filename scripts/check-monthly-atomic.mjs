@@ -331,23 +331,35 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
 }
 
 // ── The wiring: one implementation, three delegating call sites ───────────
-// THE VERDICT MUST BE RETURNED, IN ANY EQUIVALENT SPELLING. Exact text
-// (`return chargeOdds(env, units, site);`) failed `const charged = await
-// chargeOdds(env, units, site); return charged;`, which behaves identically,
-// so wiring this into deploy.yml would have blocked a deploy on correct code
-// (docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md, TASK 0.4).
-// Accepted:
-//   return [await] chargeOdds(env, units, site);
-//   const x = await chargeOdds(env, units, site);  ...  return x;
-// A verdict that is computed and then dropped (`return true;`) is not.
-function returnsChargeVerdict(text) {
-  // Whole-line comments out first, so a commented-out return is not a return.
-  const body = text.replace(/^[ \t]*\/\/.*$/gm, '');
-  if (/\breturn\s+(?:await\s+)?chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;/.test(body)) return true;
-  const m = /\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;/.exec(body);
-  if (!m) return false;
-  const after = body.slice(m.index + m[0].length);
-  return new RegExp(`\\breturn\\s+${m[1].replace(/\$/g, '\\$')}\\s*;`).test(after);
+// THE WRAPPER IS RUN, NOT READ. Two text checks failed here in turn. Exact
+// text (`return chargeOdds(env, units, site);`) rejected
+// `const charged = await chargeOdds(...); return charged;`, which behaves the
+// same, so on the deploy path it would block correct code. The pattern that
+// replaced it accepted `let x = await chargeOdds(...); x = true; return x;`,
+// a log-and-allow `if (!charged) return true;`, and an early `return true;`
+// above the delegation: each drops the verdict, and each passed all 22 odds
+// steps of deploy.yml (2026-10-19 adversarial review). So the wrapper's own
+// source is evaluated against a stub chargeOdds. A refusal must come back as
+// false, a grant as true, each after exactly one charge with (env, units, site).
+// Any spelling that does that passes; any that does not fails.
+async function wrapperVerdicts(text, name) {
+  const i = text.indexOf(`async function ${name}(`);
+  const j = i < 0 ? -1 : text.indexOf('\n}\n', i);
+  if (i < 0 || j < 0) return { error: `${name} was not found` };
+  let reply = null;
+  const calls = [];
+  const stub = async (...a) => { calls.push(a); return reply; };
+  let fn;
+  try { fn = new Function('chargeOdds', `${text.slice(i, j + 2)}\nreturn ${name};`)(stub); }
+  catch (e) { return { error: `${name} does not evaluate on its own: ${e.message}` }; }
+  const env = { FIELD_JOURNALISM: {} };
+  const out = {};
+  for (const r of [false, true]) {
+    calls.length = 0; reply = r;
+    try { out[r] = { got: await fn(env, 3, 'probe'), calls: calls.map((c) => [c[0] === env, c[1], c[2]]) }; }
+    catch (e) { return { error: `${name} threw: ${e.message}` }; }
+  }
+  return out;
 }
 const files = {
   'src/index.js':       [readFileSync(process.env.INDEX_SRC || 'src/index.js', 'utf8'), 'consumeOddsCredit'],
@@ -358,8 +370,14 @@ for (const [f, [text, name]] of Object.entries(files)) {
   const i = text.indexOf(`async function ${name}(`);
   const j = i < 0 ? -1 : text.indexOf('\n}\n', i);
   const body = (i < 0 || j < 0) ? '' : text.slice(i, j);
-  ok(`${f} ${name} delegates to chargeOdds, with its site`, returnsChargeVerdict(body),
-    body ? 'the wrapper no longer returns the one batch\'s verdict, site included: a refusal would not stop the call' : `${name} was not found`);
+  const v = await wrapperVerdicts(text, name);
+  const once = (x) => !!x && JSON.stringify(x.calls) === JSON.stringify([[true, 3, 'probe']]);
+  ok(`${f} ${name} returns a refusal as a refusal, after one charge with (env, units, site)`,
+    !v.error && v.false.got === false && once(v.false),
+    v.error || `chargeOdds said false; the wrapper returned ${JSON.stringify(v.false.got)} after ${JSON.stringify(v.false.calls)} — a refused call would spend at the vendor`);
+  ok(`${f} ${name} returns a grant as a grant, after one charge with (env, units, site)`,
+    !v.error && v.true.got === true && once(v.true),
+    v.error || `chargeOdds said true; the wrapper returned ${JSON.stringify(v.true.got)} after ${JSON.stringify(v.true.calls)}`);
   ok(`${f} ${name} references neither removed charger`, !!body && !/checkAndIncrementDailyOdds\(|chargeMonthlyOdds\(/.test(body),
     'the day and the month charged in two calls is the split this change removed');
   ok(`${f} imports neither removed charger`,

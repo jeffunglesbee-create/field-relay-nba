@@ -49,34 +49,24 @@ const MONTH_CHARGE = "const SQL_MONTH_CHARGE = `UPDATE odds_budget_month SET use
 const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'site', 'monthCharge', 'charge'];";
 const order = (keys) => `export const ODDS_CHARGE_ORDER = [${keys.map((k) => `'${k}'`).join(', ')}];`;
 
-// THE WRAPPER'S DELEGATION, FOUND BY SHAPE, NOT BY TEXT. These mutants used to
-// anchor on the exact line `return chargeOdds(env, units, site);`. Once this
-// harness ran in deploy.yml, a correct rewrite of a wrapper (`const charged =
-// await chargeOdds(...); return charged;`) matched 0 anchors, reported NOTHING
-// MUTATED, and blocked the deploy on correct code: measured 2026-10-19 by
-// scripts/mutate-deploy-odds-wrappers.mjs. DELEG resolves to whichever
-// accepted spelling the wrapper uses, and must find exactly one.
-const DELEG = Symbol('the wrapper delegation');
+// THE WRAPPER IS REPLACED WHOLE, NOT EDITED AT A LINE. These mutants first
+// anchored on the exact line `return chargeOdds(env, units, site);`, so with
+// this harness in deploy.yml a correct rewrite of a wrapper matched 0 anchors
+// and blocked the deploy. A shape regex fixed that only for the spellings it
+// knew. FN instead swaps the whole function, found by name exactly as the
+// check finds it, for a body written here; the original signature line is
+// kept. So no spelling of the current body can make a case go NOTHING MUTATED.
+const FN = Symbol('the whole wrapper');
 const WRAPPER_NAME = { index: 'consumeOddsCredit', wp: 'consumeOddsCredit', ambient: '_consumeAmbientOddsCredit' };
-function delegationSpan(target, text) {
-  const i = text.indexOf(`async function ${WRAPPER_NAME[target]}(`);
-  const j = i < 0 ? -1 : text.indexOf('\n}\n', i);
-  if (i < 0 || j < 0) return { error: `${WRAPPER_NAME[target]} was not found` };
-  const body = text.slice(i, j + 1);
-  const forms = [
-    /^([ \t]*)return\s+(?:await\s+)?chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;[^\n]*\n/gm,
-    /^([ \t]*)(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;[^\n]*\n(?:[^\n]*\n)*?\1return\s+\2\s*;[^\n]*\n/gm,
-  ];
-  const hits = forms.flatMap((re) => [...body.matchAll(re)]);
-  if (hits.length !== 1) return { error: `found ${hits.length} delegation statement(s) in ${WRAPPER_NAME[target]}, expected 1` };
-  const h = hits[0];
-  return { start: i + h.index, end: i + h.index + h[0].length, indent: h[1] };
-}
+const KV_GUARD = 'if (!env || !env.FIELD_JOURNALISM) return true;';
 function applyEdit(target, original, anchor, repl) {
-  if (anchor === DELEG) {
-    const s = delegationSpan(target, original);
-    if (s.error) return { error: `${s.error} — NOTHING MUTATED` };
-    return { text: original.slice(0, s.start) + repl(s.indent) + original.slice(s.end) };
+  if (anchor === FN) {
+    const i = original.indexOf(`async function ${WRAPPER_NAME[target]}(`);
+    const j = i < 0 ? -1 : original.indexOf('\n}\n', i);
+    if (i < 0 || j < 0) return { error: `${WRAPPER_NAME[target]} was not found — NOTHING MUTATED` };
+    const sig = original.slice(i, original.indexOf('\n', i));
+    const body = repl.map((l) => `    ${l}`).join('\n');
+    return { text: `${original.slice(0, i)}${sig}\n${body}\n}${original.slice(j + 2)}` };
   }
   const hits = original.split(anchor).length - 1;
   if (hits !== 1) return { error: `anchor matched ${hits} times in ${TARGETS[target].path}, expected 1 — NOTHING MUTATED` };
@@ -202,32 +192,45 @@ const MUTATIONS = [
    'a rejection String() cannot convert throws out of the veto catch into the outer one, which degrades open and lets the refused call spend'],
 
   ['index', 'W1 index.js consumeOddsCredit goes back to two calls',
-   DELEG,
-   (i) => `${i}if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;\n${i}return chargeMonthlyOdds(env, units);\n`,
+   FN, [KV_GUARD, 'if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;', 'return chargeMonthlyOdds(env, units);'],
    'the day and the month charged by two calls, two batches, with room for a stop between them'],
 
   ['wp', 'W2 wp-resolver.js drops the site',
-   DELEG,
-   (i) => `${i}return chargeOdds(env, units);\n`,
+   FN, [KV_GUARD, 'return chargeOdds(env, units);'],
    "every wpResolver charge lands in by_site under 'unattributed', and nothing else notices"],
 
   // The verdict computed, then dropped: the charge lands but a refusal no
   // longer stops the call. Measured end to end on 2026-10-18: with the day at
   // its ceiling, a refused call reached the vendor with no counter moved.
   ['index', 'W5 index.js computes the verdict, then returns true',
-   DELEG,
-   (i) => `${i}const charged = await chargeOdds(env, units, site);\n${i}return true;\n`,
+   FN, [KV_GUARD, 'const charged = await chargeOdds(env, units, site);', 'return true;'],
    'every refusal from the 3,800 ceiling or the 85,000 limit is ignored: refused calls spend at the vendor'],
 
   ['wp', 'W6 wp-resolver.js keeps the return only in a comment',
-   DELEG,
-   (i) => `${i}// return chargeOdds(env, units, site);\n${i}await chargeOdds(env, units, site);\n${i}return true;\n`,
+   FN, [KV_GUARD, '// return chargeOdds(env, units, site);', 'await chargeOdds(env, units, site);', 'return true;'],
    'a commented-out return reads as delegation to a text match, and the verdict is dropped'],
 
   ['ambient', 'W3 ambient-do.js stops charging',
-   DELEG,
-   (i) => `${i}return true;\n`,
+   FN, [KV_GUARD, 'return true;'],
    'the ambient live poll and the closing-odds capture spend at the vendor and charge no counter at all'],
+
+  // From the 2026-10-19 review: each drops the verdict and each passed all 22
+  // odds steps of deploy.yml while the check read the wrapper as text.
+  ['ambient', 'X1 ambient-do.js returns early whenever KV is bound (one `!` deleted)',
+   FN, ['if (!env || env.FIELD_JOURNALISM) return true;', 'return chargeOdds(env, units, site);'],
+   'FIELD_JOURNALISM is bound in production, so every odds call returns true and charges nothing'],
+
+  ['index', 'X2 index.js names the verdict, then overwrites it',
+   FN, [KV_GUARD, 'let x = await chargeOdds(env, units, site);', 'x = true;', 'return x;'],
+   'the charge lands, the refusal is overwritten, and the refused call spends'],
+
+  ['wp', 'X3 wp-resolver.js logs a refusal and allows the call',
+   FN, [KV_GUARD, 'const charged = await chargeOdds(env, units, site);', "if (!charged) { console.warn('[odds] veto ignored', site); return true; }", 'return charged;'],
+   'a plausible log-and-allow edit: every refusal is logged and ignored'],
+
+  ['ambient', 'X5 ambient-do.js returns true above the delegation',
+   FN, [KV_GUARD, 'return true;', 'return chargeOdds(env, units, site);'],
+   'the delegation is still in the text and never runs'],
 
   // The anchor stops short of the rest of the import list on purpose: naming
   // reconcile's function here would put this file in check-odds-reconciled's
@@ -242,11 +245,17 @@ const MUTATIONS = [
 // check GREEN, or wiring it into deploy.yml blocks a deploy on correct code.
 const EQUIVALENTS = [
   ['index', 'E1 index.js names the verdict, then returns it',
-   DELEG, (i) => `${i}const charged = await chargeOdds(env, units, site);\n${i}return charged;\n`],
+   FN, [KV_GUARD, 'const charged = await chargeOdds(env, units, site);', 'return charged;']],
   ['wp', 'E2 wp-resolver.js awaits in the return',
-   DELEG, (i) => `${i}return await chargeOdds(env, units, site);\n`],
+   FN, [KV_GUARD, 'return await chargeOdds(env, units, site);']],
   ['ambient', 'E3 ambient-do.js names the verdict with let, then returns it',
-   DELEG, (i) => `${i}let ok = await chargeOdds(env, units, site);\n${i}return ok;\n`],
+   FN, [KV_GUARD, 'let ok = await chargeOdds(env, units, site);', 'return ok;']],
+  ['index', 'E4 index.js tests the verdict and returns booleans',
+   FN, [KV_GUARD, 'if (!(await chargeOdds(env, units, site))) return false;', 'return true;']],
+  ['wp', 'E5 wp-resolver.js returns the promise from a const',
+   FN, [KV_GUARD, 'const v = chargeOdds(env, units, site);', 'return v;']],
+  ['ambient', 'E6 ambient-do.js with no semicolon (ASI)',
+   FN, [KV_GUARD, 'return chargeOdds(env, units, site)']],
 ];
 let equivalentFails = 0;
 for (const [target, name, anchor, repl] of EQUIVALENTS) {
