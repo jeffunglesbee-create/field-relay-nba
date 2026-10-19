@@ -60,6 +60,10 @@ export function lit(id) {
   return `'${id}'`;
 }
 const gameOf = (ohId) => ohId.replace(/_(draftkings|fanduel)_close$/, '');
+/** A prose literal. Quotes are doubled, so "game's" cannot end the string early:
+ *  the first version of this file wrote it bare, and the self-test now runs the
+ *  SQL in SQLite precisely so that such a slip fails here, not in D1. */
+const text = (t) => `'${String(t).replace(/'/g, "''")}'`;
 
 /** The predicate "this column was written from this history row". */
 const fromRow = (field, ohId) =>
@@ -69,7 +73,7 @@ function nullBlobs(ohId, why) {
   const g = lit(gameOf(ohId));
   return FIELDS.flatMap(f => [
     `INSERT INTO change_log (game_id, source, field, old_value, new_value) ` +
-      `SELECT id, '${SOURCE}', '${f}', ${f}, 'NULL: ${why} (${DOC})' ` +
+      `SELECT id, ${text(SOURCE)}, ${text(f)}, ${f}, ${text(`NULL: ${why} (${DOC})`)} ` +
       `FROM regular_season_games WHERE id = ${g} AND ${fromRow(f, ohId)};`,
     `UPDATE regular_season_games SET ${f} = NULL WHERE id = ${g} AND ${fromRow(f, ohId)};`,
   ]);
@@ -79,10 +83,10 @@ function deleteRow(ohId, why) {
   const o = lit(ohId);
   return [
     `INSERT INTO change_log (game_id, source, field, old_value, new_value) ` +
-      `SELECT game_id, '${SOURCE}', 'odds_history_row_deleted', ` +
+      `SELECT game_id, ${text(SOURCE)}, 'odds_history_row_deleted', ` +
       `json_object('id', id, 'home_team', home_team, 'away_team', away_team, 'commence_time', commence_time, ` +
       `'home_ml', home_ml, 'away_ml', away_ml, 'bookmaker', bookmaker, 'snapshot_time', snapshot_time), ` +
-      `'deleted: ${why} (${DOC})' FROM odds_history WHERE id = ${o};`,
+      `${text(`deleted: ${why} (${DOC})`)} FROM odds_history WHERE id = ${o};`,
     `DELETE FROM odds_history WHERE id = ${o};`,
   ];
 }
@@ -97,7 +101,7 @@ function exchange(ohId) {
       `AND json_extract(${f}, '$.moneyline.away') = -1667`;
     return [
       `INSERT INTO change_log (game_id, source, field, old_value, new_value) ` +
-        `SELECT id, '${SOURCE}', '${f}', ${f}, json_set(${f}, '$.moneyline.home', -1667, '$.moneyline.away', 870) ` +
+        `SELECT id, ${text(SOURCE)}, ${text(f)}, ${f}, json_set(${f}, '$.moneyline.home', -1667, '$.moneyline.away', 870) ` +
         `FROM regular_season_games WHERE ${guard};`,
       `UPDATE regular_season_games SET ${f} = json_set(${f}, '$.moneyline.home', -1667, '$.moneyline.away', 870) WHERE ${guard};`,
     ];
@@ -157,12 +161,76 @@ function selfTest() {
   t(!plan('sync').some(x => x.includes(SWAPPED) && x.startsWith('DELETE')), 'sync keeps the swapped history row the sync needs');
   let bad = false; try { plan('maybe'); } catch { bad = true; }
   t(bad, 'an unknown --swapped value is refused');
-  console.log(fails ? `${fails} FAILED` : 'self-test passed');
-  process.exit(fails ? 1 : 0);
+  return engine(t).then(() => {
+    console.log(fails ? `${fails} FAILED` : 'self-test passed');
+    process.exit(fails ? 1 : 0);
+  });
+}
+
+// THE SQL RUN IN SQLITE (D1 is SQLite). A seeded database with the four states
+// the preview measured on 2026-10-19: a game whose two columns came from its
+// wrong row (CFB e401856686), one whose columns came from another writer (MLB
+// e401816961), one with one of each (MLB e401817020), and the swapped game.
+// Ids in the plan that are not seeded must match nothing and raise nothing.
+async function engine(t) {
+  const { DatabaseSync } = await import('node:sqlite');
+  const SNAP = '2026-09-19T23:55:18Z', OTHER = '2026-09-16T10:02:13.597Z';
+  const blob = (at, h, a) => JSON.stringify({ source: 'draftkings', captured_at: at, moneyline: { home: h, away: a }, total: { over: 50.5, under: 50.5 } });
+  const seed = () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec(`CREATE TABLE regular_season_games (id TEXT PRIMARY KEY, opening_odds TEXT, closing_odds TEXT);
+      CREATE TABLE odds_history (id TEXT PRIMARY KEY, game_id TEXT, home_team TEXT, away_team TEXT, commence_time TEXT,
+        home_ml REAL, away_ml REAL, bookmaker TEXT, snapshot_time TEXT);
+      CREATE TABLE change_log (id INTEGER PRIMARY KEY AUTOINCREMENT, game_id TEXT NOT NULL, source TEXT NOT NULL,
+        field TEXT NOT NULL, old_value TEXT, new_value TEXT NOT NULL, ts TEXT NOT NULL DEFAULT (datetime('now')));`);
+    const g = db.prepare('INSERT INTO regular_season_games VALUES (?, ?, ?)');
+    const h = db.prepare('INSERT INTO odds_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    g.run('CFB_2026-09-19_e401856686', blob(SNAP, 311, -435), blob(SNAP, 311, -435));
+    h.run('CFB_2026-09-19_e401856686_draftkings_close', 'CFB_2026-09-19_e401856686', 'Jacksonville State Gamecocks', 'Georgia Southern Eagles', '2026-09-19T23:02:23Z', 4.11, 1.23, 'draftkings', SNAP);
+    g.run('MLB_2026-09-16_e401816961', blob(OTHER, -127, 105), blob(OTHER, -127, 105));
+    h.run('MLB_2026-09-16_e401816961_fanduel_close', 'MLB_2026-09-16_e401816961', 'Chicago White Sox', 'Detroit Tigers', '2026-09-17T23:41:00Z', 1.79, 2.08, 'fanduel', SNAP);
+    g.run('MLB_2026-09-20_e401817020', blob(OTHER, -163, 135), blob(SNAP, -112, -104));
+    h.run('MLB_2026-09-20_e401817020_fanduel_close', 'MLB_2026-09-20_e401817020', 'Baltimore Orioles', 'Toronto Blue Jays', '2026-09-21T22:36:00Z', 1.89, 1.96, 'fanduel', SNAP);
+    g.run('CFB_2026-09-19_e401856802', blob(SNAP, 870, -1667), blob(SNAP, 870, -1667));
+    h.run(SWAPPED, 'CFB_2026-09-19_e401856802', 'West Virginia Mountaineers', 'Virginia Cavaliers', '2026-09-19T23:35:29Z', 9.7, 1.06, 'draftkings', SNAP);
+    return db;
+  };
+  const run = (db, sql) => { db.exec('BEGIN'); try { db.exec(sql); db.exec('COMMIT'); return null; } catch (e) { db.exec('ROLLBACK'); return e.message; } };
+  const game = (db, id) => db.prepare('SELECT opening_odds AS o, closing_odds AS c FROM regular_season_games WHERE id = ?').get(id);
+  const hist = (db, id) => db.prepare('SELECT COUNT(*) AS n FROM odds_history WHERE id = ?').get(id).n;
+  const logs = (db) => db.prepare('SELECT game_id, field, old_value, new_value FROM change_log ORDER BY id').all();
+
+  for (const m of ['sync', 'direct', 'null']) {
+    const db = seed();
+    const err = run(db, plan(m).join('\n'));
+    t(err === null, `${m}: the whole transaction runs in SQLite${err ? ` (${err})` : ''}`);
+    if (err) continue;
+    const A = game(db, 'CFB_2026-09-19_e401856686'), B = game(db, 'MLB_2026-09-16_e401816961'), C = game(db, 'MLB_2026-09-20_e401817020');
+    t(A.o === null && A.c === null, `${m}: both columns written from the wrong row go to NULL`);
+    t(B.o === blob(OTHER, -127, 105) && B.c === blob(OTHER, -127, 105), `${m}: columns another writer filled are untouched`);
+    t(C.o === blob(OTHER, -163, 135) && C.c === null, `${m}: a game with one of each loses only the one from the row`);
+    t(['CFB_2026-09-19_e401856686_draftkings_close', 'MLB_2026-09-16_e401816961_fanduel_close', 'MLB_2026-09-20_e401817020_fanduel_close']
+      .every(id => hist(db, id) === 0), `${m}: the seeded other-game history rows are deleted`);
+    const W = game(db, 'CFB_2026-09-19_e401856802');
+    if (m === 'direct') {
+      const o = JSON.parse(W.o), c = JSON.parse(W.c);
+      t(o.moneyline.home === -1667 && o.moneyline.away === 870 && c.moneyline.home === -1667 && c.moneyline.away === 870 && o.total.over === 50.5,
+        'direct: Virginia -1667, West Virginia +870, the rest of the blob kept');
+    } else t(W.o === null && W.c === null, `${m}: the swapped game's columns go to NULL`);
+    t(hist(db, SWAPPED) === (m === 'null' ? 0 : 1), `${m}: the swapped history row is ${m === 'null' ? 'deleted' : 'kept for the sync'}`);
+    const L = logs(db);
+    const want = 3 /* A x2, C closing */ + 3 /* history rows */ + (m === 'null' ? 3 : 2);
+    t(L.length === want, `${m}: ${L.length} change_log rows, ${want} expected (one per write that matched)`);
+    t(L.every(r => r.field === 'odds_history_row_deleted' ? !!JSON.parse(r.old_value).id : !!r.old_value?.includes('captured_at')),
+      `${m}: every change_log row carries the value it replaced`);
+    t(L.some(r => /another game's event/.test(r.new_value)), `${m}: prose with an apostrophe survives quoting intact`);
+    const again = run(db, plan(m).join('\n'));
+    t(again === null && logs(db).length === L.length, `${m}: a second run changes nothing and logs nothing`);
+  }
 }
 
 const arg = (k) => process.argv.find(a => a.startsWith(`--${k}=`))?.split('=')[1];
-if (process.argv.includes('--self-test')) selfTest();
+if (process.argv.includes('--self-test')) await selfTest();
 else if (process.argv.includes('--preview')) console.log(preview());
 else if (arg('swapped')) console.log(plan(arg('swapped')).join('\n'));
 else { console.error('usage: --swapped=sync|direct|null | --preview | --self-test'); process.exit(2); }

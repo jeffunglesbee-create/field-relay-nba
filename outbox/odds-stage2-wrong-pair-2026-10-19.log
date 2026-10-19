@@ -697,3 +697,17 @@ CAUGHT     R4 the id shape is not checked  <- FAIL  an id outside the closed sha
 CAUGHT     R5 sync mode deletes the swapped history row the sync needs  <- FAIL  sync: 12 history rows deleted
 5 of 5 caught
 R3b (rerun: only the ORDER changes, the UPDATE kept: true) CAUGHT  <- FAIL  sync: each write is preceded by its change_log insert, which reads the old value | FAIL  direct: each write is preceded by its change_log insert, which reads the old value | FAIL  null: each write is preceded by its change_log insert, which reads the old value
+
+## §9 The repair SQL's first form would not have parsed
+Printed for review before sending, the generated SQL carried 'another game's event' inside single-quoted
+literals. The self-test only inspected text. It now runs every mode in SQLite (node:sqlite 3.51) on a seeded
+database of the four measured states, and R6 restores the unescaped form:
+CAUGHT     R1 an UPDATE loses its written-from-row guard  <- FAIL  sync: every UPDATE is guarded on the column having been written from the history row | FAIL  direct: every UPDATE is guarded on the column having been written from the history row
+CAUGHT     R2 a deletion loses its change_log row  <- FAIL  sync: one change_log insert per write (24) | FAIL  sync: each write is preceded by its change_log insert, which reads the old value
+CAUGHT     R3 the change_log row is written AFTER the write (reorder only)  <- FAIL  sync: each write is preceded by its change_log insert, which reads the old value | FAIL  direct: each write is preceded by its change_log insert, which reads the old value
+CAUGHT     R4 the id shape is not checked  <- FAIL  an id outside the closed shape is refused, not quoted
+CAUGHT     R5 sync mode deletes the swapped history row the sync needs  <- FAIL  sync: 12 history rows deleted | FAIL  sync keeps the swapped history row the sync needs
+CAUGHT     R6 prose quotes are not doubled (the shape first generated)  <- FAIL  sync: the whole transaction runs in SQLite (near "event": syntax error) | FAIL  direct: the whole transaction runs in SQLite (near "event": syntax error)
+CAUGHT     R7 the history rows are not deleted (the sync would rewrite the NULLs)  <- FAIL  sync: one change_log insert per write (35) | FAIL  sync: 0 history rows deleted
+CAUGHT     R8 direct mode exchanges without the 870/-1667 guard  <- FAIL  direct: a second run changes nothing and logs nothing
+8 of 8 caught
