@@ -133,6 +133,14 @@ jobs:
       - name: Every odds call is charged to the monthly ledger
         run: node scripts/check-odds-calls-guarded.mjs
 
+      # Blocking. CC-CMD-2026-10-14-push-cron-gambit-path, ruled 2026-10-18:
+      # the push cron's live-game loop was deleted as a STATED absence. It
+      # polled a path /espn-gambit refuses, so every poll 403'd and looked like
+      # "no live games". A src-only push could restore it, and guards.yml
+      # ignores src/**, so the check that keeps the decision runs here too.
+      - name: The push cron's live-game half stays absent, and says so
+        run: node scripts/check-push-cron-live-absence.mjs --self-test && node scripts/check-push-cron-live-absence.mjs
+
       # Blocking. The BSD event row carries fields that are null on most rows
       # and false on many others, and the two must never be confused: collapse
       # absence into 0 and a brief reports a crowd of nobody; collapse `false`

@@ -337,6 +337,12 @@ jobs:
         if: always()
         run: bash scripts/absence-collapse-ratchet.sh
 
+      # CC-CMD-2026-10-14-push-cron-gambit-path. A copy of deploy.yml's step, so
+      # a scripts-only change to the check is caught here too.
+      - name: The push cron's live-game half stays absent, and says so
+        if: always()
+        run: node scripts/check-push-cron-live-absence.mjs --self-test && node scripts/check-push-cron-live-absence.mjs
+
       # CC-CMD-2026-10-16-cfl-archive-date-keying, TASK 4. Every archived row's
       # date is the ET day of its own start_time. This one reads live ARCHIVE_DB
       # through /d1/execute, so unlike the source-only gates above it can go red
