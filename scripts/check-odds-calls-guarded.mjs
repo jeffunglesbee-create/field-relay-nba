@@ -106,7 +106,15 @@ function scan(file, src) {
         const list   = SPORTS_LIST.test(line);
         if (!billed && !list) return;
         const from = functionStart(lines, i);
-        const body = lines.slice(from, functionEnd(lines, from)).join('\n');
+        // CODE LINES ONLY, as for the billed URL above. A guard named in a
+        // whole-line comment is not a guard: src/ambient-do.js's live poll
+        // carries `// consumeOddsCredit() — same KV key scheme`, and with its
+        // real guard call deleted that comment alone credited the site and the
+        // gate printed PASS (docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md,
+        // finding 4). Whole lines only: a string-blind trailing-comment stripper
+        // cut a guard call after a " //" inside a string, a false red.
+        const body = lines.slice(from, functionEnd(lines, from))
+            .filter(L => !L.trimStart().startsWith('//')).join('\n');
         if (list) {
             const window = lines.slice(Math.max(0, i - 12), i + 3).join('\n');
             out.push({
@@ -179,6 +187,11 @@ async function f(env) {
 async function f(env) {
   // const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
 }`, null],
+        ['a guard named only in a comment line is not a guard (finding 4)', `
+async function f(env) {
+  // Mirrors consumeOddsCredit() and oddsCreditCost( -- same KV key scheme.
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+}`, false],
     ];
     let pass = 0, fail = 0;
     for (const [name, src, expect] of cases) {
@@ -187,6 +200,20 @@ async function f(env) {
                                     : (r.length > 0 && r.every(x => x.ok));
         if (got === expect) { pass++; }
         else { fail++; console.error(`  SELFTEST FAIL: ${name} — expected ${expect}, got ${got} (${r.length} finding(s))`); }
+    }
+    // FINDING 4 ON THE LIVE SOURCE: delete the ambient live poll's one real
+    // guard call, keep its comment, and the site must go red. The anchor must
+    // match exactly once, or nothing was tested.
+    {
+        const amb = readFileSync('src/ambient-do.js', 'utf8');
+        const anchor = "            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl('')), 'ambientFetchLiveOdds'))) return;\n";
+        const hits = amb.split(anchor).length - 1;
+        if (hits !== 1) { fail++; console.error(`  SELFTEST FAIL: finding-4 live anchor matched ${hits} times, expected 1 — NOTHING MUTATED`); }
+        else {
+            const r = scan('src/ambient-do.js', amb.replace(anchor, ''));
+            if (r.some(x => x.kind === 'billed' && !x.ok)) pass++;
+            else { fail++; console.error('  SELFTEST FAIL: ambient live poll with its guard deleted still passed — a comment is crediting it'); }
+        }
     }
     console.log(`  self-tests: ${pass} passed, ${fail} failed`);
     return fail === 0;
