@@ -4,7 +4,20 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** **DONE 2026-10-19.** Shipped in `8b2b9909` (harness), then:
+- **task 1, fixed in `f32b37c4`:** the verdict must be the whole condition;
+  the proxy's one conjunct is allowed, written exactly;
+- **task 2, decided not to add a rule (`4457152c`):** P4 and E7 were already
+  CAUGHT by the ordering rule, and a separate rule could not fail on its own;
+- **task 3, widened in `4e230ef5`:** helper-built calls are sites. The scan
+  found oddsProviderQuota's unlabelled /v4/sports call;
+- **task 4, fixed in `6aadef9c` and `1e0bfb80`:** a second kill-switch
+  declaration is a finding, and the blanker reads regex literals (0 lines
+  differ from acorn, from 265).
+- **Evidence:** harness 39 of 39; Rule 90 22 of 22 across the five fixes;
+  deploy run 39294330163 green.
+- **Files:** proof in `outbox/odds-guard-condition-and-exit-2026-10-19.log`,
+  session doc in `outbox/cc-session-2026-10-19-odds-guard-condition-and-exit.md`.
 **Filed by:** CC, from the second adversarial review of the odds gate
 (`wf_710edc9e-6f5`, 2026-10-19, against `79b17ebc` = pushed `1cca6b40`), which
 was stopped by the owner. These are its remaining "teeth" findings, apart from

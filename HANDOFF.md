@@ -1,5 +1,32 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 (late) — the odds guard's condition and refusal path
+
+`CC-CMD-2026-10-19-odds-guard-condition-and-exit` is **DONE**: 6 commits,
+`8b2b9909`..`1e0bfb80`.
+
+- **The verdict must be the whole condition.** `X && !(await G(...))`, a
+  `let` verdict, or `|| flag` beside it no longer counts. The proxy keeps
+  its one conjunct, `oddsBillablePath(cleanPath) &&`, written exactly.
+  Before: P3, S3, R1, R2 and S6 passed all 25 deploy-path odds steps.
+- **The refusal path (P4, E7)** was already caught by the ordering rule. No
+  rule was added, and the reason is written beside `consequentExits`.
+- **Helper-built calls are sites.** `oddsUrl` and `oddsFetchWithFallback`
+  calls are scanned, with `EXPECTED_HELPER_SITES = 2`. The scan found
+  `oddsProviderQuota`'s /v4/sports call unlabelled; it now carries ODDS-FREE
+  (8 comment lines in src/index.js).
+- **The kill switch:** a second `ODDS_LIVE_PATH_404` declaration is a finding.
+- **The blanker reads regex literals.** Against acorn, 0 lines differ in the
+  three checked files, down from 265.
+- **Proof:** `outbox/odds-guard-condition-and-exit-2026-10-19.log`.
+  - Harness 39 of 39.
+  - Rule 90: 22 of 22.
+  - Deploy run 39294330163 on `1e0bfb80` green.
+- **Still filed:** `odds-gate-false-reds`. Its status line carries two notes
+  from this work, rows 2 and 8.
+
+Session doc: outbox/cc-session-2026-10-19-odds-guard-condition-and-exit.md
+
 ## 2026-10-19 (evening) — an odds guard counts only if it runs before the vendor fetch
 
 `CC-CMD-2026-10-19-odds-guard-before-fetch` is **DONE**.

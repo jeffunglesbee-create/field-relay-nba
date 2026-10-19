@@ -4,7 +4,13 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** FILED, not dispatched. Two notes from the condition-and-exit work
+of 2026-10-19 (`f32b37c4`):
+- **Row 2:** the end-of-file `!x` search now also feeds the new live
+  self-test "an env flag put in front of the verdict". Naming a verdict `ok`
+  still blocks the deploy, now through three self-tests, not two.
+- **Row 8:** `if (!await G(...))` stays red. The exact-condition rule accepts
+  only `!(await G(...))` as the negation.
 **Filed by:** CC, from the second adversarial review of the odds gate
 (`wf_710edc9e-6f5`, 2026-10-19, against `79b17ebc` = pushed `1cca6b40`). It was
 stopped by the owner, and these are its false-red findings. A false red is a
