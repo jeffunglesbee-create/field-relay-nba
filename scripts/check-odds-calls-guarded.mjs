@@ -255,16 +255,24 @@ async function f(env) {
     // guard call, keep its comment, and the site must go red. The anchor must
     // match exactly once, or nothing was tested.
     {
-        // BY SHAPE: the one code line that calls the ambient guard with the
-        // live poll's site, whatever its spelling. An exact-text anchor here
-        // would block a deploy on a correct reformat (review, 2026-10-19).
+        // BY SHAPE, and scoped to _fetchLiveOdds rather than to the site label:
+        // the one code line in that method that calls the ambient guard. The
+        // first shape match also required 'ambientFetchLiveOdds' on the same
+        // line, so wrapping the call (the label on the next line) blocked the
+        // deploy on correct code (final review pass, 2026-10-19). The call is
+        // renamed rather than its line deleted, so a wrapped statement is
+        // neutralised whatever its layout.
         const amb = readFileSync('src/ambient-do.js', 'utf8');
         const blanked = blankCommentsAndStrings(amb).split('\n');
         const rawLines = amb.split('\n');
-        const at = rawLines.map((L, n) => n).filter((n) => blanked[n].includes('_consumeAmbientOddsCredit(') && rawLines[n].includes("'ambientFetchLiveOdds'"));
-        if (at.length !== 1) { fail++; console.error(`  SELFTEST FAIL: the ambient live poll's guard call was found on ${at.length} code lines, expected 1 — NOTHING MUTATED`); }
+        const from = rawLines.findIndex((L) => /^ {4}async _fetchLiveOdds\s*\(/.test(L));
+        const to = from < 0 ? -1 : functionEnd(rawLines, from);
+        const at = rawLines.map((L, n) => n).filter((n) => n > from && n < to && blanked[n].includes('_consumeAmbientOddsCredit('));
+        if (at.length !== 1) { fail++; console.error(`  SELFTEST FAIL: the ambient live poll's guard call was found on ${at.length} code lines of _fetchLiveOdds, expected 1 — NOTHING MUTATED`); }
         else {
-            const r = scan('src/ambient-do.js', rawLines.filter((_, n) => n !== at[0]).join('\n'));
+            const cut = rawLines.slice();
+            cut[at[0]] = cut[at[0]].replace('_consumeAmbientOddsCredit(', '_GUARD_DELETED_(');
+            const r = scan('src/ambient-do.js', cut.join('\n'));
             if (r.some(x => x.kind === 'billed' && !x.ok)) pass++;
             else { fail++; console.error('  SELFTEST FAIL: ambient live poll with its guard deleted still passed — a comment is crediting it'); }
         }
