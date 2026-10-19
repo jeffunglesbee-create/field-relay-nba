@@ -87,7 +87,14 @@ if (process.argv.includes('--self-test')) {
   // which put the guard back in FRONT of the charge — it asserted the opposite
   // of its own name and reported NOT CAUGHT on a check that was working. The
   // anchor has to be the whole charge STATEMENT so the guard can follow it.
-  const CHARGE_STMT = "if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl('')), 'ambientFetchLiveOdds'))) return;";
+  //
+  // BY SHAPE since 2026-10-19, when this step joined deploy.yml: the one line
+  // that calls _consumeAmbientOddsCredit with the live poll's site, in whatever
+  // spelling, trimmed. An exact-text anchor would fail this self-test, and so
+  // the deploy, on a correct reformat of that line.
+  const chargeLines = live.split('\n').map((L) => L.trim())
+    .filter((L) => !L.startsWith('//') && L.includes('_consumeAmbientOddsCredit(') && L.includes("'ambientFetchLiveOdds'"));
+  const CHARGE_STMT = chargeLines.length === 1 ? chargeLines[0] : '\u0000no unique charge statement\u0000';
   ok('M4 the guard moved below the charge',
      (live.includes(CHARGE_STMT) && live.split(CHARGE_STMT).length - 1 === 1)
        ? findings(live.replace(GUARD, '').replace(CHARGE_STMT, `${CHARGE_STMT}\n            ${GUARD}`))
