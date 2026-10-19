@@ -1,0 +1,53 @@
+deploy.yml at 1485bee5: running 25 odds steps of the 96 runnable steps (no secret) before "Deploy to Cloudflare Workers":
+  - Every odds call is charged to the monthly ledger
+  - a degrade-open names its error and counts it by reason
+  - a batch and the helper reading it agree on their statement count
+  - the odds-live 404 path returns before the charge
+  - the odds budget schema is on ARCHIVE_DB and readable from CI
+  - the monthly charge is atomic and its ceiling binds
+  - the monthly odds counter has not grown another non-atomic writer
+  - a ceiling veto is readable from /budget/odds
+  - the odds budget batch keeps its order and its ceilings
+  - The backfill cannot pay for a payload and pair none of it
+  - the WC lambda call stays gated, and the sport list stays one list
+  - reconcile counts every call once, with no read
+  - every table a script creates is on the /d1/execute allow-list
+  - One team-name matcher, and it can fail
+  - Every odds call names which consumer spent it
+  - Every charged odds call is reconciled against the receipt
+  - Consumers read the last PRE-KICKOFF price, not the closing column
+  - The backfill logs only writes it actually made
+  - the odds-key tables are one table, and unchanged by the move
+  - closing_odds is not pre-filled for unplayed games
+  - no writer can stamp a post-kickoff price as the close
+  - every odds writer fetches its own sport's payload
+  - a budget grant cannot outlive its day
+  - soccer h2h yields a draw, and no other market gains one
+  - no opening line is written onto a finished game
+
+GREEN      CONTROL: HEAD, unmutated
+CAUGHT     src/index.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/index.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/index.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/index.js: the verdict is named, then returned (equivalent)
+CAUGHT     src/wp-resolver.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/wp-resolver.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/wp-resolver.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/wp-resolver.js: the verdict is named, then returned (equivalent)
+CAUGHT     src/ambient-do.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/ambient-do.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/ambient-do.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/ambient-do.js: the verdict is named, then returned (equivalent)
+
+12 of 12 cases as expected (control green first): 9 mutants must turn a step red, 3 equivalents must leave all 25 odds steps green.
+COVERAGE: 25 of 96 runnable pre-deploy steps (the odds ones), 3 of 3 wrappers mutated, 4 bodies each. Not run: the other 71 runnable steps, 4 steps needing a secret or with no command, the deploy, and the live verify job.
+harness rc=0
