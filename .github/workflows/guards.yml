@@ -337,6 +337,18 @@ jobs:
         if: always()
         run: bash scripts/absence-collapse-ratchet.sh
 
+      # CC-CMD-2026-10-16-cfl-archive-date-keying, TASK 4. Every archived row's
+      # date is the ET day of its own start_time. This one reads live ARCHIVE_DB
+      # through /d1/execute, so unlike the source-only gates above it can go red
+      # on a push that touched nothing: a writer stamping the wrong day is a
+      # defect whenever it is found. Each run also moves one passing row by a
+      # day in memory and fails unless that is caught.
+      - name: Every archived game is dated on the ET day of its own kickoff
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/check-archive-date-keying.mjs --self-test && node scripts/check-archive-date-keying.mjs
+
       # LAST, AND THAT IS THE POINT. This checked HANDOFF.md's staleness from
       # step 6, and the gates here are sequential steps in ONE job, so its red
       # SKIPPED every step after it: the credential scan's siblings, the odds
