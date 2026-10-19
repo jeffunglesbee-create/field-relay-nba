@@ -539,6 +539,52 @@ async function f(env) {
         env, oddsCreditCost(u), 'f'))) throw new Error('declined');
   const r = await fetch(u);
 }`, true],
+        // REGEX LITERALS ARE READ AS REGEXES (condition-and-exit task 4), by
+        // scripts/lib/blank-comments.mjs. Each of these was misread before.
+        ['a guard commented out between two regex literals holding a backtick is not a guard (X1)', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const a = /\`/g;
+  // if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const b = /\`/g;
+  const r = await fetch(u);
+}`, false],
+        ['a regex holding // does not hide the fetch after it', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const r0 = /^https:\\/\\//.test(u) ? await fetch(u) : null;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await fetch(u);
+}`, false],
+        ['a / inside a regex class does not end the regex', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  if (!/^[/\\w-]+$/.test(p)) return;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await fetch(u);
+}`, true],
+        ['a regex after return is a regex', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const t = (() => { return /\`/; })();
+  // if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const t2 = (() => { return /\`/; })();
+  const r = await fetch(u);
+}`, false],
+        ['a division is not a regex, so it hides no fetch', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const per = total / count; const r0 = await fetch(u); // charged below
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await fetch(u);
+}`, false],
+        ['a regex holding a quote above a guard does not break it', `
+async function f(env) {
+  const u = \`https://api.the-odds-api.com/v4/sports/\${k}/odds?markets=h2h\`;
+  const q = s.replace(/'/g, '');
+  if (!(await consumeOddsCredit(env, oddsCreditCost(u), 'f'))) return;
+  const r = await fetch(u);
+}`, true],
         // BILLED CALLS BUILT BY A HELPER (condition-and-exit task 3).
         ['an unguarded oddsUrl call is caught (N1)', `
 async function f(env) {
