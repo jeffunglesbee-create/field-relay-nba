@@ -177,6 +177,19 @@ const MUTATIONS = [
    '    return chargeOdds(env, units);\n}',
    "every wpResolver charge lands in by_site under 'unattributed', and nothing else notices"],
 
+  // The verdict computed, then dropped: the charge lands but a refusal no
+  // longer stops the call. Measured end to end on 2026-10-18: with the day at
+  // its ceiling, a refused call reached the vendor with no counter moved.
+  ['index', 'W5 index.js computes the verdict, then returns true',
+   '  return chargeOdds(env, units, site);\n}',
+   '  const charged = await chargeOdds(env, units, site);\n  return true;\n}',
+   'every refusal from the 3,800 ceiling or the 85,000 limit is ignored: refused calls spend at the vendor'],
+
+  ['wp', 'W6 wp-resolver.js keeps the return only in a comment',
+   '    return chargeOdds(env, units, site);\n}',
+   '    // return chargeOdds(env, units, site);\n    await chargeOdds(env, units, site);\n    return true;\n}',
+   'a commented-out return reads as delegation to a text match, and the verdict is dropped'],
+
   ['ambient', 'W3 ambient-do.js stops charging',
    '    return chargeOdds(env, units, site);\n}',
    '    return true;\n}',
@@ -190,6 +203,27 @@ const MUTATIONS = [
    "import { chargeOdds, chargeMonthlyOdds, oddsCreditCost, ",
    'budget-helpers.js no longer exports it: esbuild fails with "No matching export" and the deploy gate passes on the old bundle'],
 ];
+
+// EQUIVALENTS: the same behaviour, spelled differently. Each must leave the
+// check GREEN, or wiring it into deploy.yml blocks a deploy on correct code.
+const EQUIVALENTS = [
+  ['index', 'E1 index.js names the verdict, then returns it',
+   '  return chargeOdds(env, units, site);\n}', '  const charged = await chargeOdds(env, units, site);\n  return charged;\n}'],
+  ['wp', 'E2 wp-resolver.js awaits in the return',
+   '    return chargeOdds(env, units, site);\n}', '    return await chargeOdds(env, units, site);\n}'],
+  ['ambient', 'E3 ambient-do.js names the verdict with let, then returns it',
+   '    return chargeOdds(env, units, site);\n}', '    let ok = await chargeOdds(env, units, site);\n    return ok;\n}'],
+];
+let equivalentFails = 0;
+for (const [target, name, anchor, repl] of EQUIVALENTS) {
+  const original = originals[target];
+  const hits = original.split(anchor).length - 1;
+  if (hits !== 1) { console.log(`FAIL       ${name}\n            anchor matched ${hits} times in ${TARGETS[target].path}, expected 1 — NOTHING REWRITTEN.`); equivalentFails++; continue; }
+  const green = run({ [TARGETS[target].env]: place(target, original.replace(anchor, repl), 'eq') });
+  console.log(`${green ? 'GREEN     ' : 'RED (BAD) '} ${name}`);
+  if (!green) equivalentFails++;
+}
+console.log('');
 
 let caught = 0;
 for (const [target, name, anchor, repl, why] of MUTATIONS) {
@@ -209,4 +243,5 @@ console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
 console.log('COVERAGE: the five charge statements, their order and the single charger in');
 console.log('src/budget-helpers.js, and the three wrappers that delegate to it. It does NOT');
 console.log('cover whether D1 supplies a transaction under concurrent isolates.');
-process.exit(caught === MUTATIONS.length ? 0 : 1);
+console.log(`${EQUIVALENTS.length - equivalentFails} of ${EQUIVALENTS.length} equivalent rewrites stayed green.`);
+process.exit(caught === MUTATIONS.length && equivalentFails === 0 ? 0 : 1);

@@ -331,6 +331,24 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
 }
 
 // ── The wiring: one implementation, three delegating call sites ───────────
+// THE VERDICT MUST BE RETURNED, IN ANY EQUIVALENT SPELLING. Exact text
+// (`return chargeOdds(env, units, site);`) failed `const charged = await
+// chargeOdds(env, units, site); return charged;`, which behaves identically,
+// so wiring this into deploy.yml would have blocked a deploy on correct code
+// (docs/CC-CMD-2026-10-18-odds-gate-reads-wrapper-bodies.md, TASK 0.4).
+// Accepted:
+//   return [await] chargeOdds(env, units, site);
+//   const x = await chargeOdds(env, units, site);  ...  return x;
+// A verdict that is computed and then dropped (`return true;`) is not.
+function returnsChargeVerdict(text) {
+  // Whole-line comments out first, so a commented-out return is not a return.
+  const body = text.replace(/^[ \t]*\/\/.*$/gm, '');
+  if (/\breturn\s+(?:await\s+)?chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;/.test(body)) return true;
+  const m = /\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;/.exec(body);
+  if (!m) return false;
+  const after = body.slice(m.index + m[0].length);
+  return new RegExp(`\\breturn\\s+${m[1].replace(/\$/g, '\\$')}\\s*;`).test(after);
+}
 const files = {
   'src/index.js':       [readFileSync(process.env.INDEX_SRC || 'src/index.js', 'utf8'), 'consumeOddsCredit'],
   'src/wp-resolver.js': [readFileSync(process.env.WP_RESOLVER_SRC || 'src/wp-resolver.js', 'utf8'), 'consumeOddsCredit'],
@@ -340,8 +358,8 @@ for (const [f, [text, name]] of Object.entries(files)) {
   const i = text.indexOf(`async function ${name}(`);
   const j = i < 0 ? -1 : text.indexOf('\n}\n', i);
   const body = (i < 0 || j < 0) ? '' : text.slice(i, j);
-  ok(`${f} ${name} delegates to chargeOdds, with its site`, /return chargeOdds\(env, units, site\);/.test(body),
-    body ? 'the wrapper no longer hands the whole charge, site included, to the one batch' : `${name} was not found`);
+  ok(`${f} ${name} delegates to chargeOdds, with its site`, returnsChargeVerdict(body),
+    body ? 'the wrapper no longer returns the one batch\'s verdict, site included: a refusal would not stop the call' : `${name} was not found`);
   ok(`${f} ${name} references neither removed charger`, !!body && !/checkAndIncrementDailyOdds\(|chargeMonthlyOdds\(/.test(body),
     'the day and the month charged in two calls is the split this change removed');
   ok(`${f} imports neither removed charger`,
