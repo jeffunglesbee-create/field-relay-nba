@@ -1861,6 +1861,16 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/check-queue-partition.mjs --live
 
+      # CC-CMD-2026-10-16-cfl-archive-date-keying, TASK 4, beside the other live
+      # D1 checks. After a deploy, every archived row's date must be the ET day
+      # of its own start_time. This is the deploy that ships a writer, so this
+      # is where a writer stamping the wrong day is first visible. Each run also
+      # moves one passing row by a day in memory and fails unless that is caught.
+      - name: every archived game is dated on the ET day of its own kickoff
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/check-archive-date-keying.mjs --self-test && node scripts/check-archive-date-keying.mjs
+
       - name: Commit results
         run: |
           git config user.name "github-actions[bot]"
