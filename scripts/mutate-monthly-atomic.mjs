@@ -49,6 +49,40 @@ const MONTH_CHARGE = "const SQL_MONTH_CHARGE = `UPDATE odds_budget_month SET use
 const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'site', 'monthCharge', 'charge'];";
 const order = (keys) => `export const ODDS_CHARGE_ORDER = [${keys.map((k) => `'${k}'`).join(', ')}];`;
 
+// THE WRAPPER'S DELEGATION, FOUND BY SHAPE, NOT BY TEXT. These mutants used to
+// anchor on the exact line `return chargeOdds(env, units, site);`. Once this
+// harness ran in deploy.yml, a correct rewrite of a wrapper (`const charged =
+// await chargeOdds(...); return charged;`) matched 0 anchors, reported NOTHING
+// MUTATED, and blocked the deploy on correct code: measured 2026-10-19 by
+// scripts/mutate-deploy-odds-wrappers.mjs. DELEG resolves to whichever
+// accepted spelling the wrapper uses, and must find exactly one.
+const DELEG = Symbol('the wrapper delegation');
+const WRAPPER_NAME = { index: 'consumeOddsCredit', wp: 'consumeOddsCredit', ambient: '_consumeAmbientOddsCredit' };
+function delegationSpan(target, text) {
+  const i = text.indexOf(`async function ${WRAPPER_NAME[target]}(`);
+  const j = i < 0 ? -1 : text.indexOf('\n}\n', i);
+  if (i < 0 || j < 0) return { error: `${WRAPPER_NAME[target]} was not found` };
+  const body = text.slice(i, j + 1);
+  const forms = [
+    /^([ \t]*)return\s+(?:await\s+)?chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;[^\n]*\n/gm,
+    /^([ \t]*)(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+chargeOdds\(\s*env\s*,\s*units\s*,\s*site\s*\)\s*;[^\n]*\n(?:[^\n]*\n)*?\1return\s+\2\s*;[^\n]*\n/gm,
+  ];
+  const hits = forms.flatMap((re) => [...body.matchAll(re)]);
+  if (hits.length !== 1) return { error: `found ${hits.length} delegation statement(s) in ${WRAPPER_NAME[target]}, expected 1` };
+  const h = hits[0];
+  return { start: i + h.index, end: i + h.index + h[0].length, indent: h[1] };
+}
+function applyEdit(target, original, anchor, repl) {
+  if (anchor === DELEG) {
+    const s = delegationSpan(target, original);
+    if (s.error) return { error: `${s.error} — NOTHING MUTATED` };
+    return { text: original.slice(0, s.start) + repl(s.indent) + original.slice(s.end) };
+  }
+  const hits = original.split(anchor).length - 1;
+  if (hits !== 1) return { error: `anchor matched ${hits} times in ${TARGETS[target].path}, expected 1 — NOTHING MUTATED` };
+  return { text: original.replace(anchor, repl) };
+}
+
 const MUTATIONS = [
   // Placeholder-PRESERVING: dropping `AND used + ? <= ?` outright leaves fewer
   // placeholders than binds, and the check went red on a bind-count crash
@@ -168,31 +202,31 @@ const MUTATIONS = [
    'a rejection String() cannot convert throws out of the veto catch into the outer one, which degrades open and lets the refused call spend'],
 
   ['index', 'W1 index.js consumeOddsCredit goes back to two calls',
-   '  return chargeOdds(env, units, site);\n}',
-   '  if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;\n  return chargeMonthlyOdds(env, units);\n}',
+   DELEG,
+   (i) => `${i}if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;\n${i}return chargeMonthlyOdds(env, units);\n`,
    'the day and the month charged by two calls, two batches, with room for a stop between them'],
 
   ['wp', 'W2 wp-resolver.js drops the site',
-   '    return chargeOdds(env, units, site);\n}',
-   '    return chargeOdds(env, units);\n}',
+   DELEG,
+   (i) => `${i}return chargeOdds(env, units);\n`,
    "every wpResolver charge lands in by_site under 'unattributed', and nothing else notices"],
 
   // The verdict computed, then dropped: the charge lands but a refusal no
   // longer stops the call. Measured end to end on 2026-10-18: with the day at
   // its ceiling, a refused call reached the vendor with no counter moved.
   ['index', 'W5 index.js computes the verdict, then returns true',
-   '  return chargeOdds(env, units, site);\n}',
-   '  const charged = await chargeOdds(env, units, site);\n  return true;\n}',
+   DELEG,
+   (i) => `${i}const charged = await chargeOdds(env, units, site);\n${i}return true;\n`,
    'every refusal from the 3,800 ceiling or the 85,000 limit is ignored: refused calls spend at the vendor'],
 
   ['wp', 'W6 wp-resolver.js keeps the return only in a comment',
-   '    return chargeOdds(env, units, site);\n}',
-   '    // return chargeOdds(env, units, site);\n    await chargeOdds(env, units, site);\n    return true;\n}',
+   DELEG,
+   (i) => `${i}// return chargeOdds(env, units, site);\n${i}await chargeOdds(env, units, site);\n${i}return true;\n`,
    'a commented-out return reads as delegation to a text match, and the verdict is dropped'],
 
   ['ambient', 'W3 ambient-do.js stops charging',
-   '    return chargeOdds(env, units, site);\n}',
-   '    return true;\n}',
+   DELEG,
+   (i) => `${i}return true;\n`,
    'the ambient live poll and the closing-odds capture spend at the vendor and charge no counter at all'],
 
   // The anchor stops short of the rest of the import list on purpose: naming
@@ -208,18 +242,17 @@ const MUTATIONS = [
 // check GREEN, or wiring it into deploy.yml blocks a deploy on correct code.
 const EQUIVALENTS = [
   ['index', 'E1 index.js names the verdict, then returns it',
-   '  return chargeOdds(env, units, site);\n}', '  const charged = await chargeOdds(env, units, site);\n  return charged;\n}'],
+   DELEG, (i) => `${i}const charged = await chargeOdds(env, units, site);\n${i}return charged;\n`],
   ['wp', 'E2 wp-resolver.js awaits in the return',
-   '    return chargeOdds(env, units, site);\n}', '    return await chargeOdds(env, units, site);\n}'],
+   DELEG, (i) => `${i}return await chargeOdds(env, units, site);\n`],
   ['ambient', 'E3 ambient-do.js names the verdict with let, then returns it',
-   '    return chargeOdds(env, units, site);\n}', '    let ok = await chargeOdds(env, units, site);\n    return ok;\n}'],
+   DELEG, (i) => `${i}let ok = await chargeOdds(env, units, site);\n${i}return ok;\n`],
 ];
 let equivalentFails = 0;
 for (const [target, name, anchor, repl] of EQUIVALENTS) {
-  const original = originals[target];
-  const hits = original.split(anchor).length - 1;
-  if (hits !== 1) { console.log(`FAIL       ${name}\n            anchor matched ${hits} times in ${TARGETS[target].path}, expected 1 — NOTHING REWRITTEN.`); equivalentFails++; continue; }
-  const green = run({ [TARGETS[target].env]: place(target, original.replace(anchor, repl), 'eq') });
+  const e = applyEdit(target, originals[target], anchor, repl);
+  if (e.error) { console.log(`FAIL       ${name}\n            ${e.error}`); equivalentFails++; continue; }
+  const green = run({ [TARGETS[target].env]: place(target, e.text, 'eq') });
   console.log(`${green ? 'GREEN     ' : 'RED (BAD) '} ${name}`);
   if (!green) equivalentFails++;
 }
@@ -228,9 +261,9 @@ console.log('');
 let caught = 0;
 for (const [target, name, anchor, repl, why] of MUTATIONS) {
   const original = originals[target];
-  const hits = original.split(anchor).length - 1;
-  if (hits !== 1) { console.log(`FAIL       ${name}\n            anchor matched ${hits} times in ${TARGETS[target].path}, expected 1 — NOTHING MUTATED.`); continue; }
-  const mutated = original.replace(anchor, repl);
+  const e = applyEdit(target, original, anchor, repl);
+  if (e.error) { console.log(`FAIL       ${name}\n            ${e.error}`); continue; }
+  const mutated = e.text;
   if (mutated === original) { console.log(`FAIL       ${name}\n            file unchanged — NOTHING MUTATED.`); continue; }
   const path = place(target, mutated, 'm');
   if (readFileSync(path, 'utf8') === original) { console.log(`FAIL       ${name}\n            the written copy is identical — NOTHING MUTATED.`); continue; }
