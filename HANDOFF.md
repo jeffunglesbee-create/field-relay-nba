@@ -1,5 +1,34 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 (later still) — the push cron's live-game loop deleted, as a stated absence
+
+`CC-CMD-2026-10-14-push-cron-gambit-path` is **DONE**, option 1.
+
+- **Deleted.** The loop polled a path `/espn-gambit` refuses. Every poll got
+  a 403 and `continue`d, so it never pushed. The subscriber fan-out after it
+  went too. The Tubi pre-game alert, the `*/5` cron and the `/espn-gambit`
+  route are unchanged.
+- **Landed** as `32f7b596`..`2ebddc86` in one push. Deploy run 39194042279,
+  guards run 39194042320 and the YAML gate are all green.
+- **Stated, not silent.** A paragraph in `handleCron` says the live-game half
+  does not exist and why. `scripts/check-push-cron-live-absence.mjs` runs in
+  deploy.yml and in guards.yml. It fails if:
+  - the poll returns;
+  - any quoted 'SCORE_CHANGE' appears;
+  - a src file's sendWebPush count leaves its pin;
+  - the paragraph goes.
+
+  The review found two high holes in its first draft; both are fixed, 19/19.
+- **For the owner, an open ADR-002 question.** The ruling cited Rule A
+  against a late-and-close push. jubilant-bassoon `ADR-002-CONTEXT.md` Rule B
+  says such boolean-gated pushes are permitted. The deletion does not depend
+  on the answer. A restore does.
+- **Filed:** jubilant-bassoon
+  `docs/CC-CMD-2026-10-19-sw-score-change-has-no-producer.md`. `sw.js`'s
+  SCORE_CHANGE and DRAMA_THRESHOLD branches now have no producer.
+
+Session doc: outbox/cc-session-2026-10-19-push-cron-gambit-path.md
+
 ## 2026-10-19 (later) — odds day, site and month charged in one D1 batch
 
 `CC-CMD-2026-10-18-odds-charge-survives-cancellation`, option 1. The owner
