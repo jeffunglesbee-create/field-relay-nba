@@ -318,7 +318,7 @@ The one line, run 35515152035 job 106089725254:
 
 The census's BACKWARDS list has 2 candidates (§1). D1 decides which were written FROM their odds_history row
 (the sync stamps captured_at = the row's snapshot_time; every other writer stamps its own clock):
-  SELECT ... json_extract(g.opening_odds,'$.captured_at') = oh.snapshot_time ... (2026-10-19 ~22:05Z)
+  SELECT ... json_extract(g.opening_odds,'$.captured_at') = oh.snapshot_time ... (2026-10-19, during TASK 0)
   CFB_2026-09-19_e401856802  written from the row: 1  -> BACKWARDS, the sync's (870/-1667 on Virginia/West Virginia)
   MLB_2026-09-16_e401816966  written from the row: 0  -> another writer: change_log 'opening_odds by odds_api at
                              2026-09-16T10:02:13.899Z', 28 h before this odds_history row existed (created 2026-09-17 14:46:01).
@@ -655,7 +655,7 @@ self-test passed
 --swapped=sync: 70 statements, 24 UPDATE, 11 DELETE
 --swapped=direct: 70 statements, 24 UPDATE, 11 DELETE
 --swapped=null: 72 statements, 24 UPDATE, 12 DELETE
-Preview: node scripts/repair-odds-wrong-pairs.mjs --preview, sent to D1 (SELECT) 2026-10-19 ~22:15Z. 24 rows = 12 history rows x 2 columns:
+Preview: node scripts/repair-odds-wrong-pairs.mjs --preview, sent to D1 (SELECT) 2026-10-19, before the apply. 24 rows = 12 history rows x 2 columns:
   oh_id                                        field         written_from_row  moneyline (home/away)
   CFB_2026-09-19_e401856686_draftkings_close   opening_odds  1                 311/-435
   CFB_2026-09-19_e401856686_draftkings_close   closing_odds  1                 311/-435

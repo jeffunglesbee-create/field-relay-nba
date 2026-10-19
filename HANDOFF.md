@@ -1,5 +1,37 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-19 (night, later) — stage 2's wrong pairs refused, prices keyed by team, D1 repaired
+
+`docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`, dispatched and run to its
+owner ruling. Commits `87e9235d`..`7f8867bc` on main.
+
+- **Census, all sports:** 776 odds_history rows since the matcher landed.
+  - 11 of 49 one-sided pairs were another team's game: CFB 1, MLB 7, NHL 3.
+  - 1 swapped pair was synced backwards: WVU / Virginia.
+- **Stage 2 now refuses an unread side that cannot be that team**
+  (`couldAbbreviate`, names only; the kickoff ruling stands).
+  - On the real rows: 11 of 11 wrong refused, 37 of 38 right kept. The one cost
+    is "Boro".
+  - About 5% of wrong-team names would still pass. That gap is the open
+    kickoff question.
+- **The sync keys prices by team** (`pricesByTeam`): 775 straight, 1 swapped, 0
+  skipped.
+- **D1 repaired under the owner's ruling, "WVU via tomorrow's sync":**
+  - 11 wrong history rows deleted, and the 10 columns written from them NULLed;
+  - WVU's 2 columns NULLed;
+  - 23 change_log rows (22914-22936).
+  - **The 2026-10-20 10:00Z backfill must write WVU as Virginia −1667.** A
+    check-in at 10:45Z reads it (`trig_01AL8GxWydReokRR4AZvgqux`).
+- **Filed, not dispatched:**
+  - `docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md`: 17 MLB stage-1
+    next-day and doubleheader pairs. Needs the owner's kickoff ruling.
+  - `docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md`: 210
+    targeted rows in American odds, synced as decimal (`275` → `+27400`).
+- **Caught before it mattered:** the first repair SQL had an unescaped
+  apostrophe. Its self-test now runs the SQL in SQLite.
+
+Session doc: outbox/cc-session-2026-10-19-stage2-wrong-pair.md
+
 ## 2026-10-19 (night) — daily odds read, and the CFB record: exercised, defects in three places
 
 **The daily read** is in `outbox/odds-watches-daily-read-2026-10-19.md`.
