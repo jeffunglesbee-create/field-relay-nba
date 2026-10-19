@@ -14,6 +14,12 @@
 // turn deploy.yml red; three correct rewrites of the ambient live poll's guard
 // and charge must not. Site anchors are exact text, each asserted to match
 // once, so a stale anchor FAILS as NOTHING MUTATED rather than passing.
+// A site case may carry several `edits`, applied in order, each asserted
+// unique in the text as it stands. That is how a guard is MOVED below its
+// fetch (docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md).
+//
+// `--only=<text>` runs only the cases whose name contains <text>, after the
+// control. Such a run prints its own count and is never the full verdict.
 // A CONTROL, HEAD unmutated, must be all green first, or no verdict is printed.
 //
 // The steps run are READ FROM deploy.yml AT HEAD, out of the same archive the
@@ -59,6 +65,8 @@ function freshCopy() {
 // The step list, from HEAD's deploy.yml.
 const listDir = freshCopy();
 const wf = await loadYaml(join(listDir, '.github/workflows/deploy.yml'));
+const guardSites = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js']
+  .reduce((n, f) => n + (readFileSync(join(listDir, f), 'utf8').match(/!\s*\(\s*await\s+(?:consumeOddsCredit|_consumeAmbientOddsCredit)\(/g) || []).length, 0);
 rmSync(listDir, { recursive: true, force: true });
 const all = wf.jobs.deploy.steps;
 const cut = all.findIndex((s) => s.name === DEPLOY_STEP);
@@ -99,10 +107,44 @@ const SITES = [
   { expect: 'red', file: 'src/ambient-do.js', label: 'closing capture: the refusal logs and no longer returns',
     from: "            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return;",
     to: "            console.warn('[closing-odds] odds credit guard declined — skipping capture');" },
+  // The guard moved BELOW its fetch, or the fetch started above it: the refusal
+  // arrives after the vendor has billed. Six shapes from the 2026-10-19 second
+  // review, most plausible first. All six must turn deploy.yml red.
+  { expect: 'red', file: 'src/index.js', label: 'fetchSportOddsLive: the guard moved below the fetch (S1)', edits: [
+    [`  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'fetchSportOddsLive'))) {\n    return { games: [], quotaRemaining: null, ok: false, guarded: true };\n  }\n`, ''],
+    [`  await reconcileOddsCredit(env, _est, r, 'fetchSportOddsLive');`,
+     `  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'fetchSportOddsLive'))) {\n    return { games: [], quotaRemaining: null, ok: false, guarded: true };\n  }\n  await reconcileOddsCredit(env, _est, r, 'fetchSportOddsLive');`],
+  ] },
+  { expect: 'red', file: 'src/index.js', label: '/odds/* proxy: a special case returns relayFetch above the guard (P1)', edits: [
+    [PROXY_IF, `if (cleanPath.startsWith('/v4/events/')) return relayFetch(targetUrl, { 'Accept': 'application/json' }, 60, 'odds', ctx);\n            ${PROXY_IF}`],
+  ] },
+  { expect: 'red', file: 'src/index.js', label: '/odds/* proxy: relayFetch moved above the guard (P2)', edits: [
+    [`            const _proxyResp = await relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);\n`, ''],
+    [`            ${PROXY_IF}`, `            const _proxyResp = await relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);\n            ${PROXY_IF}`],
+  ] },
+  { expect: 'red', file: 'src/ambient-do.js', label: 'closing capture: the guard moved below the fetch (S4)', edits: [
+    [`        if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {\n            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return;\n        }\n`, ''],
+    [`            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, 'ambientCaptureClosingOdds');`,
+     `            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {\n                console.warn('[closing-odds] odds credit guard declined — skipping capture');\n                return;\n            }\n            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, 'ambientCaptureClosingOdds');`],
+  ] },
+  { expect: 'red', file: 'src/wp-resolver.js', label: 'wp-resolver: the fetch started above the guard, awaited below it (S2)', edits: [
+    [`    const r = await fetch(\n        _url,\n        { cf: { cacheTtl: 900, cacheEverything: true } }\n    );`, `    const r = await _p;`],
+    [`    if (!(await consumeOddsCredit(env, oddsCreditCost(_url), 'wpResolver'))) {`,
+     `    const _p = fetch(\n        _url,\n        { cf: { cacheTtl: 900, cacheEverything: true } }\n    );\n    if (!(await consumeOddsCredit(env, oddsCreditCost(_url), 'wpResolver'))) {`],
+  ] },
+  { expect: 'red', file: 'src/index.js', label: 'getWCPregameLambdas: the verdict named before the fetch, tested after it (S5)', edits: [
+    [`    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas'))) return null;`,
+     `    const _wcOk = await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas');`],
+    [`        await reconcileOddsCredit(env, oddsCreditCost(_wcUrl), r, 'getWCPregameLambdas');`,
+     `        if (!_wcOk) return null;\n        await reconcileOddsCredit(env, oddsCreditCost(_wcUrl), r, 'getWCPregameLambdas');`],
+  ] },
 ];
 const CASES = [];
 for (const [key, w] of Object.entries(W)) for (const b of BODIES) CASES.push({ key, expect: b.expect, name: `${w.path}: ${b.label}`, body: b.body });
 for (const t of SITES) CASES.push({ site: t, expect: t.expect, name: `${t.file}: ${t.label}` });
+const ONLY = (process.argv.find((a) => a.startsWith('--only=')) || '').slice('--only='.length);
+const RUN = ONLY ? CASES.filter((c) => c.name.includes(ONLY)) : CASES;
+if (ONLY && !RUN.length) { console.log(`FAIL — --only=${ONLY} matched no case`); process.exit(1); }
 
 function replaceWrapper(text, w, body) {
   const i = text.indexOf(`async function ${w.name}(`);
@@ -129,10 +171,13 @@ async function runCase(c) {
       writeFileSync(join(dir, w.path), next);
     }
     if (c.site) {
-      const t = readFileSync(join(dir, c.site.file), 'utf8');
-      const n = t.split(c.site.from).length - 1;
-      if (n !== 1) return { c, error: `anchor matched ${n} times in ${c.site.file}, expected 1 — NOTHING MUTATED` };
-      writeFileSync(join(dir, c.site.file), t.replace(c.site.from, c.site.to));
+      let t = readFileSync(join(dir, c.site.file), 'utf8');
+      for (const [from, to] of c.site.edits || [[c.site.from, c.site.to]]) {
+        const n = t.split(from).length - 1;
+        if (n !== 1) return { c, error: `anchor matched ${n} times in ${c.site.file}, expected 1 — NOTHING MUTATED: ${from.trim().slice(0, 70)}` };
+        t = t.replace(from, to);
+      }
+      writeFileSync(join(dir, c.site.file), t);
       const chk = spawnSync('node', ['--check', c.site.file], { cwd: dir, encoding: 'utf8' });
       if (chk.status !== 0) return { c, error: `the mutant does not parse: ${chk.stderr.split('\n').find(Boolean)}` };
     }
@@ -162,10 +207,10 @@ if (control.error || control.red.length) {
 }
 console.log('GREEN      CONTROL: HEAD, unmutated');
 
-const results = new Array(CASES.length);
+const results = new Array(RUN.length);
 let next = 0;
 await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
-  while (next < CASES.length) { const k = next++; results[k] = await runCase(CASES[k]); }
+  while (next < RUN.length) { const k = next++; results[k] = await runCase(RUN[k]); }
 }));
 
 let ok = 0;
@@ -177,7 +222,13 @@ for (const r of results) {
   console.log(`${c.expect === 'red' ? (pass ? 'CAUGHT    ' : 'NOT CAUGHT') : (pass ? 'GREEN     ' : 'RED (BAD) ')} ${c.name}`);
   for (const n of r.red) console.log(`           red step: ${n}`);
 }
-const reds = CASES.filter((c) => c.expect === 'red').length;
-console.log(`\n${ok} of ${CASES.length} cases as expected (control green first): ${reds} mutants must turn a step red, ${CASES.length - reds} equivalents must leave all ${steps.length} odds steps green.`);
-console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each, plus ${SITES.length} edits at 4 of the 9 guard sites (the other 5 are covered by check-odds-calls-guarded's own live log-only self-test, not by this harness). Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
-process.exit(ok === CASES.length ? 0 : 1);
+const reds = RUN.filter((c) => c.expect === 'red').length;
+if (ONLY) console.log(`\nPARTIAL RUN (--only=${ONLY}): ${RUN.length} of ${CASES.length} cases. Not a verdict on the harness.`);
+console.log(`\n${ok} of ${RUN.length} cases as expected (control green first): ${reds} mutants must turn a step red, ${RUN.length - reds} equivalents must leave all ${steps.length} odds steps green.`);
+// Counted, not typed (2026-10-19 review): the guard sites in HEAD's source, and
+// which of them a must-red site case actually bites.
+const siteOf = (t) => t.label.split(':')[0];
+const redSites = new Set(SITES.filter((t) => t.expect === 'red').map(siteOf));
+const greenOnly = new Set(SITES.filter((t) => t.expect === 'green').map(siteOf).filter((x) => !redSites.has(x)));
+console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each, plus ${SITES.length} site cases: a must-red edit at ${redSites.size} of the ${guardSites} guard sites in HEAD (${[...redSites].join(', ')}), must-stay-green edits only at ${[...greenOnly].join(', ') || 'none'}. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
+process.exit(ok === RUN.length ? 0 : 1);
