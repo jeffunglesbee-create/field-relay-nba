@@ -22,6 +22,23 @@
 - **Filed:** `docs/CC-CMD-2026-10-19-guards-only-src-readers.md`. Six non-odds
   guards still read `src/` from guards.yml alone, relay secret gates among
   them.
+- **Correction, same day (`293ffcf6..1cca6b40`):** two review findings were
+  only partly fixed at `796bb8a6`, and the report "all 13 fixed" was wrong.
+  - **The hole:** the `/odds/*` proxy passed with its verdict dropped, and a
+    refusal that only logs counted as a guard.
+  - **Now:** a guard counts only if its refusal ends in `return`/`throw`, at
+    the proxy too. Every live guard site made log-only goes red: 9 of 9.
+  - **The false reds:** two correct rewrites of the ambient live-poll charge
+    blocked the deploy. They are now found by shape, in code.
+  - **Proof:** `outbox/odds-gate-residuals-2026-10-19.log`. Harness 19 of 19;
+    deploy run 39274421945 on `1cca6b40` green.
+- **Filed from the second review** (stopped by the owner; 20 findings, 7
+  verified, all real). Three small CC-CMDs:
+  - `odds-guard-before-fetch`: nothing checks that the guard precedes the
+    fetch;
+  - `odds-gate-false-reds`;
+  - `odds-guard-condition-and-exit`: a conjunct in front of the verdict
+    skips the charge, at the proxy with one `!`.
 
 Session doc: outbox/cc-session-2026-10-19-odds-gate-wrapper-bodies.md
 

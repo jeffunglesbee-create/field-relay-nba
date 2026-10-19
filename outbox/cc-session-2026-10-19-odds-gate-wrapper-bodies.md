@@ -80,15 +80,75 @@ finding 4 closed as well (from option (b)).
     - the coverage line was a fixed string;
     - the push alone could not run deploy.yml (a dispatch was needed, and
       done).
-  - **Refuter pass:** 4 confirmed real and 1 refuted (the push/dispatch one,
-    already handled) at the time of writing. The rest were still running.
-    Every finding was fixed as reported, so a later refutation can only mean
-    a fix was unnecessary, not that a gap is open.
+  - **Refuter pass, CORRECTED.** This bullet first read "4 confirmed real
+    and 1 refuted at the time of writing ... a later refutation can only mean
+    a fix was unnecessary, not that a gap is open." The final pass refuted
+    that sentence. Final tally: 5 real, and 8 that no longer reproduced at
+    `796bb8a6` because they were already fixed. But two of the 5 real
+    verdicts found the fix incomplete at `796bb8a6`. The chat report "all 13
+    fixed" was wrong. See "Correction" below.
 - **Rule 90 on each new mechanism.** Reverting it turns its own cases red:
   - the executed wrapper test: X1, X2, X3 and X5 passed the text check;
   - the comment/string scanner: 3 gate fixtures;
   - the used-verdict rule: 1 gate fixture;
   - shape-based M4: the old M4 fails a reformat that the new one passes.
+
+## Correction — two residuals, fixed the same day (`293ffcf6..1cca6b40`)
+
+The first review's final verdicts arrived after this doc was committed. Two of
+its real findings were only partly fixed at `796bb8a6`. Both were reproduced at
+`ca3e4540` before any change: the control was green, and all five mutants came
+out wrong.
+
+- **A hole (money).** The `/odds/*` proxy, the one public billable route, was
+  checked by name only. A negated verdict also counted with nothing exiting.
+  Three mutants each left both deploy-path checkers at rc 0:
+  - P1, the proxy charges and drops the verdict;
+  - P2, the proxy's refusal only logs;
+  - L1, wp-resolver's refusal only logs.
+- **False reds.** Two correct rewrites of the ambient live poll's charge
+  blocked the deploy:
+  - A1, the cost hoisted into a const;
+  - A2, the 133-character call wrapped.
+  check-odds-live-disabled still matched the charge by exact text, and the
+  finding-4 self-test needed the site label on the guard line.
+
+| commit | what |
+|---|---|
+| `293ffcf6` | the comment/string blanker moves to `scripts/lib/blank-comments.mjs`, shared by both checkers |
+| `9857ce31` | the finding-4 live self-test finds the guard inside `_fetchLiveOdds`, not by its label |
+| `584207a5` | **a guard counts only if its refusal ends in `return`/`throw`, and the proxy is held to the same rule.** Every live guard site is made log-only as a self-test: 9 of 9 caught |
+| `e2d83843` | **check-odds-live-disabled finds the guard, the charge and the declaration by shape, in code, inside `_fetchLiveOdds`.** Correct rewrites stay clean, and copies in comments, strings or the next method do not count. 14 of 14 |
+| `1cca6b40` | the deploy harness also edits guard sites in place: 3 must stay green, 4 must go red |
+
+**Proof:** `outbox/odds-gate-residuals-2026-10-19.log`.
+- Before the fix, at `ca3e4540`: 5 of 5 mutants WRONG.
+- Rule 90 on the new checker logic: 10 of 10 mutations caught, control green.
+- Deploy harness: 19 of 19 cases as expected over the 25 odds steps, control
+  green. 13 mutants were caught, and 6 equivalents stayed green, including A1,
+  A2 and the guard written with braces.
+- The harness ran at `79b17ebc`, before the rebase.
+  `git diff 79b17ebc 1cca6b40 -- src scripts .github` is empty.
+- **Deploy run 39274421945 on `1cca6b40`: success**, every odds step included.
+  Repo guards run 39274411014 also succeeded.
+
+**The second review** (`wf_710edc9e-6f5`, three lenses at `79b17ebc`):
+- 20 findings came back. The owner stopped it when 7 of its 12 verifiers had
+  returned, all 7 real, and asked for the findings as small separate tasks.
+  None says these commits made anything worse.
+- **Defects in today's own code, now filed:**
+  - `verdictTests()` searches the whole file for a named verdict's `!x`, which
+    is a false red on a guard named `ok`;
+  - the fixture "a verdict inside a compound condition IS a guard" encodes a
+    hole: any `X && !(await G(...))` is credited.
+- Filed as three CC-CMDs, each self-contained:
+  - `docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md`: nothing checks that
+    the guard runs before the fetch. Three lenses found this independently.
+  - `docs/CC-CMD-2026-10-19-odds-gate-false-reds.md`: 8 rows of correct
+    rewrites that still block the deploy.
+  - `docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md`: a conjunct in
+    front of the verdict, a refusal path that still fetches, helper-built
+    calls the scan cannot see, and three low ones.
 
 ## Filed, not done here (Rule 87.4)
 

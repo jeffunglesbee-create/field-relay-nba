@@ -1,0 +1,128 @@
+# odds gate residuals, 2026-10-19 — reproduction, checker mutation, deploy-path harness
+#
+# Pushed as 293ffcf6..1cca6b40. The harness ran at 79b17ebc, the pre-rebase SHA.
+# 'git diff 79b17ebc 1cca6b40 -- src scripts .github' is empty, so it is the same code.
+
+## 1. Before the fix, at ca3e4540: five mutants, all WRONG
+##    A1/A2 are correct rewrites that went red; P1/P2/L1 are gutted guards that stayed green.
+
+CONTROL expect=green got=green AS EXPECTED
+   guarded rc=0 [  self-tests: 17 passed, 0 failed /   cost model: 8 passed, 0 failed (ODDS_REGIONS_MULTIPLY=true) / PASS — every odds call is charged to the monthly ledger]
+   live-disabled rc=0 [PASS  the odds-live 404 path returns before the charge (src/ambient-do.js)]
+A1 expect=green got=red WRONG
+   guarded rc=0 [  self-tests: 17 passed, 0 failed /   cost model: 8 passed, 0 failed (ODDS_REGIONS_MULTIPLY=true) / PASS — every odds call is charged to the monthly ledger]
+   live-disabled rc=1 [  FAIL  no findings against the live source /   FAIL  M1 the constant flipped to false /   FAIL  M2 the constant deleted]
+A2 expect=green got=red WRONG
+   guarded rc=1 [  self-tests: 16 passed, 1 failed /   cost model: 8 passed, 0 failed (ODDS_REGIONS_MULTIPLY=true) / FAIL]
+   live-disabled rc=1 [  FAIL  no findings against the live source /   FAIL  M1 the constant flipped to false /   FAIL  M2 the constant deleted]
+P1 expect=red got=green WRONG
+   guarded rc=0 [  self-tests: 17 passed, 0 failed /   cost model: 8 passed, 0 failed (ODDS_REGIONS_MULTIPLY=true) / PASS — every odds call is charged to the monthly ledger]
+   live-disabled rc=0 [PASS  the odds-live 404 path returns before the charge (src/ambient-do.js)]
+P2 expect=red got=green WRONG
+   guarded rc=0 [  self-tests: 17 passed, 0 failed /   cost model: 8 passed, 0 failed (ODDS_REGIONS_MULTIPLY=true) / PASS — every odds call is charged to the monthly ledger]
+   live-disabled rc=0 [PASS  the odds-live 404 path returns before the charge (src/ambient-do.js)]
+L1 expect=red got=green WRONG
+   guarded rc=0 [  self-tests: 17 passed, 0 failed /   cost model: 8 passed, 0 failed (ODDS_REGIONS_MULTIPLY=true) / PASS — every odds call is charged to the monthly ledger]
+   live-disabled rc=0 [PASS  the odds-live 404 path returns before the charge (src/ambient-do.js)]
+
+## 2. Rule 90 on the new checker logic (working tree = 79b17ebc's checkers)
+
+GREEN      CONTROL 
+CAUGHT     G1 verdict need not stop the call
+             live guard sites made log-only: 0 of 9 caught | FAIL
+CAUGHT     G2 any return anywhere in the consequent counts
+             live guard sites made log-only: 9 of 9 caught | FAIL
+CAUGHT     G3 proxy back to a name match
+             live guard sites made log-only: 8 of 9 caught | FAIL
+CAUGHT     G4 comments and strings not blanked
+             live guard sites made log-only: 9 of 9 caught | FAIL
+CAUGHT     G5 finding-4 live test needs the site label on the guard line
+             live guard sites made log-only: 9 of 9 caught | FAIL
+CAUGHT     L1 charge found by exact text
+             FAIL  E1 the cost hoisted into a const is clean |   FAIL  E2 the charge wrapped across lines is clean
+CAUGHT     L2 guard found by exact text
+             FAIL  E3 the guard written with braces is clean |   ok    N1 the guard deleted, a commented copy left, is caught
+CAUGHT     L3 comments and strings not blanked
+             FAIL  N1 the guard deleted, a commented copy left, is caught |   FAIL  N2 the guard deleted, a copy in a string left, is caught
+CAUGHT     L4 not scoped to _fetchLiveOdds
+             ok    N1 the guard deleted, a commented copy left, is caught |   ok    N2 the guard deleted, a copy in a string left, is caught
+CAUGHT     B1 blanker keeps comments
+             live guard sites made log-only: 7 of 7 caught |     FAIL src/index.js [/odds/* proxy] — variable path, checked structurally
+
+10 of 10 checker mutations caught (control green first).
+
+## 3. Deploy-path harness at 79b17ebc: every odds step of HEAD's deploy.yml, per case
+##    Note: the COVERAGE line's 'the other 5 are covered by ... not by this harness' is
+##    imprecise. check-odds-calls-guarded's log-only self-test makes all 9 sites log-only,
+##    and the harness's red site cases bite at 3 sites (proxy, wp-resolver, closing
+##    capture). The live poll gets only must-stay-green edits. The fix is filed in
+##    docs/CC-CMD-2026-10-19-odds-guard-condition-and-exit.md, task 4.
+
+deploy.yml at 79b17ebc: running 25 odds steps of the 96 runnable steps (no secret) before "Deploy to Cloudflare Workers":
+  - Every odds call is charged to the monthly ledger
+  - a degrade-open names its error and counts it by reason
+  - a batch and the helper reading it agree on their statement count
+  - the odds-live 404 path returns before the charge
+  - the odds budget schema is on ARCHIVE_DB and readable from CI
+  - the monthly charge is atomic and its ceiling binds
+  - the monthly odds counter has not grown another non-atomic writer
+  - a ceiling veto is readable from /budget/odds
+  - the odds budget batch keeps its order and its ceilings
+  - The backfill cannot pay for a payload and pair none of it
+  - the WC lambda call stays gated, and the sport list stays one list
+  - reconcile counts every call once, with no read
+  - every table a script creates is on the /d1/execute allow-list
+  - One team-name matcher, and it can fail
+  - Every odds call names which consumer spent it
+  - Every charged odds call is reconciled against the receipt
+  - Consumers read the last PRE-KICKOFF price, not the closing column
+  - The backfill logs only writes it actually made
+  - the odds-key tables are one table, and unchanged by the move
+  - closing_odds is not pre-filled for unplayed games
+  - no writer can stamp a post-kickoff price as the close
+  - every odds writer fetches its own sport's payload
+  - a budget grant cannot outlive its day
+  - soccer h2h yields a draw, and no other market gains one
+  - no opening line is written onto a finished game
+
+GREEN      CONTROL: HEAD, unmutated
+CAUGHT     src/index.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/index.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/index.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/index.js: the verdict is named, then returned (equivalent)
+CAUGHT     src/wp-resolver.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/wp-resolver.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/wp-resolver.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/wp-resolver.js: the verdict is named, then returned (equivalent)
+CAUGHT     src/ambient-do.js: the wrapper returns true
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/ambient-do.js: the charge runs, the verdict is dropped
+           red step: the monthly charge is atomic and its ceiling binds
+CAUGHT     src/ambient-do.js: returns early whenever KV is bound (one `!` gone)
+           red step: the monthly charge is atomic and its ceiling binds
+GREEN      src/ambient-do.js: the verdict is named, then returned (equivalent)
+GREEN      src/ambient-do.js: live poll: the cost hoisted into a const (equivalent)
+GREEN      src/ambient-do.js: live poll: the charge wrapped across lines (equivalent)
+GREEN      src/ambient-do.js: live poll: the 404 guard written with braces (equivalent)
+CAUGHT     src/index.js: /odds/* proxy: charged, the verdict dropped
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/index.js: /odds/* proxy: the refusal only logs
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/wp-resolver.js: wp-resolver: the refusal only logs
+           red step: Every odds call is charged to the monthly ledger
+CAUGHT     src/ambient-do.js: closing capture: the refusal logs and no longer returns
+           red step: Every odds call is charged to the monthly ledger
+
+19 of 19 cases as expected (control green first): 13 mutants must turn a step red, 6 equivalents must leave all 25 odds steps green.
+COVERAGE: 25 of 96 runnable pre-deploy steps (the odds ones), 3 of 3 wrappers mutated, 4 bodies each, plus 7 edits at 4 of the 9 guard sites (the other 5 are covered by check-odds-calls-guarded's own live log-only self-test, not by this harness). Not run: the other 71 runnable steps, 4 steps needing a secret or with no command, the deploy, and the live verify job.
+
+real	11m7.074s
+user	15m49.443s
+sys	3m37.502s
+rc=0
