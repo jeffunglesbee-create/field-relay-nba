@@ -1,0 +1,14 @@
+self-test: 15 of 15 fixtures classify as expected; the writer's fieldDayOfInstant agrees with this oracle on all 7 distinct start_time values, and the CFL writer stamps its date from it
+
+regular_season_games: 4300 rows; 3392 with a start_time, checked; 908 without, not checkable this way
+postseason_games: 277 rows; 7 with a start_time, checked; 270 without, not checkable this way
+checked 3399 rows with a start_time
+  exempt by exact label: 14 (PGA Tour 14)
+  compared against their ET day: 3385
+  off their ET day: 0
+  start_time unparseable: 0
+
+mutation: 2026-05-25-mlb-pittsb-chicag date 2026-05-25 -> 2026-05-26; the same verdict path then exits 1 with 1 mismatch(es): CAUGHT
+
+PASS — 0 mismatches over 3385 compared rows (14 exempt, 3399 checked, 1178 without a start_time not checkable)
+guard exit 0

@@ -1,0 +1,212 @@
+{
+  "cc_cmd": "CC-CMD-2026-10-16-cfl-archive-date-keying",
+  "task": 3,
+  "mode": "verify",
+  "started_at": "2026-10-19T00:17:36.646Z",
+  "db": "cc49101c-0569-4d41-8e7a-be139cde4f26",
+  "verdict": "VERIFIED",
+  "reason": "13 of 13 renamed, read back, and listed by /context/date on their new day only; 0 CFL rows off their ET day",
+  "plan_from": "outbox/cfl-date-keying-migration-dry-run-20261019T000530Z.json",
+  "after": [
+    {
+      "old_id": "CFL_2026-06-06_calgarystampeders_winnipegbluebombers",
+      "old_exists": false,
+      "new_id": "CFL_2026-06-05_calgarystampeders_winnipegbluebombers",
+      "new_exists": true,
+      "new_date": "2026-06-05",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-08-08_saskatchewanroughriders_ottawaredblacks",
+      "old_exists": false,
+      "new_id": "CFL_2026-08-07_saskatchewanroughriders_ottawaredblacks",
+      "new_exists": true,
+      "new_date": "2026-08-07",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-08-14_calgarystampeders_bclions",
+      "old_exists": false,
+      "new_id": "CFL_2026-08-13_calgarystampeders_bclions",
+      "new_exists": true,
+      "new_date": "2026-08-13",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-08-15_winnipegbluebombers_ottawaredblacks",
+      "old_exists": false,
+      "new_id": "CFL_2026-08-14_winnipegbluebombers_ottawaredblacks",
+      "new_exists": true,
+      "new_date": "2026-08-14",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-08-22_edmontonelks_winnipegbluebombers",
+      "old_exists": false,
+      "new_id": "CFL_2026-08-21_edmontonelks_winnipegbluebombers",
+      "new_exists": true,
+      "new_date": "2026-08-21",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-08-23_torontoargonauts_hamiltontigercats",
+      "old_exists": false,
+      "new_id": "CFL_2026-08-22_torontoargonauts_hamiltontigercats",
+      "new_exists": true,
+      "new_date": "2026-08-22",
+      "change_log_old": 0,
+      "change_log_new": 2
+    },
+    {
+      "old_id": "CFL_2026-08-29_winnipegbluebombers_montrealalouettes",
+      "old_exists": false,
+      "new_id": "CFL_2026-08-28_winnipegbluebombers_montrealalouettes",
+      "new_exists": true,
+      "new_date": "2026-08-28",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-09-13_e13419731",
+      "old_exists": false,
+      "new_id": "CFL_2026-09-12_e13419731",
+      "new_exists": true,
+      "new_date": "2026-09-12",
+      "change_log_old": 0,
+      "change_log_new": 2
+    },
+    {
+      "old_id": "CFL_2026-09-26_e13419735",
+      "old_exists": false,
+      "new_id": "CFL_2026-09-25_e13419735",
+      "new_exists": true,
+      "new_date": "2026-09-25",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-09-26_e13419736",
+      "old_exists": false,
+      "new_id": "CFL_2026-09-25_e13419736",
+      "new_exists": true,
+      "new_date": "2026-09-25",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-10-03_e13419740",
+      "old_exists": false,
+      "new_id": "CFL_2026-10-02_e13419740",
+      "new_exists": true,
+      "new_date": "2026-10-02",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-10-10_e13419744",
+      "old_exists": false,
+      "new_id": "CFL_2026-10-09_e13419744",
+      "new_exists": true,
+      "new_date": "2026-10-09",
+      "change_log_old": 0,
+      "change_log_new": 0
+    },
+    {
+      "old_id": "CFL_2026-10-17_e13419748",
+      "old_exists": false,
+      "new_id": "CFL_2026-10-16_e13419748",
+      "new_exists": true,
+      "new_date": "2026-10-16",
+      "change_log_old": 0,
+      "change_log_new": 0
+    }
+  ],
+  "cfl_rows_checked": 44,
+  "cfl_still_off_day": [],
+  "context_date": [
+    {
+      "new_id": "CFL_2026-06-05_calgarystampeders_winnipegbluebombers",
+      "game": "Calgary Stampeders v Winnipeg Blue Bombers",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-08-07_saskatchewanroughriders_ottawaredblacks",
+      "game": "Saskatchewan Roughriders v Ottawa RedBlacks",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-08-13_calgarystampeders_bclions",
+      "game": "Calgary Stampeders v BC Lions",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-08-14_winnipegbluebombers_ottawaredblacks",
+      "game": "Winnipeg Blue Bombers v Ottawa RedBlacks",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-08-21_edmontonelks_winnipegbluebombers",
+      "game": "Edmonton Elks v Winnipeg Blue Bombers",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-08-22_torontoargonauts_hamiltontigercats",
+      "game": "Toronto Argonauts v Hamilton Tiger-Cats",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-08-28_winnipegbluebombers_montrealalouettes",
+      "game": "Winnipeg Blue Bombers v Montreal Alouettes",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-09-12_e13419731",
+      "game": "BC Lions v Montreal Alouettes",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-09-25_e13419735",
+      "game": "Winnipeg Blue Bombers v Toronto Argonauts",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-09-25_e13419736",
+      "game": "BC Lions v Saskatchewan Roughriders",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-10-02_e13419740",
+      "game": "Saskatchewan Roughriders v Calgary Stampeders",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-10-09_e13419744",
+      "game": "BC Lions v Ottawa RedBlacks",
+      "on_new_day": true,
+      "still_on_old_day": false
+    },
+    {
+      "new_id": "CFL_2026-10-16_e13419748",
+      "game": "Edmonton Elks v Winnipeg Blue Bombers",
+      "on_new_day": true,
+      "still_on_old_day": false
+    }
+  ],
+  "finished_at": "2026-10-19T00:17:40.254Z"
+}

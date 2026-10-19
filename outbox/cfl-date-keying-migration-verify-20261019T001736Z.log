@@ -1,0 +1,40 @@
+self-test: all cases pass
+
+old_id                                                  old_exists  new_id                                                  new_exists  new_date    change_log_old  change_log_new
+------------------------------------------------------  ----------  ------------------------------------------------------  ----------  ----------  --------------  --------------
+CFL_2026-06-06_calgarystampeders_winnipegbluebombers    false       CFL_2026-06-05_calgarystampeders_winnipegbluebombers    true        2026-06-05  0               0             
+CFL_2026-08-08_saskatchewanroughriders_ottawaredblacks  false       CFL_2026-08-07_saskatchewanroughriders_ottawaredblacks  true        2026-08-07  0               0             
+CFL_2026-08-14_calgarystampeders_bclions                false       CFL_2026-08-13_calgarystampeders_bclions                true        2026-08-13  0               0             
+CFL_2026-08-15_winnipegbluebombers_ottawaredblacks      false       CFL_2026-08-14_winnipegbluebombers_ottawaredblacks      true        2026-08-14  0               0             
+CFL_2026-08-22_edmontonelks_winnipegbluebombers         false       CFL_2026-08-21_edmontonelks_winnipegbluebombers         true        2026-08-21  0               0             
+CFL_2026-08-23_torontoargonauts_hamiltontigercats       false       CFL_2026-08-22_torontoargonauts_hamiltontigercats       true        2026-08-22  0               2             
+CFL_2026-08-29_winnipegbluebombers_montrealalouettes    false       CFL_2026-08-28_winnipegbluebombers_montrealalouettes    true        2026-08-28  0               0             
+CFL_2026-09-13_e13419731                                false       CFL_2026-09-12_e13419731                                true        2026-09-12  0               2             
+CFL_2026-09-26_e13419735                                false       CFL_2026-09-25_e13419735                                true        2026-09-25  0               0             
+CFL_2026-09-26_e13419736                                false       CFL_2026-09-25_e13419736                                true        2026-09-25  0               0             
+CFL_2026-10-03_e13419740                                false       CFL_2026-10-02_e13419740                                true        2026-10-02  0               0             
+CFL_2026-10-10_e13419744                                false       CFL_2026-10-09_e13419744                                true        2026-10-09  0               0             
+CFL_2026-10-17_e13419748                                false       CFL_2026-10-16_e13419748                                true        2026-10-16  0               0             
+
+CFL rows still keyed on another day: 0 of 44 checked
+
+new_id                                                  game                                           on_new_day  still_on_old_day
+------------------------------------------------------  ---------------------------------------------  ----------  ----------------
+CFL_2026-06-05_calgarystampeders_winnipegbluebombers    Calgary Stampeders v Winnipeg Blue Bombers     true        false           
+CFL_2026-08-07_saskatchewanroughriders_ottawaredblacks  Saskatchewan Roughriders v Ottawa RedBlacks    true        false           
+CFL_2026-08-13_calgarystampeders_bclions                Calgary Stampeders v BC Lions                  true        false           
+CFL_2026-08-14_winnipegbluebombers_ottawaredblacks      Winnipeg Blue Bombers v Ottawa RedBlacks       true        false           
+CFL_2026-08-21_edmontonelks_winnipegbluebombers         Edmonton Elks v Winnipeg Blue Bombers          true        false           
+CFL_2026-08-22_torontoargonauts_hamiltontigercats       Toronto Argonauts v Hamilton Tiger-Cats        true        false           
+CFL_2026-08-28_winnipegbluebombers_montrealalouettes    Winnipeg Blue Bombers v Montreal Alouettes     true        false           
+CFL_2026-09-12_e13419731                                BC Lions v Montreal Alouettes                  true        false           
+CFL_2026-09-25_e13419735                                Winnipeg Blue Bombers v Toronto Argonauts      true        false           
+CFL_2026-09-25_e13419736                                BC Lions v Saskatchewan Roughriders            true        false           
+CFL_2026-10-02_e13419740                                Saskatchewan Roughriders v Calgary Stampeders  true        false           
+CFL_2026-10-09_e13419744                                BC Lions v Ottawa RedBlacks                    true        false           
+CFL_2026-10-16_e13419748                                Edmonton Elks v Winnipeg Blue Bombers          true        false           
+
+/context/date: 13 of 13 planned rows listed on their new day and gone from their old one
+
+verdict: VERIFIED — 13 of 13 renamed, read back, and listed by /context/date on their new day only; 0 CFL rows off their ET day
+manifest: outbox/cfl-date-keying-migration-verify-20261019T001736Z.json
