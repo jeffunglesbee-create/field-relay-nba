@@ -90,7 +90,7 @@ rewrite.
 |---|---|---|---|---|
 | upstream close-out read, before the deploy (`4aacba4e`) | — | — | −2,766 | stable across two reads four hours apart |
 | 2026-10-19T01:06Z, 3 min after the deploy | 35,857 | 38,647 | **−2,790** | baseline. 10-19 day 99 = site 99 |
-| 2026-10-19T01:57Z | scheduled (`trig_01PnUmCmLWaCC86F98NcGqf9`) | | | first post-deploy read |
+| 2026-10-19T01:58Z | 35,875 | 38,665 | **−2,790** | first post-deploy read. Month +18 and daily +18 since 01:06Z, so the gap is unchanged; 10-19 day 117 = site 117. A small sample: 18 credits, no CFL game in it |
 | 2026-10-25T06:30Z | scheduled (`trig_01YbnNqGQr72vNhVUHPPpnXq`) | | | after CFL's 10-23 and 10-24 games: **the done condition** |
 
 STAGED, per Rule 74:

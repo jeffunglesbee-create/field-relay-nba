@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL — **option 1 LANDED 2026-10-19** (`7ec2d03f`..`c8a45be7`, deploy run 39183315552 green), after two adversarial review rounds. Its done condition is STAGED until the 2026-10-25T06:30Z read, after CFL's 10-23 and 10-24 games; the baseline gap at 2026-10-19T01:06Z is −2,790. Options 2 and 3 and TASK 0's CFL half are held, with reasons under "Decision". Session doc: `outbox/cc-session-2026-10-19-odds-single-batch.md`.
+**Status:** PARTIAL — **option 1 LANDED 2026-10-19** (`7ec2d03f`..`c8a45be7`, deploy run 39183315552 green), after two adversarial review rounds. Its done condition is STAGED until the 2026-10-25T06:30Z read, after CFL's 10-23 and 10-24 games; the baseline gap at 2026-10-19T01:06Z is −2,790. It still read −2,790 at 01:58Z, with month and daily each +18. Options 2 and 3 and TASK 0's CFL half are held, with reasons under "Decision". Session doc: `outbox/cc-session-2026-10-19-odds-single-batch.md`.
 **Filed by:** CC, from TASK 1 of `docs/CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md`, which measures and may not fix.
 
 ---
