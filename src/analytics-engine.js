@@ -36,7 +36,10 @@ const KV_REPORT_TTL_SECS = 60 * 60 * 48;
 // Kept narrow to limit api-sports/ESPN spend per nightly run.
 const PHASE9_SPORTS = ['nba', 'nhl', 'mlb', 'wnba', 'wc26'];
 
-// Shared with src/index.js push-heartbeat gate (imported there).
+// Read by computeTier (Phase 9 tiering, below) for minPeriod/maxMargin.
+// src/index.js's push-heartbeat loop also imported it until 2026-10-19, when
+// that loop was deleted by ruling (docs/CC-CMD-2026-10-14-push-cron-gambit-path.md);
+// the `path` field has had no reader since.
 // minPeriod/maxMargin are per-sport factual gates over raw game state (late
 // phase, close margin) — two standalone booleans, never summed into a score.
 // WNBA reuses NBA's exact thresholds (same quarter structure).

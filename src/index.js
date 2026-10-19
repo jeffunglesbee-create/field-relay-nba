@@ -5545,7 +5545,7 @@ async function runWCTournamentProjections(env) {
 async function handleCron(env) {
     if (!env.PUSH_SUBS) return; // KV not configured
 
-    // ── Tubi free-game pre-game alert (independent of live-game check) ────────
+    // ── Tubi free-game pre-game alert ─────────────────────────────────────────
     await handleTubiPreGameAlerts(env);
 
     // THE LIVE-GAME HALF OF THIS HEARTBEAT DOES NOT EXIST, AND THAT IS A
@@ -9733,12 +9733,12 @@ export default {
         // ~2091) and was never meant to also drive journalism -- it reached
         // this call only because no event.cron gate existed here, same root
         // pattern as the June 16 Odds API P0 (handleJournalismCycle firing
-        // ungated on every matching cron). handleCron (live-game push
-        // polling) and sweepKVBriefs (KV->D1 repair) are deliberately NOT
-        // gated here -- both are confirmed-intentional every-tick behavior
+        // ungated on every matching cron). handleCron (the Tubi free-game
+        // pre-game alert; its live-game half was deleted 2026-10-19 -- see the
+        // stated absence in handleCron) and sweepKVBriefs (KV->D1 repair) are
+        // deliberately NOT gated here -- both are every-tick behavior
         // (sweepKVBriefs' cadence is separately re-verified in the comment
-        // at its own call site below; handleCron's live-alert freshness
-        // genuinely wants the more frequent */5 tick too).
+        // at its own call site below).
         // Real, checkable log line (CC-CMD-2026-08-02-gate-journalism-cycle-cron
         // TASK 3) — lets a live wrangler-tail capture directly confirm the
         // gate holds on real cron ticks, not just by code inspection.
