@@ -32,7 +32,7 @@
 //   - any pair more than KICKOFF_REFUSE_MINUTES off is refused, in both stages;
 //   - on an event two games claimed, a game more than
 //     CONTESTED_KICKOFF_MINUTES off is refused, and the others keep the pair.
-// A missing instant refuses nothing: it is counted, not judged. Every refusal
+// A missing instant refuses nothing: it is counted (unjudgedKickoff), not judged. Every refusal
 // leaves its event claimed, so refusing can only remove pairs, never add one.
 //
 // AMBIGUITY IS NEVER RESOLVED BY GUESSING. Two candidates return no event. A
@@ -317,6 +317,7 @@ export function slateWindow(events, isoDate) {
  *   byGameId: Map<string, {event: object, swapped: boolean, stage: 1|2}>,
  *   stage1: number, stage2: number, unmatched: number,
  *   ambiguous: number, contradicted: number, lateKickoff: number, sharedRefused: number,
+ *   unjudgedKickoff: number,
  *   poolSize: number, droppedOutOfWindow: number,
  * }}
  */
@@ -329,7 +330,7 @@ export function matchSlate(games, events, isoDate) {
   const claimed  = new Set();
   const residual = [];
   const byId = new Map(rows.map(g => [g.id, g]));
-  let ambiguous = 0, lateKickoff = 0, sharedRefused = 0;
+  let ambiguous = 0, lateKickoff = 0, sharedRefused = 0, unjudgedKickoff = 0;
 
   // STAGE 1 — both sides, unique. Order-independent: each row is decided
   // against the whole pool, so no row's outcome depends on another's.
@@ -337,12 +338,20 @@ export function matchSlate(games, events, isoDate) {
   // A row refused here by the kickoff is refused OUTRIGHT, not sent to stage 2,
   // and its event stays claimed. Either shortcut would let a refusal hand a row
   // or an event to elimination, and a refusal would then create a pair.
+  //
+  // A CLAIM IS COUNTED BEFORE ANY REFUSAL. A game refused for its kickoff still
+  // named the event, so it still makes the event shared. Counting only the
+  // survivors would let a twin 300 min off keep the event whenever the other
+  // claimant happened to be refused, and one refusal would create a pair
+  // (found by review, 2026-10-20).
   const named = new Map();                   // gameId -> {event, swapped}
+  const claimants = new Map();               // eventId -> games that named it
   for (const g of rows) {
     const r = findVendorEvent(g, pool);
     if (r.ambiguous) { ambiguous++; residual.push(g); continue; }
     if (!r.event) { residual.push(g); continue; }
     claimed.add(r.event.id);
+    claimants.set(r.event.id, (claimants.get(r.event.id) ?? 0) + 1);
     if (beyond(kickoffGapMinutes(g, r.event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }
     named.set(g.id, r);
   }
@@ -353,14 +362,16 @@ export function matchSlate(games, events, isoDate) {
   // is refused; the rest keep the pair they already had. That keeps the MLS
   // fixtures archived twice (one copy has no kickoff), which are the same game
   // and both priced right.
-  const claimants = new Map();               // eventId -> count
-  for (const r of named.values()) claimants.set(r.event.id, (claimants.get(r.event.id) ?? 0) + 1);
+  //
+  // A pair kept without a kickoff on both sides is counted as UNJUDGED, so the
+  // caller can print how many of its pairs the rule actually saw (Rule 91).
   for (const [gameId, r] of named) {
-    if (claimants.get(r.event.id) > 1
-        && beyond(kickoffGapMinutes(byId.get(gameId), r.event), CONTESTED_KICKOFF_MINUTES)) {
+    const gap = kickoffGapMinutes(byId.get(gameId), r.event);
+    if (claimants.get(r.event.id) > 1 && beyond(gap, CONTESTED_KICKOFF_MINUTES)) {
       sharedRefused++;
       continue;
     }
+    if (gap === null) unjudgedKickoff++;
     byGameId.set(gameId, { event: r.event, swapped: r.swapped, stage: 1 });
   }
 
@@ -396,7 +407,9 @@ export function matchSlate(games, events, isoDate) {
       contradicted++;
       continue;
     }
-    if (beyond(kickoffGapMinutes(g, event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }
+    const gap2 = kickoffGapMinutes(g, event);
+    if (beyond(gap2, KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }
+    if (gap2 === null) unjudgedKickoff++;
     byGameId.set(gameId, { event, swapped: false, stage: 2 });
     stage2++;
   }
@@ -410,6 +423,7 @@ export function matchSlate(games, events, isoDate) {
     contradicted,
     lateKickoff,
     sharedRefused,
+    unjudgedKickoff,
     poolSize: pool.length,
     droppedOutOfWindow: all.length - pool.length,
   };

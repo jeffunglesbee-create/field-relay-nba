@@ -79,9 +79,30 @@ for (const f of CONSUMERS) {
 {
   const f = 'scripts/targeted-odds-fill.mjs';
   const src = fs.readFileSync(f, 'utf8');
-  /SELECT id, LOWER\(sport\)[^`]*\bstart_time\b[^`]*FROM regular_season_games/.test(src)
+  // A bare column, not an alias: `NULL AS start_time` or `x AS start_time`
+  // would still mention the word and deliver nothing (found by review).
+  /SELECT id, LOWER\(sport\)[^`]*,\s*start_time\s+FROM regular_season_games/.test(src)
     ? console.log(`  PASS  ${f}: the games it pairs carry start_time`)
     : (failed++, console.log(`  FAIL  ${f}: the games SELECT drops start_time, so the kickoff refusal never fires`));
+
+  // EVERY SQL THE FILL SENDS MUST PASS THE RELAY'S TABLE GUARD. /d1/execute
+  // names the table with the regex below, read from src/index.js rather than
+  // copied, and refuses any name outside ALLOWED_TABLES. A comment inside the
+  // SQL reading "far from the" made the guard see table "the": a 403 that only
+  // a live run would have shown.
+  const idx = fs.readFileSync('src/index.js', 'latin1');
+  const guardSrc = idx.match(/const tableName = sql\.match\((\/.+\/i)\)\?\.\[1\];/)?.[1];
+  const allowed = (idx.match(/const ALLOWED_TABLES = \[([^\]]+)\]/)?.[1] || '').match(/'(\w+)'/g)?.map(x => x.slice(1, -1)) || [];
+  if (!guardSrc || !allowed.length) { failed++; console.log(`  FAIL  src/index.js: the /d1/execute table guard or ALLOWED_TABLES was not found — re-read it`); }
+  else {
+    const guard = new RegExp(guardSrc.slice(1, guardSrc.lastIndexOf('/')), 'i');
+    const sqls = [...src.matchAll(/\bd1\(\s*`([^`]*)`/g)].map(m => m[1]);
+    const bad = sqls.filter(q => !allowed.includes(q.match(guard)?.[1]));
+    sqls.length && !bad.length
+      ? console.log(`  PASS  ${f}: all ${sqls.length} SQL literals name an allowed table under the relay's guard`)
+      : (failed++, console.log(`  FAIL  ${f}: ${bad.length} SQL literal(s) the relay's guard would refuse: `
+          + bad.map(q => JSON.stringify(q.match(guard)?.[1] ?? null)).join(', ')));
+  }
   const cron = fs.readFileSync('.github/scripts/odds-backfill.js', 'utf8');
   /fetch\(`\$\{RELAY_BASE\}\/context\/date\/\$\{isoDate\}`\)/.test(cron)
     ? console.log(`  PASS  .github/scripts/odds-backfill.js: its games come from /context/date, which carries start_time`)

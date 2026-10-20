@@ -337,7 +337,8 @@ async function processDate(isoDate, remainingBudgetRef) {
       + `${slate.unmatched} unmatched, ${slate.ambiguous} ambiguous, `
       + `${slate.contradicted} refused because the unread side could not be that team, `
       + `${slate.lateKickoff} refused for a kickoff too far off, `
-      + `${slate.sharedRefused} refused as a shared event's far twin`);
+      + `${slate.sharedRefused} refused as a shared event's far twin; `
+      + `kickoff judged on ${slate.byGameId.size - slate.unjudgedKickoff} of ${slate.byGameId.size} pairs`);
     for (const g of sportGames) {
       const match = slate.byGameId.get(g.id);
       if (!match) continue;

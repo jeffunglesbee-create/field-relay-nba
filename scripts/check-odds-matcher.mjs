@@ -622,6 +622,88 @@ unknown.byGameId.size === 1 && unknown.lateKickoff === 0
   ? ok('a game with no kickoff is not refused for lacking one')
   : bad('missing kickoff', `paired ${unknown.byGameId.size}, late ${unknown.lateKickoff}`, 'paired 1, late 0');
 eq('kickoffGapMinutes on an unreadable instant', String(kickoffGapMinutes({ start_time: 'TBD' }, NEXT)), 'null');
+// ── found by the 2026-10-20 adversarial review, each with a mutation ──────
+
+// A claim counts before any refusal: a twin 206 off is refused even when the
+// other claimant (751 off) was refused for its kickoff first.
+const E2 = { id: 'E', home_team: 'New York Yankees', away_team: 'Baltimore Orioles', commence_time: '2026-09-25T23:31:00Z' };
+const near206 = { id: 'A', home: 'Yankees', away: 'Orioles', start_time: '2026-09-25T20:05Z' };
+const far751 = { id: 'B', home: 'Yankees', away: 'Orioles', start_time: '2026-09-25T11:00Z' };
+const both = matchSlate([near206, far751], [E2], '2026-09-25');
+both.byGameId.size === 0 && both.lateKickoff === 1 && both.sharedRefused === 1
+  ? ok('a claimant refused for its kickoff still makes the event shared')
+  : bad('claim counted before refusal', JSON.stringify({ paired: [...both.byGameId.keys()], late: both.lateKickoff, shared: both.sharedRefused }), 'paired none, late 1, shared 1');
+
+// The near copy has no kickoff and the far twin is 206 off: still shared.
+const blindNear = matchSlate([{ id: 'n', home: 'Yankees', away: 'Orioles' }, near206], [E2], '2026-09-25');
+String([...blindNear.byGameId.keys()]) === 'n' && blindNear.sharedRefused === 1
+  ? ok('a claimant without a kickoff still counts toward a shared event')
+  : bad('claimant without kickoff', [...blindNear.byGameId.keys()].join(','), 'n only');
+
+// The claim check is per event: a doubleheader elsewhere on the slate does not
+// refuse a lone rain-delayed game (+235) on its own event.
+const rain = { id: 'r', home: 'White Sox', away: 'Tigers', start_time: '2026-09-25T18:10Z' };
+const rainEv = { id: 'R', home_team: 'Chicago White Sox', away_team: 'Detroit Tigers', commence_time: '2026-09-25T22:05:00Z' };
+const nearDH = { id: 'n2', home: 'Yankees', away: 'Orioles', start_time: '2026-09-25T23:30Z' };
+const perEvent = matchSlate([nearDH, near206, rain], [E2, rainEv], '2026-09-25');
+perEvent.byGameId.has('r') && perEvent.byGameId.has('n2') && !perEvent.byGameId.has('A') && perEvent.sharedRefused === 1
+  ? ok('the claim check is per event: a lone +235 game keeps its own event beside a doubleheader')
+  : bad('per-event scope', [...perEvent.byGameId.keys()].join(','), 'n2,r');
+
+// Direction: an event a day EARLIER is as wrong as a day later, and a twin
+// whose kickoff is after the event is as far as one before it.
+const earlier = matchSlate([{ id: 'x', home: 'Braves', away: 'Phillies', start_time: '2026-09-30T18:00Z' }],
+  [{ id: 'X', home_team: 'Atlanta Braves', away_team: 'Philadelphia Phillies', commence_time: '2026-09-29T18:00:00Z' }], '2026-09-29');
+earlier.byGameId.size === 0 && earlier.lateKickoff === 1
+  ? ok('an event a day before the archive kickoff is refused too (|gap|, not gap)')
+  : bad('negative gap', `paired ${earlier.byGameId.size}`, 'paired 0');
+const twinAfter = matchSlate([nearDH, { id: 'L', home: 'Yankees', away: 'Orioles', start_time: '2026-09-26T02:57Z' }], [E2], '2026-09-25');
+String([...twinAfter.byGameId.keys()]) === 'n2' && twinAfter.sharedRefused === 1
+  ? ok('a twin whose kickoff is 206 min AFTER the event is refused as far')
+  : bad('twin after the event', [...twinAfter.byGameId.keys()].join(','), 'n2');
+
+// A twin refused by the claim check is not sent to elimination either.
+// "York" passes the side rule for "Yankees", so only the claim check's refusal
+// stands between the twin and this event.
+const ELSE2 = { id: 'else2', home_team: 'York Revolution', away_team: 'Baltimore Orioles', commence_time: '2026-09-25T20:10:00Z' };
+const twinFree = matchSlate([nearDH, near206], [E2, ELSE2], '2026-09-25');
+!twinFree.byGameId.has('A')
+  ? ok('a twin refused by the claim check does not find another event by elimination')
+  : bad('claim-refused twin re-paired', twinFree.byGameId.get('A')?.event.id, 'unpaired');
+
+// Stage 2's kickoff refusal comes after the collision test: two rows forcing
+// one event are both refused even when one of them is also a day off.
+const colE = { id: 'C', home_team: 'Ohio Bobcats', away_team: 'Kent State Golden Flashes', commence_time: '2026-09-12T18:00:00Z' };
+const col2 = matchSlate([{ id: 'far', home: 'Ohio', away: 'KSU', start_time: '2026-09-11T10:00Z' },
+                         { id: 'nok', home: 'Ohio', away: 'Kent St Flash' }], [colE], '2026-09-12');
+col2.byGameId.size === 0 && col2.ambiguous === 2
+  ? ok('stage 2: a far row still collides, so its rival gains nothing from the refusal')
+  : bad('stage-2 collision with a far row', `paired ${[...col2.byGameId.keys()]}, ambiguous ${col2.ambiguous}`, 'paired none, ambiguous 2');
+
+// The limits are inclusive: exactly 720 and exactly 90 keep the pair.
+const at = (min) => new Date(Date.parse('2026-09-25T12:00:00Z') + min * 60000).toISOString();
+const lim = (min) => matchSlate([{ id: 'g', home: 'Braves', away: 'Phillies', start_time: '2026-09-25T12:00Z' }],
+  [{ id: 'e', home_team: 'Atlanta Braves', away_team: 'Philadelphia Phillies', commence_time: at(min) }], '2026-09-25').byGameId.size;
+eq('a pair exactly 720 min off is kept, 721 refused', `${lim(720)}/${lim(721)}`, '1/0');
+const twinAt = (min) => {
+  const sl = matchSlate([nearDH, { id: 't', home: 'Yankees', away: 'Orioles',
+    start_time: new Date(Date.parse(E2.commence_time) - min * 60000).toISOString() }], [E2], '2026-09-25');
+  return sl.byGameId.has('t') ? 1 : 0;
+};
+eq('on a shared event, a claimant exactly 90 min off keeps it, 91 is refused', `${twinAt(90)}/${twinAt(91)}`, '1/0');
+
+// Unjudged pairs are counted, so a slate with no kickoffs cannot print the
+// same zeros as a slate that was fully checked (Rule 91).
+const mlsGroup = mls[0];
+const mlsSl = matchSlate(mlsGroup.map(asGame), [asEvent(mlsGroup[0])], mlsGroup[0].date);
+eq('an MLS duplicate pair: the copy without a kickoff is counted as unjudged', mlsSl.unjudgedKickoff, mlsGroup.filter(r => !r.start_time).length);
+eq('a single game without a kickoff is unjudged, not refused', `${unknown.byGameId.size}/${unknown.unjudgedKickoff}`, '1/1');
+const s2blind = matchSlate([{ id: 's', home: 'Jax State', away: 'Ohio' }],
+  [{ id: 'S', home_team: 'Jacksonville State Gamecocks', away_team: 'Ohio Bobcats', commence_time: '2026-09-12T18:00:00Z' }], '2026-09-12');
+eq('a stage-2 pair without a kickoff is unjudged too', `${s2blind.stage2}/${s2blind.unjudgedKickoff}`, '1/1');
+const judgedAll = pairs.map(r => matchSlate([asGame(r)], [asEvent(r)], r.date));
+eq('over the 776 rows, pairs kept without a kickoff (unjudged)', judgedAll.reduce((n, sl) => n + sl.unjudgedKickoff, 0), 50);
+
 // The archive's two kickoff spellings, measured 2026-10-20 over 3197 rows since
 // 2026-08-01: 2740 'YYYY-MM-DDTHH:MMZ', 42 '...:00+00:00', 415 NULL, 0 date-only.
 eq('gap from a "T17:00Z" kickoff', kickoffGapMinutes({ start_time: '2026-08-01T17:00Z' }, { commence_time: '2026-08-01T17:30:00Z' }), 30);

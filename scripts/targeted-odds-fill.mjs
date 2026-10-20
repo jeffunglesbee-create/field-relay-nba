@@ -91,11 +91,13 @@ console.log(`since=${SINCE}  max-pairs=${MAX_PAIRS || 'all'}  budget=${BUDGET} c
 // 1. The pairs, and which of them still lack an odds_history row. A pair whose
 //    games already have rows is not refetched — that is the waste this script
 //    exists to avoid, and skipping it silently would reintroduce it.
+// start_time: matchSlate refuses a pair whose kickoff is too far off
+// (docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md). The note lives HERE and
+// not inside the SQL: the relay's /d1/execute guard takes the first word after
+// FROM/INTO/UPDATE as the table name, so a comment reading "far from the" was
+// read as table "the" and refused with a 403 (found by review, 2026-10-20).
 const games = await d1(
-  `SELECT id, LOWER(sport) AS s, sport AS sport_raw, date, home, away,
-          -- matchSlate refuses a pair whose kickoff is too far from the
-          -- vendor's (docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md)
-          start_time
+  `SELECT id, LOWER(sport) AS s, sport AS sport_raw, date, home, away, start_time
      FROM regular_season_games
     WHERE date >= ? AND opening_odds IS NULL`, [SINCE]);
 
@@ -335,7 +337,8 @@ for (const p of plan) {
   console.log(`  ${p.date} ${String(p.sport).padEnd(22)} ${events.length} event(s), `
     + `${slate.poolSize} in window -> ${slate.stage1} by name + ${slate.stage2} by elimination `
     + `(${slate.contradicted} refused: unread side cannot be that team; `
-    + `${slate.lateKickoff} refused: kickoff too far; ${slate.sharedRefused} refused: a shared event's far twin), `
+    + `${slate.lateKickoff} refused: kickoff too far; ${slate.sharedRefused} refused: a shared event's far twin; `
+    + `kickoff judged on ${slate.byGameId.size - slate.unjudgedKickoff} of ${slate.byGameId.size} pairs), `
     + `${hit}/${p.games.length} priced -> ${klass}`);
 }
 
