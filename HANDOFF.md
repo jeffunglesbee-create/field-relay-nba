@@ -1,5 +1,40 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-20 (afternoon) — odds_history is one unit again, and 422 blobs are repaired
+
+`docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md` is **DONE**,
+dispatched with "go with Claude's best recommendations". Commits `e18359e1`..`32a51a04`.
+
+- **The defect:**
+  - the targeted fill stored 211 rows in American odds;
+  - the sync reads every odds_history price as decimal, so it converted them
+    twice into BOTH columns of 211 games (422 blobs);
+  - 275 became +27400 and −345 became null, draws too.
+- **The fix:** the fill asks for decimal. `check-odds-history-units.mjs`
+  (guards and the deploy gate) holds every vendor odds request to decimal,
+  except six reviewed American readers that write no odds_history row.
+  86 of 86 mutations caught.
+- **D1 repaired:**
+  - one transaction of six set-based statements, proven byte-equal to a
+    1,266-statement oracle on the 211 real rows;
+  - 211 rows converted to decimal and 422 blobs re-derived by team;
+  - 633 change_log rows (22971-23603), verify read 11 of 11;
+  - 0 games are left with a +10000-class price or a null side.
+- **Nothing persisted the damage:** 0 briefs, 0 analytics_output rows, and no
+  committed file in any repo. The 69-reader census is in
+  `outbox/odds-american-readers-2026-10-20.md`.
+- **Filed, not dispatched:** jubilant-bassoon
+  `docs/CC-CMD-2026-10-20-debrief-cache-outlives-archive-repair.md`. A
+  browser's debrief cache keeps a damaged line for up to about 7 days, because
+  it reads with no age check.
+- **This morning's two odds CC-CMDs are DONE:**
+  - today's backfill (run 39442651905, 14:48Z) wrote WVU by team (Virginia
+    −1667, West Virginia +870);
+  - every pairing line prints the stage-1 refusal counters;
+  - both repairs hold.
+
+Session doc: outbox/cc-session-2026-10-20-american-odds-units.md
+
 ## 2026-10-20 (early) — stage 1 refuses the same teams' next game, D1 repaired
 
 `docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md`, dispatched and run to its

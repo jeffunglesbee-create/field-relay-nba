@@ -1,0 +1,385 @@
+# Proof log — odds_history held American odds and the sync converted them twice, 2026-10-20
+# docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md. Commits e18359e1, 01dde259, c4d54e34, fce341d9, 32a51a04 on main.
+# Each section is the verbatim output of the command or read named in its header.
+
+## 1. TASK 0.1 — every odds_history row's unit, by writer, the whole table (D1 SELECT, 2026-10-20 ~14:15Z, 0 rows written)
+#   SELECT suffix, snapshot_type, COUNT(*), american_shaped (|price| >= 100 or < 1), decimal_shaped, a_side_null ... GROUP BY suffix, snapshot_type
+{"suffix":"close","snapshot_type":"close","n":743,"american_shaped":2,"decimal_shaped":741,"a_side_null":0,"first":"2026-06-21 13:27:52","last":"2026-10-19 16:51:17"}
+{"suffix":"targeted","snapshot_type":"open","n":211,"american_shaped":211,"decimal_shaped":0,"a_side_null":0,"first":"2026-09-16 01:24:42","last":"2026-09-19 03:26:28"}
+#   954 rows. The 2 American-shaped _close rows, read one by one, are decimal in-play extremes, not American:
+{"id":"scf_2026_g6_fanatics_close","home_ml":301,"away_ml":1,"bookmaker":"fanatics","snapshot_time":"2026-06-15T02:57:00Z"}
+{"id":"2026-05-24-epl-totten-everto_fanduel_close","home_ml":1,"away_ml":101,"draw_ml":56,"bookmaker":"fanduel","snapshot_time":"2026-05-24T17:08:55Z"}
+#   Result: 743 of 743 _close rows decimal; 211 of 211 _targeted rows American. The CC-CMD counted 210 because its census began 2026-09-16 10:42Z; the 211th (IPL, 2026-05-09) was written at 01:24Z that day.
+
+## 1b. The damage in the game tables, every _targeted row, both columns (D1 SELECT, 0 rows written)
+{"sport":"CFB","targeted_rows":150,"open_from_row":150,"close_from_row":150,"open_sig":150,"close_sig":150,"with_draw":0,"d0":"2026-08-29","d1":"2026-09-12"}
+{"sport":"EFL Cup","targeted_rows":46,"open_from_row":46,"close_from_row":46,"open_sig":46,"close_sig":46,"with_draw":46,"d0":"2026-08-08","d1":"2026-08-25"}
+{"sport":"IPL","targeted_rows":1,"open_from_row":1,"close_from_row":1,"open_sig":1,"close_sig":1,"with_draw":0,"d0":"2026-05-09","d1":"2026-05-09"}
+{"sport":"La Liga","targeted_rows":1,"open_from_row":1,"close_from_row":1,"open_sig":1,"close_sig":1,"with_draw":1,"d0":"2026-05-24","d1":"2026-05-24"}
+{"sport":"NFL","targeted_rows":13,"open_from_row":13,"close_from_row":13,"open_sig":13,"close_sig":13,"with_draw":0,"d0":"2026-09-13","d1":"2026-09-13"}
+#   *_sig = the blob's captured_at is the row's snapshot_time AND home and away equal the double conversion of the row (null for a negative price).
+#   Result: 211 games, 422 blobs, every one the double conversion of its own row; 47 of them carry a draw converted twice too.
+#   No game has a second odds_history row. The CC-CMD's "206 rows, 229 sides" counted positive sides only (its census skips a null side).
+
+## 1c. The fixture (outbox/fixture-odds-american-targeted-2026-10-20.json) against D1: 11 aggregates recomputed after writing the file
+n 211=211 | ids 211=211 | SUM(home_ml) -2513010 | SUM(away_ml) 168504 | SUM(draw_ml) 13790 | SUM(blob home) 1490200 | SUM(blob away) 18541600 | SUM(blob draw) 1374300 | SUM(len of 7 text fields) 24976 | opening=closing 211 | captured_at=snapshot 211   -> 11 of 11 OK
+
+## 1d. Persisted text built from the damaged blobs (D1 SELECTs, 0 rows written)
+briefs written on or after 2026-09-16 01:24 for the 9 damaged dates: 0; analytics_output for those dates and the day after: 0
+briefs on any of the 211 games, any date: 0
+#   So the damage lived in the 422 blobs and in what read them live; nothing composed from them was stored.
+
+## 2. RED BEFORE: node scripts/check-odds-history-units.mjs (from 32a51a04) with the BASE fill (scripts/targeted-odds-fill.mjs at a4208b46) — exit 1
+
+A. every vendor odds request asks for decimal, or is a listed American reader
+  PASS  src/ambient-do.js: listed as an American reader and still requests odds (2)
+  PASS  src/ambient-do.js: a listed American reader writes no odds_history row
+  PASS  src/index.js: listed as an American reader and still requests odds (5)
+  PASS  src/index.js: a listed American reader writes no odds_history row
+  PASS  src/wp-resolver.js: listed as an American reader and still requests odds (1)
+  PASS  src/wp-resolver.js: a listed American reader writes no odds_history row
+  PASS  scripts/diagnose-cfb-name-join.mjs: listed as an American reader and still requests odds (1)
+  PASS  scripts/diagnose-cfb-name-join.mjs: a listed American reader writes no odds_history row
+  PASS  scripts/odds-h2h-shape-probe.mjs: listed as an American reader and still requests odds (1)
+  PASS  scripts/odds-h2h-shape-probe.mjs: a listed American reader writes no odds_history row
+  PASS  scripts/odds-spread-shape-probe.mjs: listed as an American reader and still requests odds (1)
+  PASS  scripts/odds-spread-shape-probe.mjs: a listed American reader writes no odds_history row
+  FAIL  scripts/targeted-odds-fill.mjs: asks for oddsFormat=american
+  PASS  .github/scripts/odds-backfill.js: asks for oddsFormat=decimal
+  PASS  src/index.js: the listed American reader exists
+  PASS  src/ambient-do.js: the listed American reader exists
+  PASS  src/wp-resolver.js: the listed American reader exists
+  PASS  scripts/diagnose-cfb-name-join.mjs: the listed American reader exists
+  PASS  scripts/odds-h2h-shape-probe.mjs: the listed American reader exists
+  PASS  scripts/odds-spread-shape-probe.mjs: the listed American reader exists
+  PASS  .github/scripts/odds-backfill.js: the known odds_history writer is still seen requesting and writing (an empty scan is a failure)
+  PASS  scripts/targeted-odds-fill.mjs: the known odds_history writer is still seen requesting and writing (an empty scan is a failure)
+
+B. a decimal row syncs back to its American price
+  PASS  469 of 469 real sides come back exact
+  PASS  +275 -> 3.75 -> 275
+  PASS  -345 -> 1.289855072463768 -> -345
+  PASS  +100 -> 2 -> 100
+  PASS  -100000 -> 1.001 -> -100000
+  PASS  +3000 -> 31 -> 3000
+
+COVERAGE: 287 runtime files scanned (src, scripts, .github/scripts, workers; 142 check/mutate harnesses counted out); 2 request decimal odds as writers or readers, 6 listed American readers; 211 real rows, 469 sides (outbox/fixture-odds-american-targeted-2026-10-20.json).
+Structural for A: it reads the request the code builds, not a live response.
+
+1 FAILED
+
+## 3. GREEN AFTER: node scripts/check-odds-history-units.mjs at 32a51a04 — exit 0
+
+A. every vendor odds request asks for decimal, or is a listed American reader
+  PASS  src/ambient-do.js: listed as an American reader and still requests odds (2)
+  PASS  src/ambient-do.js: a listed American reader writes no odds_history row
+  PASS  src/index.js: listed as an American reader and still requests odds (5)
+  PASS  src/index.js: a listed American reader writes no odds_history row
+  PASS  src/wp-resolver.js: listed as an American reader and still requests odds (1)
+  PASS  src/wp-resolver.js: a listed American reader writes no odds_history row
+  PASS  scripts/diagnose-cfb-name-join.mjs: listed as an American reader and still requests odds (1)
+  PASS  scripts/diagnose-cfb-name-join.mjs: a listed American reader writes no odds_history row
+  PASS  scripts/odds-h2h-shape-probe.mjs: listed as an American reader and still requests odds (1)
+  PASS  scripts/odds-h2h-shape-probe.mjs: a listed American reader writes no odds_history row
+  PASS  scripts/odds-spread-shape-probe.mjs: listed as an American reader and still requests odds (1)
+  PASS  scripts/odds-spread-shape-probe.mjs: a listed American reader writes no odds_history row
+  PASS  scripts/targeted-odds-fill.mjs: asks for oddsFormat=decimal
+  PASS  .github/scripts/odds-backfill.js: asks for oddsFormat=decimal
+  PASS  src/index.js: the listed American reader exists
+  PASS  src/ambient-do.js: the listed American reader exists
+  PASS  src/wp-resolver.js: the listed American reader exists
+  PASS  scripts/diagnose-cfb-name-join.mjs: the listed American reader exists
+  PASS  scripts/odds-h2h-shape-probe.mjs: the listed American reader exists
+  PASS  scripts/odds-spread-shape-probe.mjs: the listed American reader exists
+  PASS  .github/scripts/odds-backfill.js: the known odds_history writer is still seen requesting and writing (an empty scan is a failure)
+  PASS  scripts/targeted-odds-fill.mjs: the known odds_history writer is still seen requesting and writing (an empty scan is a failure)
+
+B. a decimal row syncs back to its American price
+  PASS  469 of 469 real sides come back exact
+  PASS  +275 -> 3.75 -> 275
+  PASS  -345 -> 1.289855072463768 -> -345
+  PASS  +100 -> 2 -> 100
+  PASS  -100000 -> 1.001 -> -100000
+  PASS  +3000 -> 31 -> 3000
+
+COVERAGE: 287 runtime files scanned (src, scripts, .github/scripts, workers; 142 check/mutate harnesses counted out); 2 request decimal odds as writers or readers, 6 listed American readers; 211 real rows, 469 sides (outbox/fixture-odds-american-targeted-2026-10-20.json).
+Structural for A: it reads the request the code builds, not a live response.
+
+all checks passed
+
+## 4. MUTATIONS: node scripts/mutate-odds-matcher.mjs at 32a51a04 — exit 0 (U1-U10 are this CC-CMD's)
+
+baseline: scripts/check-odds-matcher.mjs, scripts/check-odds-matcher-wiring.mjs and scripts/check-odds-history-units.mjs pass on clean source
+
+CAUGHT     M1  per-token prefix becomes whole-string prefix (the pre-2026-09-16 shape)
+            (N Colorado / C Connecticut / Illinois St stop matching)
+CAUGHT     M2  the prefix direction is flipped
+            (the mascot token would have to prefix the archive token)
+CAUGHT     M3  every archive token becomes some archive token
+            (one matching token is enough — mass ambiguity)
+CAUGHT     M4  apostrophes are split on instead of removed
+            (Hawai'i tokenises to [hawai, i] and never reaches Hawaii Rainbow Warriors)
+CAUGHT     M5  the ambiguity guard picks the first candidate
+            (Ohio resolves to Ohio Bobcats by payload order, silently)
+CAUGHT     M6  the orientation-swap branch is dropped
+            (a reversed vendor pairing returns no event)
+CAUGHT     M7  the empty-name refusal is dropped
+            (every() on [] is vacuously true, so an empty archive name matches everything)
+CAUGHT     M8  normalisation stops lowercasing
+            (the [^a-z0-9 ] class then eats every capital letter)
+CAUGHT     M9  prices are keyed off the outcome ORDER instead of the team name
+            (home and away both take the first outcome — a 50/50 silent swap)
+CAUGHT     M10 the home/away prices are transposed
+            (every stored favourite becomes the underdog)
+CAUGHT     M11 a missing outcome yields 0 rather than null
+            (absence collapses into an even-money price (Rule 99))
+CAUGHT     M12 the cron gets its private normTeam back
+            (a private normalizer beside the shared one)
+CAUGHT     M13 the cron reverts to a local events.find matcher
+            (the cron pairs nothing at all)
+CAUGHT     M15 the date window is removed — every future fixture is a candidate again
+            (GA Southern sees a second Clemson game a week later and goes ambiguous)
+CAUGHT     M16 the window forgets the next day — an evening slate loses its late games
+            (the 10 events kicking off after midnight UTC leave the pool)
+CAUGHT     M17 stage 2 takes the first candidate instead of requiring exactly one
+            (a row with several candidates resolves by payload order)
+CAUGHT     M18 stage 2 ignores what stage 1 already spent
+            (elimination is not elimination — a claimed event is offered twice)
+CAUGHT     M19 the two-rows-one-event collision is resolved by order
+            (both rows take the same event and the result depends on iteration order)
+CAUGHT     M20 stage 2 matches on the abbreviated side too
+            (a looser candidate set produces collisions the guard then refuses)
+CAUGHT     M21 the watcher stops caring that credits were spent
+            (a date that spent nothing is reported as a burned date)
+CAUGHT     M22 the watcher compares without coercing
+            (D1 returns '0' as a string and === 0 never fires — the watcher passes forever)
+CAUGHT     M23 the watcher treats zero pairings as merely low
+            (nothing can ever be flagged — a check that cannot fail)
+CAUGHT     M24 integrity compares the provider against a ceiling again
+            (the two-population comparison returns — a busy evening reads as a breach)
+CAUGHT     M25 a missing reading collapses to zero
+            (Number(null) is 0, so an absent reading reads as a counter reset)
+CAUGHT     M26 a monthly reset is reported as escaped spend
+            (the month rolling over fires a false alarm every month)
+CAUGHT     M27 the first reading passes as a measured zero
+            (a series of one reports a divergence it never measured)
+CAUGHT     M43 an unreadable degrade counter reads as none
+            (the watch prints "no guard degraded" on no evidence and eliminates a candidate it never tested)
+CAUGHT     M44 the cumulative counter is read as a level
+            (a day-long total is attributed to one interval, so any escape looks explained)
+CAUGHT     M45 a same-day decrease is clamped instead of flagged
+            (a counter that went backwards within one day claims no degradation, which is the reading that cannot know)
+CAUGHT     M46 a missing baseline is treated as zero
+            (readings that predate the field report their whole daily total as this interval's)
+CAUGHT     M41 any negative delta is called a month reset
+            (the shape that shipped for 13 minutes — a 2-credit reconcile refund announced as a monthly roll-over)
+CAUGHT     M42 the reset floor is raised until a real roll is missed
+            (a genuine month roll is reported as a colossal escape every month)
+CAUGHT     M36 the escape is judged before subtracting CI
+            (the backfill doing its job is charged to "a guard stopped guarding" — two populations again)
+CAUGHT     M37 a negative outsideLedger can manufacture leakage
+            (a bad input inflates the residual instead of being clamped)
+CAUGHT     M38 a SQLite timestamp is parsed as local time
+            (no zone marker, so the window shifts by hours and runs move in or out of it)
+CAUGHT     M39 an undated progress row is subtracted anyway
+            (a row that cannot be placed inflates the subtraction and shrinks the residual on no evidence)
+CAUGHT     M40 the interval bound is dropped
+            (every backfill run ever is subtracted from one interval, and the residual goes negative)
+CAUGHT     M33 the ceiling check starts prorating
+            (the watch models a cap the guard does not enforce — the 2026-09-16 false alarm)
+CAUGHT     M34 a null daily counter reads as a clean day
+            (Number(null) is 0 and 0 is under every ceiling)
+CAUGHT     M35 the escape tolerance grows until nothing can fail
+            (the way this watch ends quietly — raising the bar instead of reading it)
+CAUGHT     M28 a failing pairing verdict exits before recording the spend
+            (the day you most want the cost of is the day it is not recorded)
+CAUGHT     M29 an unknown pairing baseline is coerced to zero
+            (a reading that predates the counter reports a difference it cannot know)
+CAUGHT     M32 a partial window total is published as a total
+            (the sum of the readable rows is stored under the name of the whole window)
+CAUGHT     M30 the window goes back to anchoring at index 0
+            (the shape that paired 0 of 26 in production on 2026-09-15)
+CAUGHT     M31 the window stops being contiguous
+            (tokens match anywhere in any order — Red Jays finds Red Sox and Blue Jays)
+CAUGHT     M47 stage 2 stops checking the unread side
+            (Georgia @ Arkansas takes Jacksonville State's event again, and 10 MLB/NHL rows their next-day games)
+CAUGHT     M48 the first letter is compared with ANY vendor word
+            ("Yankees" passes as New York Mets on "York": 10-15% of wrong names pass instead of 5%)
+CAUGHT     M49 the containment reading is dropped
+            (UAlbany stops pairing with Albany)
+CAUGHT     M50 containment accepts a vendor word of any length
+            (a 3-letter vendor word is contained in almost anything)
+CAUGHT     M51 a refused proposal gives up its claim before the collision test
+            (the row a refused row collided with now takes the event: refusing ADDS a pair)
+CAUGHT     M52 a refusal is not counted
+            (the backfill line reports 0 refused while refusing)
+CAUGHT     M53 pricesByTeam keeps the vendor position
+            (Virginia gets West Virginia's 9.7 again (e401856802))
+CAUGHT     M54 pricesByTeam guesses when the direction is unreadable
+            (two unrelated teams are written a price by position)
+CAUGHT     M55 pairOrientation trusts one side
+            ("Virginia" reads West Virginia Mountaineers as itself and the swap is missed)
+CAUGHT     M56 the sync goes back to converting by position
+            (the archive home team takes the vendor home team's price whichever team that is)
+CAUGHT     M57 the sync stops calling pricesByTeam
+            (a private positional copy of the price read sits where the shared one was)
+CAUGHT     M58 stage 1 stops refusing a pair a day away
+            (the 12 next-day games take the series' next game again)
+CAUGHT     M59 stage 2 stops refusing a pair a day away
+            (an elimination a day off is accepted)
+CAUGHT     M60 a refused game frees its event
+            (another row takes the refused event by elimination: a refusal creates a pair)
+CAUGHT     M61 a refused game is sent to elimination
+            (the refused game finds another event at stage 2)
+CAUGHT     M62 the claim check is dropped
+            (both doubleheader games keep one event, one of them priced from the other)
+CAUGHT     M63 the claim check refuses every claimant (the literal option)
+            (the near doubleheader game and all 42 MLS duplicate pairs go unpriced)
+CAUGHT     M64 a missing kickoff is judged as too far
+            (the MLS copies without a kickoff, and every game the archive has no time for, are refused)
+CAUGHT     M65 the contested limit is the general one
+            (the far doubleheader twin (206-301 min) keeps the event)
+CAUGHT     M66 the fill stops selecting start_time
+            (the kickoff refusal is silently off for every targeted fill)
+CAUGHT     M67 stage 2 refuses a far row before the collision test
+            (the far row gives up its claim and its rival takes the event: a refusal creates a pair)
+CAUGHT     M68 the claim check counts claimants across the slate
+            (a lone rain-delayed game is refused because a doubleheader sits elsewhere on the slate)
+CAUGHT     M69 the gap loses its absolute value
+            (an event a day early, and a twin after the event, are accepted)
+CAUGHT     M70 a claim-refused twin is sent to elimination
+            (the far twin finds another event at stage 2)
+CAUGHT     M71 the limits stop being inclusive
+            (a pair exactly 720 (or a claimant exactly 90) min off is refused)
+CAUGHT     M72 a claim refused for its kickoff stops counting
+            (a twin 206 off keeps the event once the other claimant was refused (the reviewed bug))
+CAUGHT     M73 only claimants with a kickoff are counted
+            (a doubleheader whose near copy has no kickoff keeps both games on one event)
+CAUGHT     M74 a pair kept without a kickoff is not counted
+            (a slate with no kickoffs prints the same zeros as one fully checked (Rule 91))
+CAUGHT     M75 a comment inside the fill SQL says "far from the"
+            (the relay guard reads table "the" and the fill gets a 403 (the reviewed blocker))
+CAUGHT     M76 start_time is selected only as an alias
+            (the word is there and the kickoff is not)
+CAUGHT     U1  the fill asks for American odds again (the defect)
+            (the sync converts 275 to +27400 and -345 to null)
+CAUGHT     U2  the backfill asks for American odds
+            (the other writer drifts the same way)
+CAUGHT     U3  the fill names no format and trusts the vendor default
+            (a default is not a contract)
+CAUGHT     U4  a negative American price is converted upside down
+            (-345 would be stored as 4.45 and synced as +345)
+CAUGHT     U5  the converted price is rounded to two decimals
+            (-100000 becomes 1.00, which the sync reads as no price)
+CAUGHT     U6  the sync reads an even-money decimal as a favourite
+            (Derby's +100 (decimal 2.0) syncs as -100)
+CAUGHT     U7  a script off the reviewed list starts requesting American odds
+            (the request need not share a file with the INSERT it feeds; every request is held, not only the writers)
+CAUGHT     U8  an American request hides behind a comment naming decimal
+            (the review found the first oddsFormat in the statement won, comment or not)
+CAUGHT     U9  the same, behind a trailing comment
+            (a trailing comment is cut before the format is read)
+CAUGHT     U10 a listed American reader starts writing odds_history
+            (the exemption covers reading American, never writing it)
+CAUGHT     M14 the fill stops importing the shared matcher
+            (the live-write path drifts off the shared module)
+
+86 of 86 mutations caught.
+COVERAGE: 44 in src/odds-name-match.js, 6 in .github/scripts/odds-backfill.js, 21 in scripts/watch-odds-pairing-rate.mjs, 1 in scripts/lib/utc.mjs, 2 in scripts/lib/ci-spend.mjs, 8 in scripts/targeted-odds-fill.mjs, 2 in scripts/repair-odds-american-units.mjs, 1 in scripts/probe-odds-live-endpoint.mjs, 1 in scripts/diagnose-cfb-name-join.mjs.
+Offline only — no mutation here exercises a LIVE vendor payload or a D1 write.
+
+## 5. REPAIR SELF-TEST: node scripts/repair-odds-american-units.mjs --self-test at 32a51a04 — exit 0 (all 211 real rows, node:sqlite)
+
+PASS  211 distinct _targeted rows in the fixture
+PASS  every row's direction reads from the names (0 refused)
+PASS  all 211 are straight, so the stored blobs were positional AND by team
+PASS  the stored blob is the double conversion of its row on all 211 (the measured mechanism)
+PASS  9 batches, 1266 statements (6 per game)
+PASS  an id outside the closed shape is refused, not quoted
+PASS  each write is preceded by its change_log insert, which reads the old value
+PASS  every blob UPDATE is guarded on captured_at and the double-converted values
+PASS  every history UPDATE is guarded on the row still holding its American values
+PASS  all 9 transactions run in SQLite
+PASS  420 of 420 blobs carry the row's own American prices, by team, draw included
+PASS  420 of 420 blobs keep source, captured_at and _kickoff exactly
+PASS  211 of 211 history rows are decimal now
+PASS  the sync's own decimalToAmerican turns the converted rows back into the American price on 469 of 469 sides
+PASS  a blob another writer replaced since the export is untouched
+PASS  a blob already NULL stays NULL (the sync refills it from the decimal row)
+PASS  a blob already holding the right prices under the same captured_at is not rewritten
+PASS  630 change_log rows, 630 expected (one per write that matched)
+PASS  every blob change_log row carries the blob it replaced and the blob it wrote
+PASS  every history change_log row carries the American prices it replaced
+PASS  a second run changes nothing and logs nothing
+PASS  the set-based transaction runs in SQLite
+PASS  the set-based form leaves every game blob exactly as the 1,266-statement oracle does (byte-equal)
+PASS  and every history row exactly as the oracle does (bit-equal doubles)
+PASS  and the same 630 change_log rows, each with the value it replaced
+PASS  a second set-based run changes nothing and logs nothing
+PASS  --preview equals its expectation on the state as exported
+PASS  --verify fails on the unrepaired state (10 of 11 fields differ)
+PASS  --verify equals its expectation after the batches
+PASS  EFL Cup Cambridge v Barnet reads home -105, draw +240 (was null and +23900)
+PASS  CFB E Michigan v Sacramento St reads -345 / +275 (was null / +27400)
+self-test passed
+
+## 6. SET-BASED APPLY MUTATIONS (Rule 90): the oracle-equivalence checks of section 5, each made to fail on purpose
+#   Harness: a copy of the tree; each anchor must occur once and change the file, or NOT APPLIED (a failure).
+#   SB5 SURVIVED on the first run: no seeded state told the value guard apart. A third preserved state (a blob already
+#   holding the right prices under the row's own captured_at) was added to the self-test, and SB5 is caught below.
+
+clean: self-test passed
+CAUGHT     SB1 the history rows are converted BEFORE the blobs are repaired  <- FAIL  the set-based form leaves every game blob exactly as the 1,266-statement oracle does (byte-equal) | FAIL  and the same 0 change_log rows, each with the value it replaced
+CAUGHT     SB2 the draw is never written back  <- FAIL  the set-based form leaves every game blob exactly as the 1,266-statement oracle does (byte-equal) | FAIL  a second set-based run changes nothing and logs nothing
+CAUGHT     SB3 prices go into the blob as REAL, not integers  <- FAIL  the set-based form leaves every game blob exactly as the 1,266-statement oracle does (byte-equal) | FAIL  a second set-based run changes nothing and logs nothing
+CAUGHT     SB4 the decimal is rounded to two places  <- FAIL  and every history row exactly as the oracle does (bit-equal doubles)
+CAUGHT     SB5 the blob guard stops checking the double-converted values  <- FAIL  and the same 631 change_log rows, each with the value it replaced
+CAUGHT     SB6 the blob guard stops checking captured_at AND the values (any blob of the game is rewritten)  <- FAIL  the set-based transaction runs in SQLite (NOT NULL constraint failed: change_log.new_value) | FAIL  the set-based form leaves every game blob exactly as the 1,266-statement oracle does (byte-equal)
+CAUGHT     SB7 the history conversion loses its change_log row  <- FAIL  and the same 419 change_log rows, each with the value it replaced
+
+7 of 7 set-based mutations caught, 0 not applied.
+COVERAGE: the oracle-equivalence checks of the repair self-test, on all 211 real rows in node:sqlite. Offline; no D1.
+
+## 7. TASK 2 APPLY — owner delegation 2026-10-20: re-derive (option a)
+
+### 7.1 Read right before the write (D1, the --preview SELECT, 15:10Z; also 14:22Z), 0 rows written
+expect {"n":211,"s_home":-2513010,"s_away":168504,"s_draw":13790,"s_oh":1490200,"s_oa":18541600,"s_od":1374300,"s_ch":1490200,"s_ca":18541600,"s_cd":1374300,"cap":211,"same":211,"other_history":0}
+got    {"n":211,"s_home":-2513010,"s_away":168504,"s_draw":13790,"s_oh":1490200,"s_oa":18541600,"s_od":1374300,"s_ch":1490200,"s_ca":18541600,"s_cd":1374300,"cap":211,"same":211,"other_history":0}
+#   13 of 13 equal. Today's odds backfill ran at 14:48:47Z; its sync fills NULL columns only, and none of these 422 was NULL.
+
+### 7.2 The write
+#   SQL:        node scripts/repair-odds-american-units.mjs --apply-sql at 32a51a04 (pushed before the write)
+#   sha256:     600afa8389e049f1ade0cb496efc916d1179783dad63235fcd2e0b12cc36ccef, 6 statements, 7.3 KB
+#   Sent as ONE call to mcp__Cloudflare_Developer_Platform__d1_database_query (database cc49101c), one transaction.
+#   Result:     6 of 6 success:true; changes 211, 211, 211, 211, 211, 211 (opening log, opening, closing log, closing, history log, history).
+#   change_log ids 22971-23603 (633 rows: 211 opening_odds, 211 closing_odds, 211 odds_history_units), source 'american_odds_repair'.
+
+### 7.3 Verify read after the write (the --verify SELECT), 0 rows written
+expect {"n":211,"history_decimal":211,"opening_synced":211,"closing_synced":211,"s_oh":-2513010,"s_oa":168504,"s_od":13790,"s_ch":-2513010,"s_ca":168504,"s_cd":13790,"change_log_rows":633}
+got    {"n":211,"history_decimal":211,"opening_synced":211,"closing_synced":211,"s_oh":-2513010,"s_oa":168504,"s_od":13790,"s_ch":-2513010,"s_ca":168504,"s_cd":13790,"change_log_rows":633}
+#   11 of 11 equal. *_synced: the blob equals what the sync's conversion, recomputed in SQL, makes of the now-decimal row.
+#   Spot rows as stored now:
+CFB_2026-08-29_emichigan_sacramentost  {"source":"draftkings","captured_at":"2026-08-29T11:55:38Z","moneyline":{"home":-345,"away":275},"_kickoff":{...}}  row 1.289855072463768 / 3.75
+CFB_2026-09-05_e401856635 (Arkansas)   moneyline {"home":-100000,"away":1550}  row 1.001 / 16.5
+EFL Cup_2026-08-08_cambridge_barnet    moneyline {"home":-105,"away":280,"draw":240}  row 1.9523809523809523 / 3.8 / 3.4
+EFL Cup_2026-08-08_derby_lincolncity   moneyline {"home":100,"away":250,"draw":270}  row 2 / 3.5 / 3.7
+
+### 7.4 Done condition 3: the UNITS signature after the repair (D1 SELECT, 0 rows written)
+{"targeted_games":211,"signature_big":0,"signature_null_side":0,"logged_old_with_null":188}
+#   0 of 211 games carry a price >= +10000 or a null side in either column; 188 of them had a null side before (from change_log old_value).
+#   And 0 _targeted rows remain American (|home_ml| >= 100).
+
+## 8. EVERY STEP OF THE DEPLOY PATH, run locally before each push
+#   run-steps.py: every run: step of deploy.yml (up to "Deploy to Cloudflare Workers") and of guards.yml, in a clean
+#   git-archive copy named field-relay-nba, with no secrets set.
+a4208b46 (base)                      125 of 130 pass; failing only here vs base: 0 
+0e31b41c                             122 of 130 pass; failing only here vs base: 3 [('deploy', 'No absence-collapse site appears beyond the baseline'), ('deploy', 'no aggregate launders an unknown into a number'), ('guards', 'No absence-collapse site appears beyond the baseline')]
+38f18515 (first form of fce341d9)    123 of 130 pass; failing only here vs base: 2 [('deploy', 'No claim is wider than its declared scope'), ('guards', 'No claim is wider than its declared scope')]
+fce341d9                             125 of 130 pass; failing only here vs base: 0 
+#   The 5 failing at the base and everywhere: Bootstrap KV namespace x3 (Cloudflare credentials), the BSD-frame guard
+#   (network, HTTP 0) and the archive-dating guard (RELAY_SHARED_SECRET unset). All pass on the runner.
+#   0e31b41c's 3 and 38f18515's 2 extra failures were this work's own (aggregate laundering, the absence-collapse
+#   ratchet, scope claims); fce341d9 fixes them and is back to the base set.
+#   32a51a04 changes only scripts/repair-odds-american-units.mjs. On a clean copy of its tree the steps that read that
+#   file were rerun: units check, mutate-odds-matcher (86 of 86), aggregate laundering, absence-collapse ratchet,
+#   scope claims, empty catches (holds at 112), exposed secrets, doc citations, repair self-test: all exit 0.
