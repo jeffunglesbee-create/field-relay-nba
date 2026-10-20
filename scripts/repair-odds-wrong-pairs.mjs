@@ -5,6 +5,7 @@
 // statement would touch.
 //
 //   node scripts/repair-odds-wrong-pairs.mjs --swapped=sync|direct|null [--preview]
+//   node scripts/repair-odds-wrong-pairs.mjs --set=stage1 [--preview]
 //   node scripts/repair-odds-wrong-pairs.mjs --self-test
 //
 // THE 11 OTHER-GAME PAIRS. Each odds_history row priced a game from another
@@ -50,6 +51,25 @@ const SOURCE = 'stage2_wrong_pair_repair';
 const DOC = 'docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md';
 const FIELDS = ['opening_odds', 'closing_odds'];
 
+// THE STAGE-1 SET (docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md TASK 2,
+// owner approved 2026-10-20: "NULL 5 blobs, delete 15 rows"). Both team names
+// right, the game wrong: 12 took the same teams' next game (1141-1740 min),
+// 3 took their doubleheader twin's event (206-301 min). The two moved starts
+// (+121, +235) are the right game and are not here. The 5 columns are a
+// predicate, as above: the closing_odds of e401817001, 002, 004, 035, 907992.
+export const STAGE1_WRONG = [
+  'MLB_2026-09-19_e401817001_fanduel_close', 'MLB_2026-09-19_e401817002_fanduel_close',
+  'MLB_2026-09-19_e401817004_fanduel_close', 'MLB_2026-09-22_e401817035_fanduel_close',
+  'MLB_2026-09-26_e401817087_draftkings_close', 'MLB_2026-09-26_e401817090_fanduel_close',
+  'MLB_2026-09-26_e401817091_draftkings_close', 'MLB_2026-09-26_e401817092_draftkings_close',
+  'MLB_2026-09-29_e401907965_fanduel_close', 'MLB_2026-09-30_e401907972_draftkings_close',
+  'MLB_2026-10-07_e401907992_draftkings_close', 'MLB_2026-10-15_e401908025_draftkings_close',
+  'MLB_2026-09-23_e401923610_fanduel_close', 'MLB_2026-09-25_e401817088_fanduel_close',
+  'MLB_2026-09-25_e401817104_fanduel_close',
+];
+const S1_SOURCE = 'stage1_wrong_game_repair';
+const S1_DOC = 'docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md';
+
 // A literal goes into the SQL only if it matches this closed shape. The batch
 // carries literals because D1 refuses params on a multi-statement call (7400,
 // measured 2026-10-18 by migrate-cfl-date-keying.mjs).
@@ -69,24 +89,24 @@ const text = (t) => `'${String(t).replace(/'/g, "''")}'`;
 const fromRow = (field, ohId) =>
   `json_extract(${field}, '$.captured_at') = (SELECT snapshot_time FROM odds_history WHERE id = ${lit(ohId)})`;
 
-function nullBlobs(ohId, why) {
+function nullBlobs(ohId, why, src = SOURCE, doc = DOC) {
   const g = lit(gameOf(ohId));
   return FIELDS.flatMap(f => [
     `INSERT INTO change_log (game_id, source, field, old_value, new_value) ` +
-      `SELECT id, ${text(SOURCE)}, ${text(f)}, ${f}, ${text(`NULL: ${why} (${DOC})`)} ` +
+      `SELECT id, ${text(src)}, ${text(f)}, ${f}, ${text(`NULL: ${why} (${doc})`)} ` +
       `FROM regular_season_games WHERE id = ${g} AND ${fromRow(f, ohId)};`,
     `UPDATE regular_season_games SET ${f} = NULL WHERE id = ${g} AND ${fromRow(f, ohId)};`,
   ]);
 }
 
-function deleteRow(ohId, why) {
+function deleteRow(ohId, why, src = SOURCE, doc = DOC) {
   const o = lit(ohId);
   return [
     `INSERT INTO change_log (game_id, source, field, old_value, new_value) ` +
-      `SELECT game_id, ${text(SOURCE)}, 'odds_history_row_deleted', ` +
+      `SELECT game_id, ${text(src)}, 'odds_history_row_deleted', ` +
       `json_object('id', id, 'home_team', home_team, 'away_team', away_team, 'commence_time', commence_time, ` +
       `'home_ml', home_ml, 'away_ml', away_ml, 'bookmaker', bookmaker, 'snapshot_time', snapshot_time), ` +
-      `${text(`deleted: ${why} (${DOC})`)} FROM odds_history WHERE id = ${o};`,
+      `${text(`deleted: ${why} (${doc})`)} FROM odds_history WHERE id = ${o};`,
     `DELETE FROM odds_history WHERE id = ${o};`,
   ];
 }
@@ -123,12 +143,19 @@ export function plan(swapped) {
   return s;
 }
 
+export function planStage1() {
+  return STAGE1_WRONG.flatMap(id => [
+    ...nullBlobs(id, 'the same teams\' other game: next day or a doubleheader twin', S1_SOURCE, S1_DOC),
+    ...deleteRow(id, 'the same teams\' other game: next day or a doubleheader twin', S1_SOURCE, S1_DOC),
+  ]);
+}
+
 /** One read showing, per row and column, whether the guard matches today.
  *  One row per (history row, column): 24 when all 12 history rows exist. D1
  *  refuses a 24-term UNION ("too many terms in compound SELECT"), so the two
  *  columns are a 2-term cross join instead. */
-export function preview() {
-  const ids = [...OTHER_GAME, SWAPPED].map(lit).join(', ');
+export function preview(list = [...OTHER_GAME, SWAPPED]) {
+  const ids = list.map(lit).join(', ');
   return `SELECT oh.id AS oh_id, f.field,
   CASE f.field WHEN 'opening_odds' THEN json_extract(g.opening_odds, '$.captured_at')
                ELSE json_extract(g.closing_odds, '$.captured_at') END = oh.snapshot_time AS written_from_row,
@@ -161,6 +188,14 @@ function selfTest() {
   t(!plan('sync').some(x => x.includes(SWAPPED) && x.startsWith('DELETE')), 'sync keeps the swapped history row the sync needs');
   let bad = false; try { plan('maybe'); } catch { bad = true; }
   t(bad, 'an unknown --swapped value is refused');
+  t(STAGE1_WRONG.length === 15 && new Set(STAGE1_WRONG).size === 15, 'stage 1: 15 distinct rows');
+  t(!STAGE1_WRONG.some(id => OTHER_GAME.includes(id) || id === SWAPPED), 'stage 1: disjoint from the stage-2 set');
+  t(!STAGE1_WRONG.some(id => /e401817019|e401817097/.test(id)), 'stage 1: the two moved starts (right game) are not in it');
+  const p1 = planStage1();
+  t(p1.filter(x => x.startsWith('DELETE')).length === 15 && p1.filter(x => x.startsWith('UPDATE')).length === 30,
+    'stage 1: 15 deletes and 30 guarded column UPDATEs');
+  t(p1.every(x => !x.includes('stage2_wrong_pair_repair') && !x.includes('cfb-stage2-wrong-pair.md')),
+    'stage 1: change_log names the stage-1 source and document');
   return engine(t).then(() => {
     console.log(fails ? `${fails} FAILED` : 'self-test passed');
     process.exit(fails ? 1 : 0);
@@ -227,10 +262,39 @@ async function engine(t) {
     const again = run(db, plan(m).join('\n'));
     t(again === null && logs(db).length === L.length, `${m}: a second run changes nothing and logs nothing`);
   }
+
+  // Stage 1 on the measured shapes: e401817001's closing came from its wrong
+  // row and its opening from another writer; e401817088's two came from others.
+  {
+    const db = seed();
+    const SNAP1 = '2026-09-19T23:55:19Z', SNAP2 = '2026-09-25T23:55:23Z';
+    db.prepare('INSERT INTO regular_season_games VALUES (?, ?, ?)').run('MLB_2026-09-19_e401817001', blob(OTHER, 109, -132), blob(SNAP1, 172, -204));
+    db.prepare('INSERT INTO odds_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('MLB_2026-09-19_e401817001_fanduel_close', 'MLB_2026-09-19_e401817001', 'Baltimore Orioles', 'Milwaukee Brewers', '2026-09-20T23:21:00Z', 2.72, 1.49, 'fanduel', SNAP1);
+    db.prepare('INSERT INTO regular_season_games VALUES (?, ?, ?)').run('MLB_2026-09-25_e401817088', blob(OTHER, -162, 136), blob(OTHER, -142, 118));
+    db.prepare('INSERT INTO odds_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('MLB_2026-09-25_e401817088_fanduel_close', 'MLB_2026-09-25_e401817088', 'New York Yankees', 'Baltimore Orioles', '2026-09-25T23:31:12Z', 1.82, 1.96, 'fanduel', SNAP2);
+    const before = logs(db).length;
+    const err = run(db, planStage1().join('\n'));
+    t(err === null, `stage 1: the whole transaction runs in SQLite${err ? ` (${err})` : ''}`);
+    const a = game(db, 'MLB_2026-09-19_e401817001'), b = game(db, 'MLB_2026-09-25_e401817088');
+    t(a.o === blob(OTHER, 109, -132) && a.c === null, 'stage 1: only the column written from the wrong row goes NULL');
+    t(b.o === blob(OTHER, -162, 136) && b.c === blob(OTHER, -142, 118), 'stage 1: columns other writers filled are untouched');
+    t(hist(db, 'MLB_2026-09-19_e401817001_fanduel_close') === 0 && hist(db, 'MLB_2026-09-25_e401817088_fanduel_close') === 0,
+      'stage 1: both history rows deleted');
+    const L1 = logs(db).slice(before);
+    t(L1.length === 3 && L1.every(r => r.new_value.includes('odds-stage1-wrong-game.md')),
+      `stage 1: ${L1.length} change_log rows naming the stage-1 document, 3 expected`);
+    t(seedUntouched(db), 'stage 1: the stage-2 rows in the same database are not touched');
+    const again = run(db, planStage1().join('\n'));
+    t(again === null && logs(db).length === before + 3, 'stage 1: a second run changes nothing and logs nothing');
+  }
+  function seedUntouched(db) {
+    return hist(db, SWAPPED) === 1 && game(db, 'CFB_2026-09-19_e401856686').o === blob(SNAP, 311, -435);
+  }
 }
 
 const arg = (k) => process.argv.find(a => a.startsWith(`--${k}=`))?.split('=')[1];
 if (process.argv.includes('--self-test')) await selfTest();
+else if (arg('set') === 'stage1') console.log(process.argv.includes('--preview') ? preview(STAGE1_WRONG) : planStage1().join('\n'));
 else if (process.argv.includes('--preview')) console.log(preview());
 else if (arg('swapped')) console.log(plan(arg('swapped')).join('\n'));
-else { console.error('usage: --swapped=sync|direct|null | --preview | --self-test'); process.exit(2); }
+else { console.error('usage: --swapped=sync|direct|null | --set=stage1 [--preview] | --preview | --self-test'); process.exit(2); }
