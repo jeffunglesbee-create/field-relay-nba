@@ -1,0 +1,83 @@
+{
+  "probed_at": "2026-10-20T13:59:42.711Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 7,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Neto (CHE) 2\nAssists: Hato (CHE)\nYellow cards: Nørgaard (EVE), Tarkowski (EVE), Armstrong (EVE), Rogers (CHE), Acheampong (CHE), Palmer (CHE), Neto (CHE)\nSaves: Pickford (EVE) 4, Martinez (CHE) 4, Penders (CHE) 1\nFPL bonus: Neto (CHE) +3, Hato (CHE) +2, Martinez (CHE) +1\nTop BPS: Neto (CHE) 64, Hato (CHE) 35, Martinez (CHE) 34\nLeague table: Everton 8th on 0 points from 0 | Chelsea 4th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879257",
+      "game_recap_epl_401878769",
+      "game_recap_epl_401879260",
+      "game_recap_epl_401879261",
+      "game_recap_epl_401879263",
+      "game_recap_epl_401879258",
+      "game_recap_epl_401879259",
+      "game_recap_epl_401879262",
+      "game_recap_epl_401878771",
+      "game_recap_epl_401879267",
+      "game_recap_epl_401879264",
+      "game_recap_epl_401878774",
+      "game_recap_epl_401879266",
+      "game_recap_epl_401878773",
+      "game_recap_epl_401878772",
+      "game_recap_epl_401879265",
+      "game_recap_epl_401878775",
+      "game_recap_epl_401878776",
+      "game_recap_epl_401879268"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401879268: extended their"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879257, game_recap_epl_401878769, game_recap_epl_401879260 | archived briefs use a banned phrase: game_recap_epl_401879268: extended their"
+}
