@@ -1,4 +1,4 @@
-# CC-CMD — /context/game caches a partial answer for five minutes
+# CC-CMD — /context/game caches a partial answer, and one lookup hides its failure
 
 **Date:** 2026-10-20
 **Repo:** field-relay-nba
@@ -18,6 +18,14 @@ In the `/context/game/{id}` handler, `findGame` and the four fan-out lookups
 settled. A rejection becomes `null` for that section plus an `_errors` entry
 (`_errors.push({ source: 'game', ... })` and so on). The response is still
 `ok: true` with HTTP 200.
+
+**Except `findBracketDelta`.** It wraps its own D1 query in
+`try { ... } catch (_) { return null; }`, so it never rejects, and `_errors` can
+never name `bracketDelta`. A D1 failure there arrives as a clean answer with
+`bracketDelta: null`, which no client can tell from "no bracket delta". The
+other four have no such catch around `.first()`/`.all()`. (Corrected
+2026-10-20: the first version of this document said every rejection reaches
+`_errors`. The round-2 review of the client change found the exception.)
 
 That body is then cached like any other:
 
@@ -46,7 +54,15 @@ what every other cold reader sees.
 3. A count: add nothing yet. Read the worker's own logs or Analytics Engine for
    `[CONTEXT-GAME]` lines over 7 days, if they exist, and record the rate.
 
-## TASK 1 — do not cache a partial answer (owner decision on the window)
+## TASK 1 — findBracketDelta reports its failure
+
+Remove the outer `try/catch` so a D1 error rejects and lands in `_errors` as
+`source: 'bracketDelta'`. Keep `return null` for "no row" and for a
+`JSON.parse` failure of `brief_text`: both are data states, not transient
+failures. Proof: the handler with a rejecting D1 for that one query gives
+`_errors: [{ source: 'bracketDelta', … }]`. Red at HEAD, green after.
+
+## TASK 2 — do not cache a partial answer (owner decision on the window)
 
 - (a) Skip the KV put when `_errors` is non-empty, and send `Cache-Control:
   no-store` on such a response.
@@ -60,12 +76,14 @@ green after, with a Rule 90 mutation.
 ## Done condition (Rule 89 artifacts)
 
 1. TASK 0's outputs committed.
-2. The handler test red before and green after, with its mutation, in a
-   committed log.
+2. TASK 1's and TASK 2's handler tests red before and green after, each with
+   its mutation, in a committed log.
 3. One green Deploy RELAY Worker run, and a self-probe of one final game's
    `/context/game` showing the unchanged 200 body for the healthy case.
 
 ## FORBIDDEN
 
 - No change to the response body's fields (Rule 60 and Rule 70: jubilant-bassoon
-  reads `_errors` as the partial marker).
+  reads `_errors` as the partial marker; see CONTRACTS.md, "`_errors` — the
+  partial-answer marker"). `_errors` stays absent, never `[]`, on a complete
+  answer.

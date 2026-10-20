@@ -1381,6 +1381,34 @@ recognised forms. Neither reads the two new fields yet; both are additive.
 Gate: `scripts/check-context-game-id-forms.mjs`, blocking in `deploy.yml`,
 12 enumerated id forms, 3 proven mutations.
 
+### `_errors` — the partial-answer marker (client-read since 2026-10-20)
+
+`findGame` and the four fan-out lookups are each settled. A rejected lookup
+does not change the status: the body is still HTTP 200 and `ok: true`, the
+failed section is `null`, and `_errors` names it:
+
+```jsonc
+"_errors": [ { "source": "archive", "reason": "D1_ERROR: …" } ]   // source: game | archive | series | enrichment | bracketDelta
+```
+
+- `_errors` is **absent** on a complete answer (`_errors.length ? _errors :
+  undefined`). It is never `[]`. jubilant-bassoon tests its truthiness, so a
+  relay that sent `[]` on success would make every healthy answer look
+  partial.
+- The relay KV-caches a body carrying `_errors` like any other: 300 s for a
+  final, 60 s otherwise. Filed: field-relay-nba
+  `docs/CC-CMD-2026-10-20-context-game-caches-partial-answers.md`.
+- `findBracketDelta` catches its own D1 error and returns `null`. So a
+  bracketDelta failure arrives as a clean answer with no `_errors`, and no
+  client can tell it from a real absence. Filed in the same CC-CMD.
+
+**Client position (jubilant-bassoon `injectDebriefCards`):** a body carrying
+`_errors` may render once. It is never kept: not in the session Map, not in
+the field-debriefs Cache API. It never replaces a cached copy on
+revalidation. `docs/CC-CMD-2026-10-20-debrief-cache-outlives-archive-repair.md`.
+Gate: `scripts/check-debrief-cache-revalidates.mjs` (cases C6b, C6c, C8b),
+which models the relay's two shapes.
+
 ## `game.winProb` — two models, one shape
 
 **Producer:** `src/index.js` — the soccer/WC path (`computeLiveWP`,
