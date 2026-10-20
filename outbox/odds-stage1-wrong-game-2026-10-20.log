@@ -1040,3 +1040,14 @@ FAIL [guards] Every archived game is dated on the ET day of its own kickoff
 #   KV bootstrap x3 need Cloudflare credentials; the BSD-frame guard reads the network (HTTP 0 here); the archive-dating
 #   guard refuses to pass without RELAY_SHARED_SECRET. On the real runner all 130 ran green:
 #   Deploy RELAY Worker run 39357014311 (success) and Repo guards run 39357014287 (success), both on 8cf7f818.
+
+### 8.1 Rerun at the pushed head and at the base, same runner, same environment
+#   python3 run-steps.py <repo> 8cf7f818   ->  125 of 130 steps passed at 8cf7f818
+#   python3 run-steps.py <repo> 30937338   ->  125 of 130 steps passed at 30937338
+#   Failing at both (the same 5, by workflow and step name):
+#     [deploy] Bootstrap KV namespace (field-push-subs)
+#     [deploy] Bootstrap KV namespace (field-journalism)
+#     [deploy] Bootstrap KV namespace (field-mcp-oauth)
+#     [guards] every BSD frame the contract declares matches the captures
+#     [guards] Every archived game is dated on the ET day of its own kickoff
+#   Failing only at HEAD: 0. Steps present at only one of the two: 0.

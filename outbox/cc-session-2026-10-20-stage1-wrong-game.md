@@ -61,7 +61,8 @@ commits before the push; `95a94ec8`'s message still names the pre-rebase SHAs
 4. **Deploy:** run 39357014311 (Deploy RELAY Worker) on `8cf7f818`, success.
    It carries every code change. Repo guards run 39357014287, also success.
    Before the push, every `run:` step of deploy.yml (up to the Cloudflare
-   deploy) and of guards.yml ran on a clean copy of the code: 125 of 130 pass.
+   deploy) and of guards.yml ran on a clean copy of the code: 125 of 130 pass
+   at `8cf7f818`, and 125 of 130 at base `30937338`; failing only at HEAD: 0.
    The 5 failures print their own cause: Cloudflare credentials (3 KV
    bootstraps), the network (`HTTP 0`), and an unset `RELAY_SHARED_SECRET`.
    All 5 pass on the runner (proof log §8).
