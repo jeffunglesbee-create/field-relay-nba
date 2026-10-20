@@ -1,5 +1,33 @@
 # FIELD Relay — HANDOFF
 
+## 2026-10-20 (early) — stage 1 refuses the same teams' next game, D1 repaired
+
+`docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md`, dispatched and run to its
+owner rulings. Commits `6c8f4e7f`, `bb54fea7`, `95a94ec8`, `8cf7f818` on main.
+
+- **The kickoff may refuse a pair, never choose one** (owner ruling (c), with
+  the claim check as "only the far twin"):
+  - more than 720 min off is refused, in both stages;
+  - on an event 2+ games claim, a game more than 90 min off is refused;
+  - a missing kickoff refuses nothing and is counted ("kickoff judged on N of
+    M pairs").
+- **On the real rows:** 12 of 12 next-day games refused, 3 of 3 doubleheaders
+  keep the near game, 42 of 42 MLS duplicate groups stay priced. The right
+  pairs at −130, +121 and +235 keep theirs.
+- **Before the push,** an 18-agent review confirmed 11 findings. One was a
+  blocker: a SQL comment would have made the fill's games query a 403.
+- **D1 repaired under "NULL 5 blobs, delete 15 rows":** 15 history rows
+  deleted, 5 closing_odds NULLed, 20 change_log rows (22937-22956). Verify
+  read: 15 of 15 games as expected.
+- **One scheduled read:** the 10:00Z backfill must print the new refusal fields
+  on every pairing line. The 10:45Z check-in reads it
+  (`trig_01AL8GxWydReokRR4AZvgqux`), then sets both odds CC-CMDs DONE.
+- **Still filed, not dispatched:**
+  `docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md` (210
+  targeted rows in American odds, synced as decimal).
+
+Session doc: outbox/cc-session-2026-10-20-stage1-wrong-game.md
+
 ## 2026-10-19 (night, later) — stage 2's wrong pairs refused, prices keyed by team, D1 repaired
 
 `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`, dispatched and run to its

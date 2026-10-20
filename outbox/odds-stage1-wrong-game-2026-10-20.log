@@ -1,0 +1,1042 @@
+# Proof log — stage 1 pairs an MLB game with the same teams' next game, 2026-10-20
+# docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md. Commits 6c8f4e7f, bb54fea7, 95a94ec8, 8cf7f818 on main.
+# Every section below is the verbatim output of the command named in its header, run 2026-10-20.
+
+## 1. RED BEFORE: node scripts/check-odds-matcher.mjs (from 8cf7f818) against the BASE matcher (src/odds-name-match.js at 30937338)
+#   Harness: the base module plus the three new exports appended (kickoffGapMinutes, KICKOFF_REFUSE_MINUTES,
+#   CONTESTED_KICKOFF_MINUTES), so the import resolves and the base matchSlate (which never calls them) is what runs.
+#   Result: exit 1, 23 FAILED, every one in section I. Sections A-H (every pre-existing case) pass on the base matcher.
+
+=== odds team-name matcher ===
+
+A. outbox/fixture-cfb-2026-09-12.json  (80 archive rows, 95 vendor events)
+  PASS  solved = 73
+  PASS  ambiguous = 0
+  PASS  unmatched = 7
+  PASS  orientation swaps = 0
+  PASS  the 7 unmatched are exactly the known initialisms
+  PASS  instant agrees = 68
+  PASS  instant differs = 5
+  PASS  the 5 kickoff disagreements are the known ones
+  PASS  the equality matcher this replaces = 0
+
+B. synthetic corpus (the fixture has 0 of each)
+  PASS  two candidates -> ambiguous, event null, never a guess
+  PASS  the longer name still resolves against the same colliding payload
+  PASS  reversed orientation matches and is flagged swapped
+  PASS  no counterpart -> event null, not ambiguous
+  PASS  "N Colorado" ~ "Northern Colorado Bears" = true  (single-letter direction token)
+  PASS  "Illinois St" ~ "Illinois State Redbirds" = true  (St -> State)
+  PASS  "Hawai'i" ~ "Hawaii Rainbow Warriors" = true  (apostrophe removed, not split on)
+  PASS  "Michigan St" ~ "Michigan State Spartans" = true  (two expansions in one name)
+  PASS  "Western KY" ~ "Western Kentucky Hilltoppers" = false  (postal code is not a prefix — a known residue)
+  PASS  "MTSU" ~ "Middle Tennessee Blue Raiders" = false  (initialism — a known residue)
+  PASS  "Georgia" ~ "Georgia Southern Eagles" = true  (PREFIX IS PERMISSIVE: pair + ambiguity guard carries this, not the predicate)
+  PASS  "Georgia Tech" ~ "Georgia Bulldogs" = false  (second token disagrees)
+  PASS  "Ohio State Buckeyes" ~ "Ohio State" = false  (MORE archive tokens than vendor: refuse, do not read past the end)
+  PASS  "" ~ "Tampa Bay Rays" = false  (an EMPTY archive name must match nothing: every() on [] is vacuously true)
+  PASS  "   " ~ "Tampa Bay Rays" = false  (whitespace tokenises to [] — same trap)
+
+C. h2h price reading
+  PASS  home price keyed off the vendor name = -2500
+  PASS  away price keyed off the vendor name = 1200
+  PASS  no draw in an h2h college market = null
+  PASS  the archive-keyed lookup this replaces = null
+  PASS  reversing the event reverses the prices
+  PASS  draw price on a soccer market = 240
+  PASS  an outcome list naming neither team yields nulls, not a wrong price
+
+D. slate window and elimination
+  PASS  events dropped as out-of-window = 15
+  PASS  in-window pool = 80
+  PASS  stage 1 (both sides, unique) = 73
+  PASS  stage 2 (one side + elimination) = 7
+  PASS  unmatched = 0
+  PASS  ambiguous = 0
+  PASS  stage-2 pairings matching the named expectation = 7
+  PASS  of those, confirmed by exact kickoff equality = 6
+  PASS  GA Southern kickoff delta (min) = -120
+  PASS  Clemson home events in the raw payload = 2
+  PASS  Clemson home events after windowing = 1
+
+D2. a second sport — the one the cron actually runs daily
+  PASS  MLB archive rows = 15
+  PASS  MLB stage 1 = 15
+  PASS  MLB stage 2 = 0
+  PASS  MLB unmatched = 0
+  PASS  MLB ambiguous = 0
+  PASS  "Rays" ~ "Tampa Bay Rays"  (nickname at index 2)
+  PASS  "Guardians" ~ "Cleveland Guardians"  (index 1)
+  PASS  "Athletics" ~ "Athletics"  (index 0 — no city at all)
+  PASS  "White Sox" ~ "Chicago White Sox"  (a two-token nickname at index 1)
+  PASS  a non-contiguous token run does not match
+
+E. adversarial — elimination under a gap on either side
+  PASS  the 7 forced pairings claim 7 DISTINCT events = 7
+  PASS  archive rows dropped one at a time -> mis-forced = 0
+  PASS  forced events removed one at a time -> substituted = 0
+  PASS  one row, two stage-2 candidates -> refused, not taken by payload order
+  PASS  two stage-2 candidates the side rule cannot tell apart -> refused for the count alone
+  PASS  two rows forcing one event -> both refused, neither wins by order
+  PASS  slateWindow with no date returns the payload whole = 95
+
+F. stage 2 — the unread side must be able to be that team (real rows)
+  PASS  rows in the export = 776
+  PASS  Georgia @ Arkansas is refused Jacksonville State's event (the 2026-09-19 wrong pair)
+  PASS  one-sided stored pairs (the stage-2 class) = 49
+  PASS  refused exactly the 11 other-game pairs and the 1 named cost (12 of 49)
+  PASS  right pairs still paired at stage 2 = 37
+  PASS  one-sided rows paired at another stage = 0
+  PASS  of the 11, kickoff gaps over 420 minutes = 11
+  PASS  a refused row still collides: neither row takes the event
+  PASS  "Yankees" cannot be New York Mets: the first letter is compared with the FIRST vendor word
+  PASS  couldAbbreviate("Jax State", "Jacksonville State Gamecocks") = true  (first letter kept)
+  PASS  couldAbbreviate("UAlbany", "Albany Great Danes") = true  (contains the vendor's first word)
+  PASS  couldAbbreviate("The Citadel", "Citadel Bulldogs") = true  ("the" is not stripped; containment reads it)
+  PASS  couldAbbreviate("ETSU", "East Tennessee State Buccaneers") = true  (an initialism keeps its first letter)
+  PASS  couldAbbreviate("Arkansas", "Jacksonville State Gamecocks") = false  (the 2026-09-19 wrong pair)
+  PASS  couldAbbreviate("Blue Jays", "Chicago White Sox") = false  (a nickname against another team)
+  PASS  couldAbbreviate("Boro", "Middlesbrough") = false  (the measured cost: a nickname, not an abbreviation)
+  PASS  couldAbbreviate("", "Albany Great Danes") = false  (an empty name is nothing's abbreviation)
+  PASS  couldAbbreviate("Alb", "Albany Great Danes") = true  (containment needs 4 letters; the first letter carries this)
+  PASS  couldAbbreviate("Xalb", "Alb Tigers") = false  (a 3-letter vendor word is too short to contain)
+
+G. prices follow the team, not the position (real rows)
+  PASS  e401856802 archive home = Virginia
+  PASS  e401856802 vendor home = West Virginia Mountaineers
+  PASS  e401856802 orientation = swapped
+  PASS  Virginia gets 1.06 (its own price) and West Virginia 9.7
+  PASS  the stored game row it replaces (home) = 870
+  PASS  a straight stage-2 row (MTSU, one side readable) keeps its prices in place
+  PASS  unrelated names -> null, never a guess = null
+  PASS  stored rows oriented straight = 775
+  PASS  stored rows oriented swapped = 1
+  PASS  stored rows the sync would skip = 0
+
+H. collision corpus — one school's name inside another's
+  PASS  Virginia / West Virginia, the real 2026-09-19 pairing, vendor reversed
+  PASS  Virginia and West Virginia on one slate, each against its own opponent
+  PASS  Georgia and Georgia Southern on one slate, both priced
+  PASS  Miami and Miami (OH)
+  PASS  Washington and Washington State
+
+I. kickoff refusal and the claim check (real rows)
+  PASS  KICKOFF_REFUSE_MINUTES = 720
+  PASS  CONTESTED_KICKOFF_MINUTES = 90
+  PASS  the both-sides pairs past 720 min are exactly the 12 next-day games
+  FAIL  next-day games refused for the kickoff, each on its own slate
+          got  0
+          want 12
+  FAIL  right pairs 121 to 235 min off keep their pair
+          got  0
+          want 3
+  PASS  events stored against 2+ games = 46
+  FAIL  doubleheader MLB_2026-09-23_e401817050 / MLB_2026-09-23_e401923610
+          got  kept MLB_2026-09-23_e401817050,MLB_2026-09-23_e401923610, sharedRefused undefined
+          want kept MLB_2026-09-23_e401817050, sharedRefused 1
+  FAIL  doubleheader MLB_2026-09-25_e401817073 / MLB_2026-09-25_e401817088
+          got  kept MLB_2026-09-25_e401817073,MLB_2026-09-25_e401817088, sharedRefused undefined
+          want kept MLB_2026-09-25_e401817073, sharedRefused 1
+  FAIL  doubleheader MLB_2026-09-25_e401817074 / MLB_2026-09-25_e401817104
+          got  kept MLB_2026-09-25_e401817074,MLB_2026-09-25_e401817104, sharedRefused undefined
+          want kept MLB_2026-09-25_e401817074, sharedRefused 1
+  FAIL  doubleheaders: the near game keeps the event, the far twin is refused
+          got  0
+          want 3
+  FAIL  Brewers @ Orioles 09-19/09-20
+          got  {"kept":["MLB_2026-09-19_e401817001","MLB_2026-09-20_e401817016"]}
+          want kept e401817016, late 1, shared 0
+  PASS  MLS fixtures archived twice: every copy keeps its pair = 42 of 42
+  FAIL  event freed by a refusal
+          got  A
+          want none paired, lateKickoff 1
+  FAIL  refused game re-paired
+          got  next
+          want none
+  FAIL  stage-2 kickoff
+          got  paired 1, late undefined
+          want paired 0, late 1
+  FAIL  missing kickoff
+          got  paired 1, late undefined
+          want paired 1, late 0
+  PASS  kickoffGapMinutes on an unreadable instant = null
+  FAIL  claim counted before refusal
+          got  {"paired":["A","B"]}
+          want paired none, late 1, shared 1
+  FAIL  claimant without kickoff
+          got  n,A
+          want n only
+  FAIL  per-event scope
+          got  n2,A,r
+          want n2,r
+  FAIL  negative gap
+          got  paired 1
+          want paired 0
+  FAIL  twin after the event
+          got  n2,L
+          want n2
+  FAIL  claim-refused twin re-paired
+          got  E
+          want unpaired
+  PASS  stage 2: a far row still collides, so its rival gains nothing from the refusal
+  FAIL  a pair exactly 720 min off is kept, 721 refused
+          got  1/1
+          want 1/0
+  FAIL  on a shared event, a claimant exactly 90 min off keeps it, 91 is refused
+          got  1/1
+          want 1/0
+  FAIL  an MLS duplicate pair: the copy without a kickoff is counted as unjudged
+          got  undefined
+          want 1
+  FAIL  a single game without a kickoff is unjudged, not refused
+          got  1/undefined
+          want 1/1
+  FAIL  a stage-2 pair without a kickoff is unjudged too
+          got  1/undefined
+          want 1/1
+  FAIL  over the 776 rows, pairs kept without a kickoff (unjudged)
+          got  NaN
+          want 50
+  PASS  gap from a "T17:00Z" kickoff = 30
+  PASS  gap from a "+00:00" kickoff = 30
+
+COVERAGE: TWO sport-dates (cfb 2026-09-12, mlb 2026-09-15) plus 17 synthetic cases,
+and 87 single-gap adversarial runs.
+Kickoff rules: 12 next-day games, 3 far right pairs, all 46 shared events of the
+export, each on its own slate. Not seen: a full live payload, and doubleheaders where one copy lacks a kickoff.
+Stage 2's side rule: all 49 one-sided pairs stored 2026-09-16 to 2026-10-19 (of 776), each on
+its own reduced slate, plus 10 name cases and 5 collision slates. Not seen: a full live
+payload, where a wrong team that shares the first letter (about 5% of name pairs) still passes.
+Zero ambiguity is measured on a 95-event payload; a larger one has more
+collision room. No other sport-date has been measured.
+
+23 FAILED
+
+## 2. GREEN AFTER: node scripts/check-odds-matcher.mjs at 8cf7f818 — exit 0
+
+=== odds team-name matcher ===
+
+A. outbox/fixture-cfb-2026-09-12.json  (80 archive rows, 95 vendor events)
+  PASS  solved = 73
+  PASS  ambiguous = 0
+  PASS  unmatched = 7
+  PASS  orientation swaps = 0
+  PASS  the 7 unmatched are exactly the known initialisms
+  PASS  instant agrees = 68
+  PASS  instant differs = 5
+  PASS  the 5 kickoff disagreements are the known ones
+  PASS  the equality matcher this replaces = 0
+
+B. synthetic corpus (the fixture has 0 of each)
+  PASS  two candidates -> ambiguous, event null, never a guess
+  PASS  the longer name still resolves against the same colliding payload
+  PASS  reversed orientation matches and is flagged swapped
+  PASS  no counterpart -> event null, not ambiguous
+  PASS  "N Colorado" ~ "Northern Colorado Bears" = true  (single-letter direction token)
+  PASS  "Illinois St" ~ "Illinois State Redbirds" = true  (St -> State)
+  PASS  "Hawai'i" ~ "Hawaii Rainbow Warriors" = true  (apostrophe removed, not split on)
+  PASS  "Michigan St" ~ "Michigan State Spartans" = true  (two expansions in one name)
+  PASS  "Western KY" ~ "Western Kentucky Hilltoppers" = false  (postal code is not a prefix — a known residue)
+  PASS  "MTSU" ~ "Middle Tennessee Blue Raiders" = false  (initialism — a known residue)
+  PASS  "Georgia" ~ "Georgia Southern Eagles" = true  (PREFIX IS PERMISSIVE: pair + ambiguity guard carries this, not the predicate)
+  PASS  "Georgia Tech" ~ "Georgia Bulldogs" = false  (second token disagrees)
+  PASS  "Ohio State Buckeyes" ~ "Ohio State" = false  (MORE archive tokens than vendor: refuse, do not read past the end)
+  PASS  "" ~ "Tampa Bay Rays" = false  (an EMPTY archive name must match nothing: every() on [] is vacuously true)
+  PASS  "   " ~ "Tampa Bay Rays" = false  (whitespace tokenises to [] — same trap)
+
+C. h2h price reading
+  PASS  home price keyed off the vendor name = -2500
+  PASS  away price keyed off the vendor name = 1200
+  PASS  no draw in an h2h college market = null
+  PASS  the archive-keyed lookup this replaces = null
+  PASS  reversing the event reverses the prices
+  PASS  draw price on a soccer market = 240
+  PASS  an outcome list naming neither team yields nulls, not a wrong price
+
+D. slate window and elimination
+  PASS  events dropped as out-of-window = 15
+  PASS  in-window pool = 80
+  PASS  stage 1 (both sides, unique) = 73
+  PASS  stage 2 (one side + elimination) = 7
+  PASS  unmatched = 0
+  PASS  ambiguous = 0
+  PASS  stage-2 pairings matching the named expectation = 7
+  PASS  of those, confirmed by exact kickoff equality = 6
+  PASS  GA Southern kickoff delta (min) = -120
+  PASS  Clemson home events in the raw payload = 2
+  PASS  Clemson home events after windowing = 1
+
+D2. a second sport — the one the cron actually runs daily
+  PASS  MLB archive rows = 15
+  PASS  MLB stage 1 = 15
+  PASS  MLB stage 2 = 0
+  PASS  MLB unmatched = 0
+  PASS  MLB ambiguous = 0
+  PASS  "Rays" ~ "Tampa Bay Rays"  (nickname at index 2)
+  PASS  "Guardians" ~ "Cleveland Guardians"  (index 1)
+  PASS  "Athletics" ~ "Athletics"  (index 0 — no city at all)
+  PASS  "White Sox" ~ "Chicago White Sox"  (a two-token nickname at index 1)
+  PASS  a non-contiguous token run does not match
+
+E. adversarial — elimination under a gap on either side
+  PASS  the 7 forced pairings claim 7 DISTINCT events = 7
+  PASS  archive rows dropped one at a time -> mis-forced = 0
+  PASS  forced events removed one at a time -> substituted = 0
+  PASS  one row, two stage-2 candidates -> refused, not taken by payload order
+  PASS  two stage-2 candidates the side rule cannot tell apart -> refused for the count alone
+  PASS  two rows forcing one event -> both refused, neither wins by order
+  PASS  slateWindow with no date returns the payload whole = 95
+
+F. stage 2 — the unread side must be able to be that team (real rows)
+  PASS  rows in the export = 776
+  PASS  Georgia @ Arkansas is refused Jacksonville State's event (the 2026-09-19 wrong pair)
+  PASS  one-sided stored pairs (the stage-2 class) = 49
+  PASS  refused exactly the 11 other-game pairs and the 1 named cost (12 of 49)
+  PASS  right pairs still paired at stage 2 = 37
+  PASS  one-sided rows paired at another stage = 0
+  PASS  of the 11, kickoff gaps over 420 minutes = 11
+  PASS  a refused row still collides: neither row takes the event
+  PASS  "Yankees" cannot be New York Mets: the first letter is compared with the FIRST vendor word
+  PASS  couldAbbreviate("Jax State", "Jacksonville State Gamecocks") = true  (first letter kept)
+  PASS  couldAbbreviate("UAlbany", "Albany Great Danes") = true  (contains the vendor's first word)
+  PASS  couldAbbreviate("The Citadel", "Citadel Bulldogs") = true  ("the" is not stripped; containment reads it)
+  PASS  couldAbbreviate("ETSU", "East Tennessee State Buccaneers") = true  (an initialism keeps its first letter)
+  PASS  couldAbbreviate("Arkansas", "Jacksonville State Gamecocks") = false  (the 2026-09-19 wrong pair)
+  PASS  couldAbbreviate("Blue Jays", "Chicago White Sox") = false  (a nickname against another team)
+  PASS  couldAbbreviate("Boro", "Middlesbrough") = false  (the measured cost: a nickname, not an abbreviation)
+  PASS  couldAbbreviate("", "Albany Great Danes") = false  (an empty name is nothing's abbreviation)
+  PASS  couldAbbreviate("Alb", "Albany Great Danes") = true  (containment needs 4 letters; the first letter carries this)
+  PASS  couldAbbreviate("Xalb", "Alb Tigers") = false  (a 3-letter vendor word is too short to contain)
+
+G. prices follow the team, not the position (real rows)
+  PASS  e401856802 archive home = Virginia
+  PASS  e401856802 vendor home = West Virginia Mountaineers
+  PASS  e401856802 orientation = swapped
+  PASS  Virginia gets 1.06 (its own price) and West Virginia 9.7
+  PASS  the stored game row it replaces (home) = 870
+  PASS  a straight stage-2 row (MTSU, one side readable) keeps its prices in place
+  PASS  unrelated names -> null, never a guess = null
+  PASS  stored rows oriented straight = 775
+  PASS  stored rows oriented swapped = 1
+  PASS  stored rows the sync would skip = 0
+
+H. collision corpus — one school's name inside another's
+  PASS  Virginia / West Virginia, the real 2026-09-19 pairing, vendor reversed
+  PASS  Virginia and West Virginia on one slate, each against its own opponent
+  PASS  Georgia and Georgia Southern on one slate, both priced
+  PASS  Miami and Miami (OH)
+  PASS  Washington and Washington State
+
+I. kickoff refusal and the claim check (real rows)
+  PASS  KICKOFF_REFUSE_MINUTES = 720
+  PASS  CONTESTED_KICKOFF_MINUTES = 90
+  PASS  the both-sides pairs past 720 min are exactly the 12 next-day games
+  PASS  next-day games refused for the kickoff, each on its own slate = 12
+  PASS  right pairs 121 to 235 min off keep their pair = 3
+  PASS  events stored against 2+ games = 46
+  PASS  doubleheaders: the near game keeps the event, the far twin is refused = 3
+  PASS  a next-day claimant is refused by the kickoff, and the day's own game keeps the event
+  PASS  MLS fixtures archived twice: every copy keeps its pair = 42 of 42
+  PASS  a refused game's event stays claimed: no other row takes it by elimination
+  PASS  a refused game is not sent to elimination, where it would find another event
+  PASS  stage 2: a forced pairing a day off is refused for the kickoff
+  PASS  a game with no kickoff is not refused for lacking one
+  PASS  kickoffGapMinutes on an unreadable instant = null
+  PASS  a claimant refused for its kickoff still makes the event shared
+  PASS  a claimant without a kickoff still counts toward a shared event
+  PASS  the claim check is per event: a lone +235 game keeps its own event beside a doubleheader
+  PASS  an event a day before the archive kickoff is refused too (|gap|, not gap)
+  PASS  a twin whose kickoff is 206 min AFTER the event is refused as far
+  PASS  a twin refused by the claim check does not find another event by elimination
+  PASS  stage 2: a far row still collides, so its rival gains nothing from the refusal
+  PASS  a pair exactly 720 min off is kept, 721 refused = 1/0
+  PASS  on a shared event, a claimant exactly 90 min off keeps it, 91 is refused = 1/0
+  PASS  an MLS duplicate pair: the copy without a kickoff is counted as unjudged = 1
+  PASS  a single game without a kickoff is unjudged, not refused = 1/1
+  PASS  a stage-2 pair without a kickoff is unjudged too = 1/1
+  PASS  over the 776 rows, pairs kept without a kickoff (unjudged) = 50
+  PASS  gap from a "T17:00Z" kickoff = 30
+  PASS  gap from a "+00:00" kickoff = 30
+
+COVERAGE: TWO sport-dates (cfb 2026-09-12, mlb 2026-09-15) plus 17 synthetic cases,
+and 87 single-gap adversarial runs.
+Kickoff rules: 12 next-day games, 3 far right pairs, all 46 shared events of the
+export, each on its own slate. Not seen: a full live payload, and doubleheaders where one copy lacks a kickoff.
+Stage 2's side rule: all 49 one-sided pairs stored 2026-09-16 to 2026-10-19 (of 776), each on
+its own reduced slate, plus 10 name cases and 5 collision slates. Not seen: a full live
+payload, where a wrong team that shares the first letter (about 5% of name pairs) still passes.
+Zero ambiguity is measured on a 95-event payload; a larger one has more
+collision room. No other sport-date has been measured.
+
+all checks passed
+
+## 3. MUTATIONS: node scripts/mutate-odds-matcher.mjs at 8cf7f818 — exit 0 (M58-M76 are this CC-CMD's)
+
+baseline: scripts/check-odds-matcher.mjs and scripts/check-odds-matcher-wiring.mjs both pass on clean source
+
+CAUGHT     M1  per-token prefix becomes whole-string prefix (the pre-2026-09-16 shape)
+            (N Colorado / C Connecticut / Illinois St stop matching)
+CAUGHT     M2  the prefix direction is flipped
+            (the mascot token would have to prefix the archive token)
+CAUGHT     M3  every archive token becomes some archive token
+            (one matching token is enough — mass ambiguity)
+CAUGHT     M4  apostrophes are split on instead of removed
+            (Hawai'i tokenises to [hawai, i] and never reaches Hawaii Rainbow Warriors)
+CAUGHT     M5  the ambiguity guard picks the first candidate
+            (Ohio resolves to Ohio Bobcats by payload order, silently)
+CAUGHT     M6  the orientation-swap branch is dropped
+            (a reversed vendor pairing returns no event)
+CAUGHT     M7  the empty-name refusal is dropped
+            (every() on [] is vacuously true, so an empty archive name matches everything)
+CAUGHT     M8  normalisation stops lowercasing
+            (the [^a-z0-9 ] class then eats every capital letter)
+CAUGHT     M9  prices are keyed off the outcome ORDER instead of the team name
+            (home and away both take the first outcome — a 50/50 silent swap)
+CAUGHT     M10 the home/away prices are transposed
+            (every stored favourite becomes the underdog)
+CAUGHT     M11 a missing outcome yields 0 rather than null
+            (absence collapses into an even-money price (Rule 99))
+CAUGHT     M12 the cron gets its private normTeam back
+            (a private normalizer beside the shared one)
+CAUGHT     M13 the cron reverts to a local events.find matcher
+            (the cron pairs nothing at all)
+CAUGHT     M15 the date window is removed — every future fixture is a candidate again
+            (GA Southern sees a second Clemson game a week later and goes ambiguous)
+CAUGHT     M16 the window forgets the next day — an evening slate loses its late games
+            (the 10 events kicking off after midnight UTC leave the pool)
+CAUGHT     M17 stage 2 takes the first candidate instead of requiring exactly one
+            (a row with several candidates resolves by payload order)
+CAUGHT     M18 stage 2 ignores what stage 1 already spent
+            (elimination is not elimination — a claimed event is offered twice)
+CAUGHT     M19 the two-rows-one-event collision is resolved by order
+            (both rows take the same event and the result depends on iteration order)
+CAUGHT     M20 stage 2 matches on the abbreviated side too
+            (a looser candidate set produces collisions the guard then refuses)
+CAUGHT     M21 the watcher stops caring that credits were spent
+            (a date that spent nothing is reported as a burned date)
+CAUGHT     M22 the watcher compares without coercing
+            (D1 returns '0' as a string and === 0 never fires — the watcher passes forever)
+CAUGHT     M23 the watcher treats zero pairings as merely low
+            (nothing can ever be flagged — a check that cannot fail)
+CAUGHT     M24 integrity compares the provider against a ceiling again
+            (the two-population comparison returns — a busy evening reads as a breach)
+CAUGHT     M25 a missing reading collapses to zero
+            (Number(null) is 0, so an absent reading reads as a counter reset)
+CAUGHT     M26 a monthly reset is reported as escaped spend
+            (the month rolling over fires a false alarm every month)
+CAUGHT     M27 the first reading passes as a measured zero
+            (a series of one reports a divergence it never measured)
+CAUGHT     M43 an unreadable degrade counter reads as none
+            (the watch prints "no guard degraded" on no evidence and eliminates a candidate it never tested)
+CAUGHT     M44 the cumulative counter is read as a level
+            (a day-long total is attributed to one interval, so any escape looks explained)
+CAUGHT     M45 a same-day decrease is clamped instead of flagged
+            (a counter that went backwards within one day claims no degradation, which is the reading that cannot know)
+CAUGHT     M46 a missing baseline is treated as zero
+            (readings that predate the field report their whole daily total as this interval's)
+CAUGHT     M41 any negative delta is called a month reset
+            (the shape that shipped for 13 minutes — a 2-credit reconcile refund announced as a monthly roll-over)
+CAUGHT     M42 the reset floor is raised until a real roll is missed
+            (a genuine month roll is reported as a colossal escape every month)
+CAUGHT     M36 the escape is judged before subtracting CI
+            (the backfill doing its job is charged to "a guard stopped guarding" — two populations again)
+CAUGHT     M37 a negative outsideLedger can manufacture leakage
+            (a bad input inflates the residual instead of being clamped)
+CAUGHT     M38 a SQLite timestamp is parsed as local time
+            (no zone marker, so the window shifts by hours and runs move in or out of it)
+CAUGHT     M39 an undated progress row is subtracted anyway
+            (a row that cannot be placed inflates the subtraction and shrinks the residual on no evidence)
+CAUGHT     M40 the interval bound is dropped
+            (every backfill run ever is subtracted from one interval, and the residual goes negative)
+CAUGHT     M33 the ceiling check starts prorating
+            (the watch models a cap the guard does not enforce — the 2026-09-16 false alarm)
+CAUGHT     M34 a null daily counter reads as a clean day
+            (Number(null) is 0 and 0 is under every ceiling)
+CAUGHT     M35 the escape tolerance grows until nothing can fail
+            (the way this watch ends quietly — raising the bar instead of reading it)
+CAUGHT     M28 a failing pairing verdict exits before recording the spend
+            (the day you most want the cost of is the day it is not recorded)
+CAUGHT     M29 an unknown pairing baseline is coerced to zero
+            (a reading that predates the counter reports a difference it cannot know)
+CAUGHT     M32 a partial window total is published as a total
+            (the sum of the readable rows is stored under the name of the whole window)
+CAUGHT     M30 the window goes back to anchoring at index 0
+            (the shape that paired 0 of 26 in production on 2026-09-15)
+CAUGHT     M31 the window stops being contiguous
+            (tokens match anywhere in any order — Red Jays finds Red Sox and Blue Jays)
+CAUGHT     M47 stage 2 stops checking the unread side
+            (Georgia @ Arkansas takes Jacksonville State's event again, and 10 MLB/NHL rows their next-day games)
+CAUGHT     M48 the first letter is compared with ANY vendor word
+            ("Yankees" passes as New York Mets on "York": 10-15% of wrong names pass instead of 5%)
+CAUGHT     M49 the containment reading is dropped
+            (UAlbany stops pairing with Albany)
+CAUGHT     M50 containment accepts a vendor word of any length
+            (a 3-letter vendor word is contained in almost anything)
+CAUGHT     M51 a refused proposal gives up its claim before the collision test
+            (the row a refused row collided with now takes the event: refusing ADDS a pair)
+CAUGHT     M52 a refusal is not counted
+            (the backfill line reports 0 refused while refusing)
+CAUGHT     M53 pricesByTeam keeps the vendor position
+            (Virginia gets West Virginia's 9.7 again (e401856802))
+CAUGHT     M54 pricesByTeam guesses when the direction is unreadable
+            (two unrelated teams are written a price by position)
+CAUGHT     M55 pairOrientation trusts one side
+            ("Virginia" reads West Virginia Mountaineers as itself and the swap is missed)
+CAUGHT     M56 the sync goes back to converting by position
+            (the archive home team takes the vendor home team's price whichever team that is)
+CAUGHT     M57 the sync stops calling pricesByTeam
+            (a private positional copy of the price read sits where the shared one was)
+CAUGHT     M58 stage 1 stops refusing a pair a day away
+            (the 12 next-day games take the series' next game again)
+CAUGHT     M59 stage 2 stops refusing a pair a day away
+            (an elimination a day off is accepted)
+CAUGHT     M60 a refused game frees its event
+            (another row takes the refused event by elimination: a refusal creates a pair)
+CAUGHT     M61 a refused game is sent to elimination
+            (the refused game finds another event at stage 2)
+CAUGHT     M62 the claim check is dropped
+            (both doubleheader games keep one event, one of them priced from the other)
+CAUGHT     M63 the claim check refuses every claimant (the literal option)
+            (the near doubleheader game and all 42 MLS duplicate pairs go unpriced)
+CAUGHT     M64 a missing kickoff is judged as too far
+            (the MLS copies without a kickoff, and every game the archive has no time for, are refused)
+CAUGHT     M65 the contested limit is the general one
+            (the far doubleheader twin (206-301 min) keeps the event)
+CAUGHT     M66 the fill stops selecting start_time
+            (the kickoff refusal is silently off for every targeted fill)
+CAUGHT     M67 stage 2 refuses a far row before the collision test
+            (the far row gives up its claim and its rival takes the event: a refusal creates a pair)
+CAUGHT     M68 the claim check counts claimants across the slate
+            (a lone rain-delayed game is refused because a doubleheader sits elsewhere on the slate)
+CAUGHT     M69 the gap loses its absolute value
+            (an event a day early, and a twin after the event, are accepted)
+CAUGHT     M70 a claim-refused twin is sent to elimination
+            (the far twin finds another event at stage 2)
+CAUGHT     M71 the limits stop being inclusive
+            (a pair exactly 720 (or a claimant exactly 90) min off is refused)
+CAUGHT     M72 a claim refused for its kickoff stops counting
+            (a twin 206 off keeps the event once the other claimant was refused (the reviewed bug))
+CAUGHT     M73 only claimants with a kickoff are counted
+            (a doubleheader whose near copy has no kickoff keeps both games on one event)
+CAUGHT     M74 a pair kept without a kickoff is not counted
+            (a slate with no kickoffs prints the same zeros as one fully checked (Rule 91))
+CAUGHT     M75 a comment inside the fill SQL says "far from the"
+            (the relay guard reads table "the" and the fill gets a 403 (the reviewed blocker))
+CAUGHT     M76 start_time is selected only as an alias
+            (the word is there and the kickoff is not)
+CAUGHT     M14 the fill stops importing the shared matcher
+            (the live-write path drifts off the shared module)
+
+76 of 76 mutations caught.
+COVERAGE: 44 in src/odds-name-match.js, 4 in .github/scripts/odds-backfill.js, 21 in scripts/watch-odds-pairing-rate.mjs, 1 in scripts/lib/utc.mjs, 2 in scripts/lib/ci-spend.mjs, 4 in scripts/targeted-odds-fill.mjs.
+Offline only — no mutation here exercises a LIVE vendor payload or a D1 write.
+
+## 4. WIRING: node scripts/check-odds-matcher-wiring.mjs at 8cf7f818 — exit 0
+
+=== odds matcher wiring ===
+
+  PASS  .github/scripts/odds-backfill.js imports matchSlate from the shared module
+  PASS  .github/scripts/odds-backfill.js actually calls matchSlate
+  PASS  .github/scripts/odds-backfill.js reads prices through h2hPrices
+  PASS  .github/scripts/odds-backfill.js: no a private normTeam()
+  PASS  .github/scripts/odds-backfill.js: no whole-string equality on home_team
+  PASS  .github/scripts/odds-backfill.js: no a local events.find() matcher instead of matchSlate
+  PASS  .github/scripts/odds-backfill.js: no per-GAME matching, which cannot pair an initialism by elimination
+  PASS  .github/scripts/odds-backfill.js: no a local h2h price lookup instead of h2hPrices
+  PASS  scripts/targeted-odds-fill.mjs imports matchSlate from the shared module
+  PASS  scripts/targeted-odds-fill.mjs actually calls matchSlate
+  PASS  scripts/targeted-odds-fill.mjs reads prices through h2hPrices
+  PASS  scripts/targeted-odds-fill.mjs: no a private normTeam()
+  PASS  scripts/targeted-odds-fill.mjs: no whole-string equality on home_team
+  PASS  scripts/targeted-odds-fill.mjs: no a local events.find() matcher instead of matchSlate
+  PASS  scripts/targeted-odds-fill.mjs: no per-GAME matching, which cannot pair an initialism by elimination
+  PASS  scripts/targeted-odds-fill.mjs: no a local h2h price lookup instead of h2hPrices
+  PASS  .github/scripts/odds-backfill.js: the sync re-keys prices through pricesByTeam
+  PASS  .github/scripts/odds-backfill.js: the sync does not convert a price by position
+  PASS  scripts/targeted-odds-fill.mjs: the games it pairs carry start_time
+  PASS  scripts/targeted-odds-fill.mjs: all 6 SQL literals name an allowed table under the relay's guard
+  PASS  .github/scripts/odds-backfill.js: its games come from /context/date, which carries start_time
+  PASS  scripts/watch-odds-pairing-rate.mjs: the provider reading is written even when the pairing check fails
+  PASS  scripts/watch-odds-pairing-rate.mjs: an unknown pairing baseline is not coerced to 0
+  PASS  scripts/watch-odds-pairing-rate.mjs: a partial window total is published as null, not as a sum
+
+COVERAGE: 2 consumers, 5 banned shapes each, import AND call asserted.
+Structural only — that a call site imports the module does not prove it
+uses the result correctly. check-odds-matcher.mjs covers the module itself.
+
+all checks passed
+
+## 5. CENSUS: node scripts/census-odds-pairs.mjs at 8cf7f818 — exit 0
+#   The REPRODUCED block runs each row on a REDUCED slate (that row's game and event only). A doubleheader twin's
+#   other game is not on its slate, so e401923610, e401817088 and e401817104 show PAIRED stage 1 here: the claim
+#   check needs two claimants on one slate. That case is proven in section 2 ("doubleheaders: the near game keeps
+#   the event, the far twin is refused = 3"), on slates holding both games. The 12 next-day rows show REFUSED (late kickoff 1).
+
+CENSUS of 776 odds_history rows (odds_history joined to regular_season_games), file outbox/fixture-odds-pairs-2026-10-19.json
+  name evidence: both sides 727, one side 49, neither 0
+  orientation: 1 swapped, 0 unreadable; 50 rows have no archive start_time (no kickoff cross-check)
+
+ONE-SIDED (stage-2 class) — 49, by sport: {"CFB":31,"EFL":7,"MLB":7,"MLS":1,"NHL":3}
+  CFB_2026-08-29_ndakotast_jaxstate_targeted | CFB 2026-08-29 open | archive Jax State @ N Dakota St | vendor Jacksonville State Gamecocks @ North Dakota State Bison | gap 0 min | one/straight
+      matched home; unmatched side: Jax State vs Jacksonville State Gamecocks
+  CFB_2026-09-03_e401866409_targeted | CFB 2026-09-03 open | archive UAlbany @ Buffalo | vendor Albany @ Buffalo Bulls | gap 0 min | one/straight
+      matched home; unmatched side: UAlbany vs Albany
+  CFB_2026-09-05_e401856770_targeted | CFB 2026-09-05 open | archive Abilene Chrstn @ Texas Tech | vendor Abilene Christian Wildcats @ Texas Tech Red Raiders | gap 0 min | one/straight
+      matched home; unmatched side: Abilene Chrstn vs Abilene Christian Wildcats
+  CFB_2026-09-05_e401856779_targeted | CFB 2026-09-05 open | archive SE Missouri @ Iowa State | vendor Southeast Missouri State Redhawks @ Iowa State Cyclones | gap 0 min | one/straight
+      matched home; unmatched side: SE Missouri vs Southeast Missouri State Redhawks
+  CFB_2026-09-05_e401862694_targeted | CFB 2026-09-05 open | archive The Citadel @ Charlotte | vendor Citadel Bulldogs @ Charlotte 49ers | gap 0 min | one/straight
+      matched home; unmatched side: The Citadel vs Citadel Bulldogs
+  CFB_2026-09-05_e401862697_targeted | CFB 2026-09-05 open | archive Hou Christian @ Rice | vendor Houston Baptist Huskies @ Rice Owls | gap 0 min | one/straight
+      matched home; unmatched side: Hou Christian vs Houston Baptist Huskies
+  CFB_2026-09-05_e401862699_targeted | CFB 2026-09-05 open | archive FIU @ South Florida | vendor Florida International Panthers @ South Florida Bulls | gap 0 min | one/straight
+      matched home; unmatched side: FIU vs Florida International Panthers
+  CFB_2026-09-05_e401864432_targeted | CFB 2026-09-05 open | archive Western KY @ Nevada | vendor Western Kentucky Hilltoppers @ Nevada Wolf Pack | gap 0 min | one/straight
+      matched home; unmatched side: Western KY vs Western Kentucky Hilltoppers
+  CFB_2026-09-05_e401867866_targeted | CFB 2026-09-05 open | archive Murray St @ MTSU | vendor Murray State Racers @ Middle Tennessee Blue Raiders | gap -45 min | one/straight
+      matched away; unmatched side: MTSU vs Middle Tennessee Blue Raiders
+  CFB_2026-09-05_e401868140_targeted | CFB 2026-09-05 open | archive E Kentucky @ Jax State | vendor Eastern Kentucky Colonels @ Jacksonville State Gamecocks | gap 0 min | one/straight
+      matched away; unmatched side: Jax State vs Jacksonville State Gamecocks
+  CFB_2026-09-05_e401868170_targeted | CFB 2026-09-05 open | archive Charleston So @ GA Southern | vendor Charleston Southern Buccaneers @ Georgia Southern Eagles | gap 0 min | one/straight
+      matched away; unmatched side: GA Southern vs Georgia Southern Eagles
+  CFB_2026-09-05_e401868316_targeted | CFB 2026-09-05 open | archive SE Louisiana @ South Alabama | vendor Southeastern Louisiana Lions @ South Alabama Jaguars | gap 0 min | one/straight
+      matched home; unmatched side: SE Louisiana vs Southeastern Louisiana Lions
+  CFB_2026-09-05_e401869129_targeted | CFB 2026-09-05 open | archive N'Western St @ Louisiana Tech | vendor Northwestern State Demons @ Louisiana Tech Bulldogs | gap 0 min | one/straight
+      matched home; unmatched side: N'Western St vs Northwestern State Demons
+  CFB_2026-09-12_e401858218_targeted | CFB 2026-09-12 open | archive ETSU @ North Carolina | vendor East Tennessee State Buccaneers @ North Carolina Tar Heels | gap 0 min | one/straight
+      matched home; unmatched side: ETSU vs East Tennessee State Buccaneers
+  CFB_2026-09-12_e401858219_targeted | CFB 2026-09-12 open | archive GA Southern @ Clemson | vendor Georgia Southern Eagles @ Clemson Tigers | gap -120 min | one/straight
+      matched home; unmatched side: GA Southern vs Georgia Southern Eagles
+  CFB_2026-09-12_e401862703_targeted | CFB 2026-09-12 open | archive Navy @ FAU | vendor Navy Midshipmen @ Florida Atlantic Owls | gap 0 min | one/straight
+      matched away; unmatched side: FAU vs Florida Atlantic Owls
+  CFB_2026-09-12_e401866414_targeted | CFB 2026-09-12 open | archive Buffalo @ FIU | vendor Buffalo Bulls @ Florida International Panthers | gap 0 min | one/straight
+      matched away; unmatched side: FIU vs Florida International Panthers
+  CFB_2026-09-12_e401866418_targeted | CFB 2026-09-12 open | archive Jax State @ Ohio | vendor Jacksonville State Gamecocks @ Ohio Bobcats | gap 0 min | one/straight
+      matched home; unmatched side: Jax State vs Jacksonville State Gamecocks
+  CFB_2026-09-12_e401871045_targeted | CFB 2026-09-12 open | archive MTSU @ Marshall | vendor Middle Tennessee Blue Raiders @ Marshall Thundering Herd | gap 0 min | one/straight
+      matched home; unmatched side: MTSU vs Middle Tennessee Blue Raiders
+  CFB_2026-09-19_e401856686_draftkings_close | CFB 2026-09-19 close | archive Georgia @ Arkansas | vendor Georgia Southern Eagles @ Jacksonville State Gamecocks | gap 422 min | one/straight
+      matched away; unmatched side: Arkansas vs Jacksonville State Gamecocks
+  CFB_2026-09-19_e401864443_draftkings_close | CFB 2026-09-19 close | archive Nevada @ MTSU | vendor Nevada Wolf Pack @ Middle Tennessee Blue Raiders | gap 2 min | one/straight
+      matched away; unmatched side: MTSU vs Middle Tennessee Blue Raiders
+  CFB_2026-09-19_e401868317_fanduel_close | CFB 2026-09-19 close | archive SE Louisiana @ UL Monroe | vendor Southeastern Louisiana Lions @ UL Monroe Warhawks | gap 0 min | one/straight
+      matched home; unmatched side: SE Louisiana vs Southeastern Louisiana Lions
+  CFB_2026-09-26_e401862782_fanduel_close | CFB 2026-09-26 close | archive FAU @ UL Monroe | vendor Florida Atlantic Owls @ UL Monroe Warhawks | gap 0 min | one/straight
+      matched home; unmatched side: FAU vs Florida Atlantic Owls
+  CFB_2026-10-01_e401871049_fanduel_close | CFB 2026-10-01 close | archive Western KY @ New Mexico St | vendor Western Kentucky Hilltoppers @ New Mexico State Aggies | gap 0 min | one/straight
+      matched home; unmatched side: Western KY vs Western Kentucky Hilltoppers
+  CFB_2026-10-03_e401869942_draftkings_close | CFB 2026-10-03 close | archive GA Southern @ Coastal | vendor Georgia Southern Eagles @ Coastal Carolina Chanticleers | gap 3 min | one/straight
+      matched home; unmatched side: GA Southern vs Georgia Southern Eagles
+  CFB_2026-10-07_e401871051_fanduel_close | CFB 2026-10-07 close | archive Jax State @ Kennesaw St | vendor Jacksonville State Gamecocks @ Kennesaw State Owls | gap 5 min | one/straight
+      matched home; unmatched side: Jax State vs Jacksonville State Gamecocks
+  CFB_2026-10-07_e401871066_fanduel_close | CFB 2026-10-07 close | archive New Mexico St @ FIU | vendor New Mexico State Aggies @ Florida International Panthers | gap 6 min | one/straight
+      matched away; unmatched side: FIU vs Florida International Panthers
+  CFB_2026-10-08_e401871052_fanduel_close | CFB 2026-10-08 close | archive Missouri St @ Western KY | vendor Missouri State Bears @ Western Kentucky Hilltoppers | gap 5 min | one/straight
+      matched away; unmatched side: Western KY vs Western Kentucky Hilltoppers
+  CFB_2026-10-13_e401871067_fanduel_close | CFB 2026-10-13 close | archive Delaware @ MTSU | vendor Delaware Blue Hens @ Middle Tennessee Blue Raiders | gap 5 min | one/straight
+      matched away; unmatched side: MTSU vs Middle Tennessee Blue Raiders
+  CFB_2026-10-14_e401871068_fanduel_close | CFB 2026-10-14 close | archive Western KY @ Sam Houston | vendor Western Kentucky Hilltoppers @ Sam Houston State Bearkats | gap 0 min | one/straight
+      matched home; unmatched side: Western KY vs Western Kentucky Hilltoppers
+  CFB_2026-10-15_e401869950_fanduel_close | CFB 2026-10-15 close | archive GA Southern @ Old Dominion | vendor Georgia Southern Eagles @ Old Dominion Monarchs | gap 7 min | one/straight
+      matched home; unmatched side: GA Southern vs Georgia Southern Eagles
+  EFL Cup_2026-08-08_leytonorient_oxfordutd_targeted | EFL Cup 2026-08-08 open | archive Oxford Utd @ Leyton Orient | vendor Oxford United @ Leyton Orient | gap 0 min | one/straight
+      matched home; unmatched side: Oxford Utd vs Oxford United
+  EFL Cup_2026-08-08_norwichcity_mkdons_targeted | EFL Cup 2026-08-08 open | archive MK Dons @ Norwich City | vendor Milton Keynes Dons @ Norwich City | gap 0 min | one/straight
+      matched home; unmatched side: MK Dons vs Milton Keynes Dons
+  EFL Cup_2026-08-08_qpr_millwall_targeted | EFL Cup 2026-08-08 open | archive Millwall @ QPR | vendor Millwall @ Queens Park Rangers | gap 0 min | one/straight
+      matched away; unmatched side: QPR vs Queens Park Rangers
+  EFL Cup_2026-08-25_blackburn_sheffieldutd_targeted | EFL Cup 2026-08-25 open | archive Sheffield Utd @ Blackburn | vendor Sheffield United @ Blackburn Rovers | gap 0 min | one/straight
+      matched home; unmatched side: Sheffield Utd vs Sheffield United
+  EFL Cup_2026-08-25_doncaster_boro_targeted | EFL Cup 2026-08-25 open | archive Boro @ Doncaster | vendor Middlesbrough @ Doncaster Rovers | gap 0 min | one/straight
+      matched home; unmatched side: Boro vs Middlesbrough
+  EFL Cup_2026-08-25_nottmforest_leeds_targeted | EFL Cup 2026-08-25 open | archive Leeds @ Nottm Forest | vendor Leeds United @ Nottingham Forest | gap 0 min | one/straight
+      matched away; unmatched side: Nottm Forest vs Nottingham Forest
+  EFL Cup_2026-08-25_sheffieldwed_wolves_targeted | EFL Cup 2026-08-25 open | archive Wolves @ Sheffield Wed | vendor Wolverhampton Wanderers @ Sheffield Wednesday | gap 0 min | one/straight
+      matched home; unmatched side: Wolves vs Wolverhampton Wanderers
+  MLB_2026-09-16_e401816961_fanduel_close | MLB 2026-09-16 close | archive Tigers @ Blue Jays | vendor Detroit Tigers @ Chicago White Sox | gap 1714 min | one/straight
+      matched away; unmatched side: Blue Jays vs Chicago White Sox
+  MLB_2026-09-17_e401816975_fanduel_close | MLB 2026-09-17 close | archive Brewers @ Pirates | vendor Kansas City Royals @ Pittsburgh Pirates | gap 1806 min | one/straight
+      matched home; unmatched side: Brewers vs Kansas City Royals
+  MLB_2026-09-20_e401817020_fanduel_close | MLB 2026-09-20 close | archive Blue Jays @ Rangers | vendor Toronto Blue Jays @ Baltimore Orioles | gap 1681 min | one/straight
+      matched away; unmatched side: Rangers vs Baltimore Orioles
+  MLB_2026-09-20_e401817021_fanduel_close | MLB 2026-09-20 close | archive Nationals @ Cardinals | vendor Washington Nationals @ Detroit Tigers | gap 1706 min | one/straight
+      matched away; unmatched side: Cardinals vs Detroit Tigers
+  MLB_2026-09-24_e401817063_fanduel_close | MLB 2026-09-24 close | archive Cardinals @ Pirates | vendor St. Louis Cardinals @ Milwaukee Brewers | gap 1866 min | one/straight
+      matched away; unmatched side: Pirates vs Milwaukee Brewers
+  MLB_2026-09-24_e401817065_fanduel_close | MLB 2026-09-24 close | archive White Sox @ Royals | vendor Cleveland Guardians @ Kansas City Royals | gap 1771 min | one/straight
+      matched home; unmatched side: White Sox vs Cleveland Guardians
+  MLB_2026-09-24_e401817067_fanduel_close | MLB 2026-09-24 close | archive Mets @ Rangers | vendor New York Mets @ Washington Nationals | gap 1691 min | one/straight
+      matched away; unmatched side: Rangers vs Washington Nationals
+  2026-09-18-mls-sj-lafc_betrivers_close | MLS 2026-09-18 close | archive Los Angeles Football Club @ San Jose Earthquakes | vendor Los Angeles FC @ San Jose Earthquakes | gap n/a min | one/straight
+      matched home; unmatched side: Los Angeles Football Club vs Los Angeles FC
+  NHL_2026-10-04_e401892442_draftkings_close | NHL 2026-10-04 close | archive Jets @ Red Wings | vendor Winnipeg Jets @ Pittsburgh Penguins | gap 1840 min | one/straight
+      matched away; unmatched side: Red Wings vs Pittsburgh Penguins
+  NHL_2026-10-10_e401892470_draftkings_close | NHL 2026-10-10 close | archive Canucks @ Devils | vendor Vancouver Canucks @ New York Rangers | gap 1600 min | one/straight
+      matched away; unmatched side: Devils vs New York Rangers
+  NHL_2026-10-12_e401892485_draftkings_close | NHL 2026-10-12 close | archive Panthers @ Sabres | vendor Florida Panthers @ Columbus Blue Jackets | gap 1765 min | one/straight
+      matched away; unmatched side: Sabres vs Columbus Blue Jackets
+
+NO NAME EVIDENCE — 0
+
+KICKOFF GAP OVER 90 MIN (any class) — 30 of 726 with a start_time
+  CFB_2026-09-05_e401856660_targeted | CFB 2026-09-05 open | archive Clemson @ LSU | vendor Clemson Tigers @ LSU Tigers | gap -130 min | both/straight
+  CFB_2026-09-12_e401858219_targeted | CFB 2026-09-12 open | archive GA Southern @ Clemson | vendor Georgia Southern Eagles @ Clemson Tigers | gap -120 min | one/straight
+  CFB_2026-09-19_e401856686_draftkings_close | CFB 2026-09-19 close | archive Georgia @ Arkansas | vendor Georgia Southern Eagles @ Jacksonville State Gamecocks | gap 422 min | one/straight
+  MLB_2026-09-16_e401816961_fanduel_close | MLB 2026-09-16 close | archive Tigers @ Blue Jays | vendor Detroit Tigers @ Chicago White Sox | gap 1714 min | one/straight
+  MLB_2026-09-17_e401816975_fanduel_close | MLB 2026-09-17 close | archive Brewers @ Pirates | vendor Kansas City Royals @ Pittsburgh Pirates | gap 1806 min | one/straight
+  MLB_2026-09-19_e401817001_fanduel_close | MLB 2026-09-19 close | archive Brewers @ Orioles | vendor Milwaukee Brewers @ Baltimore Orioles | gap 1636 min | both/straight
+  MLB_2026-09-19_e401817002_fanduel_close | MLB 2026-09-19 close | archive Phillies @ Mets | vendor Philadelphia Phillies @ New York Mets | gap 1261 min | both/straight
+  MLB_2026-09-19_e401817004_fanduel_close | MLB 2026-09-19 close | archive Tigers @ White Sox | vendor Detroit Tigers @ Chicago White Sox | gap 1441 min | both/straight
+  MLB_2026-09-20_e401817019_fanduel_close | MLB 2026-09-20 close | archive Tigers @ White Sox | vendor Detroit Tigers @ Chicago White Sox | gap 235 min | both/straight
+  MLB_2026-09-20_e401817020_fanduel_close | MLB 2026-09-20 close | archive Blue Jays @ Rangers | vendor Toronto Blue Jays @ Baltimore Orioles | gap 1681 min | one/straight
+  MLB_2026-09-20_e401817021_fanduel_close | MLB 2026-09-20 close | archive Nationals @ Cardinals | vendor Washington Nationals @ Detroit Tigers | gap 1706 min | one/straight
+  MLB_2026-09-22_e401817035_fanduel_close | MLB 2026-09-22 close | archive Blue Jays @ Orioles | vendor Toronto Blue Jays @ Baltimore Orioles | gap 1141 min | both/straight
+  MLB_2026-09-23_e401923610_fanduel_close | MLB 2026-09-23 close | archive Blue Jays @ Orioles | vendor Toronto Blue Jays @ Baltimore Orioles | gap 301 min | both/straight
+  MLB_2026-09-24_e401817063_fanduel_close | MLB 2026-09-24 close | archive Cardinals @ Pirates | vendor St. Louis Cardinals @ Milwaukee Brewers | gap 1866 min | one/straight
+  MLB_2026-09-24_e401817065_fanduel_close | MLB 2026-09-24 close | archive White Sox @ Royals | vendor Cleveland Guardians @ Kansas City Royals | gap 1771 min | one/straight
+  MLB_2026-09-24_e401817067_fanduel_close | MLB 2026-09-24 close | archive Mets @ Rangers | vendor New York Mets @ Washington Nationals | gap 1691 min | one/straight
+  MLB_2026-09-25_e401817088_fanduel_close | MLB 2026-09-25 close | archive Orioles @ Yankees | vendor Baltimore Orioles @ New York Yankees | gap 206 min | both/straight
+  MLB_2026-09-25_e401817104_fanduel_close | MLB 2026-09-25 close | archive Cubs @ Red Sox | vendor Chicago Cubs @ Boston Red Sox | gap 271 min | both/straight
+  MLB_2026-09-26_e401817087_draftkings_close | MLB 2026-09-26 close | archive Braves @ Marlins | vendor Atlanta Braves @ Miami Marlins | gap 1380 min | both/straight
+  MLB_2026-09-26_e401817090_fanduel_close | MLB 2026-09-26 close | archive Reds @ Blue Jays | vendor Cincinnati Reds @ Toronto Blue Jays | gap 1441 min | both/straight
+  MLB_2026-09-26_e401817091_draftkings_close | MLB 2026-09-26 close | archive Mets @ Nationals | vendor New York Mets @ Washington Nationals | gap 1590 min | both/straight
+  MLB_2026-09-26_e401817092_draftkings_close | MLB 2026-09-26 close | archive Pirates @ Tigers | vendor Pittsburgh Pirates @ Detroit Tigers | gap 1560 min | both/straight
+  MLB_2026-09-26_e401817097_fanduel_close | MLB 2026-09-26 close | archive Rangers @ Twins | vendor Texas Rangers @ Minnesota Twins | gap 121 min | both/straight
+  MLB_2026-09-29_e401907965_fanduel_close | MLB 2026-09-29 close | archive Phillies @ Braves | vendor Philadelphia Phillies @ Atlanta Braves | gap 1440 min | both/straight
+  MLB_2026-09-30_e401907972_draftkings_close | MLB 2026-09-30 close | archive Phillies @ Braves | vendor Philadelphia Phillies @ Atlanta Braves | gap 1440 min | both/straight
+  MLB_2026-10-07_e401907992_draftkings_close | MLB 2026-10-07 close | archive Guardians @ White Sox | vendor Cleveland Guardians @ Chicago White Sox | gap 1500 min | both/straight
+  MLB_2026-10-15_e401908025_draftkings_close | MLB 2026-10-15 close | archive Rays @ Guardians | vendor Tampa Bay Rays @ Cleveland Guardians | gap 1740 min | both/straight
+  NHL_2026-10-04_e401892442_draftkings_close | NHL 2026-10-04 close | archive Jets @ Red Wings | vendor Winnipeg Jets @ Pittsburgh Penguins | gap 1840 min | one/straight
+  NHL_2026-10-10_e401892470_draftkings_close | NHL 2026-10-10 close | archive Canucks @ Devils | vendor Vancouver Canucks @ New York Rangers | gap 1600 min | one/straight
+  NHL_2026-10-12_e401892485_draftkings_close | NHL 2026-10-12 close | archive Panthers @ Sabres | vendor Florida Panthers @ Columbus Blue Jackets | gap 1765 min | one/straight
+
+SWAPPED, checked against the game row — 1
+  CFB_2026-09-19_e401856802_draftkings_close | CFB 2026-09-19 close | archive West Virginia @ Virginia | vendor Virginia Cavaliers @ West Virginia Mountaineers | gap 5 min | both/swapped | game home 870 | positional 870 | by team -1667 | BACKWARDS
+
+ONE VENDOR EVENT STORED AGAINST 2+ GAMES — 46
+  close|Baltimore Orioles|Milwaukee Brewers|2026-09-20T23:21:00Z <- MLB_2026-09-19_e401817001 (Brewers @ Orioles) ; MLB_2026-09-20_e401817016 (Brewers @ Orioles)
+  close|Baltimore Orioles|Toronto Blue Jays|2026-09-23T22:36:00Z <- MLB_2026-09-23_e401817050 (Blue Jays @ Orioles) ; MLB_2026-09-23_e401923610 (Blue Jays @ Orioles)
+  close|New York Yankees|Baltimore Orioles|2026-09-25T23:31:12Z <- MLB_2026-09-25_e401817073 (Orioles @ Yankees) ; MLB_2026-09-25_e401817088 (Orioles @ Yankees)
+  close|Boston Red Sox|Chicago Cubs|2026-09-25T21:36:00Z <- MLB_2026-09-25_e401817074 (Cubs @ Red Sox) ; MLB_2026-09-25_e401817104 (Cubs @ Red Sox)
+  close|D.C. United|Charlotte FC|2026-09-19T23:40:00Z <- 2026-09-19-mls-dc-clt (Charlotte FC @ D.C. United) ; MLS_2026-09-19_e761819 (Charlotte @ D.C. United)
+  close|CF Montreal|Columbus Crew SC|2026-09-19T23:40:00Z <- 2026-09-19-mls-mtl-clb (Columbus Crew @ CF Montréal) ; MLS_2026-09-19_e761818 (Columbus @ CF Montréal)
+  close|New England Revolution|Orlando City SC|2026-09-19T23:40:00Z <- 2026-09-19-mls-ne-orl (Orlando City @ New England Revolution) ; MLS_2026-09-19_e761816 (Orlando @ New England)
+  close|Inter Miami CF|San Diego FC|2026-09-20T23:13:00Z <- 2026-09-20-mls-mia-sd (San Diego FC @ Inter Miami CF) ; MLS_2026-09-20_e761829 (San Diego @ Miami)
+  close|Austin FC|San Diego FC|2026-09-27T00:30:00Z <- 2026-09-26-mls-atx-sd (San Diego FC @ Austin FC) ; MLS_2026-09-26_e761839 (San Diego @ Austin)
+  close|Columbus Crew SC|Inter Miami CF|2026-09-27T23:00:00Z <- 2026-09-26-mls-clb-mia (Inter Miami CF @ Columbus Crew) ; 2026-09-27-mls-clb-mia (Inter Miami CF @ Columbus Crew) ; MLS_2026-09-27_e761844 (Miami @ Columbus)
+  close|LA Galaxy|Colorado Rapids|2026-09-27T02:30:00Z <- 2026-09-26-mls-la-col (Colorado Rapids @ LA Galaxy) ; MLS_2026-09-26_e761841 (Colorado @ LA Galaxy)
+  close|CF Montreal|FC Cincinnati|2026-09-26T23:30:00Z <- 2026-09-26-mls-mtl-cin (FC Cincinnati @ CF Montréal) ; MLS_2026-09-26_e761831 (Cincinnati @ CF Montréal)
+  close|Nashville SC|Toronto FC|2026-09-27T00:30:00Z <- 2026-09-26-mls-nsh-tor (Toronto FC @ Nashville SC) ; MLS_2026-09-26_e761838 (Toronto @ Nashville)
+  close|Philadelphia Union|Orlando City SC|2026-09-26T23:30:00Z <- 2026-09-26-mls-phi-orl (Orlando City @ Philadelphia Union) ; MLS_2026-09-26_e761834 (Orlando @ Philadelphia)
+  close|Real Salt Lake|New England Revolution|2026-09-27T01:30:00Z <- 2026-09-26-mls-rsl-ne (New England Revolution @ Real Salt Lake) ; MLS_2026-09-26_e761840 (New England @ Salt Lake)
+  close|Seattle Sounders FC|Minnesota United FC|2026-09-27T00:30:00Z <- 2026-09-26-mls-sea-min (Minnesota United FC @ Seattle Sounders FC) ; MLS_2026-09-26_e761837 (Minnesota @ Seattle)
+  close|San Jose Earthquakes|Portland Timbers|2026-09-27T02:30:00Z <- 2026-09-26-mls-sj-por (Portland Timbers @ San Jose Earthquakes) ; MLS_2026-09-26_e761843 (Portland @ San Jose)
+  close|Vancouver Whitecaps FC|D.C. United|2026-09-27T02:30:00Z <- 2026-09-26-mls-van-dc (D.C. United @ Vancouver Whitecaps FC) ; MLS_2026-09-26_e761842 (D.C. United @ Vancouver)
+  close|Atlanta United FC|FC Cincinnati|2026-10-10T23:30:00Z <- 2026-10-10-mls-atl-cin (FC Cincinnati @ Atlanta United) ; MLS_2026-10-10_e761850 (Cincinnati @ Atlanta)
+  close|Austin FC|Nashville SC|2026-10-11T00:30:00Z <- 2026-10-10-mls-atx-nsh (Nashville SC @ Austin FC) ; MLS_2026-10-10_e761856 (Nashville @ Austin)
+  close|Charlotte FC|FC Dallas|2026-10-10T23:30:00Z <- 2026-10-10-mls-clt-dal (FC Dallas @ Charlotte FC) ; MLS_2026-10-10_e761852 (Dallas @ Charlotte)
+  close|Colorado Rapids|San Jose Earthquakes|2026-10-11T01:30:00Z <- 2026-10-10-mls-col-sj (San Jose Earthquakes @ Colorado Rapids) ; MLS_2026-10-10_e761857 (San Jose @ Colorado)
+  close|Inter Miami CF|D.C. United|2026-10-10T23:30:00Z <- 2026-10-10-mls-mia-dc (D.C. United @ Inter Miami CF) ; MLS_2026-10-10_e761847 (D.C. United @ Miami)
+  close|New England Revolution|Seattle Sounders FC|2026-10-10T23:30:00Z <- 2026-10-10-mls-ne-sea (Seattle Sounders FC @ New England Revolution) ; MLS_2026-10-10_e761851 (Seattle @ New England)
+  close|Orlando City SC|Columbus Crew SC|2026-10-10T23:30:00Z <- 2026-10-10-mls-orl-clb (Columbus Crew @ Orlando City) ; MLS_2026-10-10_e761848 (Columbus @ Orlando)
+  close|Philadelphia Union|Real Salt Lake|2026-10-10T23:30:00Z <- 2026-10-10-mls-phi-rsl (Real Salt Lake @ Philadelphia Union) ; MLS_2026-10-10_e761849 (Salt Lake @ Philadelphia)
+  close|Sporting Kansas City|Portland Timbers|2026-10-11T00:30:00Z <- 2026-10-10-mls-skc-por (Portland Timbers @ Sporting Kansas City) ; MLS_2026-10-10_e761855 (Portland @ Kansas City)
+  close|St. Louis City SC|LA Galaxy|2026-10-11T23:00:00Z <- 2026-10-10-mls-stl-la (LA Galaxy @ St. Louis CITY SC) ; 2026-10-11-mls-stl-la (LA Galaxy @ St. Louis CITY SC) ; MLS_2026-10-11_e761859 (LA Galaxy @ St. Louis)
+  close|FC Cincinnati|New England Revolution|2026-10-14T23:30:00Z <- 2026-10-14-mls-cin-ne (New England Revolution @ FC Cincinnati) ; MLS_2026-10-14_e761862 (New England @ Cincinnati)
+  close|Columbus Crew SC|Charlotte FC|2026-10-14T23:30:00Z <- 2026-10-14-mls-clb-clt (Charlotte FC @ Columbus Crew) ; MLS_2026-10-14_e761865 (Charlotte @ Columbus)
+  close|Colorado Rapids|Minnesota United FC|2026-10-15T01:30:00Z <- 2026-10-14-mls-col-min (Minnesota United FC @ Colorado Rapids) ; MLS_2026-10-14_e761871 (Minnesota @ Colorado)
+  close|FC Dallas|Seattle Sounders FC|2026-10-15T00:30:00Z <- 2026-10-14-mls-dal-sea (Seattle Sounders FC @ FC Dallas) ; MLS_2026-10-14_e761867 (Seattle @ Dallas)
+  close|LA Galaxy|Portland Timbers|2026-10-15T02:30:00Z <- 2026-10-14-mls-la-por (Portland Timbers @ LA Galaxy) ; MLS_2026-10-14_e761874 (Portland @ LA Galaxy)
+  close|CF Montreal|Atlanta United FC|2026-10-14T23:30:00Z <- 2026-10-14-mls-mtl-atl (Atlanta United @ CF Montréal) ; MLS_2026-10-14_e761864 (Atlanta @ CF Montréal)
+  close|Nashville SC|Sporting Kansas City|2026-10-15T00:30:00Z <- 2026-10-14-mls-nsh-skc (Sporting Kansas City @ Nashville SC) ; MLS_2026-10-14_e761866 (Kansas City @ Nashville)
+  close|Real Salt Lake|San Jose Earthquakes|2026-10-15T01:30:00Z <- 2026-10-14-mls-rsl-sj (San Jose Earthquakes @ Real Salt Lake) ; MLS_2026-10-14_e761870 (San Jose @ Salt Lake)
+  close|St. Louis City SC|Vancouver Whitecaps FC|2026-10-15T00:30:00Z <- 2026-10-14-mls-stl-van (Vancouver Whitecaps FC @ St. Louis CITY SC) ; MLS_2026-10-14_e761868 (Vancouver @ St. Louis)
+  close|Toronto FC|Orlando City SC|2026-10-14T23:30:00Z <- 2026-10-14-mls-tor-orl (Orlando City @ Toronto FC) ; MLS_2026-10-14_e761860 (Orlando @ Toronto)
+  close|Atlanta United FC|Inter Miami CF|2026-10-17T23:42:00Z <- 2026-10-17-mls-atl-mia (Inter Miami CF @ Atlanta United) ; MLS_2026-10-17_e761880 (Miami @ Atlanta)
+  close|Austin FC|Vancouver Whitecaps FC|2026-10-18T00:30:00Z <- 2026-10-17-mls-atx-van (Vancouver Whitecaps FC @ Austin FC) ; MLS_2026-10-17_e761882 (Vancouver @ Austin)
+  close|LA Galaxy|San Diego FC|2026-10-18T02:30:00Z <- 2026-10-17-mls-la-sd (San Diego FC @ LA Galaxy) ; MLS_2026-10-17_e761887 (San Diego @ LA Galaxy)
+  close|Orlando City SC|D.C. United|2026-10-17T23:40:00Z <- 2026-10-17-mls-orl-dc (D.C. United @ Orlando City) ; MLS_2026-10-17_e761881 (D.C. United @ Orlando)
+  close|Portland Timbers|Colorado Rapids|2026-10-18T02:30:00Z <- 2026-10-17-mls-por-col (Colorado Rapids @ Portland Timbers) ; MLS_2026-10-17_e761888 (Colorado @ Portland)
+  close|Seattle Sounders FC|CF Montreal|2026-10-18T02:30:00Z <- 2026-10-17-mls-sea-mtl (CF Montréal @ Seattle Sounders FC) ; MLS_2026-10-17_e761885 (CF Montréal @ Seattle)
+  close|San Jose Earthquakes|Nashville SC|2026-10-18T02:30:00Z <- 2026-10-17-mls-sj-nsh (Nashville SC @ San Jose Earthquakes) ; MLS_2026-10-17_e761886 (Nashville @ San Jose)
+  close|Sporting Kansas City|Real Salt Lake|2026-10-18T00:30:00Z <- 2026-10-17-mls-skc-rsl (Real Salt Lake @ Sporting Kansas City) ; MLS_2026-10-17_e761884 (Salt Lake @ Kansas City)
+
+SYNCED FROM THIS ROW? (game opening moneyline vs this odds_history row, all 776) {"positional":523,"empty":7,"other writer":245,"exchanged":1}
+  'other writer' = neither conversion matches, so another writer filled the column first; 'positional' includes ties where both teams' prices convert the same way.
+BACKWARDS (exchanged on a straight pairing, or positional on a swapped one) — 2
+  CFB_2026-09-19_e401856802_draftkings_close | CFB 2026-09-19 close | archive West Virginia @ Virginia | vendor Virginia Cavaliers @ West Virginia Mountaineers | gap 5 min | both/swapped | game 870/-1667 | odds_history 9.7/1.06 | positional on a swapped pairing
+  MLB_2026-09-16_e401816966_draftkings_close | MLB 2026-09-16 close | archive Red Sox @ Rangers | vendor Boston Red Sox @ Texas Rangers | gap 5 min | both/straight | game -112/-108 | odds_history 1.93/1.89 | exchanged on a straight pairing
+
+REPRODUCED with the current matchSlate on a reduced slate — 67 rows (one-sided, or kickoff gap > 90): {"PAIRED stage 2":37,"PAIRED stage 1":6,"REFUSED":24}
+  PAIRED stage 2 | one | gap 0 | CFB_2026-08-29_ndakotast_jaxstate_targeted | Jax State @ N Dakota St <- Jacksonville State Gamecocks @ North Dakota State Bison
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-03_e401866409_targeted | UAlbany @ Buffalo <- Albany @ Buffalo Bulls
+  PAIRED stage 1 | both | gap -130 | CFB_2026-09-05_e401856660_targeted | Clemson @ LSU <- Clemson Tigers @ LSU Tigers
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401856770_targeted | Abilene Chrstn @ Texas Tech <- Abilene Christian Wildcats @ Texas Tech Red Raiders
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401856779_targeted | SE Missouri @ Iowa State <- Southeast Missouri State Redhawks @ Iowa State Cyclones
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401862694_targeted | The Citadel @ Charlotte <- Citadel Bulldogs @ Charlotte 49ers
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401862697_targeted | Hou Christian @ Rice <- Houston Baptist Huskies @ Rice Owls
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401862699_targeted | FIU @ South Florida <- Florida International Panthers @ South Florida Bulls
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401864432_targeted | Western KY @ Nevada <- Western Kentucky Hilltoppers @ Nevada Wolf Pack
+  PAIRED stage 2 | one | gap -45 | CFB_2026-09-05_e401867866_targeted | Murray St @ MTSU <- Murray State Racers @ Middle Tennessee Blue Raiders
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401868140_targeted | E Kentucky @ Jax State <- Eastern Kentucky Colonels @ Jacksonville State Gamecocks
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401868170_targeted | Charleston So @ GA Southern <- Charleston Southern Buccaneers @ Georgia Southern Eagles
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401868316_targeted | SE Louisiana @ South Alabama <- Southeastern Louisiana Lions @ South Alabama Jaguars
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-05_e401869129_targeted | N'Western St @ Louisiana Tech <- Northwestern State Demons @ Louisiana Tech Bulldogs
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-12_e401858218_targeted | ETSU @ North Carolina <- East Tennessee State Buccaneers @ North Carolina Tar Heels
+  PAIRED stage 2 | one | gap -120 | CFB_2026-09-12_e401858219_targeted | GA Southern @ Clemson <- Georgia Southern Eagles @ Clemson Tigers
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-12_e401862703_targeted | Navy @ FAU <- Navy Midshipmen @ Florida Atlantic Owls
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-12_e401866414_targeted | Buffalo @ FIU <- Buffalo Bulls @ Florida International Panthers
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-12_e401866418_targeted | Jax State @ Ohio <- Jacksonville State Gamecocks @ Ohio Bobcats
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-12_e401871045_targeted | MTSU @ Marshall <- Middle Tennessee Blue Raiders @ Marshall Thundering Herd
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 422 | CFB_2026-09-19_e401856686_draftkings_close | Georgia @ Arkansas <- Georgia Southern Eagles @ Jacksonville State Gamecocks
+  PAIRED stage 2 | one | gap 2 | CFB_2026-09-19_e401864443_draftkings_close | Nevada @ MTSU <- Nevada Wolf Pack @ Middle Tennessee Blue Raiders
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-19_e401868317_fanduel_close | SE Louisiana @ UL Monroe <- Southeastern Louisiana Lions @ UL Monroe Warhawks
+  PAIRED stage 2 | one | gap 0 | CFB_2026-09-26_e401862782_fanduel_close | FAU @ UL Monroe <- Florida Atlantic Owls @ UL Monroe Warhawks
+  PAIRED stage 2 | one | gap 0 | CFB_2026-10-01_e401871049_fanduel_close | Western KY @ New Mexico St <- Western Kentucky Hilltoppers @ New Mexico State Aggies
+  PAIRED stage 2 | one | gap 3 | CFB_2026-10-03_e401869942_draftkings_close | GA Southern @ Coastal <- Georgia Southern Eagles @ Coastal Carolina Chanticleers
+  PAIRED stage 2 | one | gap 5 | CFB_2026-10-07_e401871051_fanduel_close | Jax State @ Kennesaw St <- Jacksonville State Gamecocks @ Kennesaw State Owls
+  PAIRED stage 2 | one | gap 6 | CFB_2026-10-07_e401871066_fanduel_close | New Mexico St @ FIU <- New Mexico State Aggies @ Florida International Panthers
+  PAIRED stage 2 | one | gap 5 | CFB_2026-10-08_e401871052_fanduel_close | Missouri St @ Western KY <- Missouri State Bears @ Western Kentucky Hilltoppers
+  PAIRED stage 2 | one | gap 5 | CFB_2026-10-13_e401871067_fanduel_close | Delaware @ MTSU <- Delaware Blue Hens @ Middle Tennessee Blue Raiders
+  PAIRED stage 2 | one | gap 0 | CFB_2026-10-14_e401871068_fanduel_close | Western KY @ Sam Houston <- Western Kentucky Hilltoppers @ Sam Houston State Bearkats
+  PAIRED stage 2 | one | gap 7 | CFB_2026-10-15_e401869950_fanduel_close | GA Southern @ Old Dominion <- Georgia Southern Eagles @ Old Dominion Monarchs
+  PAIRED stage 2 | one | gap 0 | EFL Cup_2026-08-08_leytonorient_oxfordutd_targeted | Oxford Utd @ Leyton Orient <- Oxford United @ Leyton Orient
+  PAIRED stage 2 | one | gap 0 | EFL Cup_2026-08-08_norwichcity_mkdons_targeted | MK Dons @ Norwich City <- Milton Keynes Dons @ Norwich City
+  PAIRED stage 2 | one | gap 0 | EFL Cup_2026-08-08_qpr_millwall_targeted | Millwall @ QPR <- Millwall @ Queens Park Rangers
+  PAIRED stage 2 | one | gap 0 | EFL Cup_2026-08-25_blackburn_sheffieldutd_targeted | Sheffield Utd @ Blackburn <- Sheffield United @ Blackburn Rovers
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 0 | EFL Cup_2026-08-25_doncaster_boro_targeted | Boro @ Doncaster <- Middlesbrough @ Doncaster Rovers
+  PAIRED stage 2 | one | gap 0 | EFL Cup_2026-08-25_nottmforest_leeds_targeted | Leeds @ Nottm Forest <- Leeds United @ Nottingham Forest
+  PAIRED stage 2 | one | gap 0 | EFL Cup_2026-08-25_sheffieldwed_wolves_targeted | Wolves @ Sheffield Wed <- Wolverhampton Wanderers @ Sheffield Wednesday
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1714 | MLB_2026-09-16_e401816961_fanduel_close | Tigers @ Blue Jays <- Detroit Tigers @ Chicago White Sox
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1806 | MLB_2026-09-17_e401816975_fanduel_close | Brewers @ Pirates <- Kansas City Royals @ Pittsburgh Pirates
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1636 | MLB_2026-09-19_e401817001_fanduel_close | Brewers @ Orioles <- Milwaukee Brewers @ Baltimore Orioles
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1261 | MLB_2026-09-19_e401817002_fanduel_close | Phillies @ Mets <- Philadelphia Phillies @ New York Mets
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1441 | MLB_2026-09-19_e401817004_fanduel_close | Tigers @ White Sox <- Detroit Tigers @ Chicago White Sox
+  PAIRED stage 1 | both | gap 235 | MLB_2026-09-20_e401817019_fanduel_close | Tigers @ White Sox <- Detroit Tigers @ Chicago White Sox
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1681 | MLB_2026-09-20_e401817020_fanduel_close | Blue Jays @ Rangers <- Toronto Blue Jays @ Baltimore Orioles
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1706 | MLB_2026-09-20_e401817021_fanduel_close | Nationals @ Cardinals <- Washington Nationals @ Detroit Tigers
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1141 | MLB_2026-09-22_e401817035_fanduel_close | Blue Jays @ Orioles <- Toronto Blue Jays @ Baltimore Orioles
+  PAIRED stage 1 | both | gap 301 | MLB_2026-09-23_e401923610_fanduel_close | Blue Jays @ Orioles <- Toronto Blue Jays @ Baltimore Orioles
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1866 | MLB_2026-09-24_e401817063_fanduel_close | Cardinals @ Pirates <- St. Louis Cardinals @ Milwaukee Brewers
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1771 | MLB_2026-09-24_e401817065_fanduel_close | White Sox @ Royals <- Cleveland Guardians @ Kansas City Royals
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1691 | MLB_2026-09-24_e401817067_fanduel_close | Mets @ Rangers <- New York Mets @ Washington Nationals
+  PAIRED stage 1 | both | gap 206 | MLB_2026-09-25_e401817088_fanduel_close | Orioles @ Yankees <- Baltimore Orioles @ New York Yankees
+  PAIRED stage 1 | both | gap 271 | MLB_2026-09-25_e401817104_fanduel_close | Cubs @ Red Sox <- Chicago Cubs @ Boston Red Sox
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1380 | MLB_2026-09-26_e401817087_draftkings_close | Braves @ Marlins <- Atlanta Braves @ Miami Marlins
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1441 | MLB_2026-09-26_e401817090_fanduel_close | Reds @ Blue Jays <- Cincinnati Reds @ Toronto Blue Jays
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1590 | MLB_2026-09-26_e401817091_draftkings_close | Mets @ Nationals <- New York Mets @ Washington Nationals
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1560 | MLB_2026-09-26_e401817092_draftkings_close | Pirates @ Tigers <- Pittsburgh Pirates @ Detroit Tigers
+  PAIRED stage 1 | both | gap 121 | MLB_2026-09-26_e401817097_fanduel_close | Rangers @ Twins <- Texas Rangers @ Minnesota Twins
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1440 | MLB_2026-09-29_e401907965_fanduel_close | Phillies @ Braves <- Philadelphia Phillies @ Atlanta Braves
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1440 | MLB_2026-09-30_e401907972_draftkings_close | Phillies @ Braves <- Philadelphia Phillies @ Atlanta Braves
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1500 | MLB_2026-10-07_e401907992_draftkings_close | Guardians @ White Sox <- Cleveland Guardians @ Chicago White Sox
+  REFUSED (contradicted 0, late kickoff 1, ambiguous 0, out of window 0) | both | gap 1740 | MLB_2026-10-15_e401908025_draftkings_close | Rays @ Guardians <- Tampa Bay Rays @ Cleveland Guardians
+  PAIRED stage 2 | one | gap n/a | 2026-09-18-mls-sj-lafc_betrivers_close | Los Angeles Football Club @ San Jose Earthquakes <- Los Angeles FC @ San Jose Earthquakes
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1840 | NHL_2026-10-04_e401892442_draftkings_close | Jets @ Red Wings <- Winnipeg Jets @ Pittsburgh Penguins
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1600 | NHL_2026-10-10_e401892470_draftkings_close | Canucks @ Devils <- Vancouver Canucks @ New York Rangers
+  REFUSED (contradicted 1, late kickoff 0, ambiguous 0, out of window 0) | one | gap 1765 | NHL_2026-10-12_e401892485_draftkings_close | Panthers @ Sabres <- Florida Panthers @ Columbus Blue Jackets
+
+AMERICAN PRICE CONVERTED AGAIN BY THE SYNC — 229 side(s) on 206 row(s)
+  CFB_2026-08-29_emichigan_sacramentost_targeted | CFB 2026-08-29 open | archive Sacramento St @ E Michigan | vendor Sacramento State Hornets @ Eastern Michigan Eagles | gap 0 min | both/straight | away odds_history 275 -> game 27400
+  CFB_2026-08-29_floridast_newmexicost_targeted | CFB 2026-08-29 open | archive New Mexico St @ Florida St | vendor New Mexico State Aggies @ Florida State Seminoles | gap 0 min | both/straight | away odds_history 3000 -> game 299900
+  CFB_2026-08-29_ndakotast_jaxstate_targeted | CFB 2026-08-29 open | archive Jax State @ N Dakota St | vendor Jacksonville State Gamecocks @ North Dakota State Bison | gap 0 min | one/straight | away odds_history 215 -> game 21400
+  CFB_2026-08-29_stanford_hawaii_targeted | CFB 2026-08-29 open | archive Hawai'i @ Stanford | vendor Hawaii Rainbow Warriors @ Stanford Cardinal | gap 0 min | both/straight | away odds_history 154 -> game 15300
+  CFB_2026-08-29_tcu_northcarolina_targeted | CFB 2026-08-29 open | archive North Carolina @ TCU | vendor North Carolina Tar Heels @ TCU Horned Frogs | gap 0 min | both/straight | away odds_history 250 -> game 24900
+  CFB_2026-08-29_unlv_memphis_targeted | CFB 2026-08-29 open | archive Memphis @ UNLV | vendor Memphis Tigers @ UNLV Rebels | gap 0 min | both/straight | away odds_history 160 -> game 15900
+  CFB_2026-08-29_usc_sanjosst_targeted | CFB 2026-08-29 open | archive San José St @ USC | vendor San Jose State Spartans @ USC Trojans | gap 0 min | both/straight | away odds_history 1825 -> game 182400
+  CFB_2026-08-29_virginia_ncstate_targeted | CFB 2026-08-29 open | archive NC State @ Virginia | vendor NC State Wolfpack @ Virginia Cavaliers | gap 0 min | both/straight | away odds_history 146 -> game 14500
+  CFB_2026-09-03_e401856768_targeted | CFB 2026-09-03 open | archive Idaho @ Utah | vendor Idaho Vandals @ Utah Utes | gap 0 min | both/straight | away odds_history 3500 -> game 349900
+  CFB_2026-09-03_e401856776_targeted | CFB 2026-09-03 open | archive Colorado @ Georgia Tech | vendor Colorado Buffaloes @ Georgia Tech Yellow Jackets | gap 0 min | both/straight | away odds_history 195 -> game 19400
+  CFB_2026-09-03_e401858204_targeted | CFB 2026-09-03 open | archive Akron @ Wake Forest | vendor Akron Zips @ Wake Forest Demon Deacons | gap 0 min | both/straight | away odds_history 1400 -> game 139900
+  CFB_2026-09-03_e401858423_targeted | CFB 2026-09-03 open | archive UMass @ Rutgers | vendor UMass Minutemen @ Rutgers Scarlet Knights | gap 0 min | both/straight | away odds_history 2200 -> game 219900
+  CFB_2026-09-03_e401858424_targeted | CFB 2026-09-03 open | archive UAB @ Illinois | vendor UAB Blazers @ Illinois Fighting Illini | gap 0 min | both/straight | away odds_history 1700 -> game 169900
+  CFB_2026-09-03_e401864424_targeted | CFB 2026-09-03 open | archive Merrimack @ Delaware | vendor Merrimack Warriors @ Delaware Blue Hens | gap 0 min | both/straight | away odds_history 2400 -> game 239900
+  CFB_2026-09-03_e401864425_targeted | CFB 2026-09-03 open | archive West Georgia @ Kennesaw St | vendor West Georgia Wolves @ Kennesaw State Owls | gap 0 min | both/straight | away odds_history 1200 -> game 119900
+  CFB_2026-09-03_e401866409_targeted | CFB 2026-09-03 open | archive UAlbany @ Buffalo | vendor Albany @ Buffalo Bulls | gap 0 min | one/straight | away odds_history 890 -> game 88900
+  CFB_2026-09-05_e401856634_targeted | CFB 2026-09-05 open | archive East Carolina @ Alabama | vendor East Carolina Pirates @ Alabama Crimson Tide | gap 0 min | both/straight | away odds_history 1800 -> game 179900
+  CFB_2026-09-05_e401856635_targeted | CFB 2026-09-05 open | archive North Alabama @ Arkansas | vendor North Alabama Lions @ Arkansas Razorbacks | gap 0 min | both/straight | away odds_history 1550 -> game 154900
+  CFB_2026-09-05_e401856636_targeted | CFB 2026-09-05 open | archive Baylor @ Auburn | vendor Baylor Bears @ Auburn Tigers | gap 0 min | both/straight | away odds_history 240 -> game 23900
+  CFB_2026-09-05_e401856658_targeted | CFB 2026-09-05 open | archive Tennessee St @ Georgia | vendor Tennessee State Tigers @ Georgia Bulldogs | gap 0 min | both/straight | away odds_history 1575 -> game 157400
+  CFB_2026-09-05_e401856659_targeted | CFB 2026-09-05 open | archive Youngstown St @ Kentucky | vendor Youngstown St Penguins @ Kentucky Wildcats | gap 0 min | both/straight | away odds_history 1160 -> game 115900
+  CFB_2026-09-05_e401856660_targeted | CFB 2026-09-05 open | archive Clemson @ LSU | vendor Clemson Tigers @ LSU Tigers | gap -130 min | both/straight | away odds_history 315 -> game 31400
+  CFB_2026-09-05_e401856662_targeted | CFB 2026-09-05 open | archive UL Monroe @ Mississippi St | vendor UL Monroe Warhawks @ Mississippi State Bulldogs | gap 0 min | both/straight | away odds_history 1600 -> game 159900
+  CFB_2026-09-05_e401856665_targeted | CFB 2026-09-05 open | archive Kent State @ South Carolina | vendor Kent State Golden Flashes @ South Carolina Gamecocks | gap 0 min | both/straight | away odds_history 5000 -> game 499900
+  CFB_2026-09-05_e401856666_targeted | CFB 2026-09-05 open | archive Furman @ Tennessee | vendor Furman Paladins @ Tennessee Volunteers | gap 0 min | both/straight | away odds_history 1575 -> game 157400
+  CFB_2026-09-05_e401856667_targeted | CFB 2026-09-05 open | archive Texas St @ Texas | vendor Texas State Bobcats @ Texas Longhorns | gap 0 min | both/straight | away odds_history 2200 -> game 219900
+  CFB_2026-09-05_e401856668_targeted | CFB 2026-09-05 open | archive Missouri St @ Texas A&M | vendor Missouri State Bears @ Texas A&M Aggies | gap 0 min | both/straight | away odds_history 1900 -> game 189900
+  CFB_2026-09-05_e401856669_targeted | CFB 2026-09-05 open | archive Austin Peay @ Vanderbilt | vendor Austin Peay Governors @ Vanderbilt Commodores | gap 0 min | both/straight | away odds_history 2400 -> game 239900
+  CFB_2026-09-05_e401856770_targeted | CFB 2026-09-05 open | archive Abilene Chrstn @ Texas Tech | vendor Abilene Christian Wildcats @ Texas Tech Red Raiders | gap 0 min | one/straight | away odds_history 1575 -> game 157400
+  CFB_2026-09-05_e401856771_targeted | CFB 2026-09-05 open | archive Nicholls @ Kansas St | vendor Nicholls State Colonels @ Kansas State Wildcats | gap 0 min | both/straight | away odds_history 1575 -> game 157400
+  CFB_2026-09-05_e401856772_targeted | CFB 2026-09-05 open | archive Oklahoma St @ Tulsa | vendor Oklahoma State Cowboys @ Tulsa Golden Hurricane | gap 0 min | both/straight | home odds_history 425 -> game 42400
+  CFB_2026-09-05_e401856773_targeted | CFB 2026-09-05 open | archive N Arizona @ Arizona | vendor Northern Arizona Lumberjacks @ Arizona Wildcats | gap 0 min | both/straight | away odds_history 3000 -> game 299900
+  CFB_2026-09-05_e401856774_targeted | CFB 2026-09-05 open | archive Morgan St @ Arizona St | vendor Morgan State Bears @ Arizona State Sun Devils | gap 0 min | both/straight | away odds_history 1575 -> game 157400
+  CFB_2026-09-05_e401856775_targeted | CFB 2026-09-05 open | archive Utah Tech @ BYU | vendor Utah Tech Trailblazers @ BYU Cougars | gap 0 min | both/straight | away odds_history 1575 -> game 157400
+  CFB_2026-09-05_e401856777_targeted | CFB 2026-09-05 open | archive Boston College @ Cincinnati | vendor Boston College Eagles @ Cincinnati Bearcats | gap 0 min | both/straight | away odds_history 245 -> game 24400
+  CFB_2026-09-05_e401856778_targeted | CFB 2026-09-05 open | archive Oregon St @ Houston | vendor Oregon State Beavers @ Houston Cougars | gap 0 min | both/straight | away odds_history 1000 -> game 99900
+  CFB_2026-09-05_e401856779_targeted | CFB 2026-09-05 open | archive SE Missouri @ Iowa State | vendor Southeast Missouri State Redhawks @ Iowa State Cyclones | gap 0 min | one/straight | away odds_history 2400 -> game 239900
+  CFB_2026-09-05_e401856780_targeted | CFB 2026-09-05 open | archive Coastal @ West Virginia | vendor Coastal Carolina Chanticleers @ West Virginia Mountaineers | gap 0 min | both/straight | away odds_history 900 -> game 89900
+  CFB_2026-09-05_e401858207_targeted | CFB 2026-09-05 open | archive Miami OH @ Pitt | vendor Miami (OH) RedHawks @ Pittsburgh Panthers | gap -30 min | both/straight | away odds_history 550 -> game 54900
+  CFB_2026-09-05_e401858208_targeted | CFB 2026-09-05 open | archive New Hampshire @ Syracuse | vendor New Hampshire Wildcats @ Syracuse Orange | gap 0 min | both/straight | away odds_history 1425 -> game 142400
+  … 189 more
+
+## 6. REPAIR SELF-TEST: node scripts/repair-odds-wrong-pairs.mjs --self-test at 8cf7f818 — exit 0 (runs the SQL in node:sqlite)
+
+PASS  11 distinct other-game rows
+PASS  the swapped row is not among them
+PASS  an id outside the closed shape is refused, not quoted
+PASS  sync: every UPDATE is guarded on the column having been written from the history row
+PASS  sync: one change_log insert per write (35)
+PASS  sync: each write is preceded by its change_log insert, which reads the old value
+PASS  sync: 11 history rows deleted
+PASS  direct: every UPDATE is guarded on the column having been written from the history row
+PASS  direct: one change_log insert per write (35)
+PASS  direct: each write is preceded by its change_log insert, which reads the old value
+PASS  direct: 11 history rows deleted
+PASS  null: every UPDATE is guarded on the column having been written from the history row
+PASS  null: one change_log insert per write (36)
+PASS  null: each write is preceded by its change_log insert, which reads the old value
+PASS  null: 12 history rows deleted
+PASS  sync keeps the swapped history row the sync needs
+PASS  an unknown --swapped value is refused
+PASS  stage 1: 15 distinct rows
+PASS  stage 1: disjoint from the stage-2 set
+PASS  stage 1: the two moved starts (right game) are not in it
+PASS  stage 1: 15 deletes and 30 guarded column UPDATEs
+PASS  stage 1: change_log names the stage-1 source and document
+PASS  sync: the whole transaction runs in SQLite
+PASS  sync: both columns written from the wrong row go to NULL
+PASS  sync: columns another writer filled are untouched
+PASS  sync: a game with one of each loses only the one from the row
+PASS  sync: the seeded other-game history rows are deleted
+PASS  sync: the swapped game's columns go to NULL
+PASS  sync: the swapped history row is kept for the sync
+PASS  sync: 8 change_log rows, 8 expected (one per write that matched)
+PASS  sync: every change_log row carries the value it replaced
+PASS  sync: prose with an apostrophe survives quoting intact
+PASS  sync: a second run changes nothing and logs nothing
+PASS  direct: the whole transaction runs in SQLite
+PASS  direct: both columns written from the wrong row go to NULL
+PASS  direct: columns another writer filled are untouched
+PASS  direct: a game with one of each loses only the one from the row
+PASS  direct: the seeded other-game history rows are deleted
+PASS  direct: Virginia -1667, West Virginia +870, the rest of the blob kept
+PASS  direct: the swapped history row is kept for the sync
+PASS  direct: 8 change_log rows, 8 expected (one per write that matched)
+PASS  direct: every change_log row carries the value it replaced
+PASS  direct: prose with an apostrophe survives quoting intact
+PASS  direct: a second run changes nothing and logs nothing
+PASS  null: the whole transaction runs in SQLite
+PASS  null: both columns written from the wrong row go to NULL
+PASS  null: columns another writer filled are untouched
+PASS  null: a game with one of each loses only the one from the row
+PASS  null: the seeded other-game history rows are deleted
+PASS  null: the swapped game's columns go to NULL
+PASS  null: the swapped history row is deleted
+PASS  null: 9 change_log rows, 9 expected (one per write that matched)
+PASS  null: every change_log row carries the value it replaced
+PASS  null: prose with an apostrophe survives quoting intact
+PASS  null: a second run changes nothing and logs nothing
+PASS  stage 1: the whole transaction runs in SQLite
+PASS  stage 1: only the column written from the wrong row goes NULL
+PASS  stage 1: columns other writers filled are untouched
+PASS  stage 1: both history rows deleted
+PASS  stage 1: 3 change_log rows naming the stage-1 document, 3 expected
+PASS  stage 1: the stage-2 rows in the same database are not touched
+PASS  stage 1: a second run changes nothing and logs nothing
+self-test passed
+
+## 6b. REPAIR MUTATIONS (Rule 90): the 12 stage-1 checks of section 6, each made to fail on purpose
+#   Harness: a copy of the 8cf7f818 tree; each mutation's anchor must occur exactly once and change the file, or it
+#   reports NOT APPLIED (a failure). Every one of the 12 stage-1 checks goes red under at least one mutation.
+#   Honest note: the static check named "15 deletes and 30 guarded column UPDATEs" counts UPDATEs and does not read
+#   the guard; S1-R1 (guard stripped) is caught by the SQLite checks, not by that one.
+
+clean: self-test passed, exit 0
+CAUGHT     S1-R1 stage-1 statements lose the written-from-row guard  <- FAIL  stage 1: only the column written from the wrong row goes NULL | FAIL  stage 1: columns other writers filled are untouched | FAIL  stage 1: 6 change_log rows naming the stage-1 document, 3 expected
+CAUGHT     S1-R2 stage 1 does not delete the history rows (the sync would rewrite the NULLs)  <- FAIL  stage 1: 15 deletes and 30 guarded column UPDATEs | FAIL  stage 1: both history rows deleted | FAIL  stage 1: a second run changes nothing and logs nothing
+CAUGHT     S1-R3 a stage-1 deletion loses its change_log row  <- FAIL  stage 1: 1 change_log rows naming the stage-1 document, 3 expected | FAIL  stage 1: a second run changes nothing and logs nothing
+CAUGHT     S1-R4 the change_log row is written AFTER the write (reorder only)  <- FAIL  stage 1: 0 change_log rows naming the stage-1 document, 3 expected | FAIL  stage 1: a second run changes nothing and logs nothing
+CAUGHT     S1-R5 stage 1 logs under the stage-2 source  <- FAIL  stage 1: change_log names the stage-1 source and document
+CAUGHT     S1-R6 stage 1 names the stage-2 document  <- FAIL  stage 1: change_log names the stage-1 source and document | FAIL  stage 1: 3 change_log rows naming the stage-1 document, 3 expected
+CAUGHT     S1-R7 a moved start (the right game) replaces a twin in the set  <- FAIL  stage 1: the two moved starts (right game) are not in it
+CAUGHT     S1-R8 a row appears twice  <- FAIL  stage 1: 15 distinct rows
+CAUGHT     S1-R9 a stage-2 row enters the stage-1 set  <- FAIL  stage 1: disjoint from the stage-2 set | FAIL  stage 1: 4 change_log rows naming the stage-1 document, 3 expected | FAIL  stage 1: a second run changes nothing and logs nothing
+CAUGHT     S1-R10 stage 1 also runs the stage-2 rows  <- FAIL  stage 1: 15 deletes and 30 guarded column UPDATEs | FAIL  stage 1: 9 change_log rows naming the stage-1 document, 3 expected | FAIL  stage 1: the stage-2 rows in the same database are not touched
+CAUGHT     S1-R11 only the change_log INSERTs lose the guard (a rerun logs again)  <- FAIL  stage 1: 6 change_log rows naming the stage-1 document, 3 expected | FAIL  stage 1: a second run changes nothing and logs nothing
+CAUGHT     S1-R12 stage-1 prose quotes are not doubled  <- FAIL  stage 1: the whole transaction runs in SQLite (near "game": syntax error) | FAIL  stage 1: only the column written from the wrong row goes NULL | FAIL  stage 1: both history rows deleted
+
+12 of 12 stage-1 repair mutations caught, 0 survived, 0 not applied.
+COVERAGE: the 12 stage-1 checks of the self-test (5 static, 7 on a seeded node:sqlite database). Offline; no D1.
+
+## 7. TASK 2 APPLY — owner ruling 2026-10-20 "NULL 5 blobs, delete 15 rows"
+
+### 7.1 Read right before the write (D1 SELECT, 2026-10-20, 0 rows written)
+{"games":15,"history_rows":15,"written_from_row":5,"all_rows_for_these_games":15}
+#   15 games, each with exactly one odds_history row (the wrong one), and 5 columns whose captured_at equals that
+#   row's snapshot_time. Unchanged from the dry-run preview. No game keeps a second history row, so the sync
+#   has nothing to write back into the NULLed columns.
+
+### 7.2 The write
+#   File:       outbox/odds-stage1-repair-2026-10-20.sql
+#   Generated:  node scripts/repair-odds-wrong-pairs.mjs --set=stage1
+#   sha256:     908aa362a3ad0a5d71dc82d6ceec82f5804ff3607a22fb36e647fd0cce24b879
+#   Statements: 90 (15 games x [2 guarded change_log INSERT + 2 guarded UPDATE + 1 change_log INSERT + 1 DELETE])
+#   Sent as ONE call to mcp__Cloudflare_Developer_Platform__d1_database_query (database cc49101c), one transaction.
+#   Result:     90 of 90 statements success:true. change_log ts 2026-10-20 02:07:34, ids 22937-22956.
+#   Per-statement changes: opening_odds guards matched 0 of 15 (no opening blob was written from these rows);
+#   closing_odds guards matched 5 of 15; DELETE matched 15 of 15.
+
+### 7.3 Verify read after the write (D1 SELECT, 0 rows written)
+#   game                         open h/a     close h/a    close NULL  history  repair logs (field:id)
+MLB_2026-09-19_e401817001     109/-132     NULL         1           0        closing_odds:22937 odds_history_row_deleted:22938
+MLB_2026-09-19_e401817002     -126/104     NULL         1           0        closing_odds:22939 odds_history_row_deleted:22940
+MLB_2026-09-19_e401817004     -137/114     NULL         1           0        closing_odds:22941 odds_history_row_deleted:22942
+MLB_2026-09-22_e401817035     -122/101     NULL         1           0        closing_odds:22943 odds_history_row_deleted:22944
+MLB_2026-09-23_e401923610     -123/102     -123/102     0           0        odds_history_row_deleted:22954
+MLB_2026-09-25_e401817088     -162/136     -142/118     0           0        odds_history_row_deleted:22955
+MLB_2026-09-25_e401817104     -102/-117    -105/-115    0           0        odds_history_row_deleted:22956
+MLB_2026-09-26_e401817087     109/-131     109/-131     0           0        odds_history_row_deleted:22945
+MLB_2026-09-26_e401817090     -168/138     -168/138     0           0        odds_history_row_deleted:22946
+MLB_2026-09-26_e401817091     112/-135     112/-135     0           0        odds_history_row_deleted:22947
+MLB_2026-09-26_e401817092     -115/-105    -115/-105    0           0        odds_history_row_deleted:22948
+MLB_2026-09-29_e401907965     -205/168     -205/168     0           0        odds_history_row_deleted:22949
+MLB_2026-09-30_e401907972     -106/-114    -106/-114    0           0        odds_history_row_deleted:22950
+MLB_2026-10-07_e401907992     -107/-113    NULL         1           0        closing_odds:22951 odds_history_row_deleted:22952
+MLB_2026-10-15_e401908025     -134/111     -134/111     0           0        odds_history_row_deleted:22953
+
+#   change_log WHERE source='stage1_wrong_game_repair', grouped:
+#     closing_odds              5   ids 22937-22951
+#     odds_history_row_deleted  15  ids 22938-22956
+#   Checked: 15 of 15 games. History rows 0 on all 15. The 5 closing blobs written from the wrong rows are NULL.
+#   The other 10 closing blobs and all 15 opening blobs (filled by other writers) are unchanged.
+#   Each change_log row holds the value it replaced, e.g. 22937 old_value
+#   {"source":"fanduel","captured_at":"2026-09-19T23:55:19Z","moneyline":{"home":172,"away":-204},...}
+#   and 22938 the deleted row (commence_time 2026-09-20T23:21:00Z for a 2026-09-19 20:05Z game).
+
+## 8. EVERY STEP OF THE DEPLOY PATH, run locally before the push
+#   run-steps.py: every run: step of deploy.yml (up to "Deploy to Cloudflare Workers") and of guards.yml, in a clean
+#   git-archive copy named field-relay-nba, with no secrets set. Run at f7b5d2dd, the pre-rebase SHA of 95a94ec8.
+#   git diff --stat f7b5d2dd 8cf7f818: docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md and
+#   outbox/undeployed-src-2026-10-20T0202.log only, so every script and source file run here is the pushed one.
+#   Result: 125 of 130. The 5 failures and the cause each prints:
+FAIL [deploy] Bootstrap KV namespace (field-push-subs)
+      
+FAIL [deploy] Bootstrap KV namespace (field-journalism)
+      
+FAIL [deploy] Bootstrap KV namespace (field-mcp-oauth)
+      
+PASS [deploy] Check for shadowed route prefixes (warn-only)
+PASS [deploy] The relay's EPA is the client's EPA
+--
+FAIL [guards] every BSD frame the contract declares matches the captures
+      caught       a measured path the contract drops is tolerated
+      12 mutations: 12 caught, 0 survived, 0 not applied
+      FAIL: list page 1 failed: HTTP 0
+--
+FAIL [guards] Every archived game is dated on the ET day of its own kickoff
+      self-test: 15 of 15 fixtures classify as expected; the writer's fieldDayOfInstant agrees with this oracle on all 7 distinct start_time values, and the CFL writer stamps its date from it
+      self-test: 15 of 15 fixtures classify as expected; the writer's fieldDayOfInstant agrees with this oracle on all 7 distinct start_time values, and the CFL writer stamps its date from it
+      ERROR: RELAY_SHARED_SECRET must be set; a guard that cannot read does not pass
+#   KV bootstrap x3 need Cloudflare credentials; the BSD-frame guard reads the network (HTTP 0 here); the archive-dating
+#   guard refuses to pass without RELAY_SHARED_SECRET. On the real runner all 130 ran green:
+#   Deploy RELAY Worker run 39357014311 (success) and Repo guards run 39357014287 (success), both on 8cf7f818.

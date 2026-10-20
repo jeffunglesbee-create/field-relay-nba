@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** DISPATCHED 2026-10-20. TASKs 0-2 done; see Results. Rulings: TASK 1 (c) both (2026-10-19), claim check "only the far twin" and TASK 2 repair approved (2026-10-20).
+**Status:** DISPATCHED 2026-10-20. TASKs 0-2 done and the repair applied; see Results. One scheduled read left (2026-10-20 10:45Z), then DONE. Rulings: TASK 1 (c) both (2026-10-19), claim check "only the far twin" and TASK 2 repair approved (2026-10-20).
 **Filed by:** CC, from the TASK 0 census of
 `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md` (Rule 87.4). That document
 asked whether stage 2 is the only path to a wrong pair. It is not.
@@ -152,8 +152,8 @@ written from the row, with a `change_log` row each.
     finalized 01:15) and `e401817019` (+235, finalized 01:00 the next day);
   - neither: Clemson @ LSU (−130).
 
-**TASK 1, ruled (c) with "only the far twin".** Shipped in `95760ec4` and
-`f7b5d2dd`.
+**TASK 1, ruled (c) with "only the far twin".** Shipped in `6c8f4e7f` and
+`95a94ec8`.
 - **The rules:**
   - a pair more than 720 min off is refused in both stages;
   - on an event claimed by 2+ games, counted before any refusal, a game more
@@ -172,15 +172,28 @@ written from the row, with a `change_log` row each.
   from `/context/date`, which carries it (probed 2026-10-20 through the relay
   self-probe).
 - **Before the push,** a four-lens adversarial review (18 agents) confirmed 11
-  findings, all fixed in `f7b5d2dd`. One was a blocker: a SQL comment ("far from
+  findings, all fixed in `95a94ec8`. One was a blocker: a SQL comment ("far from
   the") would have made the relay's `/d1/execute` guard refuse the fill's games
   query with a 403.
 
 **TASK 2, approved.** `scripts/repair-odds-wrong-pairs.mjs --set=stage1`
-(`d6359a71`).
+(`bb54fea7`).
 - **The dry-run preview** (D1 SELECT, 2026-10-20) shows 30 of 30 rows. The
   sync wrote exactly 5 columns from the wrong rows, the closing_odds of
   `e401817001`, `002`, `004`, `035` and `907992`.
-- **The apply and its verify read** are in
-  `outbox/cc-session-2026-10-20-stage1-wrong-game.md`.
+- **Applied** 2026-10-20 02:07:34Z, after the fixed code was on main.
+  `outbox/odds-stage1-repair-2026-10-20.sql` (90 statements, sha256
+  `908aa362…`) went as ONE D1 call: 90 of 90 succeeded.
+  - **change_log, 20 rows (22937-22956):** 5 NULLed closing_odds and 15
+    deleted history rows.
+  - **Verify read, 15 of 15 games:** 0 history rows each; the 5 closing
+    blobs NULL; the other 10 closings and all 15 openings unchanged (proof
+    log §7.3).
+- **Repair checks under mutation:** 12 of 12 caught (proof log §6b).
+- **One scheduled read:** the 10:00Z backfill must print the refusal fields
+  on every pairing line, and the 20 rows must still be gone or NULL. The
+  10:45Z check-in reads both, then sets this document DONE.
+
+Proof: `outbox/odds-stage1-wrong-game-2026-10-20.log`. Session doc:
+`outbox/cc-session-2026-10-20-stage1-wrong-game.md`.
 
