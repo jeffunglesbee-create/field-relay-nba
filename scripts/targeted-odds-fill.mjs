@@ -42,6 +42,9 @@ const PER_CALL_COST = 20;          // odds-backfill.js:35 — 10 cr x 2 markets
 // all facts about how WE read the vendor's response; the day matchSlate or
 // h2hPrices changes, every exclusion resting on them expires by itself and the
 // pairs go back in the plan. Nothing to maintain, and no way to forget.
+// oddsFormat is not in it on purpose: the format changes how a price is
+// written, not which events or markets the vendor returns, so a pair measured
+// dead under American is just as dead under decimal (2026-10-20).
 const REQUEST_SHAPE = 'us|h2h,totals|12';   // regions | markets | query hour, as built below
 const MATCHER_FP = (() => {
   try {
@@ -268,8 +271,15 @@ async function recordOutcome(p, o) {
 
 for (const p of plan) {
   const sportKey = backfillSportToOddsKey(p.sport);
+  // ODDS_HISTORY HOLDS ONE UNIT, AND IT IS DECIMAL. This asked for American, and
+  // the sync (odds-backfill.js) reads every odds_history price as decimal, so it
+  // converted these a second time: 275 was stored as +27400 and -345 as null, on
+  // both columns of all 211 games this fill priced (measured 2026-10-20,
+  // docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md). The other
+  // writer has always asked for decimal. scripts/check-odds-history-units.mjs
+  // holds every odds_history writer to it.
   const url = `${ODDS_API_BASE}/v4/historical/sports/${encodeURIComponent(sportKey)}/odds`
-    + `?apiKey=${ODDS_KEY}&regions=us&markets=h2h,totals&oddsFormat=american`
+    + `?apiKey=${ODDS_KEY}&regions=us&markets=h2h,totals&oddsFormat=decimal`
     + `&date=${p.date}T12:00:00Z`;
   const res = await fetch(url);
   spent += PER_CALL_COST;

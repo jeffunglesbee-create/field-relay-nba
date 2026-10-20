@@ -26,11 +26,16 @@ const CI_SPEND = 'scripts/lib/ci-spend.mjs';
 // asUtc lives in its own module so the TZ case can spawn a child that imports
 // the REAL function. M38 was NOT CAUGHT while the child carried an inline copy.
 const UTCLIB  = 'scripts/lib/utc.mjs';
+// One unit in odds_history (docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md).
+const UNITS   = 'scripts/check-odds-history-units.mjs';
+const REPAIR  = 'scripts/repair-odds-american-units.mjs';
+// Fetches the vendor in American odds and writes nothing; U7 makes it a writer.
+const DIAG    = 'scripts/diagnose-cfb-name-join.mjs';
 const sh = (c, a) => execFileSync(c, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 // `git checkout --` restores from the INDEX, so the index is what must hold a
 // good copy — a staged-but-uncommitted file is fine, an unstaged edit is not.
-for (const f of [MODULE, CRON, FILL, WATCHER, UTCLIB]) {
+for (const f of [MODULE, CRON, FILL, WATCHER, UTCLIB, REPAIR, DIAG]) {
   if (spawnSync('git', ['diff', '--quiet', '--', f]).status !== 0) {
     console.error(`FAIL — ${f} has unstaged changes; restore would lose them. Stage or revert first.`);
     process.exit(1);
@@ -42,13 +47,13 @@ for (const f of [MODULE, CRON, FILL, WATCHER, UTCLIB]) {
 }
 
 // Both checks must be green on clean source, or every "CAUGHT" below is noise.
-for (const c of [[CHECK], [WIRING], WATCH_CHECK]) {
+for (const c of [[CHECK], [WIRING], WATCH_CHECK, [UNITS]]) {
   if (spawnSync('node', c, { stdio: 'ignore' }).status !== 0) {
     console.error(`FAIL — ${c.join(' ')} is already red on clean source. Fix that first.`);
     process.exit(1);
   }
 }
-console.log(`baseline: ${CHECK} and ${WIRING} both pass on clean source\n`);
+console.log(`baseline: ${CHECK}, ${WIRING} and ${UNITS} pass on clean source\n`);
 
 const MUTATIONS = [
   { file: MODULE, check: CHECK, name: 'M1  per-token prefix becomes whole-string prefix (the pre-2026-09-16 shape)',
@@ -449,6 +454,42 @@ const MUTATIONS = [
     anchor: 'date, home, away, start_time\n     FROM regular_season_games',
     replace: 'date, home, away, NULL AS start_time\n     FROM regular_season_games',
     catches: 'the word is there and the kickoff is not' },
+
+  { file: FILL, check: UNITS, name: 'U1  the fill asks for American odds again (the defect)',
+    anchor: '&regions=us&markets=h2h,totals&oddsFormat=decimal`',
+    replace: '&regions=us&markets=h2h,totals&oddsFormat=american`',
+    catches: 'the sync converts 275 to +27400 and -345 to null' },
+
+  { file: CRON, check: UNITS, name: 'U2  the backfill asks for American odds',
+    anchor: '&dateFormat=iso&oddsFormat=decimal`',
+    replace: '&dateFormat=iso&oddsFormat=american`',
+    catches: 'the other writer drifts the same way' },
+
+  { file: FILL, check: UNITS, name: 'U3  the fill names no format and trusts the vendor default',
+    anchor: '&regions=us&markets=h2h,totals&oddsFormat=decimal`',
+    replace: '&regions=us&markets=h2h,totals`',
+    catches: 'a default is not a contract' },
+
+  { file: REPAIR, check: UNITS, name: 'U4  a negative American price is converted upside down',
+    anchor: 'return a > 0 ? 1 + a / 100 : 1 + 100 / -a;',
+    replace: 'return a > 0 ? 1 + a / 100 : 1 + -a / 100;',
+    catches: '-345 would be stored as 4.45 and synced as +345' },
+
+  { file: REPAIR, check: UNITS, name: 'U5  the converted price is rounded to two decimals',
+    anchor: 'return a > 0 ? 1 + a / 100 : 1 + 100 / -a;',
+    replace: 'return Math.round((a > 0 ? 1 + a / 100 : 1 + 100 / -a) * 100) / 100;',
+    catches: '-100000 becomes 1.00, which the sync reads as no price' },
+
+  { file: CRON, check: UNITS, name: 'U6  the sync reads an even-money decimal as a favourite',
+    anchor: '  if (dec >= 2.0) return Math.round((dec - 1) * 100);',
+    replace: '  if (dec > 2.0) return Math.round((dec - 1) * 100);',
+    catches: "Derby's +100 (decimal 2.0) syncs as -100" },
+
+  { file: DIAG, check: UNITS, name: 'U7  a third script starts writing odds_history in American odds',
+    anchor: 'const payload = await res.json();\nconst events = payload?.data || [];',
+    replace: 'const payload = await res.json();\nconst events = payload?.data || [];\n'
+      + "await fetch('x', { body: `INSERT OR IGNORE INTO odds_history (id) VALUES ('x')` });",
+    catches: 'a new writer is held to the unit, not only the two named ones' },
 
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",

@@ -268,6 +268,7 @@ jobs:
         run: |
           node scripts/check-odds-matcher.mjs
           node scripts/check-odds-matcher-wiring.mjs
+          node scripts/check-odds-history-units.mjs
           node scripts/mutate-odds-matcher.mjs
 
       - name: No new bare empty catch
