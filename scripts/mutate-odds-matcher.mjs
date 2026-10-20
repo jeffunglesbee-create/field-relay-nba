@@ -31,11 +31,13 @@ const UNITS   = 'scripts/check-odds-history-units.mjs';
 const REPAIR  = 'scripts/repair-odds-american-units.mjs';
 // Fetches the vendor in American odds and writes nothing; U7 makes it a writer.
 const DIAG    = 'scripts/diagnose-cfb-name-join.mjs';
+// Requests decimal odds through a query constant and writes nothing; U7 adds an American request to it.
+const PROBE   = 'scripts/probe-odds-live-endpoint.mjs';
 const sh = (c, a) => execFileSync(c, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 // `git checkout --` restores from the INDEX, so the index is what must hold a
 // good copy — a staged-but-uncommitted file is fine, an unstaged edit is not.
-for (const f of [MODULE, CRON, FILL, WATCHER, UTCLIB, REPAIR, DIAG]) {
+for (const f of [MODULE, CRON, FILL, WATCHER, UTCLIB, REPAIR, DIAG, PROBE]) {
   if (spawnSync('git', ['diff', '--quiet', '--', f]).status !== 0) {
     console.error(`FAIL — ${f} has unstaged changes; restore would lose them. Stage or revert first.`);
     process.exit(1);
@@ -485,11 +487,27 @@ const MUTATIONS = [
     replace: '  if (dec > 2.0) return Math.round((dec - 1) * 100);',
     catches: "Derby's +100 (decimal 2.0) syncs as -100" },
 
-  { file: DIAG, check: UNITS, name: 'U7  a third script starts writing odds_history in American odds',
+  { file: PROBE, check: UNITS, name: 'U7  a script off the reviewed list starts requesting American odds',
+    anchor: "const QUERY = 'regions=us,eu&markets=h2h&oddsFormat=decimal';",
+    replace: "const QUERY = 'regions=us,eu&markets=h2h&oddsFormat=decimal';\n"
+      + "const LEGACY = `https://api.the-odds-api.com/v4/sports/x/odds?apiKey=${KEY}&oddsFormat=american`;",
+    catches: 'the request need not share a file with the INSERT it feeds; every request is held, not only the writers' },
+
+  { file: FILL, check: UNITS, name: 'U8  an American request hides behind a comment naming decimal',
+    anchor: '/odds`\n    + `?apiKey=${ODDS_KEY}&regions=us&markets=h2h,totals&oddsFormat=decimal`',
+    replace: '/odds`\n    // oddsFormat=decimal: odds_history holds one unit\n    + `?apiKey=${ODDS_KEY}&regions=us&markets=h2h,totals&oddsFormat=american`',
+    catches: 'the review found the first oddsFormat in the statement won, comment or not' },
+
+  { file: FILL, check: UNITS, name: 'U9  the same, behind a trailing comment',
+    anchor: '/odds`\n    + `?apiKey=${ODDS_KEY}&regions=us&markets=h2h,totals&oddsFormat=decimal`',
+    replace: '/odds`  // must stay oddsFormat=decimal\n    + `?apiKey=${ODDS_KEY}&regions=us&markets=h2h,totals&oddsFormat=american`',
+    catches: 'a trailing comment is cut before the format is read' },
+
+  { file: DIAG, check: UNITS, name: 'U10 a listed American reader starts writing odds_history',
     anchor: 'const payload = await res.json();\nconst events = payload?.data || [];',
     replace: 'const payload = await res.json();\nconst events = payload?.data || [];\n'
-      + "await fetch('x', { body: `INSERT OR IGNORE INTO odds_history (id) VALUES ('x')` });",
-    catches: 'a new writer is held to the unit, not only the two named ones' },
+      + "await fetch('x', { body: `UPDATE odds_history SET home_ml = 1 WHERE id = 'x'` });",
+    catches: 'the exemption covers reading American, never writing it' },
 
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",

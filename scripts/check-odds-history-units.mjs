@@ -7,93 +7,116 @@
 // American odds, so all 211 of its rows were converted twice: 275 was stored
 // as +27400, -345 as null, in both columns of 211 games.
 //
-//   A. every file that both fetches the vendor's odds and inserts into
-//      odds_history asks for oddsFormat=decimal, explicitly, on every request.
-//      A writer found nowhere is a FAILURE: an empty scan proves nothing.
-//   B. on the 211 real rows, the sync's own decimalToAmerican (read from its
-//      source) applied to the American prices gives exactly what was stored:
-//      the mechanism, measured, not inferred.
-//   C. the repair's American-to-decimal conversion, fed through that same
-//      decimalToAmerican, gives the American price back on every real side.
-//      That is what the sync will do with the converted rows, and with every
-//      row the fill writes from now on.
+//   A. every vendor odds request in the runtime code asks for
+//      oddsFormat=decimal, explicitly, in every place it names a format,
+//      UNLESS its file is on AMERICAN_READERS below, a reviewed list of
+//      files that read American prices and write no odds_history row. A
+//      listed file that starts writing odds_history fails, and so does a
+//      listed file that no longer requests anything (a stale exemption).
+//      It is written this way round because a request and the INSERT it
+//      feeds need not share a file: a writer split into a fetch helper and
+//      an insert helper would pass a check that looks for both together
+//      (the 2026-10-20 review built seven such writers).
+//   B. the repair's American-to-decimal conversion, fed through the sync's
+//      own decimalToAmerican (read from its source), gives the American
+//      price back on every real side: what the sync does with the converted
+//      rows, and with every row the fill writes from now on. The mechanism
+//      of the damage itself is proven once, in the repair's self-test; it is
+//      not pinned here, so hardening the sync cannot turn this gate red.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { americanToDecimal, loadRows, syncDecimalToAmerican } from './repair-odds-american-units.mjs';
 
 let failed = 0;
-const pass = (m) => console.log(`  PASS  ${m}`);
-const fail = (m) => { failed++; console.log(`  FAIL  ${m}`); };
-const ok = (c, m) => (c ? pass(m) : fail(m));
+const ok = (c, m) => { if (c) console.log(`  PASS  ${m}`); else { failed++; console.log(`  FAIL  ${m}`); } };
 
-// ── A. every odds_history writer asks for decimal ───────────────────────────
-console.log('A. odds_history writers and the unit they request');
-const KNOWN = ['.github/scripts/odds-backfill.js', 'scripts/targeted-odds-fill.mjs'];
+// Read 2026-10-20. Each writes American prices into game-table blobs or
+// prints them; none writes odds_history.
+const AMERICAN_READERS = {
+  'src/index.js': 'fetchSportOddsLive and _captureClosingOdds write American blobs into the game tables',
+  'src/ambient-do.js': 'the closing capture writes an American closing_odds blob',
+  'src/wp-resolver.js': 'reads American prices for win probability',
+  'scripts/diagnose-cfb-name-join.mjs': 'a probe that prints the vendor payload',
+  'scripts/odds-h2h-shape-probe.mjs': 'a probe that prints the h2h market shape',
+  'scripts/odds-spread-shape-probe.mjs': 'a probe that prints the spread market shape',
+};
+
+// ── A ──────────────────────────────────────────────────────────────────────
+console.log('A. every vendor odds request asks for decimal, or is a listed American reader');
 const files = [];
 const walk = (d) => {
   for (const n of readdirSync(d)) {
     const p = join(d, n);
-    if (n === 'node_modules' || n.startsWith('.git') && d === '.') continue;
+    if (n === 'node_modules') continue;
     if (statSync(p).isDirectory()) walk(p);
-    else if (/\.(m?js)$/.test(n)) files.push(p);
+    else if (/\.(m?js|cjs|ts)$/.test(n)) files.push(p);
   }
 };
-for (const d of ['src', 'scripts', '.github/scripts']) walk(d);
-const INSERTS = /INSERT\s+(?:OR\s+\w+\s+)?INTO\s+odds_history\b/i;
-// Every vendor odds request the code builds: a line that is not a comment and
-// names a /v4/.../sports/... path, through the line that ends its statement.
-// A comment quoting the path is not a request (the first version of this check
-// read odds-backfill.js's header comment as one and failed on it).
-const requests = (src) => {
-  const lines = src.split('\n'), out = [];
-  lines.forEach((l, i) => {
-    if (/^\s*(\/\/|\*)/.test(l) || !/\/v4\/(?:historical\/)?sports\//.test(l)) return;
-    let s = l;
-    for (let j = i; !/;\s*(\/\/.*)?$/.test(lines[j]) && j < i + 6; ) s += '\n' + lines[++j];
-    if (/\/v4\/(?:historical\/)?sports\/[^?\n]*\/odds\b/.test(s)) out.push(s);
-  });
+for (const d of ['src', 'scripts', '.github/scripts', 'workers']) if (existsSync(d)) walk(d);
+// Checks and mutation harnesses carry request strings as fixtures; they are
+// not runtime code, so they are counted out loud rather than scanned.
+const harness = files.filter(f => /^scripts\/(check|mutate)-/.test(f));
+const runtime = files.filter(f => !harness.includes(f));
+
+/** Statements with comments removed: whole-line comments dropped, trailing
+ *  // comments cut (not the // of a URL scheme). A comment that names a
+ *  format is not a request (the review hid an American request behind one). */
+const statements = (src) => {
+  const out = []; let buf = '';
+  for (let l of src.split('\n')) {
+    if (/^\s*(\/\/|\*|\/\*)/.test(l)) continue;
+    l = l.replace(/(^|[^:\\])\/\/.*$/, '$1');
+    buf += l + '\n';
+    if (/[;{}]\s*$/.test(l)) { out.push(buf); buf = ''; }
+  }
+  if (buf.trim()) out.push(buf);
   return out;
 };
-// This file names the statement in its own messages; it is not a writer.
-const inserters = files.filter(f => f !== 'scripts/check-odds-history-units.mjs' && INSERTS.test(readFileSync(f, 'latin1')));
-const writers = inserters.filter(f => requests(readFileSync(f, 'latin1')).length > 0);
-console.log(`     scanned ${files.length} files in src, scripts, .github/scripts; ${inserters.length} insert into odds_history; `
-  + `${writers.length} of those fetch the vendor's odds: ${writers.join(', ') || 'none'}`);
-ok(writers.length > 0, 'at least one writer was found (an empty scan is a failure, not a pass)');
-for (const k of KNOWN) ok(writers.includes(k), `the known writer ${k} is still found by the scan`);
-for (const f of writers) {
-  const urls = requests(readFileSync(f, 'latin1'));
-  ok(urls.length > 0, `${f}: its vendor odds request was located (${urls.length})`);
-  for (const u of urls) {
-    const fmt = (u.match(/oddsFormat=(\w+)/) || [])[1];
-    ok(fmt === 'decimal', `${f}: requests oddsFormat=${fmt ?? '(none — the vendor default is not a contract)'}`);
+const requests = (src) => statements(src).filter(s => /\/odds\b/.test(s) && /(apiKey=|oddsFormat=)/.test(s));
+const WRITES = /(?:INSERT(?:\s+OR\s+\w+)?|REPLACE)\s+INTO\s+["`[]?odds_history\b|UPDATE\s+["`[]?odds_history\b/i;
+
+let requesting = 0;
+for (const f of runtime) {
+  const src = readFileSync(f, 'latin1');
+  const reqs = requests(src);
+  if (AMERICAN_READERS[f]) {
+    ok(reqs.length > 0, `${f}: listed as an American reader and still requests odds (${reqs.length})`);
+    ok(!WRITES.test(src), `${f}: a listed American reader writes no odds_history row`);
+    continue;
+  }
+  if (!reqs.length) continue;
+  requesting++;
+  for (const s of reqs) {
+    const fmts = [...s.matchAll(/oddsFormat=(\w+)/g)].map(m => m[1]);
+    ok(fmts.length > 0 && fmts.every(x => x === 'decimal'),
+      `${f}: asks for oddsFormat=${fmts.join('+') || '(none: the vendor default is not a contract)'}`);
   }
 }
+for (const f of Object.keys(AMERICAN_READERS)) ok(runtime.includes(f), `${f}: the listed American reader exists`);
+for (const k of ['.github/scripts/odds-backfill.js', 'scripts/targeted-odds-fill.mjs']) {
+  ok(WRITES.test(readFileSync(k, 'latin1')) && requests(readFileSync(k, 'latin1')).length > 0,
+    `${k}: the known odds_history writer is still seen requesting and writing (an empty scan is a failure)`);
+}
 
-// ── B and C. the real rows ──────────────────────────────────────────────────
+// ── B ──────────────────────────────────────────────────────────────────────
+console.log('\nB. a decimal row syncs back to its American price');
 const d2a = syncDecimalToAmerican();
 const rows = loadRows();
-const sidesOf = (r) => [['home', r.home_ml, r.blob_home], ['away', r.away_ml, r.blob_away], ['draw', r.draw_ml, r.blob_draw]]
-  .filter(([, a]) => a != null);
-
-console.log('\nB. the measured mechanism: the sync converted American prices a second time');
-let same = 0, sides = 0;
-for (const r of rows) for (const [, a, stored] of sidesOf(r)) { sides++; if (d2a(a) === stored) same++; }
-ok(same === sides && sides === 469, `decimalToAmerican(American) equals the stored blob on ${same} of ${sides} sides of ${rows.length} rows`);
-
-console.log('\nC. a decimal row syncs back to its American price');
-let back = 0;
+let back = 0, sides = 0;
 const misses = [];
-for (const r of rows) for (const [side, a] of sidesOf(r)) {
+for (const r of rows) for (const [side, a] of [['home', r.home_ml], ['away', r.away_ml], ['draw', r.draw_ml]]) {
+  if (a == null) continue;
+  sides++;
   if (d2a(americanToDecimal(a)) === a) back++; else misses.push(`${r.id} ${side} ${a}`);
 }
-ok(back === sides, `${back} of ${sides} sides come back exact${misses.length ? `; first misses: ${misses.slice(0, 3).join('; ')}` : ''}`);
-for (const [a, want] of [[275, 275], [-345, -345], [100, 100], [-100000, -100000], [3000, 3000]]) {
-  ok(d2a(americanToDecimal(a)) === want, `${a > 0 ? '+' : ''}${a} -> ${americanToDecimal(a)} -> ${want > 0 ? '+' : ''}${d2a(americanToDecimal(a))}`);
+ok(back === sides && sides === 469, `${back} of ${sides} real sides come back exact${misses.length ? `; first misses: ${misses.slice(0, 3).join('; ')}` : ''}`);
+for (const a of [275, -345, 100, -100000, 3000]) {
+  ok(d2a(americanToDecimal(a)) === a, `${a > 0 ? '+' : ''}${a} -> ${americanToDecimal(a)} -> ${d2a(americanToDecimal(a))}`);
 }
 
-console.log(`\nCOVERAGE: ${writers.length} writer(s) of ${inserters.length} odds_history inserter(s) among ${files.length} files; `
+console.log(`\nCOVERAGE: ${runtime.length} runtime files scanned (src, scripts, .github/scripts, workers; ${harness.length} check/mutate harnesses counted out); `
+  + `${requesting} request decimal odds as writers or readers, ${Object.keys(AMERICAN_READERS).length} listed American readers; `
   + `${rows.length} real rows, ${sides} sides (outbox/fixture-odds-american-targeted-2026-10-20.json).`);
 console.log('Structural for A: it reads the request the code builds, not a live response.');
 console.log(failed ? `\n${failed} FAILED` : '\nall checks passed');
