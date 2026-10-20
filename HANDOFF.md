@@ -23,10 +23,14 @@ dispatched with "go with Claude's best recommendations". Commits `e18359e1`..`32
 - **Nothing persisted the damage:** 0 briefs, 0 analytics_output rows, and no
   committed file in any repo. The 69-reader census is in
   `outbox/odds-american-readers-2026-10-20.md`.
-- **Filed, not dispatched:** jubilant-bassoon
-  `docs/CC-CMD-2026-10-20-debrief-cache-outlives-archive-repair.md`. A
-  browser's debrief cache keeps a damaged line for up to about 7 days, because
-  it reads with no age check.
+- **The client's cached copies, DONE the same day:** jubilant-bassoon
+  `docs/CC-CMD-2026-10-20-debrief-cache-outlives-archive-repair.md`, fixed in
+  `1f3d2d04` (SW 2026-10-20a).
+  - Before: a browser's debrief cache kept a damaged line for up to about 7
+    days.
+  - Now: a cached copy is revalidated on every page load. A 200 carrying
+    `_errors` never replaces it.
+  - Live probe run 39468966102: PASS.
 - **This morning's two odds CC-CMDs are DONE:**
   - today's backfill (run 39442651905, 14:48Z) wrote WVU by team (Virginia
     −1667, West Virginia +870);

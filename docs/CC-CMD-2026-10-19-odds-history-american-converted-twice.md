@@ -162,6 +162,8 @@ debrief context before the repair keeps rendering the damaged line. That lasts
 until the entry is 7 days old and a new service worker activates. The client
 cache reads with no age check; filed as jubilant-bassoon
 `docs/CC-CMD-2026-10-20-debrief-cache-outlives-archive-repair.md` (`1fc8f319`).
+That CC-CMD is DONE (jubilant-bassoon `1f3d2d04`, live probe run 39468966102
+PASS): a cached copy is revalidated on every page load.
 
 Proof: `outbox/odds-american-units-2026-10-20.log`. Session doc:
 `outbox/cc-session-2026-10-20-american-odds-units.md`.

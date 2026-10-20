@@ -94,6 +94,10 @@ there.
   the client. Filed as jubilant-bassoon
   `docs/CC-CMD-2026-10-20-debrief-cache-outlives-archive-repair.md`
   (`1fc8f319`, owner decision).
+- **Closed the same day:** dispatched ("next approved") and DONE in
+  jubilant-bassoon `1f3d2d04`. A cached copy is now revalidated on every page
+  load. Live probe run 39468966102: PASS. Session doc: jubilant-bassoon
+  `outbox/cc-session-2026-10-20-debrief-cache.md`.
 
 ## Limits, printed with the result (Rule 91)
 
