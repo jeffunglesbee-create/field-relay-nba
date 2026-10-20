@@ -490,7 +490,7 @@ const MUTATIONS = [
   { file: PROBE, check: UNITS, name: 'U7  a script off the reviewed list starts requesting American odds',
     anchor: "const QUERY = 'regions=us,eu&markets=h2h&oddsFormat=decimal';",
     replace: "const QUERY = 'regions=us,eu&markets=h2h&oddsFormat=decimal';\n"
-      + "const LEGACY = `https://api.the-odds-api.com/v4/sports/x/odds?apiKey=${KEY}&oddsFormat=american`;",
+      + "const LEGACY = `https://vendor.invalid/v4/sports/x/odds?apiKey=${KEY}&oddsFormat=american`;",
     catches: 'the request need not share a file with the INSERT it feeds; every request is held, not only the writers' },
 
   { file: FILL, check: UNITS, name: 'U8  an American request hides behind a comment naming decimal',
@@ -504,9 +504,9 @@ const MUTATIONS = [
     catches: 'a trailing comment is cut before the format is read' },
 
   { file: DIAG, check: UNITS, name: 'U10 a listed American reader starts writing odds_history',
-    anchor: 'const payload = await res.json();\nconst events = payload?.data || [];',
-    replace: 'const payload = await res.json();\nconst events = payload?.data || [];\n'
-      + "await fetch('x', { body: `UPDATE odds_history SET home_ml = 1 WHERE id = 'x'` });",
+    anchor: 'const payload = await res.json();\n',
+    replace: 'const payload = await res.json();\n'
+      + "await fetch('x', { body: `UPDATE odds_history SET home_ml = 1 WHERE id = 'x'` });\n",
     catches: 'the exemption covers reading American, never writing it' },
 
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',

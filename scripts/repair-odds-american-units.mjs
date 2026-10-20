@@ -32,6 +32,7 @@
 
 import { readFileSync } from 'node:fs';
 import { pricesByTeam } from '../src/odds-name-match.js';
+import { total } from './lib/summary-invariants.mjs';
 
 const FIXTURE = 'outbox/fixture-odds-american-targeted-2026-10-20.json';
 const SOURCE = 'american_odds_repair';
@@ -115,7 +116,9 @@ export function batches(ps = plans()) {
 }
 
 const TARGETED = `FROM odds_history oh JOIN regular_season_games g ON g.id = oh.game_id WHERE oh.id LIKE '%\\_targeted' ESCAPE '\\'`;
-const sumOf = (xs) => xs.reduce((a, x) => a + (x ?? 0), 0);
+// The expected value of SQL's SUM(COALESCE(x, 0)): an absent price adds
+// nothing on both sides. total() skips it out loud rather than as a zero.
+const sumOf = (xs) => total(xs.map(v => ({ v })), 'v').sum;
 
 /** Right before the write: the state still equals the fixture's. Aggregates,
  *  because one compact read is what can be sent by hand; each write is
