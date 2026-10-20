@@ -19,7 +19,8 @@
 
 import fs from 'node:fs';
 import { teamTokens, nameMatches, findVendorEvent, h2hPrices, slateWindow, matchSlate,
-  couldAbbreviate, pairOrientation, pricesByTeam } from '../src/odds-name-match.js';
+  couldAbbreviate, pairOrientation, pricesByTeam, kickoffGapMinutes,
+  KICKOFF_REFUSE_MINUTES, CONTESTED_KICKOFF_MINUTES } from '../src/odds-name-match.js';
 
 const FIXTURE = 'outbox/fixture-cfb-2026-09-12.json';
 let failed = 0;
@@ -510,7 +511,125 @@ for (const c of COLLIDE) {
     ? ok(c.why) : bad(c.why, JSON.stringify(got), JSON.stringify(c.want));
 }
 
+// ── I. the kickoff may refuse (owner ruling 2026-10-19) ────────────────────
+//
+// docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md TASK 1, ruled (c) both, with
+// "only the far twin" for the claim check. Real rows from the same export.
+console.log('\nI. kickoff refusal and the claim check (real rows)');
+
+eq('KICKOFF_REFUSE_MINUTES', KICKOFF_REFUSE_MINUTES, 720);
+eq('CONTESTED_KICKOFF_MINUTES', CONTESTED_KICKOFF_MINUTES, 90);
+const asGame = (r) => ({ id: r.game_id, home: r.a_home, away: r.a_away, start_time: r.start_time });
+const asEvent = (r, id = 'ev') => ({ id, home_team: r.v_home, away_team: r.v_away, commence_time: r.commence_time });
+const byRow = (id) => pairs.find(r => r.id === id);
+
+// The next-day class: same two teams, the series' next game. Each one alone.
+const NEXT_DAY = [
+  'MLB_2026-09-19_e401817001_fanduel_close', 'MLB_2026-09-19_e401817002_fanduel_close',
+  'MLB_2026-09-19_e401817004_fanduel_close', 'MLB_2026-09-22_e401817035_fanduel_close',
+  'MLB_2026-09-26_e401817087_draftkings_close', 'MLB_2026-09-26_e401817090_fanduel_close',
+  'MLB_2026-09-26_e401817091_draftkings_close', 'MLB_2026-09-26_e401817092_draftkings_close',
+  'MLB_2026-09-29_e401907965_fanduel_close', 'MLB_2026-09-30_e401907972_draftkings_close',
+  'MLB_2026-10-07_e401907992_draftkings_close', 'MLB_2026-10-15_e401908025_draftkings_close',
+];
+const bothSides = (r) => (nameMatches(r.a_home, r.v_home) && nameMatches(r.a_away, r.v_away))
+  || (nameMatches(r.a_away, r.v_home) && nameMatches(r.a_home, r.v_away));
+const overLimit = pairs.filter(r => bothSides(r) && Math.abs(kickoffGapMinutes(asGame(r), asEvent(r)) ?? 0) > KICKOFF_REFUSE_MINUTES)
+  .map(r => r.id).sort();
+String(overLimit) === String([...NEXT_DAY].sort())
+  ? ok(`the both-sides pairs past ${KICKOFF_REFUSE_MINUTES} min are exactly the 12 next-day games`)
+  : bad('pairs past the limit', overLimit.join(' | '), [...NEXT_DAY].sort().join(' | '));
+let nextRefused = 0;
+for (const id of NEXT_DAY) {
+  const r = byRow(id), sl = matchSlate([asGame(r)], [asEvent(r)], r.date);
+  if (!sl.byGameId.size && sl.lateKickoff === 1) nextRefused++;
+}
+eq('next-day games refused for the kickoff, each on its own slate', nextRefused, 12);
+
+// Right pairs keep their pair: the largest gaps among both-sides pairs that are
+// the right game. A rain delay (+235) and a moved start (+121) included.
+const RIGHT_FAR = [
+  'CFB_2026-09-05_e401856660_targeted',            // Clemson @ LSU, -130
+  'MLB_2026-09-20_e401817019_fanduel_close',       // rain delay, +235
+  'MLB_2026-09-26_e401817097_fanduel_close',       // moved start, +121
+];
+let rightKept = 0;
+for (const id of RIGHT_FAR) {
+  const r = byRow(id), sl = matchSlate([asGame(r)], [asEvent(r)], r.date);
+  if (sl.byGameId.size === 1 && sl.lateKickoff === 0) rightKept++;
+}
+eq('right pairs 121 to 235 min off keep their pair', rightKept, RIGHT_FAR.length);
+
+// One event, several games: each shared group from the export, on its own slate.
+const groups = new Map();
+for (const r of pairs) {
+  const k = `${r.snapshot_type}|${r.v_home}|${r.v_away}|${r.commence_time}`;
+  groups.set(k, [...(groups.get(k) || []), r]);
+}
+const shared = [...groups.values()].filter(g => g.length > 1);
+eq('events stored against 2+ games', shared.length, 46);
+const keptBy = (g) => {
+  const sl = matchSlate(g.map(asGame), [asEvent(g[0])], g[0].date);
+  return { sl, kept: g.filter(r => sl.byGameId.has(r.game_id)).map(r => r.game_id).sort() };
+};
+const DOUBLEHEADER = {                              // the near game keeps the event
+  'MLB_2026-09-23_e401817050': 'MLB_2026-09-23_e401923610',
+  'MLB_2026-09-25_e401817073': 'MLB_2026-09-25_e401817088',
+  'MLB_2026-09-25_e401817074': 'MLB_2026-09-25_e401817104',
+};
+let dhOk = 0;
+for (const [near, far] of Object.entries(DOUBLEHEADER)) {
+  const g = shared.find(x => x.some(r => r.game_id === near) && x.some(r => r.game_id === far));
+  const { sl, kept } = g ? keptBy(g) : { sl: {}, kept: [] };
+  String(kept) === near && sl.sharedRefused === 1 ? dhOk++
+    : bad(`doubleheader ${near} / ${far}`, `kept ${kept.join(',') || 'none'}, sharedRefused ${sl.sharedRefused}`, `kept ${near}, sharedRefused 1`);
+}
+eq('doubleheaders: the near game keeps the event, the far twin is refused', dhOk, 3);
+const brewers = keptBy(shared.find(x => x.some(r => r.game_id === 'MLB_2026-09-19_e401817001')));
+String(brewers.kept) === 'MLB_2026-09-20_e401817016' && brewers.sl.lateKickoff === 1 && brewers.sl.sharedRefused === 0
+  ? ok('a next-day claimant is refused by the kickoff, and the day\'s own game keeps the event')
+  : bad('Brewers @ Orioles 09-19/09-20', JSON.stringify({ kept: brewers.kept, late: brewers.sl.lateKickoff, shared: brewers.sl.sharedRefused }),
+        'kept e401817016, late 1, shared 0');
+const mls = shared.filter(g => g[0].sport === 'MLS');
+const mlsAllKept = mls.filter(g => keptBy(g).kept.length === g.length).length;
+eq('MLS fixtures archived twice: every copy keeps its pair', `${mlsAllKept} of ${mls.length}`, `${mls.length} of 42`);
+
+// A refusal frees nothing. A refused game is not sent to elimination, and its
+// event stays claimed: a refusal must never create a pair somewhere else.
+const D = '2026-09-29', A = { id: 'A', home: 'Braves', away: 'Phillies', start_time: `${D}T18:00Z` };
+const NEXT = { id: 'next', home_team: 'Atlanta Braves', away_team: 'Philadelphia Phillies', commence_time: '2026-09-30T18:00:00Z' };
+const ELSE = { id: 'else', home_team: 'Boston Red Sox', away_team: 'Philadelphia Phillies', commence_time: `${D}T18:05:00Z` };
+const B = { id: 'B', home: 'Braves', away: 'Phls' };       // no kickoff; could take NEXT by elimination
+const free1 = matchSlate([A, B], [NEXT], D);
+free1.byGameId.size === 0 && free1.lateKickoff === 1
+  ? ok('a refused game\'s event stays claimed: no other row takes it by elimination')
+  : bad('event freed by a refusal', [...free1.byGameId.keys()].join(',') || 'none', 'none paired, lateKickoff 1');
+const free2 = matchSlate([A], [NEXT, ELSE], D);
+free2.byGameId.size === 0
+  ? ok('a refused game is not sent to elimination, where it would find another event')
+  : bad('refused game re-paired', [...free2.byGameId.values()].map(m => m.event.id).join(','), 'none');
+
+// Stage 2 is held to the same limit: an elimination a day away is refused.
+const late2 = matchSlate([{ id: 'j', home: 'Jax State', away: 'Ohio', start_time: '2026-09-12T18:00Z' }],
+  [{ id: 'jx', home_team: 'Jacksonville State Gamecocks', away_team: 'Ohio Bobcats', commence_time: '2026-09-13T18:00:00Z' }], '2026-09-12');
+late2.byGameId.size === 0 && late2.lateKickoff === 1
+  ? ok('stage 2: a forced pairing a day off is refused for the kickoff')
+  : bad('stage-2 kickoff', `paired ${late2.byGameId.size}, late ${late2.lateKickoff}`, 'paired 0, late 1');
+
+// A missing instant refuses nothing: it is counted elsewhere, never judged.
+const unknown = matchSlate([{ id: 'u', home: 'Braves', away: 'Phillies' }], [NEXT], D);
+unknown.byGameId.size === 1 && unknown.lateKickoff === 0
+  ? ok('a game with no kickoff is not refused for lacking one')
+  : bad('missing kickoff', `paired ${unknown.byGameId.size}, late ${unknown.lateKickoff}`, 'paired 1, late 0');
+eq('kickoffGapMinutes on an unreadable instant', String(kickoffGapMinutes({ start_time: 'TBD' }, NEXT)), 'null');
+// The archive's two kickoff spellings, measured 2026-10-20 over 3197 rows since
+// 2026-08-01: 2740 'YYYY-MM-DDTHH:MMZ', 42 '...:00+00:00', 415 NULL, 0 date-only.
+eq('gap from a "T17:00Z" kickoff', kickoffGapMinutes({ start_time: '2026-08-01T17:00Z' }, { commence_time: '2026-08-01T17:30:00Z' }), 30);
+eq('gap from a "+00:00" kickoff', kickoffGapMinutes({ start_time: '2026-08-08T01:00:00+00:00' }, { commence_time: '2026-08-08T01:30:00Z' }), 30);
+
 console.log(`\nCOVERAGE: TWO sport-dates (cfb 2026-09-12, mlb 2026-09-15) plus ${PAIRS.length + 6} synthetic cases,\nand ${fx.archive.length + 7} single-gap adversarial runs.`);
+console.log(`Kickoff rules: ${NEXT_DAY.length} next-day games, ${RIGHT_FAR.length} far right pairs, all ${shared.length} shared events of the`);
+console.log(`export, each on its own slate. Not seen: a full live payload, and doubleheaders where one copy lacks a kickoff.`);
 console.log(`Stage 2's side rule: all ${oneSided.length} one-sided pairs stored 2026-09-16 to 2026-10-19 (of ${pairs.length}), each on`);
 console.log(`its own reduced slate, plus ${ABBREV.length} name cases and ${COLLIDE.length} collision slates. Not seen: a full live`);
 console.log(`payload, where a wrong team that shares the first letter (about 5% of name pairs) still passes.`);

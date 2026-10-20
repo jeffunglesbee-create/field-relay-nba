@@ -21,12 +21,19 @@
 // Whole-string prefix cannot do the middle two: "ncolorado" is not a prefix of
 // "northerncoloradobears". Per-token is, and it costs one line.
 //
-// THE KICKOFF INSTANT IS NOT A KEY. It was the obvious join — and measuring it
-// is what removed it. Names alone are unique across this payload (73 solved, 0
-// ambiguous), while 5 of those 73 pairs disagree on kickoff by -90 to +1
-// minutes. Filtering on the instant would have discarded five correct pairings
-// to gain nothing. It belongs where assertOneSportDate uses it: as an
-// INDEPENDENT cross-check that the names chose right, never as a filter.
+// THE KICKOFF INSTANT IS NOT A KEY, BUT IT MAY REFUSE (owner ruling 2026-10-19).
+// It was the obvious join, and measuring it is what removed it: names alone are
+// unique on the 2026-09-12 CFB payload (73 solved, 0 ambiguous), while 5 of
+// those 73 pairs disagree on kickoff by -90 to +1 minutes. So it still never
+// CHOOSES a pair. The 2026-10-19 census showed what names alone cannot see:
+// 12 MLB games paired with the same two teams' NEXT game (gaps 1141-1740 min)
+// and 3 doubleheader twins sharing one event (206-301 min). The owner ruled that
+// the instant may refuse (docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md):
+//   - any pair more than KICKOFF_REFUSE_MINUTES off is refused, in both stages;
+//   - on an event two games claimed, a game more than
+//     CONTESTED_KICKOFF_MINUTES off is refused, and the others keep the pair.
+// A missing instant refuses nothing: it is counted, not judged. Every refusal
+// leaves its event claimed, so refusing can only remove pairs, never add one.
 //
 // AMBIGUITY IS NEVER RESOLVED BY GUESSING. Two candidates return no event. A
 // one-token archive name such as "Ohio" prefixes both "Ohio Bobcats" and "Ohio
@@ -115,6 +122,25 @@ export function couldAbbreviate(archiveName, vendorName) {
   if (a[0][0] === v[0][0]) return true;
   return v[0].length >= 4 && a.some(t => t.includes(v[0]));
 }
+
+/** Minutes from the archive kickoff to the vendor's (vendor minus archive), or
+ *  null when either instant is missing or unreadable. */
+export function kickoffGapMinutes(game, event) {
+  const a = Date.parse(game?.start_time || ''), v = Date.parse(event?.commence_time || '');
+  return Number.isFinite(a) && Number.isFinite(v) ? Math.round((v - a) / 60000) : null;
+}
+
+// THE TWO LIMITS, from the 2026-10-19 census of 776 stored pairs
+// (outbox/fixture-odds-pairs-2026-10-19.json, measured in check-odds-matcher):
+// - right pairs reach -130 min (CFB Clemson @ LSU), and a rain-delayed MLB game
+//   +235; the next-day class starts at +1141. 720 refuses all 12 of that class
+//   and none of the right pairs.
+// - on a shared event, the right doubleheader game sits 1-6 min away and its
+//   twin 206-301. 90 is the census's own "gap over 90" line, and it separates
+//   them.
+export const KICKOFF_REFUSE_MINUTES = 720;
+export const CONTESTED_KICKOFF_MINUTES = 90;
+const beyond = (gap, limit) => gap !== null && Math.abs(gap) > limit;
 
 /**
  * Find the one vendor event for an archive game.
@@ -290,7 +316,8 @@ export function slateWindow(events, isoDate) {
  * @returns {{
  *   byGameId: Map<string, {event: object, swapped: boolean, stage: 1|2}>,
  *   stage1: number, stage2: number, unmatched: number,
- *   ambiguous: number, contradicted: number, poolSize: number, droppedOutOfWindow: number,
+ *   ambiguous: number, contradicted: number, lateKickoff: number, sharedRefused: number,
+ *   poolSize: number, droppedOutOfWindow: number,
  * }}
  */
 export function matchSlate(games, events, isoDate) {
@@ -301,16 +328,40 @@ export function matchSlate(games, events, isoDate) {
   const byGameId = new Map();
   const claimed  = new Set();
   const residual = [];
-  let ambiguous = 0;
+  const byId = new Map(rows.map(g => [g.id, g]));
+  let ambiguous = 0, lateKickoff = 0, sharedRefused = 0;
 
   // STAGE 1 — both sides, unique. Order-independent: each row is decided
   // against the whole pool, so no row's outcome depends on another's.
+  //
+  // A row refused here by the kickoff is refused OUTRIGHT, not sent to stage 2,
+  // and its event stays claimed. Either shortcut would let a refusal hand a row
+  // or an event to elimination, and a refusal would then create a pair.
+  const named = new Map();                   // gameId -> {event, swapped}
   for (const g of rows) {
     const r = findVendorEvent(g, pool);
     if (r.ambiguous) { ambiguous++; residual.push(g); continue; }
     if (!r.event) { residual.push(g); continue; }
-    byGameId.set(g.id, { event: r.event, swapped: r.swapped, stage: 1 });
     claimed.add(r.event.id);
+    if (beyond(kickoffGapMinutes(g, r.event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }
+    named.set(g.id, r);
+  }
+
+  // ONE EVENT, SEVERAL GAMES: the claim check. Stage 1 decides rows one at a
+  // time, so a doubleheader's two games both name the one event the snapshot
+  // still lists. The game whose known kickoff is CONTESTED_KICKOFF_MINUTES off
+  // is refused; the rest keep the pair they already had. That keeps the MLS
+  // fixtures archived twice (one copy has no kickoff), which are the same game
+  // and both priced right.
+  const claimants = new Map();               // eventId -> count
+  for (const r of named.values()) claimants.set(r.event.id, (claimants.get(r.event.id) ?? 0) + 1);
+  for (const [gameId, r] of named) {
+    if (claimants.get(r.event.id) > 1
+        && beyond(kickoffGapMinutes(byId.get(gameId), r.event), CONTESTED_KICKOFF_MINUTES)) {
+      sharedRefused++;
+      continue;
+    }
+    byGameId.set(gameId, { event: r.event, swapped: r.swapped, stage: 1 });
   }
 
   // STAGE 2 — one side, among events stage 1 did not spend.
@@ -335,7 +386,6 @@ export function matchSlate(games, events, isoDate) {
   // checked HERE, after the collision test, and never by dropping a proposal
   // earlier: a refused row still holds its claim on the event, so a row it
   // collided with stays refused too. Refusing can only remove pairs, never add.
-  const byId = new Map(rows.map(g => [g.id, g]));
   let stage2 = 0, contradicted = 0;
   for (const [gameId, event] of proposals) {
     if ((wantedBy.get(event.id) || []).length !== 1) { ambiguous++; continue; }
@@ -346,6 +396,7 @@ export function matchSlate(games, events, isoDate) {
       contradicted++;
       continue;
     }
+    if (beyond(kickoffGapMinutes(g, event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }
     byGameId.set(gameId, { event, swapped: false, stage: 2 });
     stage2++;
   }
@@ -357,6 +408,8 @@ export function matchSlate(games, events, isoDate) {
     unmatched: rows.length - byGameId.size,
     ambiguous,
     contradicted,
+    lateKickoff,
+    sharedRefused,
     poolSize: pool.length,
     droppedOutOfWindow: all.length - pool.length,
   };

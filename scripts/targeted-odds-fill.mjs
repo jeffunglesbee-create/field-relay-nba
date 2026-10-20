@@ -92,7 +92,10 @@ console.log(`since=${SINCE}  max-pairs=${MAX_PAIRS || 'all'}  budget=${BUDGET} c
 //    games already have rows is not refetched — that is the waste this script
 //    exists to avoid, and skipping it silently would reintroduce it.
 const games = await d1(
-  `SELECT id, LOWER(sport) AS s, sport AS sport_raw, date, home, away
+  `SELECT id, LOWER(sport) AS s, sport AS sport_raw, date, home, away,
+          -- matchSlate refuses a pair whose kickoff is too far from the
+          -- vendor's (docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md)
+          start_time
      FROM regular_season_games
     WHERE date >= ? AND opening_odds IS NULL`, [SINCE]);
 
@@ -331,7 +334,8 @@ for (const p of plan) {
     : classifyPair({ events: events.length, inWindow: slate.poolSize, priced: hit, wanted: p.games.length });
   console.log(`  ${p.date} ${String(p.sport).padEnd(22)} ${events.length} event(s), `
     + `${slate.poolSize} in window -> ${slate.stage1} by name + ${slate.stage2} by elimination `
-    + `(${slate.contradicted} refused: unread side cannot be that team), `
+    + `(${slate.contradicted} refused: unread side cannot be that team; `
+    + `${slate.lateKickoff} refused: kickoff too far; ${slate.sharedRefused} refused: a shared event's far twin), `
     + `${hit}/${p.games.length} priced -> ${klass}`);
 }
 

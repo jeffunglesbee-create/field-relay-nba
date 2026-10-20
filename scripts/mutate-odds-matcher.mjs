@@ -351,6 +351,52 @@ const MUTATIONS = [
     replace: '    const byTeam = ((g, r) => ({ home: r.home_ml, away: r.away_ml }))(',
     catches: 'a private positional copy of the price read sits where the shared one was' },
 
+  // ── the kickoff refusal and the claim check, 2026-10-19 (docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md)
+  { file: MODULE, check: CHECK, name: 'M58 stage 1 stops refusing a pair a day away',
+    anchor: '    if (beyond(kickoffGapMinutes(g, r.event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }',
+    replace: '',
+    catches: 'the 12 next-day games take the series\' next game again' },
+
+  { file: MODULE, check: CHECK, name: 'M59 stage 2 stops refusing a pair a day away',
+    anchor: '    if (beyond(kickoffGapMinutes(g, event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }',
+    replace: '',
+    catches: 'an elimination a day off is accepted' },
+
+  { file: MODULE, check: CHECK, name: 'M60 a refused game frees its event',
+    anchor: '    claimed.add(r.event.id);\n    if (beyond(kickoffGapMinutes(g, r.event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }',
+    replace: '    if (beyond(kickoffGapMinutes(g, r.event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }\n    claimed.add(r.event.id);',
+    catches: 'another row takes the refused event by elimination: a refusal creates a pair' },
+
+  { file: MODULE, check: CHECK, name: 'M61 a refused game is sent to elimination',
+    anchor: '    if (beyond(kickoffGapMinutes(g, r.event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; continue; }',
+    replace: '    if (beyond(kickoffGapMinutes(g, r.event), KICKOFF_REFUSE_MINUTES)) { lateKickoff++; residual.push(g); continue; }',
+    catches: 'the refused game finds another event at stage 2' },
+
+  { file: MODULE, check: CHECK, name: 'M62 the claim check is dropped',
+    anchor: '    if (claimants.get(r.event.id) > 1\n        && beyond(kickoffGapMinutes(byId.get(gameId), r.event), CONTESTED_KICKOFF_MINUTES)) {',
+    replace: '    if (false) {',
+    catches: 'both doubleheader games keep one event, one of them priced from the other' },
+
+  { file: MODULE, check: CHECK, name: 'M63 the claim check refuses every claimant (the literal option)',
+    anchor: '    if (claimants.get(r.event.id) > 1\n        && beyond(kickoffGapMinutes(byId.get(gameId), r.event), CONTESTED_KICKOFF_MINUTES)) {',
+    replace: '    if (claimants.get(r.event.id) > 1) {',
+    catches: 'the near doubleheader game and all 42 MLS duplicate pairs go unpriced' },
+
+  { file: MODULE, check: CHECK, name: 'M64 a missing kickoff is judged as too far',
+    anchor: 'const beyond = (gap, limit) => gap !== null && Math.abs(gap) > limit;',
+    replace: 'const beyond = (gap, limit) => gap === null || Math.abs(gap) > limit;',
+    catches: 'the MLS copies without a kickoff, and every game the archive has no time for, are refused' },
+
+  { file: MODULE, check: CHECK, name: 'M65 the contested limit is the general one',
+    anchor: 'export const CONTESTED_KICKOFF_MINUTES = 90;',
+    replace: 'export const CONTESTED_KICKOFF_MINUTES = 720;',
+    catches: 'the far doubleheader twin (206-301 min) keeps the event' },
+
+  { file: FILL, check: WIRING, name: 'M66 the fill stops selecting start_time',
+    anchor: '          start_time\n     FROM regular_season_games',
+    replace: '          NULL AS start_time_dropped\n     FROM regular_season_games',
+    catches: 'the kickoff refusal is silently off for every targeted fill' },
+
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
     replace: '// import removed',

@@ -94,10 +94,10 @@ for (const r of rows) {
       out.signs.push(`${tag} | game ${gh}/${ga} | odds_history ${r.home_ml}/${r.away_ml} | ${how} on a ${ori} pairing`);
   }
   if (cls === 'one' || (gap != null && Math.abs(gap) > 90)) {
-    const s = matchSlate([{ id: r.game_id, home: r.a_home, away: r.a_away }],
+    const s = matchSlate([{ id: r.game_id, home: r.a_home, away: r.a_away, start_time: r.start_time }],
       [{ id: 'ev', home_team: r.v_home, away_team: r.v_away, commence_time: r.commence_time }], r.date);
     const m = s.byGameId.get(r.game_id);
-    out.repro.push(`${m ? `PAIRED stage ${m.stage}${m.swapped ? ' swapped' : ''}` : `REFUSED (contradicted ${s.contradicted ?? 'n/a'}, ambiguous ${s.ambiguous}, out of window ${s.droppedOutOfWindow})`} | ${cls} | gap ${gap ?? 'n/a'} | ${r.id} | ${r.a_away} @ ${r.a_home} <- ${r.v_away} @ ${r.v_home}`);
+    out.repro.push(`${m ? `PAIRED stage ${m.stage}${m.swapped ? ' swapped' : ''}` : `REFUSED (contradicted ${s.contradicted ?? 'n/a'}, late kickoff ${s.lateKickoff ?? 'n/a'}, ambiguous ${s.ambiguous}, out of window ${s.droppedOutOfWindow})`} | ${cls} | gap ${gap ?? 'n/a'} | ${r.id} | ${r.a_away} @ ${r.a_home} <- ${r.v_away} @ ${r.v_home}`);
   }
   const key = `${r.snapshot_type}|${r.v_home}|${r.v_away}|${r.commence_time}`;
   byEvent.set(key, [...(byEvent.get(key) || []), `${r.game_id} (${r.a_away} @ ${r.a_home})`]);

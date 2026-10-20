@@ -335,7 +335,9 @@ async function processDate(isoDate, remainingBudgetRef) {
       + `${slate.droppedOutOfWindow} out of window, ${slate.poolSize} in pool -> `
       + `${slate.stage1} paired by name, ${slate.stage2} by elimination, `
       + `${slate.unmatched} unmatched, ${slate.ambiguous} ambiguous, `
-      + `${slate.contradicted} refused because the unread side could not be that team`);
+      + `${slate.contradicted} refused because the unread side could not be that team, `
+      + `${slate.lateKickoff} refused for a kickoff too far off, `
+      + `${slate.sharedRefused} refused as a shared event's far twin`);
     for (const g of sportGames) {
       const match = slate.byGameId.get(g.id);
       if (!match) continue;

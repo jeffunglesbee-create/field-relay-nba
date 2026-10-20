@@ -70,6 +70,24 @@ for (const f of CONSUMERS) {
   }
 }
 
+// THE KICKOFF REACHES THE MATCHER (docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md).
+// matchSlate refuses on the archive game's start_time, and a missing instant
+// refuses nothing, so a consumer that stops selecting it turns the rule off
+// without a single failure. The backfill's games come from /context/date, whose
+// payload carries start_time (probed 2026-10-20 through the relay self-probe);
+// the targeted fill selects its own.
+{
+  const f = 'scripts/targeted-odds-fill.mjs';
+  const src = fs.readFileSync(f, 'utf8');
+  /SELECT id, LOWER\(sport\)[^`]*\bstart_time\b[^`]*FROM regular_season_games/.test(src)
+    ? console.log(`  PASS  ${f}: the games it pairs carry start_time`)
+    : (failed++, console.log(`  FAIL  ${f}: the games SELECT drops start_time, so the kickoff refusal never fires`));
+  const cron = fs.readFileSync('.github/scripts/odds-backfill.js', 'utf8');
+  /fetch\(`\$\{RELAY_BASE\}\/context\/date\/\$\{isoDate\}`\)/.test(cron)
+    ? console.log(`  PASS  .github/scripts/odds-backfill.js: its games come from /context/date, which carries start_time`)
+    : (failed++, console.log(`  FAIL  .github/scripts/odds-backfill.js: games no longer come from /context/date; re-probe start_time`));
+}
+
 // THE PROVIDER READING MUST SURVIVE A FAILING VERDICT. The first live run of
 // this watcher exited at the pairing FAIL before it ever recorded the day's
 // spend — and a failing day is exactly the one whose cost you want. Same shape
