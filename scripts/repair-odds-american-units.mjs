@@ -4,7 +4,8 @@
 // damaged. It WRITES NOTHING. It prints transactions, which are sent to D1 one
 // call each, and the reads that show what they would touch and what they did.
 //
-//   node scripts/repair-odds-american-units.mjs --batches            how many
+//   node scripts/repair-odds-american-units.mjs --apply-sql          THE transaction sent to D1
+//   node scripts/repair-odds-american-units.mjs --batches            how many (the oracle)
 //   node scripts/repair-odds-american-units.mjs --batch=N            one transaction
 //   node scripts/repair-odds-american-units.mjs --preview            guard matches today
 //   node scripts/repair-odds-american-units.mjs --verify             the state after
@@ -104,6 +105,48 @@ function statements(p) {
     + `${text(`decimal ${dec.home}/${dec.away}${dec.draw == null ? '' : `/${dec.draw}`}: the fill had asked for American odds (${DOC})`)} `
     + `FROM odds_history WHERE ${ohGuard};`);
   out.push(`UPDATE odds_history SET home_ml = ${num(dec.home)}, away_ml = ${num(dec.away)}, draw_ml = ${isv(dec.draw)} WHERE ${ohGuard};`);
+  return out;
+}
+
+/** THE FORM SENT TO D1: one transaction of six set-based statements, every
+ *  value computed in SQL from the row itself. 1,266 literal statements (the
+ *  batches below) would have to be carried into the D1 call by hand, and a
+ *  hand-carried copy is not the generator's output; the repository's
+ *  Cloudflare token cannot write D1 (7403) and /d1/execute takes one
+ *  statement, so a runner cannot send them either. The batches stay as the
+ *  ORACLE: the self-test runs both forms on the 211 real rows and requires
+ *  the same end state, row for row.
+ *  Positional prices equal by-team prices here because all 211 pairs are
+ *  straight (asserted in the self-test); the blobs go first because their
+ *  guard reads the row's American values, which the last statement converts. */
+export function setBased() {
+  const T = `oh.id LIKE '%\\_targeted' ESCAPE '\\'`;
+  const amer = (c) => `ABS(oh.${c}) >= 100`;
+  const bad = (c) => `(CASE WHEN oh.${c} > 1 THEN CAST(ROUND((oh.${c} - 1) * 100) AS INTEGER) END)`;
+  const int = (c) => `CAST(oh.${c} AS INTEGER)`;
+  const guard = (f) => `${T} AND oh.game_id = g.id AND ${amer('home_ml')} AND ${amer('away_ml')} AND (oh.draw_ml IS NULL OR ${amer('draw_ml')})`
+    + ` AND json_extract(g.${f}, '$.captured_at') = oh.snapshot_time`
+    + ` AND json_extract(g.${f}, '$.moneyline.home') IS ${bad('home_ml')} AND json_extract(g.${f}, '$.moneyline.away') IS ${bad('away_ml')}`
+    + ` AND (oh.draw_ml IS NULL OR json_extract(g.${f}, '$.moneyline.draw') IS ${bad('draw_ml')})`;
+  const blob = (f) => `(CASE WHEN oh.draw_ml IS NULL`
+    + ` THEN json_set(g.${f}, '$.moneyline.home', ${int('home_ml')}, '$.moneyline.away', ${int('away_ml')})`
+    + ` ELSE json_set(g.${f}, '$.moneyline.home', ${int('home_ml')}, '$.moneyline.away', ${int('away_ml')}, '$.moneyline.draw', ${int('draw_ml')}) END)`;
+  const dec = (c) => `(CASE WHEN ${c} > 0 THEN 1 + ${c} / 100.0 ELSE 1 + 100.0 / -${c} END)`;
+  const ohGuard = `id LIKE '%\\_targeted' ESCAPE '\\' AND ABS(home_ml) >= 100 AND ABS(away_ml) >= 100 AND (draw_ml IS NULL OR ABS(draw_ml) >= 100)`;
+  const out = [];
+  for (const f of FIELDS) {
+    out.push(`INSERT INTO change_log (game_id, source, field, old_value, new_value) `
+      + `SELECT g.id, ${text(SOURCE)}, ${text(f)}, g.${f}, ${blob(f)} FROM regular_season_games g JOIN odds_history oh ON ${guard(f)};`);
+    out.push(`UPDATE regular_season_games AS g SET ${f} = (SELECT ${blob(f)} FROM odds_history oh WHERE ${guard(f)}) `
+      + `WHERE EXISTS (SELECT 1 FROM odds_history oh WHERE ${guard(f)});`);
+  }
+  out.push(`INSERT INTO change_log (game_id, source, field, old_value, new_value) `
+    + `SELECT game_id, ${text(SOURCE)}, 'odds_history_units', `
+    + `json_object('id', id, 'home_ml', home_ml, 'away_ml', away_ml, 'draw_ml', draw_ml), `
+    + `json_object('home_ml', ${dec('home_ml')}, 'away_ml', ${dec('away_ml')}, 'draw_ml', CASE WHEN draw_ml IS NULL THEN NULL ELSE ${dec('draw_ml')} END, `
+    + `'why', ${text(`the fill had asked for American odds (${DOC})`)}) FROM odds_history WHERE ${ohGuard};`);
+  out.push(`UPDATE odds_history SET home_ml = ${dec('home_ml')}, away_ml = ${dec('away_ml')}, `
+    + `draw_ml = CASE WHEN draw_ml IS NULL THEN NULL ELSE ${dec('draw_ml')} END WHERE ${ohGuard};`);
   return out;
 }
 
@@ -226,10 +269,19 @@ async function engine(t, rows, ps, B) {
   const db = seed();
   // Two states the plan must leave alone: a blob another writer replaced after
   // the export, and a blob already NULL.
-  const moved = rows[5], nulled = rows[7];
+  // Three states the plan must leave alone: a blob another writer replaced
+  // after the export, a blob already NULL, and a blob that already holds the
+  // right prices under the row's own captured_at (only the value guard tells
+  // that one apart; without the guard it would be rewritten and logged).
+  const moved = rows[5], nulled = rows[7], fixed = rows[9];
   const other = JSON.stringify({ source: 'draftkings', captured_at: '2026-10-20T00:00:00.000Z', moneyline: { home: -150, away: 130 } });
-  db.prepare('UPDATE regular_season_games SET opening_odds = ? WHERE id = ?').run(other, moved.game_id);
-  db.prepare('UPDATE regular_season_games SET closing_odds = NULL WHERE id = ?').run(nulled.game_id);
+  const right = JSON.stringify({ ...JSON.parse(blob(fixed)), moneyline: { home: fixed.home_ml, away: fixed.away_ml } });
+  const keep = (d) => {
+    d.prepare('UPDATE regular_season_games SET opening_odds = ? WHERE id = ?').run(other, moved.game_id);
+    d.prepare('UPDATE regular_season_games SET closing_odds = NULL WHERE id = ?').run(nulled.game_id);
+    d.prepare('UPDATE regular_season_games SET opening_odds = ? WHERE id = ?').run(right, fixed.game_id);
+  };
+  keep(db);
 
   const errs = B.map(b => run(db, b.join('\n'))).filter(Boolean);
   t(errs.length === 0, `all ${B.length} transactions run in SQLite${errs.length ? ` (${errs[0]})` : ''}`);
@@ -257,7 +309,8 @@ async function engine(t, rows, ps, B) {
   t(game(db, moved.game_id).o === other, 'a blob another writer replaced since the export is untouched');
   t(game(db, nulled.game_id).c === null, 'a blob already NULL stays NULL (the sync refills it from the decimal row)');
   const L = db.prepare('SELECT field, old_value, new_value FROM change_log ORDER BY id').all();
-  t(L.length === 420 + 211, `${L.length} change_log rows, ${420 + 211} expected (one per write that matched)`);
+  t(game(db, fixed.game_id).o === right, 'a blob already holding the right prices under the same captured_at is not rewritten');
+  t(L.length === 419 + 211, `${L.length} change_log rows, ${419 + 211} expected (one per write that matched)`);
   t(L.filter(x => x.field !== 'odds_history_units').every(x => JSON.parse(x.old_value).moneyline && JSON.parse(x.new_value).moneyline),
     'every blob change_log row carries the blob it replaced and the blob it wrote');
   t(L.filter(x => x.field === 'odds_history_units').every(x => Math.abs(JSON.parse(x.old_value).home_ml) >= 100),
@@ -265,6 +318,25 @@ async function engine(t, rows, ps, B) {
   const before = nlogs(db);
   const again = B.map(b => run(db, b.join('\n'))).filter(Boolean);
   t(again.length === 0 && nlogs(db) === before, 'a second run changes nothing and logs nothing');
+  // THE FORM SENT TO D1 AGAINST THE ORACLE. The same seed, the same two
+  // states to leave alone, the set-based transaction instead of the batches:
+  // every row of both tables must come out identical.
+  {
+    const dbS = seed();
+    keep(dbS);
+    const err = run(dbS, setBased().join('\n'));
+    t(err === null, `the set-based transaction runs in SQLite${err ? ` (${err})` : ''}`);
+    const dump = (d, q) => JSON.stringify(d.prepare(q).all());
+    const G = 'SELECT id, opening_odds, closing_odds FROM regular_season_games ORDER BY id';
+    const H = 'SELECT id, home_ml, away_ml, draw_ml FROM odds_history ORDER BY id';
+    t(dump(dbS, G) === dump(db, G), 'the set-based form leaves every game blob exactly as the 1,266-statement oracle does (byte-equal)');
+    t(dump(dbS, H) === dump(db, H), 'and every history row exactly as the oracle does (bit-equal doubles)');
+    const L = (d) => JSON.stringify(d.prepare('SELECT game_id, field, old_value FROM change_log ORDER BY game_id, field').all());
+    t(L(dbS) === L(db), `and the same ${nlogs(dbS)} change_log rows, each with the value it replaced`);
+    const n0 = nlogs(dbS);
+    const again2 = run(dbS, setBased().join('\n'));
+    t(again2 === null && nlogs(dbS) === n0 && dump(dbS, G) === dump(db, G), 'a second set-based run changes nothing and logs nothing');
+  }
   // The two reads sent to D1 around the write, run here on a clean copy: the
   // preview must equal its expectation on the seeded state, and the verify must
   // FAIL there and pass after the batches.
@@ -291,9 +363,10 @@ async function engine(t, rows, ps, B) {
 const arg = (k) => process.argv.find(a => a.startsWith(`--${k}=`))?.split('=')[1];
 if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv.includes('--self-test')) await selfTest();
+  else if (process.argv.includes('--apply-sql')) console.log(setBased().join('\n'));
   else if (process.argv.includes('--batches')) console.log(batches().length);
   else if (arg('batch')) { const b = batches()[Number(arg('batch')) - 1]; if (!b) { console.error('no such batch'); process.exit(2); } console.log(b.join('\n')); }
   else if (process.argv.includes('--preview')) { const v = preview(); console.log(`-- expect ${JSON.stringify(v.expect)}\n${v.sql}`); }
   else if (process.argv.includes('--verify')) { const v = verify(); console.log(`-- expect ${JSON.stringify(v.expect)}\n${v.sql}`); }
-  else { console.error('usage: --batches | --batch=N | --preview | --verify | --self-test'); process.exit(2); }
+  else { console.error('usage: --apply-sql | --batches | --batch=N | --preview | --verify | --self-test'); process.exit(2); }
 }
