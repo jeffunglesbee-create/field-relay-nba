@@ -54,10 +54,13 @@ commits before the push; `95a94ec8`'s message still names the pre-rebase SHAs
      - closing_odds NULL on `e401817001`, `002`, `004`, `035`, `907992`;
      - the other 10 closing blobs and all 15 opening blobs (other writers)
        unchanged.
-   - **Left by design: one scheduled read.** The 2026-10-20 10:00Z backfill
-     must print the new refusal fields on every pairing line, and the 20 rows
-     above must still be gone or NULL. A check-in at 10:45Z reads both
-     (`trig_01AL8GxWydReokRR4AZvgqux`).
+   - **The scheduled read, 2026-10-20** (backfill run 39442651905 at `2631dd4e`, success,
+     started 14:48:47Z; the 10:45Z check-in fired before it and was re-armed).
+     - **PASS, the counters:** every pairing line carries the new fields, e.g.
+       `2026-10-19 icehockey_nhl: 15 event(s), 6 out of window, 9 in pool -> 4 paired by name, 0 by elimination, 0 unmatched, 0 ambiguous, 0 refused because the unread side could not be that team, 0 refused for a kickoff too far off, 0 refused as a shared event's far twin; kickoff judged on 4 of 4 pairs`.
+       The same holds on all 7 lines (NHL, MLB, WNBA, EPL, La Liga, Serie A, NFL).
+     - **PASS, the repair holds:** the 15 deleted history rows are still absent,
+       and the 5 NULLed closing_odds are still NULL.
 4. **Deploy:** run 39357014311 (Deploy RELAY Worker) on `8cf7f818`, success.
    It carries every code change. Repo guards run 39357014287, also success.
    Before the push, every `run:` step of deploy.yml (up to the Cloudflare

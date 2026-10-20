@@ -64,9 +64,17 @@ SELECT and the 7 aggregates rechecked in D1.
      | NHL e401892470 | NULL | NULL | 0 | 3 |
      | NHL e401892485 | NULL | NULL | 0 | 3 |
 
-   - **Left by design: one scheduled read.** The 2026-10-20 10:00Z backfill
-     must write `e401856802` by team: home (Virginia) −1667, away (West Virginia)
-     +870. A check-in for 10:45Z reads it (see below).
+   - **The scheduled read, 2026-10-20** (backfill run 39442651905 at `2631dd4e`, success). GitHub
+     started the 10:00Z cron at 14:48:47Z; the 10:45Z check-in fired before it and was
+     re-armed.
+     - **PASS, WVU.** The sync wrote `e401856802` by team at 14:49:01Z (change_log
+       `odds_backfill`, opening and closing). Both blobs read home (Virginia) −1667,
+       away (West Virginia) +870, captured_at 2026-09-19T23:55:18Z. Its history row
+       is West Virginia 9.7, Virginia 1.06 in vendor orientation.
+     - **The sync's line:** `0 game(s) skipped because the pairing's direction
+       could not be read from the team names`.
+     - **The repairs hold:** the 11 deleted history rows are still absent, and of
+       the 12 NULLed columns only WVU's 2 were refilled, from its kept row.
 4. **Deploy:** run 39333288089 (Deploy RELAY Worker) on `7d7372dd`, success,
    which carries both code changes. Repo guards run 39333288118 also success.
    Before the push, every `run:` step of deploy.yml (up to the Cloudflare deploy)

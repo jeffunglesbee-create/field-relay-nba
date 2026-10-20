@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** DISPATCHED 2026-10-20. TASKs 0-2 done and the repair applied; see Results. One scheduled read left (2026-10-20 10:45Z), then DONE. Rulings: TASK 1 (c) both (2026-10-19), claim check "only the far twin" and TASK 2 repair approved (2026-10-20).
+**Status:** DONE 2026-10-20. TASKs 0-2 done, the repair applied, and the scheduled read PASSED; see Results. Rulings: TASK 1 (c) both (2026-10-19), claim check "only the far twin" and TASK 2 repair approved (2026-10-20).
 **Filed by:** CC, from the TASK 0 census of
 `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md` (Rule 87.4). That document
 asked whether stage 2 is the only path to a wrong pair. It is not.
@@ -190,9 +190,10 @@ written from the row, with a `change_log` row each.
     blobs NULL; the other 10 closings and all 15 openings unchanged (proof
     log §7.3).
 - **Repair checks under mutation:** 12 of 12 caught (proof log §6b).
-- **One scheduled read:** the 10:00Z backfill must print the refusal fields
-  on every pairing line, and the 20 rows must still be gone or NULL. The
-  10:45Z check-in reads both, then sets this document DONE.
+- **The scheduled read, PASS** (backfill run 39442651905, 2026-10-20 14:48Z):
+  - all 7 pairing lines carry `... refused for a kickoff too far off, ... refused
+    as a shared event's far twin; kickoff judged on N of M pairs`;
+  - the 15 deleted rows are still absent, and the 5 NULLed closings are still NULL.
 
 Proof: `outbox/odds-stage1-wrong-game-2026-10-20.log`. Session doc:
 `outbox/cc-session-2026-10-20-stage1-wrong-game.md`.

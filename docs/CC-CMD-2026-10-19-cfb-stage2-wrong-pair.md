@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** DISPATCHED 2026-10-19. TASKs 0-2 done; TASK 3 ruled (sync mode) and applied; one scheduled read left (see Results)
+**Status:** DONE 2026-10-20. TASKs 0-2 done; TASK 3 ruled (sync mode), applied, and its scheduled read PASSED (see Results)
 **Filed by:** CC, while recording the CFB done condition of
 `outbox/cc-session-2026-09-16d-odds-attribution-and-watches.md` §7.6 (Rule
 87.4). That record found the production pairing exercised on 19 CFB dates,
@@ -229,4 +229,11 @@ statements, change_log ids 22914-22936.
   Table in the session doc.
 - **The 2026-10-19 first form of the SQL would not have parsed** (an unescaped
   apostrophe). It was caught before sending; see the session doc.
-
+- **The scheduled read, PASS** (backfill run 39442651905, 2026-10-20 14:48Z; GitHub
+  starts the 10:00Z cron hours late):
+  - the sync wrote `e401856802` by team at 14:49:01Z, both blobs home
+    (Virginia) −1667 and away (West Virginia) +870, captured_at
+    2026-09-19T23:55:18Z;
+  - the sync skipped 0 games as unoriented;
+  - the 11 deleted rows are still absent, and only WVU's 2 NULLed columns
+    were refilled.
