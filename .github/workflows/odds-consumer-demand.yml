@@ -1,0 +1,57 @@
+name: Odds per-consumer demand (read-only)
+
+# CC-CMD-2026-09-16-odds-spend-attribution Task 2: what each odds consumer NEEDS,
+# next to what it was charged and what the vendor's receipts kept, per day, for
+# the last N closed UTC days. Sandbox egress to the relay is blocked, so the
+# measurement runs here, the same CI-as-proxy route as odds-demand.yml.
+#
+# READ-ONLY. The script refuses any SQL that is not a SELECT, and calls no vendor.
+# Dispatch-only: Task 3 (a ceiling) decides whether this needs a schedule.
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'How many closed UTC days to measure.'
+        required: false
+        default: '7'
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Rule 90: the models are tested on fixtures, and each test is shown to
+      # fail when the thing it guards is broken, before the real read runs.
+      - name: The models can fail
+        run: |
+          node scripts/measure-odds-consumer-demand.mjs --self-test
+          node scripts/measure-odds-consumer-demand.mjs --mutate
+
+      # pipefail is load-bearing: without it the step's exit code is the last
+      # tee's, and a failed measurement would commit under a green tick
+      # (odds-demand.yml, run 35012890540). 2>&1 puts a thrown error's reason
+      # into the committed log, not only into the job output.
+      - name: Measure
+        shell: bash
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          set -o pipefail
+          node scripts/measure-odds-consumer-demand.mjs --days=${{ inputs.days || '7' }} 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/odds-consumer-demand-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="odds-consumer-demand" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: odds per-consumer demand"

@@ -56,7 +56,11 @@ import { blankCommentsAndStrings } from './lib/blank-comments.mjs';
 // whether a PATH resolves (401) or does not (404). Neither answer is billable,
 // so there is no credit for a guard to charge. It is dispatch-only and is the
 // run that established /odds-live is a 404.
-// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs
+// scripts/measure-odds-consumer-demand.mjs QUOTES each consumer's URL statement
+// as a source anchor, so it can price that consumer's demand with
+// oddsCreditCost. It calls no vendor: its only fetch is the relay's
+// /d1/execute, read-only (CC-CMD-2026-09-16 Task 2).
+// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs scripts/measure-odds-consumer-demand.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
 // A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds was
