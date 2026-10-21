@@ -1,5 +1,37 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-21
+
+**HEAD:** `1747982` → `fdb3c640` · **Branch:** main
+
+Everything from `1747982` to here. The seven sections below this one, from
+"2026-10-19 (later)" to "2026-10-20 (afternoon)", record the work. They are
+dated sections, not close-outs, so `check-handoff-current.mjs` still read the
+2026-10-19 close-out as the newest. Guards went red on `6ea76d9b` (run
+39656960732) when the 10-21 commits passed its one-day grace. This close-out
+covers that lag, plus what those sections do not:
+
+- **The odds daily reads of 10-20 and 10-21** (`8b0489ab`, `6ea76d9b`):
+  - the vendor watch read `tracks-the-bill` for 10-19 (residual +21) and
+    `we-overcharge-ourselves` for 10-20 (residual −86, tolerance 50);
+  - two checkers re-derived each verdict, and neither is the breach;
+  - most of 10-20's over-record is on handleCFLOddsProbs: 192 credits charged
+    with no receipt, the anomaly already filed and held.
+  The 10-21 read corrects the 10-20 one, which dropped the unblocked
+  per-consumer demand thread without giving a reason.
+- **Filed, not dispatched:**
+  - `docs/CC-CMD-2026-10-21-pairing-watch-names-closed-day-degrade-cause.md`.
+    The pairing watch prints a false "predates the reason histogram" across
+    midnight, and the closed day's degrade cause (one D1 network loss, 3
+    credits) is in no committed artifact.
+  - `docs/CC-CMD-2026-10-20-context-game-caches-partial-answers.md` and
+    `docs/CC-CMD-2026-10-20-context-game-scans-17k-rows-per-answer.md`
+    (`3703e450`, `f5659138`), from jubilant-bassoon's debrief-cache work.
+- **CONTRACTS.md** documents `/context/game`'s `_errors` partial-answer
+  marker, and is byte-identical in both repos again (`2737179a`).
+- `verify: tennis draw route` (`7226bde6`, `9ff68698`) are another session's
+  scheduled runs. They are not described here.
+
 ## 2026-10-20 (afternoon) — odds_history is one unit again, and 422 blobs are repaired
 
 `docs/CC-CMD-2026-10-19-odds-history-american-converted-twice.md` is **DONE**,
