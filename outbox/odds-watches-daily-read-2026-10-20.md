@@ -69,6 +69,11 @@ step is that cumulative sum, and every day that grew it predates the fix.
 
 ## Open threads
 
+**CORRECTED 2026-10-21:** the sentence below is wrong for per-consumer
+demand (CC-CMD-2026-09-16 Task 2). It was unblocked and not built, as the
+10-16 to 10-19 reads say, and this read dropped it with no reason given. See
+`odds-watches-daily-read-2026-10-21.md`.
+
 None is unblocked today. The next gate is the 2026-10-25T06:30Z CFL-day read
 (see Watch 1). The targeted fill still needs the owner's approval to spend. No
 credits were spent.
