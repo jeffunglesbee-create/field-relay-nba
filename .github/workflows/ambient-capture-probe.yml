@@ -1,0 +1,53 @@
+name: AmbientDO closing-capture probe (read-only)
+
+# docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md TASK 0. It
+# watches AmbientDO through a live game window and records, on a clock:
+#   - /ambient/state every 30 s: sportCount, clientCount, lastPoll, how many
+#     entries read 'live', and the watched games' state;
+#   - /budget/odds every 60 s: ambientCaptureClosingOdds charged so far today,
+#     and its reconcile rows. Both routes call no billed vendor endpoint
+#     (/budget/odds asks /v4/sports, which costs 0 credits);
+#   - wrangler tail (JSON) for the whole window, kept raw, so every AmbientDO
+#     alarm, its outcome and any exception are on file.
+# It changes nothing and spends no credits. The log and the raw tail are
+# committed to outbox/.
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'How long to watch, in minutes (max 300).'
+        required: false
+        default: '75'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 320
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Watch
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MINUTES: ${{ inputs.minutes || '75' }}
+        run: |
+          set -o pipefail
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          echo "TS=$TS" >> "$GITHUB_ENV"
+          node scripts/probe-ambient-capture.mjs --minutes="$MINUTES" --ts="$TS" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="ambient-capture-probe" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: ambient closing-capture probe"
