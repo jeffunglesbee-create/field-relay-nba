@@ -1,5 +1,32 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-21 (late) — what each odds consumer needs
+
+**HEAD:** `fdb3c640` → `d9ba2dbe` · **Branch:** main
+
+`docs/CC-CMD-2026-09-16-odds-spend-attribution.md`: Tasks 1 and 2 are **DONE**.
+Task 3 (ceilings) is unblocked and not dispatched.
+
+- **The measurement.** `scripts/measure-odds-consumer-demand.mjs` (dispatch:
+  `odds-consumer-demand.yml`) prints, per consumer and closed UTC day:
+  - a demand computed without any spend counter;
+  - beside it, charged (`odds_budget_site`) and kept (the reconcile tally),
+    with both ratios.
+  Self-test 26 cases; 20 of 20 mutations caught.
+- **First artifact:** `outbox/odds-consumer-demand-20261021T224035Z.log` (run
+  39688177856), for 10-14..10-20. The modelled total is 1,323 demand against
+  14,349 charged and 10,082 kept, which is 10.8x.
+  - closing capture: 300 vs 5,361 kept, 17.9x and real vendor spend;
+  - CFL: 12 vs 4,746 charged, 576 kept;
+  - the opening-line cron: 141 vs 2,514, 17.8x;
+  - historical: 870 vs 1,620, plus 570 unwritable;
+  - live polling, if it were turned back on: about 2,966 a day.
+- **Filed:**
+  - `docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`
+  - `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`
+
+Session doc: outbox/cc-session-2026-10-21-per-consumer-demand.md
+
 ## SESSION CLOSE-OUT — 2026-10-21
 
 **HEAD:** `1747982` → `fdb3c640` · **Branch:** main

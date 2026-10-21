@@ -1,6 +1,8 @@
 # CC-CMD 2026-09-16 — attribute odds spend before changing any ceiling
 
-Status: SPEC. Nothing here is implemented.
+Status: **Tasks 1 and 2 DONE** (2026-10-21). Task 3 is unblocked and not
+dispatched: it is the owner's call. Results are under "Results" at the end.
+Session doc: `outbox/cc-session-2026-10-21-per-consumer-demand.md`.
 Supersedes the demand-derived-ceiling proposal made earlier the same day, which
 this document's own probe block refutes.
 
@@ -98,3 +100,63 @@ change.
   is suggestive; two readings inside one month cannot show a reset.
 - Three call sites return `null`/`undefined` on refusal rather than a
   structured `guarded` result.
+
+## Results
+
+### Task 1 — DONE (recorded 2026-10-21)
+
+- **The work:**
+  - `71433fee` (2026-09-16) gave the ledger its site dimension.
+  - `5edb19ad` (2026-09-19) moved it to D1, charging the day and the site in
+    one transaction.
+- **First pass:** `outbox/odds-attribution-gap-20260921T155444Z.log` (commit
+  `4f0c86c5`), day 2026-09-20. `used 3800`, `by_site_sum 3800`,
+  `unaccounted 0`, on a day with live games (MLB 15, NFL 14, MLS 11, and
+  others).
+- Every attribution-gap log since has passed. Since `5edb19ad` this done
+  condition cannot fail, because day and site are written in one batch.
+
+### Task 2 — DONE 2026-10-21
+
+**Artifact:** `outbox/odds-consumer-demand-20261021T224035Z.log`, run
+39688177856, from `scripts/measure-odds-consumer-demand.mjs` via
+`.github/workflows/odds-consumer-demand.yml`. It covers worker demand per day
+for 2026-10-14..10-20, beside charged and kept spend, with the ratio stated:
+
+| consumer | demand | charged | kept | charged/demand |
+|---|---|---|---|---|
+| ambientCaptureClosingOdds | 300 | 5361 | 5361 | 17.9x |
+| handleCFLOddsProbs | 12 | 4746 | 576 | 395.5x |
+| fetchSportOddsLive | 141 | 2514 | 2517 | 17.8x |
+| fetchSportOddsHistorical | 870 | 1620 | 1620 | 1.9x |
+| getWCPregameLambdas | 0 | 108 | 8 | spend, no need |
+| handleWCOddsProbs, oddsProxyRoute | 0 | 0 | 0 | both 0 |
+| wpResolver | UNKNOWN | 0 | 0 | — |
+| **modelled total** | **1323** | **14349** | **10082** | **10.8x** |
+
+Two figures are printed outside that total:
+- **fetchSportOddsHistorical, "unwritable":** 570 credits. The join cannot
+  write those units' closing lines.
+- **ambientFetchLiveOdds, if it were served:** 20,760 credits over 7 days,
+  2,966 a day. The path is off (`ODDS_LIVE_PATH_404`).
+
+**What this means for Task 3:**
+- **The spec's premise has changed.** "98.9% is worker-side live polling"
+  was true on 09-16. Today live polling is switched off.
+- **Where the spend goes now:**
+  - CFL's charged-but-never-billed estimates (4,746 charged, 576 kept);
+  - a closing capture that bills about 18 times its need (5,361 kept);
+  - an opening-line cron at 17.8x.
+- **A ceiling set from today's spend** would encode those defects rather than
+  need.
+- **Turning live polling back on** needs about 3,000 credits a day on its own,
+  against a 3,800 ceiling.
+
+**Filed from this work (Rule 87.4):**
+- `docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`
+- `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`
+
+**Why each model has the shape it has:**
+- The models were mapped and attacked before any code was written (Rule 100).
+- A four-lens review then confirmed 15 findings, all fixed before the push.
+- All of it is recorded in the session doc.
