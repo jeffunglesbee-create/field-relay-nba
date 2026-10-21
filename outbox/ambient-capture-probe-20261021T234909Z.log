@@ -1,0 +1,17 @@
+=== AmbientDO closing-capture probe  utc=2026-10-21T23:49:09.065Z  window=4 min ===
+  first /ambient/state: 28870 bytes, sportCount 665, live 207, clients 34
+  23:49:09  capture charged     6 (+)   reconciled calls    2 (+)   fresh-live 0   sportCount 665   lastPoll 23:49:02
+  23:50:10  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 665   lastPoll 23:50:05
+  23:51:11  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 665   lastPoll 23:51:07
+  23:52:13  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 665   lastPoll 23:52:09
+
+── games first seen live in the window
+  none
+
+── AmbientDO entries: sportCount min 665 max 665 over 8 readings
+── tail: 53853 events, 2 kept to outbox/ambient-capture-tail-20261021T234909Z.jsonl, 0 with exceptions, outcomes {"unparsed":2}
+
+COVERAGE: 8 readings of /ambient/state at 30 s, 4 of /budget/odds at 60 s,
+over 4 minutes. Calls per minute are differences of the reconcile count, so a minute
+straddling UTC midnight reads as a reset, not a negative. The tail keeps only events matching
+/alarm|AmbientDO|closing-odds|odds-reconcile|odds credit|Durable Object|storage|exceeded|too large/i or carrying an exception; everything else is counted and dropped.
