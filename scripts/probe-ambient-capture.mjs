@@ -43,7 +43,10 @@ const getJson = async (path) => {
 // ── the tail ────────────────────────────────────────────────────────────────
 const KEEP = /alarm|AmbientDO|closing-odds|odds-reconcile|odds credit|Durable Object|storage|exceeded|too large/i;
 const tailOut = createWriteStream(TAIL);
-const tally = { events: 0, kept: 0, outcomes: {}, exceptions: 0, by: {} };
+const tally = { events: 0, kept: 0, unparsed: 0, outcomes: {}, exceptions: 0, by: {} };
+// A count that has not started is 0 here because the key is checked, not
+// because an absent value is read as one.
+const inc = (o, k) => { o[k] = (k in o ? o[k] : 0) + 1; };
 let tail = null;
 if (process.env.CLOUDFLARE_API_TOKEN) {
   tail = spawn('npx', ['--yes', 'wrangler@3.109.0', 'tail', 'field-relay-nba', '--format', 'json'], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -57,16 +60,16 @@ if (process.env.CLOUDFLARE_API_TOKEN) {
     const text = buf.join('\n'); buf = null;
     tally.events++;
     let ev;
-    try { ev = JSON.parse(text); } catch (_) { tally.unparsed = (tally.unparsed || 0) + 1; return; }
+    try { ev = JSON.parse(text); } catch (_) { tally.unparsed++; return; }
     const who = `${ev.entrypoint ?? 'worker'}:${Object.keys(ev.event ?? {}).join('+') || 'none'}`;
-    tally.by[who] = (tally.by[who] || 0) + 1;
+    inc(tally.by, who);
     const exc = Array.isArray(ev.exceptions) && ev.exceptions.length > 0;
     if (exc) tally.exceptions++;
     const flat = JSON.stringify(ev);
     if (!exc && ev.entrypoint !== 'AmbientDO' && !KEEP.test(flat)) return;
     tally.kept++;
     const o = ev.outcome ?? 'none';
-    tally.outcomes[o] = (tally.outcomes[o] || 0) + 1;
+    inc(tally.outcomes, o);
     tailOut.write(flat + '\n');
   });
   tail.stderr.on('data', d => { const s = String(d); if (/error|fail/i.test(s)) say(`  tail stderr: ${s.trim().slice(0, 300)}`); });
@@ -126,7 +129,7 @@ if (!seen.size) say('  none');
 for (const [id, e] of seen) say(`  ${id}  ${e.sport}  ${e.game}  live ${e.first}..${e.last} over ${e.readings} readings  last ${e.score}`);
 const counts = series.map(x => x.sportCount);
 say(`\n── AmbientDO entries: sportCount min ${Math.min(...counts)} max ${Math.max(...counts)} over ${series.length} readings`);
-say(`── tail: ${tally.events} events (${tally.unparsed ?? 0} unparsed), ${tally.kept} kept to ${TAIL}, ${tally.exceptions} with exceptions, outcomes ${JSON.stringify(tally.outcomes)}`);
+say(`── tail: ${tally.events} events (${tally.unparsed} unparsed), ${tally.kept} kept to ${TAIL}, ${tally.exceptions} with exceptions, outcomes ${JSON.stringify(tally.outcomes)}`);
 say(`   by entrypoint:event  ${JSON.stringify(Object.entries(tally.by).sort((a, b) => b[1] - a[1]).slice(0, 12))}`);
 say(`\nCOVERAGE: ${series.length} readings of /ambient/state at 30 s, ${Math.ceil(series.length / 2)} of /budget/odds at 60 s,`);
 say(`over ${MINUTES} minutes. Calls per minute are differences of the reconcile count, so a minute`);
