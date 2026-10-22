@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — **no model change, no retraining, no new upstream call**
-**Status:** TASKS 1, 2, 3 AND 5 DONE 2026-10-11. **STOPPED AT TASK 4** by this
+**Status:** **STOPPED AT TASK 4**; TASKS 1, 2, 3 AND 5 DONE 2026-10-11. Stopped by this
 document's own stop condition: *"If the Task 4 conservation check does not
 close, STOP and report the residual."* Artifact:
 `outbox/nhl-wpa-conservation-latest.json` (run 38119842995, 28 games, 31 calls

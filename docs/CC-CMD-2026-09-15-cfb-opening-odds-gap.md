@@ -1,6 +1,6 @@
 # CC-CMD-2026-09-15 — 177 CFB games since 2026-09-01 have no odds at all
 
-**Status:** **CAUSE FOUND 2026-09-15.** Premises 1 and 2 both refuted the
+**Status:** **DONE — cause found 2026-09-15; "Done condition — MET" below.** Premises 1 and 2 both refuted the
 framing they were written in. Split out of
 `CC-CMD-2026-09-15-odds-backfill-missing-api-key` Task 3 under Rule 87.4.
 

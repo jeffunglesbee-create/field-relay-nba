@@ -3,7 +3,7 @@
 **Filed by:** field-laboratory
 **Severity:** low — reporting only. The live alert predicate is already correct.
 **Type:** measurement + a naming change. No scoring behaviour changes.
-**Status:** falsifying test ANSWERED before filing — see the section below. The
+**Status:** OPEN — falsifying test ANSWERED before filing — see the section below. The
 recommendation survived it. One sub-question remains open for D1.
 
 ## The finding, in one line
