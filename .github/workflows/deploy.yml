@@ -327,6 +327,15 @@ jobs:
           node scripts/check-ambient-capture-write.mjs
           node scripts/check-ambient-capture-write.mjs --mutate
 
+      # docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md, review finding
+      # G4. AmbientDO polls /v2/games around the clock, and the NHL and NBA
+      # brief pipelines dedup on a one-hour KV key, so its poll would buy a new
+      # LLM brief for every final it keeps reading, every hour.
+      - name: AmbientDO's poll does not start the NHL and NBA brief pipelines
+        run: |
+          node scripts/check-v2-games-ambient-no-briefs.mjs
+          node scripts/check-v2-games-ambient-no-briefs.mjs --mutate
+
       - name: /context/game refuses an id it cannot resolve
         run: node scripts/check-context-game-id-forms.mjs
 

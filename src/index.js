@@ -4404,13 +4404,23 @@ async function buildAFLJournalismContext(games, round, year, env) {
 
 // `request` is optional and defaults to null: the internal fan-out caller at
 // /debug/recent-requests synthesises a URL and has no Request to pass. It is
-// used only to read the X-FIELD-Relay header that gates _forcePrimaryFail, so
-// a null request simply means that switch can never fire -- which is the
-// correct behaviour for an internal caller.
+// read for two headers: X-FIELD-Relay, which gates _forcePrimaryFail, and
+// X-Ambient-Internal, below. A null request means neither applies -- which is
+// the correct behaviour for an internal caller.
 async function handleV2Games(url, env, ctx, request = null) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
     const cfg   = V2_LEAGUES[sport];
+    // AmbientDO's poll (src/ambient-do.js _fetchSport) sends this header, and
+    // it runs every 15-60 s whether or not anyone is watching. It must not
+    // start the NHL and NBA brief pipelines below: their dedup is the brief's
+    // KV key, which lives one hour, so a final the poll keeps reading would get
+    // a new LLM brief every hour (docs/CC-CMD-2026-10-22-ambient-capture-
+    // coverage-gaps.md, review finding G4). A viewer's request still enqueues,
+    // so a final someone is looking at still gets this brief, keyed by its NHLE
+    // or NBA CDN id (KV, and D1 briefs). The journalism cycle's brief for the
+    // same game is keyed by its ESPN id and is not affected.
+    const ambientPoll = request?.headers.get('X-Ambient-Internal') === '1';
     if (!cfg)
         return new Response(JSON.stringify({ error: `Unknown sport: ${sport}`, supported: Object.keys(V2_LEAGUES) }),
             { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -4987,7 +4997,7 @@ async function handleV2Games(url, env, ctx, request = null) {
             // ── NHL brief pipeline (NHLE landing/threeStars variant) ───────────
             // Uses NHL's own three-star selections — curated performers per game.
             // Fires only for final games. Avoids API-Sports player stats dependency.
-            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
+            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM && !ambientPoll) {
                 const nhlFinals = games.filter(g => g.state === 'final');
                 if (nhlFinals.length > 0) {
                     const enqueueNHLBriefs = async () => {
@@ -5108,7 +5118,7 @@ async function handleV2Games(url, env, ctx, request = null) {
             // ── NBA brief pipeline (CDN boxscore variant) ─────────────────────
             // Player stats from /nba/liveData/boxscore/boxscore_{nbaGameId}.json
             // CDN player names are "First Last" — no reversal needed.
-            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
+            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM && !ambientPoll) {
                 const nbaFinals = games.filter(g => g.state === 'final');
                 if (nbaFinals.length > 0) {
                     const enqueueNBABriefs = async () => {
