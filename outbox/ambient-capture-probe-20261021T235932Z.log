@@ -1,0 +1,225 @@
+=== AmbientDO closing-capture probe  utc=2026-10-21T23:59:32.967Z  window=6 min ===
+  first /ambient/state: 145 bytes, sportCount 0, live 0, clients 0
+  23:59:32  capture charged    75 (+)   reconciled calls   25 (+)   fresh-live 0   sportCount 0   lastPoll 23:59:20
+  00:00:34  capture charged     0 (+-75)   reconciled calls    0 (+-25)   fresh-live 0   sportCount 0   lastPoll 00:00:24
+  00:01:35  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 206   sportCount 665   lastPoll 00:01:27
+  00:02:39  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 00:02:29
+  00:03:46  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 00:03:32
+  00:04:48  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 206   sportCount 661   lastPoll 00:04:33
+
+── games first seen live in the window
+  espn:401816006  mlb  Pittsburgh Pirates @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 1-5 p4
+  espn:401816002  mlb  Baltimore Orioles @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 1-0 p3
+  espn:401816003  mlb  Chicago White Sox @ Cleveland Guardians  live 00:00:04..00:04:48 over 5 readings  last 0-1 p4
+  espn:401816005  mlb  New York Mets @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 0-2 p3
+  espn:760500  wc26  Cape Verde @ Argentina  live 00:00:04..00:04:48 over 5 readings  last 1-1 p2
+  espn:401857037  wnba  Minnesota Lynx @ New York Liberty  live 00:00:04..00:04:48 over 5 readings  last 25-30 p2
+  espn:401816015  mlb  Baltimore Orioles @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 3-4 p3
+  espn:401816016  mlb  Chicago White Sox @ Cleveland Guardians  live 00:00:04..00:04:48 over 5 readings  last 1-0 p3
+  espn:401816023  mlb  Tampa Bay Rays @ Houston Astros  live 00:00:04..00:04:48 over 5 readings  last 5-2 p3
+  espn:401816041  mlb  Miami Marlins @ Athletics  live 00:00:04..00:04:48 over 5 readings  last 9-8 p9
+  espn:401816043  mlb  San Diego Padres @ Los Angeles Dodgers  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816046  mlb  New York Yankees @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 3-1 p6
+  espn:401816045  mlb  Houston Astros @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 6-6 p4
+  espn:401816047  mlb  New York Mets @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 1-2 p3
+  espn:401816048  mlb  Milwaukee Brewers @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401857043  wnba  Golden State Valkyries @ Washington Mystics  live 00:00:04..00:04:48 over 5 readings  last 20-15 p2
+  espn:401816055  mlb  Chicago Cubs @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816053  mlb  Athletics @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 1-2 p5
+  espn:401816054  mlb  Atlanta Braves @ Pittsburgh Pirates  live 00:00:04..00:04:48 over 5 readings  last 2-7 p4
+  espn:401816058  mlb  New York Yankees @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 3-6 p4
+  espn:401816060  mlb  Seattle Mariners @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 1-4 p5
+  espn:401816056  mlb  Houston Astros @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 1-2 p4
+  espn:401816057  mlb  Kansas City Royals @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 2-5 p3
+  espn:401816059  mlb  Philadelphia Phillies @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 3-0 p3
+  espn:401816062  mlb  Boston Red Sox @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816063  mlb  Cleveland Guardians @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 1-0 p2
+  espn:401816064  mlb  Milwaukee Brewers @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816070  mlb  Chicago Cubs @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 4-3 p5
+  espn:401816068  mlb  Athletics @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 1-3 p5
+  espn:401816069  mlb  Atlanta Braves @ Pittsburgh Pirates  live 00:00:04..00:04:48 over 5 readings  last 0-0 p5
+  espn:401816073  mlb  New York Yankees @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 0-2 p6
+  espn:401816075  mlb  Seattle Mariners @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 0-2 p5
+  espn:401816071  mlb  Houston Astros @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 0-5 p5
+  espn:401816074  mlb  Philadelphia Phillies @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 2-0 p3
+  espn:401816072  mlb  Kansas City Royals @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:401816077  mlb  Boston Red Sox @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816078  mlb  Cleveland Guardians @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816079  mlb  Milwaukee Brewers @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816083  mlb  Athletics @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 1-1 p5
+  espn:401816089  mlb  Seattle Mariners @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 1-5 p4
+  espn:401816088  mlb  Philadelphia Phillies @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816093  mlb  Milwaukee Brewers @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816102  mlb  Philadelphia Phillies @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 2-2 p5
+  espn:401816099  mlb  Kansas City Royals @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 0-2 p3
+  espn:401816097  mlb  Chicago Cubs @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816098  mlb  Cleveland Guardians @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 2-0 p4
+  espn:401816103  mlb  Seattle Mariners @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:401816096  mlb  Boston Red Sox @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816105  mlb  Athletics @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401857054  wnba  Golden State Valkyries @ Connecticut Sun  live 00:00:04..00:04:48 over 5 readings  last 22-23 p2
+  espn:401857055  wnba  Dallas Wings @ Toronto Tempo  live 00:00:04..00:04:48 over 5 readings  last 27-36 p2
+  espn:401816117  mlb  Philadelphia Phillies @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 4-1 p7
+  espn:401816114  mlb  Kansas City Royals @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 0-1 p4
+  espn:401816122  mlb  Houston Astros @ Texas Rangers  live 00:00:04..00:04:48 over 5 readings  last 6-0 p3
+  espn:401816112  mlb  Chicago Cubs @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816121  mlb  Atlanta Braves @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-3 p3
+  espn:401857058  wnba  Phoenix Mercury @ Las Vegas Aces  live 00:00:04..00:04:48 over 5 readings  last 45-96 p4
+  espn:401816143  mlb  New York Mets @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 1-0 p6
+  espn:761659  mls  Toronto FC @ CF Montréal  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816142  mlb  Los Angeles Dodgers @ New York Yankees  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816145  mlb  Tampa Bay Rays @ Boston Red Sox  live 00:00:04..00:04:48 over 5 readings  last 2-3 p2
+  espn:401816141  mlb  Chicago White Sox @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 5-0 p3
+  espn:401816146  mlb  Texas Rangers @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 0-2 p2
+  espn:401816148  mlb  Miami Marlins @ Milwaukee Brewers  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401857073  wnba  Seattle Storm @ Indiana Fever  live 00:00:04..00:04:48 over 5 readings  last 30-39 p2
+  espn:401857075  wnba  Los Angeles Sparks @ Chicago Sky  live 00:00:04..00:04:48 over 5 readings  last 19-26 p2
+  espn:401816172  mlb  Los Angeles Dodgers @ New York Yankees  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:401816188  mlb  Minnesota Twins @ Cleveland Guardians  live 00:00:04..00:04:48 over 5 readings  last 2-8 p5
+  espn:401816187  mlb  Los Angeles Dodgers @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 0-4 p3
+  espn:401816189  mlb  Pittsburgh Pirates @ New York Yankees  live 00:00:04..00:04:48 over 5 readings  last 5-4 p3
+  espn:401816191  mlb  Tampa Bay Rays @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 2-0 p4
+  espn:401816186  mlb  Baltimore Orioles @ Boston Red Sox  live 00:00:04..00:04:48 over 5 readings  last 1-3 p3
+  espn:401816190  mlb  San Diego Padres @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 1-0 p4
+  espn:401816195  mlb  New York Mets @ Milwaukee Brewers  live 00:00:04..00:04:48 over 5 readings  last 0-2 p1
+  espn:401816196  mlb  San Francisco Giants @ Kansas City Royals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816202  mlb  Los Angeles Dodgers @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816203  mlb  Minnesota Twins @ Cleveland Guardians  live 00:00:04..00:04:48 over 5 readings  last 2-2 p5
+  espn:401816206  mlb  Tampa Bay Rays @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 3-0 p3
+  espn:401816205  mlb  San Diego Padres @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 1-2 p3
+  espn:401816210  mlb  New York Mets @ Milwaukee Brewers  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816211  mlb  San Francisco Giants @ Kansas City Royals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816217  mlb  Los Angeles Dodgers @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 3-2 p5
+  espn:401816218  mlb  Minnesota Twins @ Cleveland Guardians  live 00:00:04..00:04:48 over 5 readings  last 7-3 p4
+  espn:401898714  mlb  Pittsburgh Pirates @ New York Yankees  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816221  mlb  Tampa Bay Rays @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 1-1 p3
+  espn:401816216  mlb  Baltimore Orioles @ Boston Red Sox  live 00:00:04..00:04:48 over 5 readings  last 4-0 p3
+  espn:401816220  mlb  San Diego Padres @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 0-1 p2
+  espn:761668  mls  New York City FC @ Columbus Crew  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761669  mls  Vancouver Whitecaps @ FC Cincinnati  live 00:00:04..00:04:48 over 5 readings  last 1-1 p1
+  espn:761667  mls  Chicago Fire FC @ Inter Miami CF  live 00:00:04..00:04:48 over 5 readings  last 1-0 p1
+  espn:761666  mls  Toronto FC @ New England Revolution  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761665  mls  Red Bull New York @ Philadelphia Union  live 00:00:04..00:04:48 over 5 readings  last 0-1 p1
+  espn:401857089  wnba  Las Vegas Aces @ Washington Mystics  live 00:00:04..00:04:48 over 5 readings  last 22-24 p2
+  espn:401881162  mlb  Arizona Diamondbacks @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 10-2 p9
+  espn:401816231  mlb  Kansas City Royals @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 0-0 p5
+  espn:401816237  mlb  Chicago Cubs @ Pittsburgh Pirates  live 00:00:04..00:04:48 over 5 readings  last 1-1 p6
+  espn:401816239  mlb  Kansas City Royals @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 1-2 p6
+  espn:401816241  mlb  New York Yankees @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 1-0 p5
+  espn:401816235  mlb  Arizona Diamondbacks @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 2-2 p4
+  espn:401816236  mlb  Atlanta Braves @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 0-2 p4
+  espn:401816238  mlb  Cleveland Guardians @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 1-2 p4
+  espn:401816240  mlb  Los Angeles Dodgers @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 0-1 p4
+  espn:401816242  mlb  San Diego Padres @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:401816243  mlb  Toronto Blue Jays @ Boston Red Sox  live 00:00:04..00:04:48 over 5 readings  last 0-1 p2
+  espn:401816247  mlb  Houston Astros @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-2 p1
+  espn:401816256  mlb  New York Yankees @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 3-1 p7
+  espn:401816253  mlb  Cleveland Guardians @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 0-3 p6
+  espn:401816252  mlb  Chicago Cubs @ Pittsburgh Pirates  live 00:00:04..00:04:48 over 5 readings  last 3-0 p5
+  espn:401816251  mlb  Atlanta Braves @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:401816259  mlb  Athletics @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816261  mlb  Colorado Rockies @ Milwaukee Brewers  live 00:00:04..00:04:48 over 5 readings  last 2-2 p4
+  espn:401816262  mlb  Houston Astros @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816255  mlb  Los Angeles Dodgers @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 3-0 p3
+  espn:401816260  mlb  Cincinnati Reds @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-1 p4
+  espn:401816263  mlb  Seattle Mariners @ Texas Rangers  live 00:00:04..00:04:48 over 5 readings  last 0-5 p3
+  espn:761685  mls  Charlotte FC @ Red Bull New York  live 00:00:04..00:04:48 over 5 readings  last 2-0 p2
+  espn:761680  mls  FC Cincinnati @ Columbus Crew  live 00:00:04..00:04:48 over 5 readings  last 1-0 p1
+  espn:761687  mls  Inter Miami CF @ CF Montréal  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761681  mls  Toronto FC @ D.C. United  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761682  mls  Atlanta United FC @ New England Revolution  live 00:00:04..00:04:48 over 5 readings  last 0-1 p1
+  espn:761683  mls  Chicago Fire FC @ New York City FC  live 00:00:04..00:04:48 over 5 readings  last 0-1 p1
+  espn:761686  mls  Seattle Sounders FC @ Philadelphia Union  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816271  mlb  New York Yankees @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 0-2 p3
+  espn:401816280  mlb  Arizona Diamondbacks @ Pittsburgh Pirates  live 00:00:04..00:04:48 over 5 readings  last 0-0 p6
+  espn:401816282  mlb  Baltimore Orioles @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 4-2 p4
+  espn:401816284  mlb  Philadelphia Phillies @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 2-5 p5
+  espn:401816285  mlb  Toronto Blue Jays @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 2-1 p4
+  espn:401816281  mlb  Atlanta Braves @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 1-3 p4
+  espn:401816292  mlb  Arizona Diamondbacks @ Pittsburgh Pirates  live 00:00:04..00:04:48 over 5 readings  last 5-0 p5
+  espn:401816294  mlb  Baltimore Orioles @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 0-8 p5
+  espn:401816296  mlb  Philadelphia Phillies @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 0-1 p5
+  espn:401816297  mlb  Texas Rangers @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 2-0 p5
+  espn:401816298  mlb  Toronto Blue Jays @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816295  mlb  Cleveland Guardians @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 0-1 p4
+  espn:401816300  mlb  Kansas City Royals @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816301  mlb  New York Yankees @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816299  mlb  Chicago Cubs @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 2-0 p1
+  espn:401857092  wnba  Connecticut Sun @ Washington Mystics  live 00:00:04..00:04:48 over 5 readings  last 33-29 p2
+  espn:401816312  mlb  Texas Rangers @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 0-3 p5
+  espn:401816310  mlb  Cleveland Guardians @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401902545  mlb  Atlanta Braves @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816315  mlb  Kansas City Royals @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816316  mlb  New York Yankees @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 4-0 p1
+  espn:401816314  mlb  Chicago Cubs @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816325  mlb  Washington Nationals @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 3-0 p4
+  espn:401816323  mlb  Pittsburgh Pirates @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816336  mlb  Pittsburgh Pirates @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 4-5 p6
+  espn:401816335  mlb  Philadelphia Phillies @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 3-2 p4
+  espn:401816337  mlb  St. Louis Cardinals @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816332  mlb  Arizona Diamondbacks @ Cleveland Guardians  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:401816333  mlb  Chicago White Sox @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 4-0 p4
+  espn:401816334  mlb  Miami Marlins @ New York Mets  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816338  mlb  Washington Nationals @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 0-2 p3
+  espn:761695  mls  Toronto FC @ New York City FC  live 00:00:04..00:04:48 over 5 readings  last 0-1 p1
+  espn:401857102  wnba  Seattle Storm @ Atlanta Dream  live 00:00:04..00:04:48 over 5 readings  last 14-24 p1
+  espn:401857103  wnba  Dallas Wings @ Washington Mystics  live 00:00:04..00:04:48 over 5 readings  last 16-22 p2
+  espn:401816351  mlb  Pittsburgh Pirates @ Cincinnati Reds  live 00:00:04..00:04:48 over 5 readings  last 3-0 p5
+  espn:401816350  mlb  Philadelphia Phillies @ Baltimore Orioles  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816355  mlb  Texas Rangers @ Houston Astros  live 00:00:04..00:04:48 over 5 readings  last 1-1 p3
+  espn:401816347  mlb  Arizona Diamondbacks @ Cleveland Guardians  live 00:00:04..00:04:48 over 5 readings  last 0-2 p2
+  espn:401816353  mlb  Washington Nationals @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 0-3 p4
+  espn:401816354  mlb  New York Yankees @ Chicago Cubs  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:761697  mls  New England Revolution @ CF Montréal  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761699  mls  Nashville SC @ D.C. United  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761702  mls  Atlanta United FC @ Philadelphia Union  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761696  mls  Orlando City SC @ Red Bull New York  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761698  mls  LAFC @ Vancouver Whitecaps  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816372  mlb  Boston Red Sox @ Los Angeles Dodgers  live 00:00:04..00:04:48 over 5 readings  last 2-0 p2
+  espn:401816378  mlb  Washington Nationals @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 3-0 p5
+  espn:401816377  mlb  St. Louis Cardinals @ New York Yankees  live 00:00:04..00:04:48 over 5 readings  last 3-0 p2
+  espn:401816380  mlb  Pittsburgh Pirates @ Milwaukee Brewers  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401857111  wnba  Las Vegas Aces @ Atlanta Dream  live 00:00:04..00:04:48 over 5 readings  last 48-36 p2
+  espn:401816444  mlb  Toronto Blue Jays @ Philadelphia Phillies  live 00:00:04..00:04:48 over 5 readings  last 2-2 p6
+  espn:401816443  mlb  New York Mets @ Pittsburgh Pirates  live 00:00:04..00:04:48 over 5 readings  last 0-8 p4
+  espn:401816442  mlb  Cincinnati Reds @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 0-2 p5
+  espn:401816446  mlb  Chicago Cubs @ Kansas City Royals  live 00:00:04..00:04:48 over 5 readings  last 0-4 p3
+  espn:401816449  mlb  Minnesota Twins @ Milwaukee Brewers  live 00:00:04..00:04:48 over 5 readings  last 3-1 p3
+  espn:401816445  mlb  Baltimore Orioles @ Texas Rangers  live 00:00:04..00:04:48 over 5 readings  last 1-2 p3
+  espn:401816447  mlb  Cleveland Guardians @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816448  mlb  Colorado Rockies @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 1-2 p3
+  espn:401816450  mlb  Detroit Tigers @ San Francisco Giants  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816451  mlb  Houston Astros @ San Diego Padres  live 00:00:04..00:04:48 over 5 readings  last 1-1 p2
+  espn:401816469  mlb  Boston Red Sox @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 0-0 p4
+  espn:401816470  mlb  New York Mets @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 5-2 p2
+  espn:401816471  mlb  Baltimore Orioles @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816472  mlb  Philadelphia Phillies @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401816481  mlb  Cleveland Guardians @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 1-4 p5
+  espn:401816483  mlb  Pittsburgh Pirates @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 0-2 p6
+  espn:401816480  mlb  Chicago Cubs @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 4-3 p4
+  espn:401816484  mlb  Seattle Mariners @ New York Yankees  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816479  mlb  Boston Red Sox @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 1-1 p3
+  espn:401816482  mlb  New York Mets @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 0-0 p3
+  espn:401816485  mlb  Baltimore Orioles @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 2-0 p1
+  espn:401816486  mlb  Cincinnati Reds @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-1 p2
+  espn:401816487  mlb  Philadelphia Phillies @ St. Louis Cardinals  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:401857134  wnba  New York Liberty @ Indiana Fever  live 00:00:04..00:04:48 over 5 readings  last 27-35 p2
+  espn:401816496  mlb  Cleveland Guardians @ Detroit Tigers  live 00:00:04..00:04:48 over 5 readings  last 4-3 p5
+  espn:401816498  mlb  Pittsburgh Pirates @ Miami Marlins  live 00:00:04..00:04:48 over 5 readings  last 2-5 p4
+  espn:401816495  mlb  Chicago Cubs @ Washington Nationals  live 00:00:04..00:04:48 over 5 readings  last 1-1 p5
+  espn:401816499  mlb  Seattle Mariners @ New York Yankees  live 00:00:04..00:04:48 over 5 readings  last 4-1 p3
+  espn:401816494  mlb  Boston Red Sox @ Toronto Blue Jays  live 00:00:04..00:04:48 over 5 readings  last 0-1 p4
+  espn:401816497  mlb  New York Mets @ Atlanta Braves  live 00:00:04..00:04:48 over 5 readings  last 0-1 p3
+  espn:401816501  mlb  Cincinnati Reds @ Chicago White Sox  live 00:00:04..00:04:48 over 5 readings  last 0-0 p2
+  espn:401816525  mlb  Philadelphia Phillies @ Minnesota Twins  live 00:00:04..00:04:48 over 5 readings  last 2-0 p1
+  espn:401857140  wnba  Atlanta Dream @ Connecticut Sun  live 00:00:04..00:04:48 over 5 readings  last 51-31 p2
+  mlbam:849813  mlb  Cleveland Guardians @ Tampa Bay Rays  live 00:00:04..00:04:48 over 5 readings  last 0-0 p1
+  espn:761773  mls  D.C. United @ FC Cincinnati  live 00:00:04..00:00:04 over 1 readings  last 1-1 p1
+
+── AmbientDO entries: sportCount min 0 max 665 over 12 readings
+── tail: 24433 events, 15 kept to outbox/ambient-capture-tail-20261021T235932Z.jsonl, 0 with exceptions, outcomes {"unparsed":15}
+
+COVERAGE: 12 readings of /ambient/state at 30 s, 6 of /budget/odds at 60 s,
+over 6 minutes. Calls per minute are differences of the reconcile count, so a minute
+straddling UTC midnight reads as a reset, not a negative. The tail keeps only events matching
+/alarm|AmbientDO|closing-odds|odds-reconcile|odds credit|Durable Object|storage|exceeded|too large/i or carrying an exception; everything else is counted and dropped.
