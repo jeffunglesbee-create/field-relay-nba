@@ -336,6 +336,15 @@ jobs:
           node scripts/check-v2-games-ambient-no-briefs.mjs
           node scripts/check-v2-games-ambient-no-briefs.mjs --mutate
 
+      # Same CC-CMD, review finding G2. The slate date steps back one calendar
+      # day before 4am ET; 24 hours back on the instant named the wrong day for
+      # an hour after spring-forward. src/field-date.js is shared by index.js
+      # and AmbientDO.
+      - name: The slate date is the ET date held until 4am, across DST
+        run: |
+          node scripts/check-field-date-key.mjs
+          node scripts/check-field-date-key.mjs --mutate
+
       - name: /context/game refuses an id it cannot resolve
         run: node scripts/check-context-game-id-forms.mjs
 

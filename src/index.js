@@ -110,6 +110,7 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
+import { getFieldDateKey } from './field-date.js';
 import { chargeOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_CHARGE_ORDER } from './budget-helpers.js';
 
 // The CI-only route gate, named once so a new CI route does not mean a new
@@ -2312,30 +2313,8 @@ function stripKVIdPrefix(id) {
     return m ? m[1] : s;
 }
 
-// FIELD's established "today" for journalism/schedule purposes: ET-anchored
-// with a 4am ET rolling cutoff, NOT raw UTC midnight. Ports jubilant-
-// bassoon's window.TODAY_ISO (Drive doc "FIELD App — 2026-06-06 Session
-// Documentation Part 2 — Scout's Pick + 4am Rollover") to the relay side,
-// which never got the same fix and was still using raw
-// `new Date().toISOString().slice(0,10)`. ET is correct because FIELD's
-// schedule and ESPN's own scoreboard are both ET-anchored; 4am ET is safe
-// because no major US sports league starts games after 2am ET, so the
-// 2-hour buffer covers overtime/extra innings/late TV windows. Confirmed
-// live 2026-07-16: naive UTC-midnight computation advanced "today" to
-// 07-16 at UTC 00:00 (= 8pm ET on 07-15, mid-primetime), well before any
-// of that ET evening's games — including a completed WNBA game
-// (espn:401857070) — had a chance to finish; the correct ET-anchored value
-// stays on 07-15 until 4am ET (= 8am UTC). Used everywhere `dateKey`
-// represents "today's slate", not for caller-supplied ?date= params.
-function getFieldDateKey() {
-    const etHour = parseInt(
-        new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }),
-        10
-    );
-    const etDateBase = new Date();
-    if (etHour < 4) etDateBase.setTime(etDateBase.getTime() - 24 * 60 * 60 * 1000);
-    return etDateBase.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); // YYYY-MM-DD
-}
+// getFieldDateKey() -- FIELD's "today", ET with a 4am rollback -- lives in
+// src/field-date.js, imported above, so AmbientDO reads the same slate.
 
 /**
  * The FIELD-zone (America/New_York) calendar day containing a GIVEN instant.
