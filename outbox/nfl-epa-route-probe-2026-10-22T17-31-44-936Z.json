@@ -1,0 +1,115 @@
+{
+  "probed_at": "2026-10-22T17:31:53.855Z",
+  "game": {
+    "id": "401873008",
+    "name": "Washington Commanders at San Francisco 49ers",
+    "date": "20261019",
+    "state": "post"
+  },
+  "route": "https://field-relay-nba.jeffunglesbee.workers.dev/nfl/epa/plays?event=401873008",
+  "route_plays": 143,
+  "client_plays": 0,
+  "disagreements": 0,
+  "pairs": [],
+  "verdict": "FAILED",
+  "trigger": "deploy",
+  "checks_passed": 14,
+  "checks_failed": 5,
+  "checks": [
+    {
+      "check": "the route returns 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "check": "the payload carries a plays array",
+      "ok": true,
+      "detail": "object"
+    },
+    {
+      "check": "the plays array is NOT empty",
+      "ok": true,
+      "detail": "143 play(s)"
+    },
+    {
+      "check": "every entry has finite epa / ep_start / ep_end",
+      "ok": true,
+      "detail": "0 non-finite epa"
+    },
+    {
+      "check": "every entry has a boolean scoringPlay",
+      "ok": true,
+      "detail": "0 non-boolean"
+    },
+    {
+      "check": "every entry carries its drive index",
+      "ok": true,
+      "detail": "currentDrive=null"
+    },
+    {
+      "check": "every entry carries the three lookup inputs, in range",
+      "ok": true,
+      "detail": "0 bad down"
+    },
+    {
+      "check": "currentDrive is the last drive index or null, and driveCount agrees",
+      "ok": true,
+      "detail": "currentDrive=null driveCount=19"
+    },
+    {
+      "check": "the EP table is readable through the relay",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "check": "the EP table unwraps to a populated lookup",
+      "ok": true,
+      "detail": "1120 key(s) — the document has ~8 top-level keys, the table ~1120"
+    },
+    {
+      "check": "the summary is readable through the relay",
+      "ok": false,
+      "detail": "HTTP 409"
+    },
+    {
+      "check": "the client reference produced plays to compare against",
+      "ok": false,
+      "detail": "0"
+    },
+    {
+      "check": "the route and the client agree on how many plays have an EPA",
+      "ok": false,
+      "detail": "route 143, client 0"
+    },
+    {
+      "check": "at least 10 pairs are available to enumerate",
+      "ok": false,
+      "detail": "0"
+    },
+    {
+      "check": "every play agrees with the client to 2dp",
+      "ok": true,
+      "detail": "0 of 143 differ"
+    },
+    {
+      "check": "every situation label rebuilds from the served numbers, on live data",
+      "ok": true,
+      "detail": "0 of 143 differ"
+    },
+    {
+      "check": "...across distinct labels, not one repeated",
+      "ok": false,
+      "detail": "0 distinct label(s)"
+    },
+    {
+      "check": "the route returns real EPA, not a field of zeros",
+      "ok": true,
+      "detail": "141 of 143 plays have a non-zero epa"
+    },
+    {
+      "check": "...and ep_start is a looked-up value, not the `?? 0` miss",
+      "ok": true,
+      "detail": "143 of 143 plays have a non-zero ep_start"
+    }
+  ]
+}
