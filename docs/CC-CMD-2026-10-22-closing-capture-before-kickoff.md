@@ -5,7 +5,9 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (real vendor spend with no output) and a data-semantics change ruled by the owner
 **Confidence gate:** >= 95 before any commit
-**Status:** IN PROGRESS. Owner rulings 2026-10-22: "Repair the write fully now", then "Capture before kickoff".
+**Status:** PARTIAL. TASK 0 and TASK 1 DONE; done condition 3 STAGED until the 10-23
+kickoffs (scheduled check 2026-10-23T18:12Z). Owner rulings 2026-10-22: "Repair
+the write fully now", then "Capture before kickoff".
 **Absorbs:** `docs/CC-CMD-2026-10-22-closing-capture-buys-per-game.md` (one call per sport) and `docs/CC-CMD-2026-10-22-capture-record-keyed-by-source-id.md` (a failover id cannot buy twice once the row has its line).
 **Blocks:** `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md` TASK 1, parked until this lands.
 
@@ -108,6 +110,52 @@ with its command. Also checked here:
    - New `scripts/check-ambient-capture-write.mjs`: the real
      `_closingRowsFor` and `_captureClosingOdds` against a fake ARCHIVE_DB and a
      fake vendor, with mutations. Both run in `deploy.yml`.
+
+## TASK 1 — results (2026-10-22)
+
+Landed in `e658b09` (relay) and `bee5fc7` (jubilant-bassoon CONTRACTS.md).
+Deploy run 39822565693, green; the Cloudflare deploy step finished at
+2026-10-22T17:29:59Z.
+
+- **Built as designed, with one change from review.** Step 4's vendor match is
+  per team, not per pair: each team matches by resolved key or by
+  `nameMatches`. A pair where one team needs the resolver and the other needs
+  the tokens (`Columbus Crew` and `Chicago Fire FC`) failed the per-pair form.
+  Still two levels (Rule 76).
+- **Two rounds of adversarial review.**
+  - Round 1 found 15 issues, all fixed. The serious ones:
+    - Overlapping polls (an alarm beside `POST /ambient/kick`) could buy twice.
+      The record is now re-checked after the lookup's await, and `change_log`
+      is written only when the UPDATE changed the row.
+    - The close came from `bookmakers[0]` while the opening is DraftKings, so
+      the gap between two books read as line movement. The close now prefers
+      DraftKings (`CLOSING_PREFERRED_BOOK`, checked equal to
+      `ODDS_PREFERRED_BOOK` by W20).
+    - A row already past its own kickoff was still bought. The lookup now
+      drops it with the shared `kickoffMark` before any charge (W8).
+  - Round 2 found none. Its real-data replay of 10-17..21 matched 67 of 67
+    board games to exactly one correct row and 14 of 14 vendor events, and a
+    776-pair fixture gave 0 wrong-team writes.
+- **Done condition 2: met.**
+
+  | harness | checks | red at `90a72d1` | mutations caught |
+  |---|---|---|---|
+  | `check-ambient-capture-write.mjs` (new) | 25 | 18 | 29 of 29 |
+  | `check-ambient-capture-dedup.mjs` | 32 | 15 | 32 of 32 |
+  | `check-closing-odds-kickoff-guard.mjs` | 21 | 1 (the verified-only write) | 13 of 13 (K13 new) |
+
+  Both capture harnesses run in `deploy.yml`, with `--mutate`. A clean-export
+  run of the deploy.yml and guards.yml steps gave 127 of 131. The 4 failures
+  are environment-only and fail identically at `90a72d1`.
+- **Absorbed.** `docs/CC-CMD-2026-10-22-closing-capture-buys-per-game.md` and
+  `docs/CC-CMD-2026-10-22-capture-record-keyed-by-source-id.md` are marked
+  SUPERSEDED. The second one keeps a narrower residual, stated there.
+- **Untested premises (Rule 100), not findings.**
+  - A postponed game that the board maps to `pre` inside the window would be
+    bought.
+  - The World Series game espn:401908042 kicks off at 10-24T00:00Z, so its
+    purchase lands at about 23:50Z on 10-23. A count by UTC day shows 6 calls
+    on 10-23, not 5. Done condition 3 counts by kickoff.
 
 ## Done condition (Rule 90 artifacts)
 

@@ -5,7 +5,10 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (real vendor spend above need)
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** SUPERSEDED 2026-10-22 by `docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md`
+(commit `e658b09`). The capture now groups the games due in one poll by sport
+and makes one charged call per sport; `scripts/check-ambient-capture-write.mjs`
+W3 fails if two games due together cost two calls. Not dispatched on its own.
 **Filed by:** the second review of TASK 1 of
 `docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`, Rule 87.4. It
 predates that fix, which leaves it unchanged.

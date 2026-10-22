@@ -5,7 +5,18 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a designed capture that does not run), and a spend decision
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** BLOCKED. Dispatched 2026-10-22 ("next approved"). TASK 0 DONE (`892d841`).
+TASK 1 built and reviewed, then PARKED by the owner's ruling "Fix per-game
+buying first", which became `docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md`
+(`e658b09`). The reviewed diff is kept beside this document as
+`docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.parked.patch`, against
+`892d841`. On `e658b09`, `git apply --check -3` applies its `src/ambient-do.js`
+and dedup-harness hunks cleanly; the two workflow hunks conflict on the
+empty-catch pin, which moves again. It resumes after the before-kickoff
+capture's done condition 3 passes. Review findings still to address on resume:
+G2 (spring-forward: subtract a calendar day, not 24 hours, in both date keys),
+G4 (the NHL hourly brief regeneration this would start: owner-visible spend),
+G6/G7 (harness month pins for November-December and the first-of-month hold).
 **Filed by:** TASK 0 of `docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`,
 Rule 87.4. That CC-CMD fixes the over-capture and changes neither gap below.
 

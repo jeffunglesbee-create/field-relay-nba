@@ -1,5 +1,45 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-22 (evening) — the closing capture buys before kickoff, for the right row
+
+**HEAD:** `b0e85b8` → `892d841` (coverage-gaps TASK 0) → `90a72d1` (filed) →
+`e658b09` (the fix) → this close-out · **Branch:** main · jubilant-bassoon
+`bee5fc7` (CONTRACTS.md copy)
+
+`docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md`: TASK 0 and TASK 1
+DONE, done condition 3 STAGED.
+
+- **The cause.** The capture had written 2 archive rows since 09-01. It found
+  its row by a team name inside the id, and ids are now `_e<espnEventId>`; its
+  one October write went to an MLS skeleton. It also fired on pre→live, so
+  every line it wrote was late, was skipped by all five consumers, and blocked
+  the verified line the later writers supply (65 of 66 in 10-14..21).
+- **The fix, `e658b09`, deploy run 39822565693 (Cloudflare 17:29:59Z):**
+  - the line is bought in the 10 minutes before kickoff, one call per sport
+    per poll;
+  - before any charge, the archive row is found by ESPN event id, else by both
+    names, on its ET day, empty, still pre-kickoff, exactly one;
+  - the write is DraftKings-first, `_kickoff.verified:true` only, and lands on
+    that row only.
+- **The tests.** `check-ambient-capture-write.mjs` (new): 25 checks, 18 red at
+  `90a72d1`, 29 of 29 mutations caught. The dedup harness: 32 checks, 15 red,
+  32 of 32 caught. Kickoff-guard mutation K13 (a late line written) is new,
+  and the guard catches 13 of 13. Two adversarial rounds: 15 findings, then 0.
+- **Owner rulings:** "Fix per-game buying first", "Repair the write fully
+  now", "Capture before kickoff".
+
+**Scheduled:** the live check at 2026-10-23T18:12Z, on 5 kickoffs
+(18:30Z..19:00Z). The 10-24 and 10-25 demand reads were rewritten for the
+design change.
+
+**Superseded:** `…-closing-capture-buys-per-game` and
+`…-capture-record-keyed-by-source-id` (a narrower residual is stated there).
+
+**Parked:** coverage-gaps TASK 1. Its reviewed diff is committed as
+`docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.parked.patch`.
+
+Session doc: outbox/cc-session-2026-10-22-closing-capture-before-kickoff.md
+
 ## SESSION CLOSE-OUT — 2026-10-22 (night) — the closing capture buys once per game
 
 **HEAD:** `a13cb060` → `6ef722d` (the fix) → `4d99887` (probe exit) → this
