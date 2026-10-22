@@ -5,18 +5,10 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a designed capture that does not run), and a spend decision
 **Confidence gate:** >= 95 before any commit
-**Status:** BLOCKED. Dispatched 2026-10-22 ("next approved"). TASK 0 DONE (`892d841`).
-TASK 1 built and reviewed, then PARKED by the owner's ruling "Fix per-game
-buying first", which became `docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md`
-(`e658b09`). The reviewed diff is kept beside this document as
-`docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.parked.patch`, against
-`892d841`. On `e658b09`, `git apply --check -3` applies its `src/ambient-do.js`
-and dedup-harness hunks cleanly; the two workflow hunks conflict on the
-empty-catch pin, which moves again. It resumes after the before-kickoff
-capture's done condition 3 passes. Review findings still to address on resume:
-G2 (spring-forward: subtract a calendar day, not 24 hours, in both date keys),
-G4 (the NHL hourly brief regeneration this would start: owner-visible spend),
-G6/G7 (harness month pins for November-December and the first-of-month hold).
+**Status:** PARTIAL. TASK 0 and TASK 1 DONE (deployed 2026-10-22 19:15Z, run
+39837727213); done condition 3 STAGED. Live checks of tonight's 12 NHL
+kickoffs at 23:42Z and 02:20Z, then the 10-24 11:07Z demand read for closed
+day 10-23. Resumed by the owner, "resume coverage gaps now".
 **Filed by:** TASK 0 of `docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`,
 Rule 87.4. That CC-CMD fixes the over-capture and changes neither gap below.
 
@@ -181,6 +173,52 @@ October spend).
     shows live is missing from `connected`.
   - Read CONTRACTS.md first (Rule 86).
 - Each item is its own commit.
+
+## TASK 1 — results (2026-10-22)
+
+Resumed by the owner ("resume coverage gaps now") after
+`docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md` (`e658b09`) moved
+the purchase before kickoff, one call per sport, onto the right row. That
+change already fixed the parked review's G0, G1, G3, G5 and G8. The parked
+patch was not re-applied: each item was rebuilt on `e658b09`. Pushed as
+`c47aaf0`, deploy run 39837727213, green (Cloudflare 19:15:43Z); Repo
+guards green.
+
+| commit | item |
+|---|---|
+| `4dbb578` | **G4.** `handleV2Games` reads AmbientDO's `X-Ambient-Internal: 1` (sent, never read before) and skips the NHL and NBA brief enqueue for it. A viewer's request still enqueues. `scripts/check-v2-games-ambient-no-briefs.mjs` runs the real worker: 7 checks, 2 red before, 6 of 6 mutations |
+| `86363b7` | **G2.** `getFieldDateKey()` steps back one calendar day before 4am ET, not 24 hours; moved to `src/field-date.js` so AmbientDO can import it. `scripts/check-field-date-key.mjs`: 21 hand-written instants and a 43,872-instant sweep; the old body fails at 2027-03-15T04:00-04:45Z only; 6 of 6 mutations |
+| `b04f007` | **Gap 2.** `_poll` asks for the slate date and takes the season month from it. S15 (a 02:30Z MLS kickoff on its ET board), S16, S17 (G6), red before |
+| `8564f5b` | **Gap 1.** NBA and NHL are polled October to December. S18 (G7: Oct, Nov, Dec and Jan; a due October game of each bought once), red before |
+| `bea0f42` | Second review: S16 at the spring-forward hour, S17 inside the EST hold, S19 one instance across the 4am edge; 46 of 46 mutations |
+| `515d329` | Second review: per-run mutant filenames, `.mutant-*` ignored |
+| jubilant-bassoon `3e489fd5` | The client's `window.TODAY_ISO` had the same 24-hour step; fixed the same way (`fieldTodayIso`), unit-tested, pinned by smoke A-SLATE-1. Pushed after the relay deploy (Rule 70) |
+
+- **Stale live views (the third item): not built.** Gap 2 removes the
+  date-turn cause. The failover cause is untested and filed with a premise
+  check first: `docs/CC-CMD-2026-10-22-ambient-stale-live-after-failover.md`.
+- **Second adversarial review** (5 lenses, 3 refuters per finding). The
+  runtime and spend lenses found nothing. 9 findings:
+  - fixed: G4's comment and commit message named the journalism cycle as a
+    backstop for a different key space; three harness gaps; shared mutant
+    paths; commit messages citing pre-rebase hashes; the client's TODAY_ISO;
+  - refuted 3 of 3: "the NHL/NBA V2 briefs reach no reader" (the client reads
+    the D1 copy through `/context/game`). Its narrow part is real and older:
+    `/journalism/game/{id}` misses every prefixed id. Filed:
+    `docs/CC-CMD-2026-10-22-journalism-game-route-prefixed-ids.md`;
+  - GameDO as a second unattended poller (low, older than this work):
+    refuted 3 of 3. An idle GameDO hibernates, so its in-memory lastSeen
+    refresh does not survive, and it stops polling once nobody watches. Not
+    filed.
+- **Spend.** About 3 credits per NHL kickoff time (TASK 0.3 counted 30 a week,
+  about 90 credits), only for games whose row still needs a line. NBA costs
+  nothing while its board answers 403. No new LLM spend: AmbientDO's poll
+  starts no briefs.
+- **Gates:** 131 of 133 deploy and guards steps on a clean clone. The 2
+  failures need a secret or a GitHub list call this sandbox lacks, and fail
+  the same way at the base.
+- The parked patch, `…coverage-gaps.parked.patch`, is removed: the landed
+  commits supersede it.
 
 ## Done condition (Rule 90 artifacts)
 

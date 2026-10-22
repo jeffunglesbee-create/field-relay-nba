@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-22 (late) — AmbientDO polls NBA/NHL from October and reads the ET slate
+
+**HEAD:** `5cf8e2d` → `4dbb578` … `c47aaf0` → this close-out · **Branch:**
+main · jubilant-bassoon `3e489fd5` (TODAY_ISO, SW 2026-10-22a)
+
+`docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`: TASK 0 and TASK 1
+DONE, done condition 3 STAGED. Resumed by the owner, "resume coverage gaps
+now".
+
+- **Gap 1, `8564f5b`:** NBA and NHL are polled October to December. They were
+  listed January to July, so no October closing line was ever captured for
+  them.
+- **Gap 2, `b04f007`:** AmbientDO asks for the ET slate's board, held until
+  4am ET. From 00:00Z it used to read tomorrow's board, so kickoffs from about
+  00:10Z were never seen inside their capture window.
+- **G2, `86363b7`:** `getFieldDateKey()` steps back a calendar day before 4am,
+  not 24 hours (wrong for the hour after spring-forward). It is now
+  `src/field-date.js`, shared by index.js and AmbientDO. The client's
+  TODAY_ISO is fixed the same way.
+- **G4, `4dbb578`:** AmbientDO's poll no longer starts the NHL/NBA LLM brief
+  pipelines (an hourly regeneration of every final it keeps reading).
+- **Deploy:** run 39837727213, Cloudflare 19:15:43Z. Every new check ran with
+  its mutations in CI.
+
+**Scheduled:** live checks of tonight's 12 NHL kickoffs at 23:42Z and 02:20Z;
+done condition 3 at 10-24 11:07Z.
+
+**Filed (Rule 87.4):** stale live view after a failover;
+`/journalism/game/{id}` missing prefixed ids; the dead-cron watch's one-read
+"never fired".
+
+Session doc: outbox/cc-session-2026-10-22-coverage-gaps.md
+
 ## SESSION CLOSE-OUT — 2026-10-22 (evening) — the closing capture buys before kickoff, for the right row
 
 **HEAD:** `b0e85b8` → `892d841` (coverage-gaps TASK 0) → `90a72d1` (filed) →
