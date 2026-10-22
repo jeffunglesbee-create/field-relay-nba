@@ -46,7 +46,7 @@ Branch main throughout. jubilant-bassoon: `3b8ae577` → `3e489fd5`.
   instant.
 - **Status:** STAGED. Blocked by: the first NHL kickoffs after the deploy
   (23:00Z). Unblocked by: tonight's 12 NHL kickoffs. Verify:
-  - `SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v, g.start_time FROM change_log c JOIN regular_season_games g ON g.id=c.game_id WHERE c.source='closing_odds_capture' AND c.ts >= '2026-10-22T19:15'`
+  - `SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v, g.start_time FROM change_log c JOIN regular_season_games g ON g.id=c.game_id WHERE c.source='closing_odds_capture' AND c.ts >= '2026-10-22 19:15'`
     gives one row per NHL kickoff, v = 1, ts before start_time;
   - `odds_budget_site` `ambientCaptureClosingOdds` grows by 3 per kickoff time
     (5 kickoff times tonight, 15 credits).

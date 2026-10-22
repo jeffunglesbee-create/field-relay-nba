@@ -78,7 +78,7 @@ main throughout. jubilant-bassoon: `bee5fc7` (CONTRACTS.md copy), on main.
   - `ambient-capture-probe.yml` minutes=75 from 18:12Z: at most 5 rises of
     `ambientCaptureClosingOdds` reconciled calls, each in the 10 minutes
     before its kickoff.
-  - D1 `cc49101c`: `SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v FROM change_log c WHERE c.source='closing_odds_capture' AND c.ts >= '2026-10-23T18:00'`
+  - D1 `cc49101c`: `SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v FROM change_log c WHERE c.source='closing_odds_capture' AND c.ts >= '2026-10-23 18:00'`
     gives one row per kickoff above, on `_e<eid>`, `v = 1`.
   - Scheduled: trig_011xqk7EcLqic7NyH583g2KT at 2026-10-23T18:12Z.
 - **Known mismatches.** None in field names.

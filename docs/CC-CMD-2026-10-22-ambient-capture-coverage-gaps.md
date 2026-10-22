@@ -234,3 +234,41 @@ guards green.
 3. A per-consumer demand run (`odds-consumer-demand.yml`) on a closed day
    with NBA or NHL games, showing `ambientCaptureClosingOdds` charged above 0
    for that day, and charged/demand at most 2x.
+
+### Live check 1 — 2026-10-22T23:42Z: checked 6 of 6 kickoffs, all pass
+
+The first NHL kickoffs after the deploy (19:15:43Z), NHL being a sport this
+change turned on. D1 `cc49101c`:
+
+```
+SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v,
+       json_extract(c.new_value,'$.source') book, g.start_time,
+       (g.closing_odds = c.new_value) same
+FROM change_log c LEFT JOIN regular_season_games g ON g.id = c.game_id
+WHERE c.source = 'closing_odds_capture' AND c.ts >= '2026-10-22 19:15'
+```
+
+| game_id | ts | v | book | start_time | same |
+|---|---|---|---|---|---|
+| NHL_2026-10-22_e401892552 | 22:50:36 | 1 | draftkings | 23:00Z | 1 |
+| NHL_2026-10-22_e401892553 | 22:50:36 | 1 | draftkings | 23:00Z | 1 |
+| NHL_2026-10-22_e401892554 | 22:50:36 | 1 | draftkings | 23:00Z | 1 |
+| NHL_2026-10-22_e401892555 | 22:50:36 | 1 | draftkings | 23:00Z | 1 |
+| NHL_2026-10-22_e401892556 | 22:50:36 | 1 | draftkings | 23:00Z | 1 |
+| NHL_2026-10-22_e401892557 | 23:20:06 | 1 | draftkings | 23:30Z | 1 |
+
+- One row per kickoff, on its own `_e<espnEventId>` row, found through the
+  NHLE board's names (that board carries no ESPN id). Each line was captured
+  9.4 to 9.9 minutes before kickoff, is `_kickoff.verified: true`, and equals
+  the row's `closing_odds`. No other row was written.
+- `odds_budget_site` `ambientCaptureClosingOdds` for 10-22: **6** credits,
+  two calls (one per kickoff time), each reconciled at 3 kept. Five games at
+  23:00Z cost one call.
+- **Correction to the published query.** `change_log.ts` is written as
+  `YYYY-MM-DD HH:MM:SS`, with a space. A bound written with `T`
+  (`'2026-10-22T19:15'`) sorts after every timestamp of that day and returns
+  no rows. The first run of this check used it and read 0 rows; the rows were
+  there. The session docs and the scheduled checks now use the space form.
+
+The 00:00Z, 01:00Z and 02:00Z kickoffs, which only gap 2 makes visible, are
+checked at 02:20Z.
