@@ -374,6 +374,22 @@ jobs:
       # It still fails the job — a stale handoff is a real defect and
       # continue-on-error would hide it. It fails LAST, so a stale document
       # cannot blind the spend and credential gates.
+      # docs/CC-CMD-2026-10-18-relay-governance-guards.md. A CC-CMD's status
+      # line opens with a vocabulary word, appears once, and is not contradicted
+      # by a closing section (tripwires at 0); new CC-CMDs carry one (ratchet,
+      # 331). It fails on the CFL CC-CMD as it read before 2026-10-18. Placed
+      # before the HANDOFF step, with if: always(), for the same reason that
+      # step fails last: a document check must not blind the gates around it.
+      - name: CC-CMD status lines are greppable and consistent
+        if: always()
+        run: node scripts/cc-cmd-status-check.mjs --self-test && node scripts/cc-cmd-status-check.mjs
+
+      # Same CC-CMD, TASK 2: a close-out names a session doc (ratchet, 6) and
+      # every doc it names exists (tripwire, 0). Two facts, two budgets.
+      - name: HANDOFF close-outs name a session doc that exists
+        if: always()
+        run: node scripts/check-closeout-session-doc.mjs --self-test && node scripts/check-closeout-session-doc.mjs
+
       - name: HANDOFF.md is not stale
         if: always()
         run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
