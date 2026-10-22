@@ -282,7 +282,7 @@ jobs:
           node scripts/check-empty-catches.mjs --self-test
           node scripts/check-empty-catches.mjs src scripts \
             --baseline=112 \
-            --require=src/ambient-do.js:319 \
+            --require=src/ambient-do.js:332 \
             --control
           node scripts/mutate-empty-catches.mjs
 
@@ -310,6 +310,14 @@ jobs:
         run: |
           node scripts/check-ambient-alarm-failure.mjs
           node scripts/mutate-ambient-alarm-failure.mjs
+
+      # docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md: an
+      # oversized scores:today was refused on every write, the object restarted
+      # each poll, and each restart bought every live game's closing line again.
+      - name: AmbientDO buys one closing line per game, however often it restarts
+        run: |
+          node scripts/check-ambient-capture-dedup.mjs
+          node scripts/check-ambient-capture-dedup.mjs --mutate
 
       - name: /context/game refuses an id it cannot resolve
         run: node scripts/check-context-game-id-forms.mjs

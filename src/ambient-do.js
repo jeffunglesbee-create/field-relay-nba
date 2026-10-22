@@ -67,6 +67,13 @@ const ODDS_LIVE_PATH_404 = true;
 
 const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
+// How long an entry outlives the last board that listed it, and how long a
+// closing-line capture is remembered (docs/CC-CMD-2026-10-21-closing-capture-
+// calls-18x-its-need.md). Boards are dated, so a game still live when the date
+// turns leaves its board mid-game: its entry has to outlast that game, and a
+// blink or a failed fetch must not drop it.
+const SCORES_KEEP_MS  = 6 * 3600_000;
+const CAPTURE_KEEP_MS = 24 * 3600_000;
 const PING_MS       = 20_000;
 
 // ── Live In-Play Odds Constants ──────────────────────────────────────────────
@@ -177,6 +184,12 @@ export class AmbientDO {
         this._wpState  = {};   // gameId → {homeWP,awayWP,drawWP,prevHomeWP,source,confidence,bookmakerCount,ts}
         this._wpPeaks  = {};   // gameId → peakWP (highest favored-team WP seen)
         this._oddsLastFetch = {};  // sport → timestamp of last Odds API call (cooldown enforcement)
+        // gameId → ms of its closing-line capture. Stored with the scores
+        // ('starts:today'), so a restart cannot buy the same line again.
+        this._gameStarts = new Map();
+        // gameId → ms a board last listed it ('seen:today'); _pruneScores
+        // drops an entry SCORES_KEEP_MS after that.
+        this._seenAt = new Map();
         // ── BSD WebSocket state (CC-CMD-D) ────────────────────────────────
         // Outbound persistent WS to BSD for live soccer tracking. Fan-out is
         // via existing _broadcast — clients filter frames by event_id locally
@@ -379,14 +392,18 @@ export class AmbientDO {
 
         // Lazy restore from DO storage on first run
         if (!this._restored) {
-            this._restored = true;
             const stored = await this.ctx.storage.get(
-                ['scores:today', 'leaders:today', 'finals:today', 'wp:today']);
+                ['scores:today', 'leaders:today', 'finals:today', 'wp:today', 'starts:today', 'seen:today']);
             this._scores  = stored.get('scores:today')  ?? {};
             this._leaders = stored.get('leaders:today') ?? {};
             const storedFinals = stored.get('finals:today');
             this._finals  = storedFinals ? new Set(storedFinals) : new Set();
             this._wpState = stored.get('wp:today') ?? {};
+            this._gameStarts = new Map(Object.entries(stored.get('starts:today') ?? {}));
+            this._seenAt = new Map(Object.entries(stored.get('seen:today') ?? {}));
+            // Only now: a rejected read must leave the restore to the next poll,
+            // not an empty capture record that would buy every live line again.
+            this._restored = true;
             this._diag.restoredAt = new Date().toISOString();
             this._diag.restoredCount = Object.keys(this._scores).length;
         }
@@ -401,6 +418,7 @@ export class AmbientDO {
             active.map(sport => this._fetchSport(sport, today))
         );
 
+        const now = Date.now();
         let totalLive = 0;
         const pendingFinals = new Set();
         // Games that just transitioned pre→live this poll cycle. Closing-
@@ -442,23 +460,25 @@ export class AmbientDO {
                 const awayAbbr     = game.away?.abbr || '';
                 const bsdEventId   = game.bsdEventId || null;
                 if (!gameId) continue;
+                this._seenAt.set(gameId, now);
 
                 const prev = this._scores[gameId];
                 const hS = homeScore ?? 0;
                 const aS = awayScore ?? 0;
 
                 // Detect pre→live transition (kickoff / first pitch). Fires
-                // exactly once per game per DO instance lifetime — `_gameStarts`
-                // dedups across consecutive poll cycles where the game stays
-                // live. Capture runs after the loop so scoring fan-out isn't
-                // blocked on an Odds-API round-trip.
+                // once per game: `_gameStarts` is stored with the scores, so it
+                // also holds across a restart. It was in memory only, and with
+                // every write refused the object restarted each poll and bought
+                // each live game's line every poll (docs/CC-CMD-2026-10-21-
+                // closing-capture-calls-18x-its-need.md). Capture runs after the
+                // loop so scoring fan-out isn't blocked on an Odds-API round-trip.
                 const prevState = prev?.state || 'pre';
                 const isNewLive = (state === 'live' || state === 'in')
                     && prevState !== 'live' && prevState !== 'in';
                 if (isNewLive) {
-                    if (!this._gameStarts) this._gameStarts = new Set();
                     if (!this._gameStarts.has(gameId)) {
-                        this._gameStarts.add(gameId);
+                        this._gameStarts.set(gameId, Date.now());
                         pendingStarts.push({ gameId, sport, home, away });
                     }
                 }
@@ -544,6 +564,8 @@ export class AmbientDO {
             }
         }
 
+        this._pruneScores(now);
+
         // all_final: if all previously live games are now final
         if (pendingFinals.size > 0) {
             const anyStillLive = Object.values(this._scores)
@@ -561,6 +583,12 @@ export class AmbientDO {
         // minutes of kickoff/first-pitch). Fire-and-forget per game so
         // a single Odds-API failure doesn't cascade across the slate.
         if (pendingStarts.length > 0 && this.env.ODDS_API_KEY) {
+            // Written before the first vendor call as well as with the rest at
+            // the end. The output gate holds that call until this write is
+            // confirmed, so no line is bought without the record of it.
+            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))
+                .catch(e => { this._diag.lastPutError = { at: new Date().toISOString(), key: 'starts:today',
+                    message: String(e?.message ?? e).slice(0, 300) }; });
             for (const start of pendingStarts) {
                 try { await this._captureClosingOdds(start); }
                 catch (e) { console.warn('[AmbientDO] closing odds capture failed:', e.message); }
@@ -583,14 +611,47 @@ export class AmbientDO {
             this.ctx.storage.put('leaders:today', this._leaders),
             this.ctx.storage.put('finals:today',  [...this._finals]),
             this.ctx.storage.put('wp:today',      this._wpState),
+            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts)),
+            this.ctx.storage.put('seen:today',   Object.fromEntries(this._seenAt)),
         ]).then(results => {
             // Still settled and swallowed as before; the first rejection is kept
             // for ?diag=1 so a write that never lands is visible from outside.
             const bad = results.findIndex(r => r.status === 'rejected');
             if (bad >= 0) this._diag.lastPutError = { at: new Date().toISOString(),
-                key: ['scores:today', 'leaders:today', 'finals:today', 'wp:today'][bad],
+                key: ['scores:today', 'leaders:today', 'finals:today', 'wp:today', 'starts:today', 'seen:today'][bad],
                 message: String(results[bad].reason?.message ?? results[bad].reason).slice(0, 300) };
         }));
+    }
+
+    // Drops every entry no board has listed for SCORES_KEEP_MS. Nothing used to
+    // remove an entry, so a game that ended off its board read 'live' for good,
+    // until 'scores:today' passed the 131072-byte value limit and every write
+    // was refused (docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md,
+    // TASK 0). By age, not by absence from one poll: a board that blinks, a
+    // fetch that fails, and an upstream error the relay serves as an empty board
+    // all leave the entry in place, and so does the date turning mid-game.
+    _pruneScores(now) {
+        const cutoff = now - SCORES_KEEP_MS;
+        for (const id of Object.keys(this._scores)) {
+            // No record reads as stale: the entries from before this record
+            // existed are the ones that never left.
+            if (this._seenAt.get(id) >= cutoff) continue;
+            delete this._scores[id];
+        }
+        for (const [id, t] of this._seenAt) {
+            if (t < cutoff) this._seenAt.delete(id);
+        }
+        // What is kept per game elsewhere goes with its scores entry.
+        for (const byGame of [this._leaders, this._wpState, this._wpPeaks]) {
+            for (const id of Object.keys(byGame)) if (!(id in this._scores)) delete byGame[id];
+        }
+        for (const id of this._finals) if (!(id in this._scores)) this._finals.delete(id);
+        // The capture record goes by its own, longer age, so a game whose entry
+        // was dropped is not bought again when it comes back.
+        const captureCutoff = now - CAPTURE_KEEP_MS;
+        for (const [id, t] of this._gameStarts) {
+            if (t < captureCutoff) this._gameStarts.delete(id);
+        }
     }
 
     // ── Live in-play odds → WP conversion ──────────────────────────────
