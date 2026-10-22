@@ -90,6 +90,63 @@ a couple of polls, while keeping them for the capture dedup and for
    pairs for NBA and NHL over 2026-10-14..20 from the archive, times 3 credits.
    This is the added spend if gap 1 is fixed.
 
+## TASK 0 — results (2026-10-22)
+
+Dispatched by the owner 2026-10-22 ("next approved", approving the NBA/NHL
+October spend).
+
+1. **Gap 1 is the only filter, but NBA has a second, upstream block.**
+   - Running the real `_poll` with the clock pinned shows which sports it
+     fetches:
+     - 2026-10-20 and 2026-12-15: mlb, mls, the five European leagues, wnba,
+       nfl, cfb. **No nba, no nhl.**
+     - 2027-01-15: nba and nhl both present.
+     Nothing else filters them.
+   - **But the relay's NBA board is empty in-season.**
+     - `/nba/liveData/scoreboard/todaysScoreboard_00.json` answers
+       `403 "nba returned 403"`, read 2026-10-22 about 03:45Z, the night after
+       NBA games at 02:00–02:30Z.
+     - `/v2/games?sport=nba` answers `count 0, source nba-cdn-empty` for
+       10-20, 10-21 and 10-22.
+     - `docs/CC-CMD-2026-06-26-nba-cdn.md` treats this 403 as "expected
+       off-season". In-season, that premise is refuted.
+   - So fixing gap 1 makes AmbientDO capture **NHL** now, and NBA only once
+     its board works. Filed:
+     `docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`. The client's NBA game-id
+     map and live box scores read the same route.
+2. **Gap 2 holds for every sport that can be tested.** Each kickoff between
+   00:00Z and 04:00Z is listed only on the previous day's (ET) board:
+
+   | sport | kickoff | board that lists it | the UTC-date board |
+   |---|---|---|---|
+   | NHL | 2026-10-21T00:00Z (×2), 01:00Z, 01:40Z, 02:00Z, 02:30Z | `date=2026-10-20` | 2 other games only |
+   | WNBA | 2026-10-22T00:00Z | `date=2026-10-21` | 0 games |
+   | MLB | 2026-10-20T00:00Z | `date=2026-10-19` | 0 games |
+   | MLS | 2026-10-18T00:30Z | `date=2026-10-17` | 1 other game |
+
+   - NBA cannot be tested while its board answers 403. Its adapter reads
+     `todaysScoreboard_00.json`, which takes no date at all.
+   - The five European leagues had no kickoff in the window in 10-14..20.
+   - The relay already has the rule for this: `getFieldDateKey()` in
+     `src/index.js` takes the ET date and holds it until 4am ET. Its comment
+     records the same failure, measured 2026-07-16 ("naive UTC-midnight
+     computation advanced 'today' … mid-primetime"). AmbientDO never
+     adopted it.
+3. **Cost: the premise as written was wrong.** It priced 3 credits per
+   (sport, kickoff instant). The capture buys **3 per game**
+   (`docs/CC-CMD-2026-10-22-closing-capture-buys-per-game.md`). From the
+   archive, 2026-10-14..20:
+
+   | added by | games | instants | credits/week, per game (actual) | per instant |
+   |---|---|---|---|---|
+   | gap 1, NHL (NBA blocked by the 403) | 48 | 30 | 144 | 90 |
+   | gap 2, MLB + WNBA + MLS kickoffs 00:00–04:00Z | 23 | 12 | 69 | 36 |
+   | **total now** | 71 | 42 | **213 (~30 a day)** | 126 |
+   | NBA later, when its board works (preseason week) | 26 | 13 | +78 | +39 |
+
+   The NHL 00:00–04:00Z games (22 of 48) are captured only once both gaps are
+   fixed.
+
 ## TASK 1 — decided from TASK 0
 
 - **Gap 1** is a one-line change, but it **spends credits**, about 3 per

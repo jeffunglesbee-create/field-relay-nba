@@ -51,6 +51,17 @@ AmbientDO keeps only in memory is lost on every restart:
 
 Each restart also re-reads six storage keys.
 
+**A fresh instance serves an empty state.** `_scores` is restored only inside
+`_poll`. So a request that reaches an instance before its first poll gets
+empty live views:
+- `/ambient/state` returns `sportCount 0` and `liveGames []`;
+- the SSE `connected` payload carries no live games.
+
+Run 39716768024 read `sportCount 0` on 12 of 12 readings. While the restarts
+continue, the REST fallback is empty almost every time it is read. Restoring
+in the request path too, or on construction under `blockConcurrencyWhile`,
+would close this independently of the restart cause.
+
 ## TASK 0 — premises, one command each
 
 1. **What discards the instance.** Run wrangler tail (pretty JSON) on the
