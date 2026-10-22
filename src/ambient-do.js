@@ -57,6 +57,7 @@ import { resolveTeamKey } from './identity-resolver.js';
 import { nameMatches, kickoffGapMinutes, CONTESTED_KICKOFF_MINUTES } from './odds-name-match.js';
 import { stampKickoff, kickoffMark } from './odds-kickoff.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
+import { getFieldDateKey } from './field-date.js';
 import { AMBIENT_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 const ODDS_SPORT_KEYS = AMBIENT_SPORT_TO_ODDS_KEY;
 import { chargeOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
@@ -418,8 +419,15 @@ export class AmbientDO {
             this._diag.restoredCount = Object.keys(this._scores).length;
         }
 
-        const today   = _todayUTC();
-        const month   = new Date().getUTCMonth();
+        // The slate's date, not the UTC date. Every board is keyed by the ET
+        // day, so from 00:00Z the UTC date asked for tomorrow's board while
+        // tonight's games were still to kick off or being played, and a
+        // kickoff after about 00:10Z was never seen inside its capture window
+        // (docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md, gap 2).
+        // The season month is the slate's too, so the last night of a month
+        // stays polled until 4am ET.
+        const today   = getFieldDateKey();
+        const month   = Number(today.slice(5, 7)) - 1;
         const active  = AMBIENT_SPORTS.filter(s =>
             !SPORT_ACTIVE_MONTHS[s] || SPORT_ACTIVE_MONTHS[s].includes(month));
 
@@ -1321,9 +1329,6 @@ export class AmbientDO {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-function _todayUTC() {
-    return new Date().toISOString().slice(0, 10);
-}
 
 // ── Odds API credit guard (KV-backed, monthly) ───────────────────────────
 // Mirrors src/index.js consumeOddsCredit() using the same FIELD_JOURNALISM

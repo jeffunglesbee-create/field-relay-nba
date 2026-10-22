@@ -14,7 +14,9 @@
 // This runs the real AmbientDO class against a storage that enforces the same
 // 131072-byte value limit, and replaces the instance after any refused write.
 // The clock is pinned and moved by the scenario. The scoreboards are served by
-// sport and ignore the date. The archive lookup and the purchase are stubbed:
+// sport and ignore the date, except in scenarios that set boardByDate, where
+// they are keyed by the date asked for, as the relay's are. The archive lookup
+// and the purchase are stubbed:
 // which games are bought, and how many calls, is what is under test here.
 // scripts/check-ambient-capture-write.mjs runs the real lookup and purchase.
 //
@@ -94,7 +96,8 @@ async function load() {
 
 function installFetch(world) {
   globalThis.fetch = async (url) => {
-    const sport = new URL(url).searchParams.get('sport');
+    const q = new URL(url).searchParams, sport = q.get('sport'), date = q.get('date');
+    world.asked?.push(`${sport}@${date}`);
     const how = world.failing.has(sport) ? world.failMode || '502' : 'ok';
     if (how === '502') return new Response('upstream down', { status: 502 });
     if (how === 'throw') throw new TypeError('fetch failed');
@@ -102,7 +105,8 @@ function installFetch(world) {
     // What the relay serves for an NHLE or NBA CDN failure (src/index.js): a 200
     // whose board is empty.
     if (how === 'soft-empty') return new Response(JSON.stringify({ sport, games: [], source: 'nhle-error' }), { status: 200 });
-    return new Response(JSON.stringify({ games: world.board[sport] || [] }), { status: 200 });
+    const games = world.boardByDate ? world.boardByDate[`${sport}@${date}`] : world.board[sport];
+    return new Response(JSON.stringify({ games: games || [] }), { status: 200 });
   };
 }
 
@@ -379,6 +383,51 @@ async function selfTest() {
       [before, w.captures], [[], ['espn:744001']]);
   }
 
+  // S15 — boards are keyed by the ET date. A 02:30Z kickoff is listed only on
+  // the previous date's board, so a poll asking for the UTC date never sees it
+  // inside its window (docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md,
+  // gap 2). MLS at 02:30Z on 10-25 is a real slot (TASK 0).
+  {
+    const w = makeWorld();
+    w.clock = Date.parse('2026-10-25T02:22:00Z') - 30_000;
+    w.boardByDate = { 'mls@2026-10-24': [pre('espn:761901', 'mls', '2026-10-25T02:30:00Z')], 'mls@2026-10-25': [] };
+    await run(C, w, 2);
+    eq('S15: a 02:30Z kickoff on its ET-dated board is bought once, inside its window', w.captures, ['espn:761901']);
+  }
+
+  // S16 — which board each poll asks for: the ET date, held until 4am ET, in
+  // daylight and in standard time.
+  {
+    const asked = [];
+    for (const at of ['2026-10-20T03:30:00Z', '2026-10-20T07:30:00Z', '2026-10-20T08:30:00Z',
+                      '2026-11-02T04:30:00Z', '2026-11-02T08:30:00Z', '2026-11-02T09:30:00Z']) {
+      const w = makeWorld(); w.asked = [];
+      w.clock = Date.parse(at) - 30_000;
+      await run(C, w, 1);
+      asked.push(`${at.slice(5, 16)}→${[...new Set(w.asked.map(a => a.split('@')[1]))].join(',')}`);
+    }
+    eq('S16: the board date is the ET date until 4am ET, in EDT and EST', asked, [
+      '10-20T03:30→2026-10-19', '10-20T07:30→2026-10-19', '10-20T08:30→2026-10-20',
+      '11-02T04:30→2026-11-01', '11-02T08:30→2026-11-01', '11-02T09:30→2026-11-02']);
+  }
+
+  // S17 — the season month is the slate's. On the night of Oct 31 MLB (in
+  // season to October) is still read until 4am ET on Nov 1, for the Oct 31
+  // slate, and not after. EST resumes at 06:00Z that morning, so 4:30am ET
+  // is 09:30Z. Review finding G6: a month taken from the ET
+  // calendar date, or from UTC, drops it at midnight ET or at 00:00Z.
+  {
+    const mlbAt = async (at) => {
+      const w = makeWorld(); w.asked = [];
+      w.clock = Date.parse(at) - 30_000;
+      await run(C, w, 1);
+      return w.asked.filter(a => a.startsWith('mlb@'));
+    };
+    eq('S17: MLB is read for the Oct 31 slate at 20:30 and 00:30 ET, and not at 04:30 ET on Nov 1',
+      [await mlbAt('2026-11-01T00:30:00Z'), await mlbAt('2026-11-01T04:30:00Z'), await mlbAt('2026-11-01T09:30:00Z')],
+      [['mlb@2026-10-31'], ['mlb@2026-10-31'], []]);
+  }
+
   globalThis.Date = RealDate;
   console.log(failed ? `\nSELF-TEST FAILED: ${failed}` : '\nself-test passed');
   return failed;
@@ -429,6 +478,11 @@ const MUTATIONS = [
   ['bought for a sport the vendor does not cover', [['                    && ODDS_SPORT_KEYS[sport] && !this._gameStarts.has(gameId)) {', '                    && !this._gameStarts.has(gameId)) {']]],
   ['one call per game', [['                if (!bySport.has(start.sport)) bySport.set(start.sport, []);\n                bySport.get(start.sport).push(start);',
     '                bySport.set(start.gameId, [start]);']]],
+  ['board read by the UTC date', [['const today   = getFieldDateKey();', 'const today   = new Date().toISOString().slice(0, 10);']]],
+  ['season month read in UTC', [['const month   = Number(today.slice(5, 7)) - 1;', 'const month   = new Date().getUTCMonth();']]],
+  ['season month from the ET calendar date', [['const month   = Number(today.slice(5, 7)) - 1;',
+    "const month   = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).slice(5, 7)) - 1;"]]],
+  ['season month from UTC less four hours', [['const month   = Number(today.slice(5, 7)) - 1;', 'const month   = new Date(Date.now() - 4 * 3600_000).getUTCMonth();']]],
   ['recorded before the row check', [
     ['                    const due = (await this._closingRowsFor(starts)).filter(d => !this._gameStarts.has(d.gameId));\n                    if (!due.length) continue;\n                    for (const d of due) this._gameStarts.set(d.gameId, Date.now());',
      '                    for (const d of starts) this._gameStarts.set(d.gameId, Date.now());\n                    const due = await this._closingRowsFor(starts);\n                    if (!due.length) continue;']]],
