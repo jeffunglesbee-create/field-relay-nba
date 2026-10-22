@@ -428,6 +428,29 @@ async function selfTest() {
       [['mlb@2026-10-31'], ['mlb@2026-10-31'], []]);
   }
 
+  // S18 — NBA and NHL are read from October to December (gap 1), and a due
+  // October game of each is bought once. Review finding G7: checking October
+  // alone let November or December be dropped unseen. January is the control,
+  // in season before and after the fix.
+  {
+    const leagues = [];
+    for (const at of ['2026-10-20T22:00:00Z', '2026-11-17T00:00:00Z', '2026-12-15T00:00:00Z', '2027-01-15T00:00:00Z']) {
+      const w = makeWorld(); w.asked = [];
+      w.clock = Date.parse(at) - 30_000;
+      await run(C, w, 1);
+      leagues.push(`${at.slice(5, 7)}:${w.asked.filter(a => /^(nba|nhl)@/.test(a)).map(a => a.split('@')[0]).sort().join(',')}`);
+    }
+    eq('S18: NBA and NHL are read in October, November, December and January', leagues,
+      ['10:nba,nhl', '11:nba,nhl', '12:nba,nhl', '01:nba,nhl']);
+    const w = makeWorld();
+    w.clock = Date.parse('2026-10-22T22:52:00Z') - 30_000;
+    w.board.nhl = [pre('nhl:2026020141', 'nhl', '2026-10-22T23:00:00Z')];
+    w.board.nba = [pre('nba:0022600011', 'nba', '2026-10-22T23:00:00Z')];
+    await run(C, w, 3);
+    eq('S18: an October NHL game and an October NBA game are each bought once',
+      [...w.captures].sort(), ['nba:0022600011', 'nhl:2026020141']);
+  }
+
   globalThis.Date = RealDate;
   console.log(failed ? `\nSELF-TEST FAILED: ${failed}` : '\nself-test passed');
   return failed;
@@ -478,6 +501,16 @@ const MUTATIONS = [
   ['bought for a sport the vendor does not cover', [['                    && ODDS_SPORT_KEYS[sport] && !this._gameStarts.has(gameId)) {', '                    && !this._gameStarts.has(gameId)) {']]],
   ['one call per game', [['                if (!bySport.has(start.sport)) bySport.set(start.sport, []);\n                bySport.get(start.sport).push(start);',
     '                bySport.set(start.gameId, [start]);']]],
+  ['NBA and NHL not read in October to December', [["    'nba':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul",
+    "    'nba':        [0,1,2,3,4,5,6],           // Oct–Jun\n    'nhl':        [0,1,2,3,4,5,6],           // Oct–Jun"]]],
+  ['NHL not read in October to December', [["    'nhl':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul", "    'nhl':        [0,1,2,3,4,5,6],   // Oct–Jul"]]],
+  ['NBA not read in October to December', [["    'nba':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul", "    'nba':        [0,1,2,3,4,5,6],   // Oct–Jul"]]],
+  ['November and December dropped', [["    'nba':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul",
+    "    'nba':        [9,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,0,1,2,3,4,5,6],   // Oct–Jul"]]],
+  ['November dropped', [["    'nba':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul",
+    "    'nba':        [9,11,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,11,0,1,2,3,4,5,6],   // Oct–Jul"]]],
+  ['December dropped', [["    'nba':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul",
+    "    'nba':        [9,10,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,0,1,2,3,4,5,6],   // Oct–Jul"]]],
   ['board read by the UTC date', [['const today   = getFieldDateKey();', 'const today   = new Date().toISOString().slice(0, 10);']]],
   ['season month read in UTC', [['const month   = Number(today.slice(5, 7)) - 1;', 'const month   = new Date().getUTCMonth();']]],
   ['season month from the ET calendar date', [['const month   = Number(today.slice(5, 7)) - 1;',

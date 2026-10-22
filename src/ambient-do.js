@@ -126,8 +126,12 @@ const AMBIENT_SPORTS = [
 // Avoids unnecessary /v2/games calls for off-season sports (e.g. NFL in June).
 // Keyed by sport → [activeMonths] (0=Jan…11=Dec)
 const SPORT_ACTIVE_MONTHS = {
-    'nba':        [0,1,2,3,4,5,6],           // Oct–Jun
-    'nhl':        [0,1,2,3,4,5,6],           // Oct–Jun
+    // October to December were missing, so neither league was polled for the
+    // first three months of its season and no closing line was captured
+    // (docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md, gap 1). July
+    // is kept from the original list.
+    'nba':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul
+    'nhl':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul
     'mlb':        [2,3,4,5,6,7,8,9],         // Mar–Oct
     'wnba':       [4,5,6,7,8,9],             // May–Oct
     'wc26':       [5,6,7],                   // Jun–Jul 2026
