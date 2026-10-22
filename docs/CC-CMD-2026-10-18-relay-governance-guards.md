@@ -5,7 +5,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (governance guard) — no production change
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched.
+**Status:** DONE 2026-10-22, `48cd06bd`, `fb925833`, `3fbcbb5d`. The close-out budget is 6, not 36 (the 36 read one of seven forms); see `outbox/cc-session-2026-10-22-relay-governance-guards.md`.
 
 ---
 

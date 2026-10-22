@@ -1,5 +1,28 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-22 — two governance guards, and a budget that was a parsing artifact
+
+**HEAD:** `cb187f6c` → `3fbcbb5d` · **Branch:** main
+
+`docs/CC-CMD-2026-10-18-relay-governance-guards.md`, DONE:
+
+- `scripts/cc-cmd-status-check.mjs`: status present (ratchet, 331);
+  vocabulary, single line and no open-above-closed (tripwires at 0). It fails
+  on the CFL CC-CMD's pre-correction text.
+- `scripts/check-closeout-session-doc.mjs`: a session doc is named (ratchet,
+  **6**, not the CC-CMD's 36) and every named doc exists (tripwire, 0).
+- Both run in `guards.yml`.
+
+The 36 came from reading only the bold form. Six other forms are in use,
+including Rule 67's own plain one. Three status lines were rewritten to lead
+with their state, and `APPLIED` and `STOPPED` were admitted. The judgement on
+each of the six is in the session doc.
+
+Filed per Rule 87.4: `docs/CC-CMD-2026-10-22-status-vs-citing-commits.md`. A
+`FILED` status contradicted by commits doing its tasks is still unguarded.
+
+Session doc: outbox/cc-session-2026-10-22-relay-governance-guards.md
+
 ## SESSION CLOSE-OUT — 2026-10-21 (late) — what each odds consumer needs
 
 **HEAD:** `fdb3c640` → `d9ba2dbe` · **Branch:** main
