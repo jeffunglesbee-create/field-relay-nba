@@ -400,15 +400,19 @@ async function selfTest() {
   {
     const asked = [];
     for (const at of ['2026-10-20T03:30:00Z', '2026-10-20T07:30:00Z', '2026-10-20T08:30:00Z',
-                      '2026-11-02T04:30:00Z', '2026-11-02T08:30:00Z', '2026-11-02T09:30:00Z']) {
+                      '2026-11-02T04:30:00Z', '2026-11-02T08:30:00Z', '2026-11-02T09:30:00Z',
+                      '2027-03-15T04:30:00Z']) {
       const w = makeWorld(); w.asked = [];
       w.clock = Date.parse(at) - 30_000;
       await run(C, w, 1);
       asked.push(`${at.slice(5, 16)}→${[...new Set(w.asked.map(a => a.split('@')[1]))].join(',')}`);
     }
-    eq('S16: the board date is the ET date until 4am ET, in EDT and EST', asked, [
+    // The last instant is 00:30 EDT on the Monday after spring-forward, where
+    // 24 hours back on the instant named the Saturday (review finding G2).
+    eq('S16: the board date is the ET date until 4am ET, in EDT, EST and after spring-forward', asked, [
       '10-20T03:30→2026-10-19', '10-20T07:30→2026-10-19', '10-20T08:30→2026-10-20',
-      '11-02T04:30→2026-11-01', '11-02T08:30→2026-11-01', '11-02T09:30→2026-11-02']);
+      '11-02T04:30→2026-11-01', '11-02T08:30→2026-11-01', '11-02T09:30→2026-11-02',
+      '03-15T04:30→2027-03-14']);
   }
 
   // S17 — the season month is the slate's. On the night of Oct 31 MLB (in
@@ -423,9 +427,10 @@ async function selfTest() {
       await run(C, w, 1);
       return w.asked.filter(a => a.startsWith('mlb@'));
     };
-    eq('S17: MLB is read for the Oct 31 slate at 20:30 and 00:30 ET, and not at 04:30 ET on Nov 1',
-      [await mlbAt('2026-11-01T00:30:00Z'), await mlbAt('2026-11-01T04:30:00Z'), await mlbAt('2026-11-01T09:30:00Z')],
-      [['mlb@2026-10-31'], ['mlb@2026-10-31'], []]);
+    eq('S17: MLB is read for the Oct 31 slate at 20:30 ET, 00:30 EDT and 02:00 EST, and not at 04:30 EST on Nov 1',
+      [await mlbAt('2026-11-01T00:30:00Z'), await mlbAt('2026-11-01T04:30:00Z'), await mlbAt('2026-11-01T07:00:00Z'),
+       await mlbAt('2026-11-01T09:30:00Z')],
+      [['mlb@2026-10-31'], ['mlb@2026-10-31'], ['mlb@2026-10-31'], []]);
   }
 
   // S18 — NBA and NHL are read from October to December (gap 1), and a due
@@ -449,6 +454,29 @@ async function selfTest() {
     await run(C, w, 3);
     eq('S18: an October NHL game and an October NBA game are each bought once',
       [...w.captures].sort(), ['nba:0022600011', 'nhl:2026020141']);
+  }
+
+  // S19 — one instance, polled across the slate change: the date and the
+  // month are read on every poll, not once per instance. S16 and S17 start a
+  // fresh instance for each instant, so a date or month kept on the instance
+  // would pass them (review of the coverage-gaps fix).
+  {
+    const perPoll = async (from, polls) => {
+      const w = makeWorld(); w.asked = [];
+      w.clock = Date.parse(from) - MIN;
+      const marks = [];
+      await run(C, w, polls, (p, world) => marks.push(world.asked.length), MIN);
+      marks.push(w.asked.length);
+      return { instances: w.instances, polls: marks.slice(0, -1).map((m, i) => w.asked.slice(m, marks[i + 1])) };
+    };
+    const day = await perPoll('2026-10-20T07:58:00Z', 4);
+    eq('S19: one instance asks for 10-19 until 4am EDT and for 10-20 from 4am',
+      [day.instances, day.polls.map(asked => [...new Set(asked.map(a => a.split('@')[1]))].join(','))],
+      [1, ['2026-10-19', '2026-10-19', '2026-10-20', '2026-10-20']]);
+    const month = await perPoll('2026-11-01T08:58:00Z', 4);
+    eq('S19: one instance reads MLB until 4am EST on Nov 1, and not after',
+      [month.instances, month.polls.map(asked => asked.some(a => a.startsWith('mlb@')))],
+      [1, [true, true, false, false]]);
   }
 
   globalThis.Date = RealDate;
@@ -516,6 +544,11 @@ const MUTATIONS = [
   ['season month from the ET calendar date', [['const month   = Number(today.slice(5, 7)) - 1;',
     "const month   = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).slice(5, 7)) - 1;"]]],
   ['season month from UTC less four hours', [['const month   = Number(today.slice(5, 7)) - 1;', 'const month   = new Date(Date.now() - 4 * 3600_000).getUTCMonth();']]],
+  ['season month from UTC less five hours', [['const month   = Number(today.slice(5, 7)) - 1;', 'const month   = new Date(Date.now() - 5 * 3600_000).getUTCMonth();']]],
+  ['slate date read once per instance', [['const today   = getFieldDateKey();', 'const today   = (this._slateDate ??= getFieldDateKey());']]],
+  ['season month read once per instance', [['const month   = Number(today.slice(5, 7)) - 1;', 'const month   = (this._slateMonth ??= Number(today.slice(5, 7)) - 1);']]],
+  ['the old 24-hour slate body kept inline', [['const today   = getFieldDateKey();',
+    "const today   = (() => { const h = parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10); const b = new Date(); if (h < 4) b.setTime(b.getTime() - 24 * 60 * 60 * 1000); return b.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); })();"]]],
   ['recorded before the row check', [
     ['                    const due = (await this._closingRowsFor(starts)).filter(d => !this._gameStarts.has(d.gameId));\n                    if (!due.length) continue;\n                    for (const d of due) this._gameStarts.set(d.gameId, Date.now());',
      '                    for (const d of starts) this._gameStarts.set(d.gameId, Date.now());\n                    const due = await this._closingRowsFor(starts);\n                    if (!due.length) continue;']]],
