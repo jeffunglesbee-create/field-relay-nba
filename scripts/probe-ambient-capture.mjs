@@ -100,7 +100,7 @@ while (Date.now() < end) {
     // first reading and at every new instance, compactly otherwise.
     const d = s.diag;
     if (d && d.instanceStartedAt !== lastInstance) {
-      say(`  ${at} INSTANCE ${d.instanceStartedAt}  ${JSON.stringify(d)}`);
+      say(`  ${at} INSTANCE ${d.instanceStartedAt}  clients ${s.clientCount}  ${JSON.stringify(d)}`);
       lastInstance = d.instanceStartedAt; instances++;
     } else if (d) {
       say(`  ${at} diag mem ${d.memCount}/${d.memJsonBytes}B stored ${d.storedCount}/${d.storedJsonBytes}B match ${d.storedMatchesMem} gameStarts ${d.gameStartsSize} putErr ${d.lastPutError ? d.lastPutError.message.slice(0, 80) : 'none'} alarmErr ${d.lastAlarmError ? d.lastAlarmError.message.slice(0, 80) : 'none'} clients ${s.clientCount}`);
@@ -146,3 +146,7 @@ say(`over ${MINUTES} minutes. Calls per minute are differences of the reconcile 
 say(`straddling UTC midnight reads as a reset, not a negative. The tail keeps only events matching`);
 say(`${KEEP} or carrying an exception; everything else is counted and dropped.`);
 flush();
+// SIGTERM reaches npx, not the wrangler it started, and that tail keeps this
+// process alive: run 39714396288 sat in its Watch step past a 10-minute window
+// until cancelled. The log is written, so exit; the tail's pipes close with us.
+process.exit(0);
