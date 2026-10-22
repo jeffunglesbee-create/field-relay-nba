@@ -1,0 +1,24 @@
+=== odds daily vs vendor  day=2026-10-21  utc=2026-10-22T04:35:30.147Z ===
+
+  2026-10-21 our counter : 878 / 3800
+  vendor cumulative now  : 27923
+  previous reading       : 2026-10-21T04:36:53.487Z  vendor 26820
+
+  vendor billed that day : 1103
+  our daily counter      : 878
+  known CI spend         : 80   (1 run(s), 0 undated)
+  residual               : 145   tolerance 55
+  unreconciled estimate  : 0 — no call kept an estimate for want of a receipt
+
+  verdict: counter-under-counts
+
+COVERAGE: ONE closed day (2026-10-21), 34 reading(s) on file. knownCI is a
+LOWER bound — only odds-backfill records its own credits, and targeted-odds-fill
+calls the vendor directly with no counter at all — so the residual above is an
+UPPER bound on the enforcing counter's shortfall, not a measurement of it.
+
+FAIL: the vendor billed 1103 where odds:daily:2026-10-21 recorded 878,
+      and 80 of the difference is known CI spend. 145 credits reached the
+      vendor without reaching the counter the CEILING reads.
+      If this holds across three days, every day that "closed at 3800/3800" spent
+      more than 3800 and the ceiling has been guarding a number below the truth.
