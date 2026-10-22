@@ -282,7 +282,7 @@ jobs:
           node scripts/check-empty-catches.mjs --self-test
           node scripts/check-empty-catches.mjs src scripts \
             --baseline=112 \
-            --require=src/ambient-do.js:332 \
+            --require=src/ambient-do.js:342 \
             --control
           node scripts/mutate-empty-catches.mjs
 
@@ -318,6 +318,14 @@ jobs:
         run: |
           node scripts/check-ambient-capture-dedup.mjs
           node scripts/check-ambient-capture-dedup.mjs --mutate
+
+      # docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md: the capture had
+      # written 2 rows since 09-01 against thousands of billed calls (id-substring
+      # match, UTC date), and every line it did write was late.
+      - name: AmbientDO's closing line is bought before kickoff and lands on its own row
+        run: |
+          node scripts/check-ambient-capture-write.mjs
+          node scripts/check-ambient-capture-write.mjs --mutate
 
       - name: /context/game refuses an id it cannot resolve
         run: node scripts/check-context-game-id-forms.mjs

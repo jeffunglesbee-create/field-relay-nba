@@ -91,7 +91,14 @@ ok('and the rule lives in exactly one module',
 // The two writers that cannot verify must still be able to READ kickoff, or
 // the mark they write is unverified for a reason that is not the game's.
 ok('ambient-do reads start_time for the row it is about to write',
-   /SELECT id, start_time FROM/.test(ambient));
+   /SELECT id, start_time\b[^`]{0,80}?FROM/.test(ambient));
+// Since docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md AmbientDO buys
+// before kickoff, so it can refuse as the relay does, and must: a late line is
+// skipped by every consumer and, written first, blocks the verified one the
+// later writers supply. The verdict is the shared mark's, not a comparison of
+// its own, which the one-module rule above forbids.
+ok('ambient-do writes only a line that precedes kickoff',
+   /if\s*\(\s*odds\._kickoff\?\.verified\s*!==\s*true\s*\)\s*\{[\s\S]{0,200}?return;\s*\}/.test(ambient));
 ok('the backfill reads start_time alongside the game date',
    /AS game_start_time/.test(backfill));
 
@@ -108,5 +115,5 @@ ok('ambient-do reports a failed change_log insert too',
 ok('and names the row it could not attribute', /unattributable/.test(ambient));
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
-          + ` — 3 writers marking kickoff, 2 gated, 2 swallowed records opened`);
+          + ` — 3 writers marking kickoff, 3 gated, 2 swallowed records opened`);
 process.exit(failed ? 1 : 0);

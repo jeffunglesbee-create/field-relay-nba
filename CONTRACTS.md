@@ -215,8 +215,11 @@ strings `'Z'` sorts above `':'`.
 
 - `verified: true` — the capture provably precedes kickoff.
 - `verified: false, late_minutes: n` — captured n minutes after kickoff. An
-  in-play price, not a close. `closing_odds_capture` is here by construction:
-  it fires on the pre-to-live transition, measured 0-25 min late.
+  in-play price, not a close. `closing_odds_capture` no longer writes one:
+  since 2026-10-22 it buys up to 10 minutes BEFORE kickoff and refuses a line
+  this mark calls late (relay `docs/CC-CMD-2026-10-22-closing-capture-before-
+  kickoff.md`). Its lines are `verified: true`; it was late by construction
+  before, firing on the pre-to-live transition.
 - `verified: false, late_minutes: null` — kickoff unknown or unreadable.
   Unverified, NOT on time (Rule 99).
 - **`_kickoff` absent entirely** — written before 2026-09-14, when nothing

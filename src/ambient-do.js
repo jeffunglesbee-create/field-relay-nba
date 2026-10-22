@@ -54,7 +54,9 @@
 // polls hit the CF cache — zero extra upstream quota cost. Result:
 // AmbientDO detects score changes within 15s of upstream updating.
 import { resolveTeamKey } from './identity-resolver.js';
-import { stampKickoff } from './odds-kickoff.js';
+import { nameMatches, kickoffGapMinutes, CONTESTED_KICKOFF_MINUTES } from './odds-name-match.js';
+import { stampKickoff, kickoffMark } from './odds-kickoff.js';
+import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { AMBIENT_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 const ODDS_SPORT_KEYS = AMBIENT_SPORT_TO_ODDS_KEY;
 import { chargeOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
@@ -74,6 +76,14 @@ const POLL_IDLE_MS  = 60_000;
 // blink or a failed fetch must not drop it.
 const SCORES_KEEP_MS  = 6 * 3600_000;
 const CAPTURE_KEEP_MS = 24 * 3600_000;
+// A closing line is bought this long before kickoff, at the first poll inside
+// the window (docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md).
+const CAPTURE_LEAD_MS = 10 * 60_000;
+// The book every other closing and opening line is read from (src/index.js
+// ODDS_PREFERRED_BOOK, which index.js cannot export to this module). A close
+// from another book than the opening narrates the gap between two books as
+// line movement. scripts/check-ambient-capture-write.mjs fails if they differ.
+const CLOSING_PREFERRED_BOOK = 'draftkings';
 const PING_MS       = 20_000;
 
 // ── Live In-Play Odds Constants ──────────────────────────────────────────────
@@ -421,9 +431,9 @@ export class AmbientDO {
         const now = Date.now();
         let totalLive = 0;
         const pendingFinals = new Set();
-        // Games that just transitioned pre→live this poll cycle. Closing-
-        // odds capture runs once per game after the per-game loop (so we
-        // don't block scoring fan-out on an Odds-API round-trip).
+        // Games due for their closing line this poll (see the trigger below).
+        // The capture runs after the per-game loop, so scoring fan-out is not
+        // blocked on an Odds-API round-trip.
         const pendingStarts = [];
 
         for (const res of results) {
@@ -466,21 +476,19 @@ export class AmbientDO {
                 const hS = homeScore ?? 0;
                 const aS = awayScore ?? 0;
 
-                // Detect pre→live transition (kickoff / first pitch). Fires
-                // once per game: `_gameStarts` is stored with the scores, so it
-                // also holds across a restart. It was in memory only, and with
-                // every write refused the object restarted each poll and bought
-                // each live game's line every poll (docs/CC-CMD-2026-10-21-
-                // closing-capture-calls-18x-its-need.md). Capture runs after the
-                // loop so scoring fan-out isn't blocked on an Odds-API round-trip.
-                const prevState = prev?.state || 'pre';
-                const isNewLive = (state === 'live' || state === 'in')
-                    && prevState !== 'live' && prevState !== 'in';
-                if (isNewLive) {
-                    if (!this._gameStarts.has(gameId)) {
-                        this._gameStarts.set(gameId, Date.now());
-                        pendingStarts.push({ gameId, sport, home, away });
-                    }
+                // A game due for its closing line: still 'pre', kicking off
+                // within CAPTURE_LEAD_MS, not bought yet. It used to be bought
+                // on the pre→live transition, which made every line late; a
+                // late line is skipped by every consumer and, written first,
+                // blocks the verified one the later writers would supply
+                // (docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md).
+                // `_gameStarts` is the stored record of what was bought, so a
+                // restart cannot buy it again.
+                const untilKickoff = Date.parse(game.start || '') - now;
+                if (state === 'pre' && untilKickoff > 0 && untilKickoff <= CAPTURE_LEAD_MS
+                    && ODDS_SPORT_KEYS[sport] && !this._gameStarts.has(gameId)) {
+                    pendingStarts.push({ gameId, sport, league: game.league || null,
+                        espnEventId: game.espnEventId || null, start: game.start, home, away });
                 }
 
                 // Detect score change
@@ -577,21 +585,32 @@ export class AmbientDO {
             }
         }
 
-        // ── Closing-odds capture on pre→live transitions ────────────────
-        // Each game gets its closing odds snapshotted at the moment it
-        // goes live (closing odds disappear from The Odds API within
-        // minutes of kickoff/first-pitch). Fire-and-forget per game so
-        // a single Odds-API failure doesn't cascade across the slate.
+        // ── Closing-odds capture, before kickoff ────────────────────────
+        // One vendor call per sport covers every due game of that sport, and
+        // it is made only for games whose archive row still needs a line.
         if (pendingStarts.length > 0 && this.env.ODDS_API_KEY) {
-            // Written before the first vendor call as well as with the rest at
-            // the end. The output gate holds that call until this write is
-            // confirmed, so no line is bought without the record of it.
-            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))
-                .catch(e => { this._diag.lastPutError = { at: new Date().toISOString(), key: 'starts:today',
-                    message: String(e?.message ?? e).slice(0, 300) }; });
+            const bySport = new Map();
             for (const start of pendingStarts) {
-                try { await this._captureClosingOdds(start); }
-                catch (e) { console.warn('[AmbientDO] closing odds capture failed:', e.message); }
+                if (!bySport.has(start.sport)) bySport.set(start.sport, []);
+                bySport.get(start.sport).push(start);
+            }
+            for (const [sport, starts] of bySport) {
+                try {
+                    // Checked again after the lookup's await: another poll (an
+                    // alarm beside POST /ambient/kick) may have bought them in
+                    // the meantime, and the check and the set below must not be
+                    // separated by an await.
+                    const due = (await this._closingRowsFor(starts)).filter(d => !this._gameStarts.has(d.gameId));
+                    if (!due.length) continue;
+                    for (const d of due) this._gameStarts.set(d.gameId, Date.now());
+                    // Written before the vendor call as well as with the rest at
+                    // the end. The output gate holds that call until this write
+                    // is confirmed, so no line is bought without the record of it.
+                    this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))
+                        .catch(e => { this._diag.lastPutError = { at: new Date().toISOString(), key: 'starts:today',
+                            message: String(e?.message ?? e).slice(0, 300) }; });
+                    await this._captureClosingOdds(sport, due);
+                } catch (e) { console.warn('[AmbientDO] closing odds capture failed:', e.message); }
             }
         }
 
@@ -889,18 +908,66 @@ export class AmbientDO {
         }));
     }
 
-    // ── Closing-odds capture on pre→live transition ──────────────────────
-    // Fetches current-market odds at the moment a game goes live, then
-    // UPDATEs both archive tables WHERE closing_odds IS NULL. Writes one
-    // change_log row per UPDATE so the Brief Freshness Guard (commit
-    // e24dde9) can detect closing-line shifts after publication.
+    // ── Closing-odds capture, before kickoff ─────────────────────────────
+    // Which due games have an archive row that still needs its closing line,
+    // looked up BEFORE anything is bought. The archive dates a row by the ET
+    // day of kickoff, which is the kickoff's UTC day or the day before, so both
+    // are read and the kickoff itself decides. Exactly one row per game, or
+    // that game is not bought.
     //
-    // Daily budget cap: 30 captures/day (~1% of the 2700 Odds-API daily
-    // ceiling). Counter resets at UTC midnight via `_closingOddsDate`.
+    // ESPN boards carry the event id, and (sport, date, espn_event_id) is
+    // unique. Other boards (NHLE, the NBA CDN, the MLB and WNBA secondaries)
+    // do not; there the archive's short names are matched to the board's full
+    // ones, the convention every other odds writer uses. Never by id substring:
+    // that is how a Ligue 1 line reached an MLB row ('rangers' contains
+    // 'angers') and the only October capture reached an MLS skeleton row.
+    async _closingRowsFor(starts) {
+        const league = starts[0]?.league;
+        if (!league) return [];
+        const days = new Set();
+        for (const st of starts) {
+            const t = Date.parse(st.start || '');
+            if (!Number.isFinite(t)) continue;
+            days.add(new Date(t).toISOString().slice(0, 10));
+            days.add(new Date(t - 86400000).toISOString().slice(0, 10));
+        }
+        if (!days.size) return [];
+        const rows = [];
+        for (const table of ['regular_season_games', 'postseason_games']) {
+            const got = await this._d1Query(
+                `SELECT id, start_time, espn_event_id, home, away FROM ${table}
+                 WHERE sport = ? AND date IN (${[...days].map(() => '?').join(', ')})
+                   AND start_time IS NOT NULL AND closing_odds IS NULL`,
+                [league, ...days]
+            );
+            for (const r of got) rows.push({ ...r, table });
+        }
+        const due = [];
+        for (const st of starts) {
+            const near = rows.filter(r => {
+                const gap = kickoffGapMinutes({ start_time: r.start_time }, { commence_time: st.start });
+                // A line captured now must still precede the row's own kickoff,
+                // by the shared rule, or the write is certain to be refused.
+                return gap !== null && Math.abs(gap) <= CONTESTED_KICKOFF_MINUTES
+                    && kickoffMark(new Date().toISOString(), r.start_time).verified;
+            });
+            const hit = st.espnEventId
+                ? near.filter(r => String(r.espn_event_id) === String(st.espnEventId))
+                : near.filter(r => nameMatches(r.home, st.home) && nameMatches(r.away, st.away));
+            if (hit.length === 1) due.push({ ...st, row: hit[0] });
+        }
+        return due;
+    }
+
+    // One billed call covers every due game of the sport. Each line is written
+    // only if it provably precedes kickoff: a late line is skipped by every
+    // consumer and would block the verified one the later writers supply.
+    // UPDATEs only WHERE closing_odds IS NULL, with one change_log row each so
+    // the Brief Freshness Guard (commit e24dde9) sees the line arrive.
     //
     // ARCHIVE_DB binding is inherited from the parent Worker — Cloudflare
     // DOs share env, no per-DO wrangler declaration needed.
-    async _captureClosingOdds({ gameId, sport, home, away }) {
+    async _captureClosingOdds(sport, due) {
         const oddsKey = ODDS_SPORT_KEYS[sport];
         if (!oddsKey) return; // sport not covered by Odds API
         const apiKey = this.env.ODDS_API_KEY;
@@ -926,7 +993,7 @@ export class AmbientDO {
         // is charged for the first time.
         //
         // Note cf.cacheTtl is 0 here, deliberately: a closing line must be the
-        // line at the moment of the transition. Every one of these is a fresh
+        // line at the moment it is bought. Every one of these is a fresh
         // billed call, which is why the accounting mattering is not theoretical.
         if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {
             console.warn('[closing-odds] odds credit guard declined — skipping capture');
@@ -939,7 +1006,7 @@ export class AmbientDO {
                 cf: { cacheTtl: 0 },
             });
             // cacheTtl 0 here, deliberately -- a closing line must be the line at
-            // the moment of the transition -- so this never reconciles to a cache
+            // the moment it is bought -- so this never reconciles to a cache
             // hit. It reconciles to the provider's actual receipt, which for a
             // sport with no listed events is zero.
             await reconcileOddsCredit(this.env, oddsCreditCost(url), r, 'ambientCaptureClosingOdds');
@@ -953,106 +1020,116 @@ export class AmbientDO {
             return;
         }
         if (!Array.isArray(events)) return;
-
-        // Centralised identity resolution via the relay's resolveTeamKey —
-        // imported below since AmbientDO lives in its own file. Same
-        // canonical key from either side, so the event match is an
-        // equality check instead of bidirectional substring containment.
-        const ha = resolveTeamKey(home), aa = resolveTeamKey(away);
-        const event = events.find(e =>
-            resolveTeamKey(e.home_team) === ha &&
-            resolveTeamKey(e.away_team) === aa
-        );
-        if (!event?.bookmakers?.length) return;
-
-        const bk = event.bookmakers[0];
-        const ml = bk.markets?.find(m => m.key === 'h2h');
-        const sp = bk.markets?.find(m => m.key === 'spreads');
-        const to = bk.markets?.find(m => m.key === 'totals');
-        const odds = {
-            source: bk.key,
-            captured_at: new Date().toISOString(),
-            moneyline: {
-                home: ml?.outcomes?.find(o => o.name === event.home_team)?.price ?? null,
-                away: ml?.outcomes?.find(o => o.name === event.away_team)?.price ?? null,
-                draw: ml?.outcomes?.find(o => o.name === 'Draw')?.price ?? null,
-            },
-            spread: {
-                home: sp?.outcomes?.find(o => o.name === event.home_team)?.point ?? null,
-                away: sp?.outcomes?.find(o => o.name === event.away_team)?.point ?? null,
-            },
-            total: {
-                over:  to?.outcomes?.find(o => o.name === 'Over')?.point ?? null,
-                under: to?.outcomes?.find(o => o.name === 'Under')?.point ?? null,
-            },
-        };
-        // THIS WRITER IS LATE BY CONSTRUCTION AND THE MARK SAYS SO.
-        // It fires on the pre-to-live transition, so its capture is at or after
-        // kickoff every time — measured 2026-09-14 at 0 to 25 minutes across 25
-        // rows. Refusing here would delete the only near-kickoff capture that
-        // exists, so it writes and labels instead. `startTime` is read from the
-        // matched row below; until then the mark is unverified, which is true.
-        const baseOdds = odds;
-
-        // FIXED 2026-07-03: today, nH, nA were referenced below but never
-        // defined anywhere in this function -- a genuine ReferenceError
-        // every single time this ran, silently swallowed by the outer
-        // try/catch at the call site (confirmed via the relay gap-sweep
-        // CC session, independently re-verified before this fix).
-        const today = new Date().toISOString().slice(0, 10);
-        const normName = s => String(s || '').toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]/g, '');
-        const nH = normName(home);
-        const nA = normName(away);
-
-        // Find the matching archive row (id contains normalised team names
-        // for most relay-cron writers) and UPDATE. Both tables checked.
-        for (const table of ['regular_season_games', 'postseason_games']) {
-            try {
-                const candidates = await this._d1Query(
-                    `SELECT id, start_time FROM ${table}
-                     WHERE date = ? AND closing_odds IS NULL LIMIT 50`,
-                    [today]
-                );
-                const match = candidates.find(r =>
-                    r.id && (r.id.includes(nH) || r.id.includes(nA))
-                );
-                if (!match) continue;
-                // Stamped per matched row, because start_time is a property of
-                // the game and this loop may match a different one per table.
-                const oddsJson = JSON.stringify(
-                    stampKickoff({ ...baseOdds }, baseOdds.captured_at, match.start_time));
-                await this._d1Query(
-                    `UPDATE ${table} SET closing_odds = ?
-                     WHERE id = ? AND closing_odds IS NULL`,
-                    [oddsJson, match.id]
-                );
-                // change_log entry — Brief Freshness Guard reads this to
-                // flag stale briefs when closing odds shift after pub.
-                await this._d1Query(
-                    `INSERT INTO change_log
-                       (game_id, source, field, old_value, new_value, ts)
-                     VALUES (?, 'closing_odds_capture', 'closing_odds', NULL, ?, datetime('now'))`,
-                    [match.id, oddsJson]
-                ).catch(e => {
-                    // NOT SWALLOWED — the same defect as odds-backfill.js's, and
-                    // this is the other writer whose silence made 62 rows
-                    // unattributable. The write already succeeded; this only
-                    // makes its record's absence audible.
-                    console.warn(`[closing-odds] change_log insert FAILED for `
-                      + `${match.id} — this row will be unattributable: ${e.message}`);
-                });
-                console.log(`[closing-odds] captured ${home} vs ${away} → ${table}/${match.id}`);
-            } catch (e) {
-                console.warn(`[closing-odds] ${table} update failed: ${e.message}`);
-            }
+        for (const start of due) {
+            try { await this._writeClosingLine(start, events); }
+            catch (e) { console.warn(`[closing-odds] ${start.row?.id}: ${e.message}`); }
         }
     }
 
-    // Thin D1 wrapper. DOs share the parent Worker's env, so ARCHIVE_DB is
-    // directly accessible. Returns [] when the binding is missing so the
-    // capture path can degrade silently.
+    // The vendor event for one due game, and its line written to the row
+    // _closingRowsFor found. Only events within CONTESTED_KICKOFF_MINUTES of
+    // this kickoff are candidates, so the same teams' next game cannot be
+    // taken for this one.
+    async _writeClosingLine(start, events) {
+        const near = events.filter(e => {
+            const gap = kickoffGapMinutes({ start_time: start.start }, e);
+            return gap !== null && Math.abs(gap) <= CONTESTED_KICKOFF_MINUTES;
+        });
+        // The board and the vendor both use full names. A team is the same team
+        // when the resolved keys are equal ('Chicago Fire FC' and 'Chicago
+        // Fire') or, failing that, when the tokens match ('Columbus Crew' and
+        // 'Columbus Crew SC'). Decided per team, so a pair needing one test for
+        // each still matches. Either orientation, and exactly one event, or
+        // nothing is written.
+        const pick = (same) => {
+            const straight = near.filter(e => same(start.home, e.home_team) && same(start.away, e.away_team));
+            const swapped  = near.filter(e => same(start.away, e.home_team) && same(start.home, e.away_team));
+            if (straight.length + swapped.length !== 1) return null;
+            return straight.length ? { event: straight[0], swapped: false } : { event: swapped[0], swapped: true };
+        };
+        const found = pick((b, v) => resolveTeamKey(b) === resolveTeamKey(v) || nameMatches(b, v));
+        const event = found?.event;
+        if (!event?.bookmakers?.length) return;
+        // The vendor's name for each of the board's teams, so a reversed
+        // listing cannot give one team the other's price.
+        const homeName = found.swapped ? event.away_team : event.home_team;
+        const awayName = found.swapped ? event.home_team : event.away_team;
+
+        // The preferred book, else the first, and the blob shaped as
+        // extractOddsForGame shapes every other line: a market the book does
+        // not serve is omitted, never written as nulls; the spread keeps its
+        // prices; the draw is there only when the h2h market has three
+        // outcomes. No _oddsProof, which would put this live capture among the
+        // replayed run-clock stamps (src/odds-capture-provenance.js).
+        const bk = event.bookmakers.find(b => b.key === CLOSING_PREFERRED_BOOK) || event.bookmakers[0];
+        const markets = bk.markets || [];
+        const h2h = markets.find(m => m.key === 'h2h');
+        const spreads = markets.find(m => m.key === 'spreads');
+        const totals = markets.find(m => m.key === 'totals');
+        const baseOdds = { source: bk.key, captured_at: new Date().toISOString() };
+        const mlHome = h2h?.outcomes?.find(o => o.name === homeName);
+        const mlAway = h2h?.outcomes?.find(o => o.name === awayName);
+        if (mlHome && mlAway) {
+            baseOdds.moneyline = { home: mlHome.price, away: mlAway.price };
+            const draw = drawPriceFrom(h2h.outcomes, mlHome, mlAway);
+            if (draw !== null) baseOdds.moneyline.draw = draw;
+        }
+        const sp = spreadFrom(spreads?.outcomes?.find(o => o.name === homeName),
+                              spreads?.outcomes?.find(o => o.name === awayName));
+        if (sp) baseOdds.spread = sp;
+        const over = totals?.outcomes?.find(o => o.name === 'Over');
+        const under = totals?.outcomes?.find(o => o.name === 'Under');
+        if (over && under) baseOdds.total = { over: over.point, under: under.point };
+        // A line with no moneyline is not a closing line any consumer can use.
+        if (!baseOdds.moneyline) return;
+        const match = start.row;
+        const odds = stampKickoff({ ...baseOdds }, baseOdds.captured_at, match.start_time);
+        // The shared rule decides, so this writer holds no comparison of its own.
+        if (odds._kickoff?.verified !== true) {
+            console.warn(`[closing-odds] ${match.id}: not before kickoff, not written`);
+            return;
+        }
+        const oddsJson = JSON.stringify(odds);
+        const result = await this._d1Run(
+            `UPDATE ${match.table} SET closing_odds = ?
+             WHERE id = ? AND closing_odds IS NULL`,
+            [oddsJson, match.id]
+        );
+        // D1 says how many rows changed. Zero means the row already had its
+        // line, so there is nothing to record; an unknown count is recorded.
+        if (result?.changes === 0) {
+            console.warn(`[closing-odds] ${match.id}: already had a closing line, not written`);
+            return;
+        }
+        // change_log entry — Brief Freshness Guard reads this to
+        // flag stale briefs when closing odds shift after pub.
+        await this._d1Query(
+            `INSERT INTO change_log
+               (game_id, source, field, old_value, new_value, ts)
+             VALUES (?, 'closing_odds_capture', 'closing_odds', NULL, ?, datetime('now'))`,
+            [match.id, oddsJson]
+        ).catch(e => {
+            // NOT SWALLOWED — the same defect as odds-backfill.js's, and
+            // this is the other writer whose silence made 62 rows
+            // unattributable. The write already succeeded; this only
+            // makes its record's absence audible.
+            console.warn(`[closing-odds] change_log insert FAILED for `
+              + `${match.id} — this row will be unattributable: ${e.message}`);
+        });
+        console.log(`[closing-odds] captured ${start.home} vs ${start.away} → ${match.table}/${match.id}`);
+    }
+
+    // A D1 write, returning its meta (the `changes` count), or null without the
+    // binding. DOs share the parent Worker's env, so ARCHIVE_DB is directly
+    // accessible.
+    async _d1Run(sql, params = []) {
+        if (!this.env || !this.env.ARCHIVE_DB) return null;
+        const r = await this.env.ARCHIVE_DB.prepare(sql).bind(...params).run();
+        return r && r.meta ? r.meta : null;
+    }
+
+    // Thin D1 wrapper. Returns [] when the binding is missing so the capture
+    // path can degrade silently.
     async _d1Query(sql, params = []) {
         if (!this.env || !this.env.ARCHIVE_DB) return [];
         const stmt = this.env.ARCHIVE_DB.prepare(sql);

@@ -1,21 +1,22 @@
 #!/usr/bin/env node
-// AmbientDO buys one closing line per game, however often it is restarted.
-// docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md.
+// AmbientDO buys one closing line per game, before kickoff, however often it is
+// restarted. docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md and
+// docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md.
 //
-// TASK 0 measured the defect live (outbox/ambient-capture-probe-20261022T002944Z.log):
-//   - every scores:today write was refused: "Values cannot be larger than 131072
-//     bytes. A value of size 131814 was provided.";
-//   - every reading met a new instance (19 of 19), with _gameStarts empty;
-//   - each instance restored the same frozen 661-entry snapshot.
-// So a game that went live after the freeze was "newly live" on every poll, and
-// every poll bought its closing line again at 3 credits.
+// TASK 0 of the first measured the defect live (outbox/ambient-capture-probe-
+// 20261022T002944Z.log): every scores:today write was refused ("A value of size
+// 131814 was provided"), every reading met a new instance, and each instance
+// restored the same frozen 661-entry snapshot with the capture record empty, so
+// a game went "newly live" on every poll and its line was bought every poll.
+// The second moved the purchase before kickoff, once per sport per poll, and
+// only for games whose archive row still needs a line.
 //
 // This runs the real AmbientDO class against a storage that enforces the same
-// 131072-byte value limit, and replaces the instance after any refused write,
-// as the runtime did. The clock is pinned and moved by the scenario, because the
-// class reads the time for the scoreboard date, the in-season sports, and both
-// keep windows. The scoreboards are served by sport and ignore the date, so a
-// scenario says which games each board lists at each poll.
+// 131072-byte value limit, and replaces the instance after any refused write.
+// The clock is pinned and moved by the scenario. The scoreboards are served by
+// sport and ignore the date. The archive lookup and the purchase are stubbed:
+// which games are bought, and how many calls, is what is under test here.
+// scripts/check-ambient-capture-write.mjs runs the real lookup and purchase.
 //
 //   node scripts/check-ambient-capture-dedup.mjs            # self-test
 //   node scripts/check-ambient-capture-dedup.mjs --mutate   # Rule 90
@@ -32,6 +33,7 @@ const MODULE = process.env.AMBIENT_MODULE || SRC;
 const LIMIT = 131072;
 const AT = Date.parse('2026-10-19T18:00:00Z');   // a Monday: EPL, Serie A and MLB in season
 const MIN = 60_000, HOUR = 3_600_000;
+const LEAGUE = { epl: 'EPL', seriea: 'Serie A', mlb: 'MLB', nfl: 'NFL' };
 
 const RealDate = Date;
 let clock = AT;
@@ -42,8 +44,8 @@ class PinnedDate extends RealDate {
 
 function makeWorld() {
   const store = new Map();
-  const world = { store, refused: 0, board: {}, failing: new Set(), captures: [], events: [],
-    refuseKeys: new Set(), dead: false, failGet: 0, onCapture: null, clock: AT, unconfirmed: 0 };
+  const world = { store, refused: 0, board: {}, failing: new Set(), captures: [], calls: [], events: [],
+    refuseKeys: new Set(), dead: false, failGet: 0, onCapture: null, clock: AT, noRow: new Set(), unconfirmed: 0 };
   world.storage = {
     async get(k) {
       if (world.failGet > 0) { world.failGet--; throw new Error('storage read failed'); }
@@ -75,10 +77,15 @@ function makeWorld() {
 async function load() {
   const m = await import(pathToFileURL(MODULE).href + `?v=${Math.random()}`);
   const C = m.AmbientDO;
-  // The capture's own fetch and D1 writes are not under test; its CALLS are.
-  C.prototype._captureClosingOdds = async function ({ gameId }) {
-    this.__world.captures.push(gameId);
-    if (this.__world.onCapture) this.__world.onCapture(gameId);
+  // Every due game has a row needing a line unless the scenario says not.
+  C.prototype._closingRowsFor = async function (starts) {
+    return starts.filter(s => !this.__world.noRow.has(s.gameId)).map(s => ({ ...s, row: { id: `row:${s.gameId}` } }));
+  };
+  // The purchase's own fetch and D1 writes are not under test; its CALLS are.
+  C.prototype._captureClosingOdds = async function (sport, due) {
+    this.__world.calls.push(sport);
+    for (const d of due) this.__world.captures.push(d.gameId);
+    if (this.__world.onCapture) this.__world.onCapture(sport);
   };
   C.prototype._fetchLiveOdds = async function () {};
   C.prototype._broadcast = function (type, data) { this.__world.events.push(`${type}:${data?.gameId ?? ''}`); };
@@ -99,8 +106,12 @@ function installFetch(world) {
   };
 }
 
-const game = (id, sport, state, home = `Home ${id}`, away = `Away ${id}`) =>
-  ({ id, sport, state, home: { name: home, abbr: 'HOM', score: 0 }, away: { name: away, abbr: 'AWY', score: 0 }, periodNum: 1, periodLabel: '1st', clock: '10:00' });
+// `start` is an absolute instant; a game with none kicks off far in the future.
+const game = (id, sport, state, home = `Home ${id}`, away = `Away ${id}`, start = '2027-01-01T00:00Z') =>
+  ({ id, sport, league: LEAGUE[sport] || sport.toUpperCase(), state, start,
+     home: { name: home, abbr: 'HOM', score: 0 }, away: { name: away, abbr: 'AWY', score: 0 }, periodNum: 1, periodLabel: '1st', clock: '10:00' });
+// A game still 'pre' that kicks off at an absolute instant.
+const pre = (id, sport, at) => game(id, sport, 'pre', `Home ${id}`, `Away ${id}`, new Date(at).toISOString());
 
 // A frozen snapshot like the live one: entries of games long gone from every
 // scoreboard, still reading 'live'.
@@ -153,9 +164,8 @@ async function selfTest() {
   };
 
   // S1 — the measured defect. A frozen snapshot that is the largest that fits
-  // (found by search, not guessed), five games going live after the freeze,
-  // four polls. The per-game state kept beside the scores is seeded with
-  // leftovers too.
+  // (found by search, not guessed), five games due within the window, four
+  // polls. The per-game state kept beside the scores is seeded with leftovers.
   {
     const w = makeWorld();
     let lo = 1, hi = 2000;
@@ -164,80 +174,80 @@ async function selfTest() {
     const [z0, z1, z2] = Object.keys(frozen);
     frozen['espn:760500'] = { ...frozen[z2], sport: 'wc26' };   // an off-season sport's leftover
     delete frozen[z2];
-    const live = [1, 2, 3, 4, 5].map(i => game(`espn:74000${i}`, 'epl', 'live', `Live Home Team Number ${i}`, `Live Away Team Number ${i}`));
-    const ids = live.map(g => g.id);
+    const kick = AT + 8 * MIN;
+    const due = [1, 2, 3, 4, 5].map(i => ({ ...pre(`espn:74000${i}`, 'epl', kick), home: { name: `Live Home Team Number ${i}`, abbr: 'H', score: 0 } }));
+    const ids = due.map(g => g.id);
     w.store.set('scores:today', frozen);
     w.store.set('leaders:today', { [z0]: 'home', 'espn:orphan-leader': 'away' });
     w.store.set('finals:today', [z1, 'espn:orphan-final']);
     w.store.set('wp:today', { [z0]: { homeWP: 0.6 }, 'espn:orphan-wp': { homeWP: 0.5 }, [ids[0]]: { homeWP: 0.55 } });
     eq('S1 precondition: the frozen snapshot fits, and with today\'s games it would not',
       [serialize(frozen).length <= LIMIT, serialize({ ...frozen, ...zombies(5, 'epl') }).length > LIMIT], [true, true]);
-    w.board.epl = live;
+    w.board.epl = due;
     await run(C, w, 4, (p, world) => { if (p === 1) world.inst._wpPeaks = { [z0]: 0.7, [ids[0]]: 0.6 }; });
-    eq('S1: one closing line per game live across four polls', w.captures, ids);
+    eq('S1: one closing line per due game across four polls, in one call', [w.captures, w.calls], [ids, ['epl']]);
     eq('S1: no write refused, so no restart', [w.refused, w.instances], [0, 1]);
     eq('S1: the stored scores hold today\'s board, not the frozen leftovers', Object.keys(w.store.get('scores:today') ?? {}).sort(), ids);
     eq('S1: leaders and finals keep only games still kept',
-      [Object.keys(w.store.get('leaders:today') ?? {}).sort(), w.store.get('finals:today')], [ids, []]);
+      [Object.keys(w.store.get('leaders:today') ?? {}), w.store.get('finals:today')], [[], []]);
     eq('S1: live odds keep only games still kept', Object.keys(w.store.get('wp:today') ?? {}), [ids[0]]);
     eq('S1: odds peaks keep only games still kept', Object.keys(w.inst._wpPeaks), [ids[0]]);
   }
 
-  // S2 — a restart mid-game that loses the game's scores entry: the write of
-  // the scores is refused in the poll that bought the line, so the next
-  // instance restores the game as 'pre'. Only the capture record can stop a
-  // second purchase. (A plain restart restores the 'live' entry and cannot
-  // tell the record's presence from its absence.)
+  // S2 — a restart inside the window, in the poll that bought the line (its
+  // scores write is refused): only the stored record stops a second purchase.
   {
     const w = makeWorld();
-    let restoredAs = null;
+    const kick = AT + 8 * MIN;
     await run(C, w, 3, (p, world) => {
-      world.board.epl = [game('espn:740002', 'epl', p === 0 ? 'pre' : 'live')];
-      if (p === 1) world.refuseKeys.add('scores:today'); else world.refuseKeys.clear();
-      if (p === 2) restoredAs = world.store.get('scores:today')?.['espn:740002']?.state ?? null;
+      world.board.epl = [pre('espn:740002', 'epl', kick)];
+      if (p === 0) world.refuseKeys.add('scores:today'); else world.refuseKeys.clear();
     });
-    eq('S2 precondition: the poll that bought the line restarted the object, which restored the game as pre',
-      [w.instances, restoredAs], [2, 'pre']);
-    eq('S2: a restart that loses the scores entry does not buy the line again', w.captures, ['espn:740002']);
+    eq('S2 precondition: the poll that bought the line restarted the object', w.instances, 2);
+    eq('S2: a restart inside the window does not buy the line again', w.captures, ['espn:740002']);
   }
 
   // S3 — the board drops a game for one poll, then shows it again: the entry is
   // kept, so nothing is bought or broadcast twice.
   {
     const w = makeWorld();
-    await run(C, w, 5, (p, world) => { world.board.epl = p === 2 ? [] : [game('espn:740003', 'epl', 'live')]; });
-    eq('S3: a game that blinks off the board is not bought twice', w.captures, ['espn:740003']);
-    eq('S3: nor is its score broadcast again', count(w.events, 'score:espn:740003'), 1);
+    const kick = AT + 8 * MIN;
+    await run(C, w, 5, (p, world) => {
+      world.board.epl = p === 2 ? [] : [game('espn:740003', 'epl', 'live'), pre('espn:740023', 'epl', kick)];
+    });
+    eq('S3: a due game that blinks off the board is not bought twice', w.captures, ['espn:740023']);
+    eq('S3: a live game that blinks is not broadcast again', count(w.events, 'score:espn:740003'), 1);
     const w2 = makeWorld();
     await run(C, w2, 5, (p, world) => { world.board.epl = p === 2 ? [] : [game('espn:740010', 'epl', 'final')]; });
     eq('S3: a final game that blinks is announced final once', count(w2.events, 'final:espn:740010'), 1);
-    // Gone longer than the keep window: the entry is dropped, and only the
-    // capture record stops a second purchase when the game returns.
+    // Postponed and gone longer than the keep window: the entry is dropped, and
+    // only the capture record stops a second purchase when it is due again.
     const w3 = makeWorld();
     let away = null;
     await run(C, w3, 9, (p, world) => {
-      world.board.epl = p === 0 || p === 8 ? [game('espn:740007', 'epl', 'live')] : [];
+      world.board.epl = p === 0 || p === 8 ? [pre('espn:740007', 'epl', world.clock + 5 * MIN)] : [];
       if (p === 8) away = 'espn:740007' in (world.store.get('scores:today') ?? {});
     }, HOUR);
     eq('S3 precondition: the entry was dropped while the game was away', away, false);
-    eq('S3: a game gone seven hours comes back without a second purchase', w3.captures, ['espn:740007']);
+    eq('S3: a game due again seven hours later is not bought again', w3.captures, ['espn:740007']);
   }
 
-  // S4 — a sport's board is not read while its game is live, in each way that
-  // happens: a non-2xx, a thrown fetch, a 200 without a games array, and the
-  // relay's own 200 with an empty board on an upstream error. The entry stays,
-  // nothing is bought or broadcast twice, and the game is still live after.
+  // S4 — a sport's board is not read, in each way that happens: a non-2xx, a
+  // thrown fetch, a 200 without a games array, and the relay's own 200 with an
+  // empty board on an upstream error. The live game's entry stays and is not
+  // broadcast twice; the due game is bought once.
   for (const mode of ['502', 'throw', 'no-array', 'soft-empty']) {
     const w = makeWorld();
     w.failMode = mode;
+    const kick = AT + 8 * MIN;
     let during = null;
     await run(C, w, 4, (p, world) => {
-      world.board.epl = [game('espn:740004', 'epl', 'live')];
+      world.board.epl = [game('espn:740004', 'epl', 'live'), pre('espn:740024', 'epl', kick)];
       if (p === 1 || p === 2) world.failing.add('epl'); else world.failing.delete('epl');
       if (p === 3) during = world.store.get('scores:today')?.['espn:740004']?.state ?? null;
     });
     eq(`S4 (${mode}): kept and still live while unread, bought once, its score broadcast once`,
-      [during, w.captures, count(w.events, 'score:espn:740004')], ['live', ['espn:740004'], 1]);
+      [during, w.captures, count(w.events, 'score:espn:740004')], ['live', ['espn:740024'], 1]);
   }
 
   // S5 — the capture record forgets a game 24 hours after its capture: pinned
@@ -246,24 +256,24 @@ async function selfTest() {
     const w = makeWorld();
     w.clock = AT - 30_000;
     w.store.set('starts:today', { 'espn:old': AT - 24 * HOUR - MIN, 'espn:recent': AT - 24 * HOUR + MIN });
-    w.board.epl = [game('espn:740006', 'epl', withCapture ? 'live' : 'pre')];
+    w.board.epl = [withCapture ? pre('espn:740006', 'epl', AT + 5 * MIN) : game('espn:740006', 'epl', 'pre')];
     await run(C, w, 1);
     eq(`S5 (${withCapture ? 'with' : 'without'} a capture): 24h + 1 min is dropped, 24h - 1 min is kept`,
       Object.keys(w.store.get('starts:today') ?? {}).sort(), withCapture ? ['espn:740006', 'espn:recent'] : ['espn:recent']);
   }
 
-  // S6 — the object is reset in the middle of the capture loop (a deploy), so
-  // nothing after the vendor call is written. The record must already be.
-  // Two games go live in the same poll and the reset lands on the first
-  // capture, so the record written before the loop must hold both.
+  // S6 — the object is reset in the middle of the purchase (a deploy), so
+  // nothing after the vendor call is written. Two games are due in one call;
+  // the record written before the call must hold both.
   {
     const w = makeWorld();
     w.onCapture = () => { w.dead = true; w.onCapture = null; };
+    const kick = AT + 8 * MIN;
     await run(C, w, 3, (p, world) => {
-      world.board.epl = ['espn:740008', 'espn:740018'].map(id => game(id, 'epl', p === 0 ? 'pre' : 'live'));
+      world.board.epl = ['espn:740008', 'espn:740018'].map(id => pre(id, 'epl', kick));
     });
     eq('S6 precondition: the reset happened', w.instances, 2);
-    eq('S6: a reset during the capture loop does not buy either line again', w.captures, ['espn:740008', 'espn:740018']);
+    eq('S6: a reset during the purchase buys neither line again', [w.captures, w.calls], [['espn:740008', 'espn:740018'], ['epl']]);
     eq('S6: no write opts out of the output gate that holds the vendor call', w.unconfirmed, 0);
   }
 
@@ -307,6 +317,17 @@ async function selfTest() {
     eq('S9: a game on the board for nine hours is announced final once', count(w.events, 'final:espn:740012'), 1);
   }
 
+  // S10 — the restore read fails once on a new instance. The next poll must
+  // restore again instead of running on an empty capture record.
+  {
+    const w = makeWorld();
+    const kick = AT + 8 * MIN;
+    await run(C, w, 1, (p, world) => { world.board.epl = [pre('espn:740013', 'epl', kick)]; });
+    w.failGet = 1;
+    await run(C, w, 2);
+    eq('S10: a failed restore read does not buy the line again', w.captures, ['espn:740013']);
+  }
+
   // S11 — a game leaves a board that still lists other games of its sport,
   // which is how the frozen entries piled up: freshness is per game.
   {
@@ -317,14 +338,45 @@ async function selfTest() {
     eq('S11: the departed game is dropped, the listed one kept', Object.keys(w.store.get('scores:today') ?? {}), ['espn:401902']);
   }
 
-  // S10 — the restore read fails once on a new instance. The next poll must
-  // restore again instead of running on an empty capture record.
+  // S12 — one vendor call per sport covers every game of it due in the poll.
   {
     const w = makeWorld();
-    await run(C, w, 2, (p, world) => { world.board.epl = [game('espn:740013', 'epl', p === 0 ? 'pre' : 'live')]; });
-    w.failGet = 1;
+    const kick = AT + 8 * MIN;
+    w.board.epl = ['espn:741001', 'espn:741002', 'espn:741003'].map(id => pre(id, 'epl', kick));
+    w.board.seriea = ['espn:742001', 'espn:742002'].map(id => pre(id, 'seriea', kick));
     await run(C, w, 2);
-    eq('S10: a failed restore read does not buy the line again', w.captures, ['espn:740013']);
+    eq('S12: three EPL and two Serie A games due together cost one call per sport',
+      [[...w.calls].sort(), w.captures.length], [['epl', 'seriea'], 5]);
+  }
+
+  // S13 — which games are due: 'pre', kicking off within ten minutes, not yet
+  // started, in a sport with an odds key.
+  {
+    const w = makeWorld();
+    await run(C, w, 1, (p, world) => {
+      world.board.epl = [pre('espn:743011', 'epl', world.clock + 11 * MIN), pre('espn:743009', 'epl', world.clock + 9 * MIN),
+                         pre('espn:743945', 'epl', world.clock + 9.75 * MIN), pre('espn:741015', 'epl', world.clock + 10.25 * MIN),
+                         pre('espn:743000', 'epl', world.clock - MIN), game('espn:743live', 'epl', 'live', 'H', 'A', new Date(world.clock + 5 * MIN).toISOString())];
+      world.board.nfl = [pre('espn:743nfl', 'nfl', world.clock + 5 * MIN)];
+    });
+    const first = [...w.captures];
+    await run(C, w, 1, (p, world) => { world.clock += 2 * MIN; });
+    eq('S13: due means pre, inside ten minutes to the quarter-minute, not started, and a sport with odds',
+      [first, w.captures], [['espn:743009', 'espn:743945'], ['espn:743009', 'espn:743945', 'espn:743011', 'espn:741015']]);
+  }
+
+  // S14 — a due game whose archive row does not need a line is not bought and
+  // not recorded, so it is bought once its row does.
+  {
+    const w = makeWorld();
+    const kick = AT + 8 * MIN;
+    w.noRow.add('espn:744001');
+    await run(C, w, 1, (p, world) => { world.board.epl = [pre('espn:744001', 'epl', kick)]; });
+    const before = [...w.calls];
+    w.noRow.clear();
+    await run(C, w, 1);
+    eq('S14: no row needing a line, no call and no record; bought once it has one',
+      [before, w.captures], [[], ['espn:744001']]);
   }
 
   globalThis.Date = RealDate;
@@ -334,6 +386,7 @@ async function selfTest() {
 
 // Each mutation is one or more [from, to] edits. Every anchor must occur
 // exactly once, or the mutation is not run and the gate fails.
+const EARLY = "                    this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))\n                        .catch(";
 const MUTATIONS = [
   ['no prune', [['this._pruneScores(now);', '']]],
   ['prune by absence from one poll', [['if (this._seenAt.get(id) >= cutoff) continue;', 'if (this._seenAt.get(id) === now) continue;']]],
@@ -350,15 +403,15 @@ const MUTATIONS = [
   ['capture window 23h', [['const CAPTURE_KEEP_MS = 24 * 3600_000;', 'const CAPTURE_KEEP_MS = 23 * 3600_000;']]],
   ['capture window 25h', [['const CAPTURE_KEEP_MS = 24 * 3600_000;', 'const CAPTURE_KEEP_MS = 25 * 3600_000;']]],
   ['per-instance dedup (record neither persisted nor restored)', [
-    ["            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))\n                .catch(", '            Promise.resolve()\n                .catch('],
+    [EARLY, '                    Promise.resolve()\n                        .catch('],
     ["this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts)),", ''],
     ["this._gameStarts = new Map(Object.entries(stored.get('starts:today') ?? {}));", 'this._gameStarts = new Map();']]],
   ['captures not restored', [["this._gameStarts = new Map(Object.entries(stored.get('starts:today') ?? {}));", 'this._gameStarts = new Map();']]],
-  ['record not written before the vendor call', [["            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))\n                .catch(", '            Promise.resolve()\n                .catch(']]],
-  ['early record holds only the first game going live', [["            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))\n                .catch(",
-    "            this.ctx.storage.put('starts:today', Object.fromEntries([...this._gameStarts].filter(([k]) => !pendingStarts.slice(1).some(s => s.gameId === k))))\n                .catch("]]],
-  ['early record written outside the output gate', [["            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))\n                .catch(",
-    "            this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts), { allowUnconfirmed: true })\n                .catch("]]],
+  ['record not written before the vendor call', [[EARLY, '                    Promise.resolve()\n                        .catch(']]],
+  ['early record holds only the first game due', [[EARLY,
+    "                    this.ctx.storage.put('starts:today', Object.fromEntries([...this._gameStarts].filter(([k]) => !due.slice(1).some(s => s.gameId === k))))\n                        .catch("]]],
+  ['early record written outside the output gate', [[EARLY,
+    "                    this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts), { allowUnconfirmed: true })\n                        .catch("]]],
   ['record not written at the end of the poll', [["this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts)),", '']]],
   ['capture record never ages out', [['if (t < captureCutoff) this._gameStarts.delete(id);', '']]],
   ['leaders and live odds kept after their game', [['for (const id of Object.keys(byGame)) if (!(id in this._scores)) delete byGame[id];', '']]],
@@ -368,6 +421,17 @@ const MUTATIONS = [
   ['restore marked done before it succeeds', [
     ['        if (!this._restored) {\n            const stored', '        if (!this._restored) {\n            this._restored = true;\n            const stored'],
     ['            this._restored = true;\n            this._diag.restoredAt', '            this._diag.restoredAt']]],
+  ['a game already started is still bought', [["if (state === 'pre' && untilKickoff > 0 && untilKickoff <= CAPTURE_LEAD_MS", "if (state === 'pre' && untilKickoff <= CAPTURE_LEAD_MS"]]],
+  ['bought however far off kickoff is', [["if (state === 'pre' && untilKickoff > 0 && untilKickoff <= CAPTURE_LEAD_MS", "if (state === 'pre' && untilKickoff > 0"]]],
+  ['bought twenty minutes ahead', [['const CAPTURE_LEAD_MS = 10 * 60_000;', 'const CAPTURE_LEAD_MS = 20 * 60_000;']]],
+  ['bought nine minutes ahead', [['const CAPTURE_LEAD_MS = 10 * 60_000;', 'const CAPTURE_LEAD_MS = 9 * 60_000;']]],
+  ['bought eleven minutes ahead', [['const CAPTURE_LEAD_MS = 10 * 60_000;', 'const CAPTURE_LEAD_MS = 11 * 60_000;']]],
+  ['bought for a sport the vendor does not cover', [['                    && ODDS_SPORT_KEYS[sport] && !this._gameStarts.has(gameId)) {', '                    && !this._gameStarts.has(gameId)) {']]],
+  ['one call per game', [['                if (!bySport.has(start.sport)) bySport.set(start.sport, []);\n                bySport.get(start.sport).push(start);',
+    '                bySport.set(start.gameId, [start]);']]],
+  ['recorded before the row check', [
+    ['                    const due = (await this._closingRowsFor(starts)).filter(d => !this._gameStarts.has(d.gameId));\n                    if (!due.length) continue;\n                    for (const d of due) this._gameStarts.set(d.gameId, Date.now());',
+     '                    for (const d of starts) this._gameStarts.set(d.gameId, Date.now());\n                    const due = await this._closingRowsFor(starts);\n                    if (!due.length) continue;']]],
 ];
 
 function mutate() {

@@ -60,7 +60,10 @@ import { blankCommentsAndStrings } from './lib/blank-comments.mjs';
 // as a source anchor, so it can price that consumer's demand with
 // oddsCreditCost. It calls no vendor: its only fetch is the relay's
 // /d1/execute, read-only (CC-CMD-2026-09-16 Task 2).
-// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs scripts/measure-odds-consumer-demand.mjs
+// scripts/check-ambient-capture-write.mjs names the vendor host only to answer
+// it: its fake fetch serves the capture's /odds call from memory, so the real
+// guarded call in src/ambient-do.js can be run. It reaches no network.
+// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs scripts/measure-odds-consumer-demand.mjs scripts/check-ambient-capture-write.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
 // A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds was

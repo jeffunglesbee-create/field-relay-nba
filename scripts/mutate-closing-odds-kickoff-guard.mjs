@@ -80,8 +80,8 @@ const MUTATIONS = [
   // row this writer produces is unverified for a reason that is not the game's.
   { file: 'src/ambient-do.js',
     name: 'K10 ambient-do stops reading the kickoff it marks against',
-    anchor: 'SELECT id, start_time FROM ${table}',
-    replace: 'SELECT id FROM ${table}',
+    anchor: 'SELECT id, start_time, espn_event_id, home, away FROM ${table}',
+    replace: 'SELECT id, espn_event_id, home, away FROM ${table}',
     expect: 'ambient-do reads start_time for the row it is about to write' },
 
   { file: '.github/scripts/odds-backfill.js',
@@ -92,9 +92,16 @@ const MUTATIONS = [
 
   { file: 'src/ambient-do.js',
     name: 'K12 ambient-do goes back to swallowing its change_log failure',
-    anchor: '                ).catch(e => {',
-    replace: '                ).catch(() => {}); if (0) (e => {',
+    anchor: '        ).catch(e => {',
+    replace: '        ).catch(() => {}); if (0) (e => {',
     expect: 'ambient-do reports a failed change_log insert too' },
+  // The pre-kickoff capture (docs/CC-CMD-2026-10-22-closing-capture-before-
+  // kickoff.md) must refuse a late line rather than write it marked.
+  { file: 'src/ambient-do.js',
+    name: 'K13 ambient-do writes a line captured after kickoff',
+    anchor: 'if (odds._kickoff?.verified !== true) {',
+    replace: 'if (false) {',
+    expect: 'ambient-do writes only a line that precedes kickoff' },
 ];
 
 let bad = 0;

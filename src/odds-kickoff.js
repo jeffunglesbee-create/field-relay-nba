@@ -22,10 +22,13 @@
 // writers answer it differently on purpose:
 //   archive_game_closing  refuses a late capture — the historical endpoint can
 //                         be asked again for a better snapshot.
-//   AmbientDO             fires ON the pre-to-live transition, so it is late by
-//                         construction (measured 0-25 min). Refusing there
-//                         would delete the only near-kickoff capture that
-//                         exists; it writes, marked.
+//   AmbientDO             buys up to 10 minutes BEFORE kickoff and refuses a
+//                         line the mark calls late. It used to fire on the
+//                         pre-to-live transition and write marked, and every
+//                         such line was skipped by the consumers while it
+//                         blocked the later writers' verified line
+//                         (docs/CC-CMD-2026-10-22-closing-capture-before-
+//                         kickoff.md).
 //   odds-backfill         is the only source for old games. It writes, marked.
 
 /**
