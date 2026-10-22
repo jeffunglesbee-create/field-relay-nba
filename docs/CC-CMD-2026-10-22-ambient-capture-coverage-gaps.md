@@ -51,6 +51,31 @@ This gap also stranded entries. A game that is live at 00:00Z leaves the board
 mid-game and never reads final. Until the 10-21 CC-CMD's prune, nothing removed
 such an entry.
 
+**What is left after that prune** (found by its second review, 2026-10-22).
+The prune keeps an entry for 6h after its last board, deliberately: a blink, a
+failed fetch, or this gap must not drop a game that is still being played. The
+entry keeps its last reading, so for up to 6h it is served as `live` with its
+00:00Z score:
+- in `/ambient/state` `liveGames`;
+- in the SSE `connected` payload.
+
+The client's `connected` handler (jubilant-bassoon `src/legacy/field.js`,
+about line 28353) writes that score into the card. So every SSE reconnect
+shows the stale score until the client's next poll, 20–45 s later.
+
+- **Who is affected:** NHL games at 23:00Z every night of the season, and any
+  MLB or WNBA game live at 00:00Z.
+- **A second path:** an MLB/WNBA source failover leaves the abandoned id
+  (`mlbam:`, `wnba:`) live the same way
+  (`docs/CC-CMD-2026-10-22-capture-record-keyed-by-source-id.md`).
+- **Compared with HEAD's code:** HEAD served these entries live forever, so
+  this is not a regression.
+
+Fixing gap 2 removes the date-turn cause for the ESPN sports. Independently,
+the two live views could leave out entries no board has listed for more than
+a couple of polls, while keeping them for the capture dedup and for
+`all_final`. That is TASK 1's third item below.
+
 ## TASK 0 — premises, one command each
 
 1. **Gap 1 is the only reason NBA/NHL are absent.** Run `_poll` with month
@@ -80,7 +105,14 @@ such an entry.
   - Asking for both doubles the self-calls in that window. The ET date alone
     changes which board every other hour reads, so check the boundary at the
     ET midnight too.
-- Each gap is its own commit.
+- **Stale live views.** `/ambient/state` `liveGames` and the SSE `connected`
+  payload leave out an entry whose last board is older than about
+  2 × `POLL_IDLE_MS`. The entry stays in `_scores`, for the capture dedup and
+  for `all_final`.
+  - Before changing the payloads, check what the client does when a game it
+    shows live is missing from `connected`.
+  - Read CONTRACTS.md first (Rule 86).
+- Each item is its own commit.
 
 ## Done condition (Rule 90 artifacts)
 
@@ -89,7 +121,9 @@ such an entry.
    for each fixed gap:
    - an October NBA game going live is captured once;
    - a game whose ET-date board is not the UTC-date board is captured once
-     at kickoff.
+     at kickoff;
+   - if built, an entry no board has listed for 3 polls is absent from
+     `liveGames` and `connected`, and present in `_scores`.
    Each is red at HEAD and green after, with a mutation that restores the gap.
 3. A per-consumer demand run (`odds-consumer-demand.yml`) on a closed day
    with NBA or NHL games, showing `ambientCaptureClosingOdds` charged above 0

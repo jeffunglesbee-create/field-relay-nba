@@ -144,6 +144,79 @@ If the dedup is per-instance, persist "captured" per game, for example in DO
 storage keyed by the game and the day, so a restart cannot re-capture. Only the
 mechanism TASK 0 proves gets fixed.
 
+## TASK 1 — results (2026-10-22)
+
+**Commit:** `6ef722d`, in `src/ambient-do.js`. It fixes both halves of the
+proven mechanism: the refused write that restarted the object, and the
+per-instance dedup that made each restart buy again.
+
+1. **Entries are pruned by age.**
+   - `seen:today` records when a board last listed each game.
+   - `_pruneScores` drops a `_scores` entry 6h after that (`SCORES_KEEP_MS`).
+     An entry with no record counts as stale, so the frozen 661 go on the
+     first poll after deploy.
+   - The per-game leaders, live odds, odds peaks and finals go with their
+     entry.
+   - It is by age, not by one poll's absence. A board that blinks, a failed
+     fetch, the relay's 200 with an empty board on an NHLE or NBA CDN error,
+     and the date turning mid-game all leave the entry in place.
+2. **The capture record is stored.**
+   - `starts:today` (gameId → capture ms) is restored with the scores and kept
+     24h (`CAPTURE_KEEP_MS`).
+   - It is written before the first vendor call, unawaited. The output gate
+     holds that call until the write is confirmed, so no line is bought
+     without the record of it. It is written again at the end of the poll.
+3. **The restore is marked done only after its read succeeds.** A failed read
+   is retried on the next poll, instead of the poll running on an empty
+   record.
+
+**Test** (done condition 2): `scripts/check-ambient-capture-dedup.mjs`, run by
+`deploy.yml`. It runs the real class against a storage that enforces the
+131072-byte limit and resets after any refused write.
+- 29 checks. At HEAD 14 fail, including S2, a restart mid-game that loses the
+  scores entry. That one is caught by the mutation restoring per-instance
+  dedup.
+- 24 mutations, all caught. Each is named by the check that catches it. A
+  mutant that fails to load counts as a harness error, not as caught.
+
+**Review.** Two adversarial rounds, each with lenses plus a refuter per
+finding.
+- Round 1: 13 findings survived. Two were regressions of the first design,
+  which pruned on absence from one poll:
+  - an NBA/NHL upstream error served as an empty 200 would have dropped live
+    games;
+  - `all_final` could fire while a game that had left its board was still
+    being played.
+  Both led to pruning by age.
+- Round 2: no regression against HEAD. Measured from real boards, the stored
+  scores peak at 18–28% of the limit on realistic heaviest days, and 57% with
+  every league at its cap.
+- Five harness gaps from round 2 were closed:
+  - the `seen:today` age-out;
+  - per-game rather than per-sport freshness;
+  - two games in the reset scenario;
+  - the output-gate opt-out;
+  - `_wpPeaks`.
+
+**Filed rather than fixed** (Rule 87.4, all pre-existing):
+- `docs/CC-CMD-2026-10-22-capture-record-keyed-by-source-id.md`: an MLB/WNBA
+  source failover gives a live game a new id, so it is bought twice at most.
+- `docs/CC-CMD-2026-10-22-closing-capture-buys-per-game.md`: one charged call
+  per game, though one call covers the sport. This bears on done condition 3
+  (below).
+- `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`, extended: a game
+  that left its board mid-game is still served as live, with a frozen score,
+  for up to 6h.
+
+**Done condition 3 has a ceiling it may not meet.** It sets at most 2x, with
+need counted per (sport, kickoff instant). This fix buys once per game, and
+the capture still buys per game (the second filed CC-CMD). A day whose games
+share kickoff instants can therefore sit above 2x with the dedup working
+perfectly: 10-15 would read up to 2.18x. So the read reports three numbers:
+- charged/demand;
+- 3 × games / demand, the ratio for exactly one purchase per game;
+- the gap between them.
+
 ## Done condition (Rule 90 artifacts)
 
 1. TASK 0's three outputs committed.
