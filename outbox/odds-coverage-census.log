@@ -1,26 +1,30 @@
 
-=== 2026-10-20 — 26 row(s) across regular+postseason
-  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  CFB                       3        0        0     0     0        0           0
-  NBA                       3        0        0     0     0        0           0
-  NHL                      11        0        0     0     0        0           0
-  UEFA Champions League     9        0        0     0     0        0           0
-
-  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
-
-  checked 4 distinct sport label(s) on this date — every label present, not a sample
-
-=== 2026-10-21 — 27 row(s) across regular+postseason
+=== 2026-10-21 — 29 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
   CFB                       1        0        0     0     0        0           0
-  MLS                       3        1        0     1     0        0           0
+  La Liga                   1        0        0     0     0        0           0
+  MLS                       4        1        1     1     0        1           0
   NBA                      11        0        0     0     0        0           0
   NHL                       2        0        0     0     0        0           0
   UEFA Champions League     9        0        0     0     0        0           0
-  WNBA                      1        1        0     0     0        0           0
+  WNBA                      1        1        1     0     1        0           0
 
-  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+  of 2 closing snapshot(s): 1 a verified sequence, 1 unverifiable, 0 out of order
 
   one real opening_odds payload: {"source":"draftkings","captured_at":"2026-10-21T10:00:51.150Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-150,"away":290,"draw":350}}
 
-  checked 6 distinct sport label(s) on this date — every label present, not a sample
+  checked 7 distinct sport label(s) on this date — every label present, not a sample
+
+=== 2026-10-22 — 55 row(s) across regular+postseason
+  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
+  CFB                       3        0        0     0     0        0           0
+  MLS                       1        0        0     0     0        0           0
+  NBA                       2        0        0     0     0        0           0
+  NFL                       1        0        0     0     0        0           0
+  NHL                      12        0        0     0     0        0           0
+  UEFA Europa Conference League   18        0        0     0     0        0           0
+  UEFA Europa League       18        0        0     0     0        0           0
+
+  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+
+  checked 7 distinct sport label(s) on this date — every label present, not a sample
