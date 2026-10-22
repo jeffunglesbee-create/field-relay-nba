@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (real vendor spend above need), with an open mechanism
 **Confidence gate:** >= 95 before any commit
-**Status:** IN PROGRESS. Dispatched by the owner 2026-10-21 ("dispatch closing capture"). TASK 0 done 2026-10-22 (see its results); TASK 1 in review.
+**Status:** PARTIAL. TASK 0 and TASK 1 done 2026-10-22: fix `6ef722d`, deploy run 39713304241, verified live by runs 39714396288 and 39716768024. Done conditions 1 and 2 met. Done condition 3 is STAGED until two closed game days have been measured (reads scheduled for 10-24 and 10-25, 11:07Z), plus a kickoff-window probe on 10-23 at 18:12Z. Dispatched by the owner 2026-10-21 ("dispatch closing capture"). Session doc: `outbox/cc-session-2026-10-22-closing-capture.md`.
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2), Rule 87.4.
 
@@ -71,9 +71,16 @@ lines) or a game-keyed tally.
 
 ## TASK 0 — results (2026-10-22)
 
-The dedup is per instance, as hypothesised. But the restarts were not deploys
-or evictions. **AmbientDO restarted on every poll, because every write it made
-was refused.**
+The dedup is per instance, as hypothesised. **AmbientDO restarted far more
+often than deploys would explain, and every write of its scores was refused**,
+so every restart began from the same frozen snapshot.
+
+> **Correction, 2026-10-22, after the deploy.** This section first said the
+> refused write *caused* the restarts. Run 39714396288 refutes that: one
+> instance lived from 00:54:54Z to 03:02:23Z while refusing the write on every
+> poll. Why the instances restart is not established. It is filed as
+> `docs/CC-CMD-2026-10-22-ambient-do-restarts-on-every-event.md`. The fix does
+> not depend on the answer, because it stores what a restart used to lose.
 
 **Evidence.** `outbox/ambient-capture-probe-20261022T002944Z.log` (run
 39700004408): 10 minutes, 19 readings of `/ambient/state?diag=1`. That is the
@@ -97,8 +104,9 @@ diagnostic deployed in `9fcb1ac1`, and it is read-only.
      apart.
    - Every instance that had polled restored the same 661 entries
      (`restoredCount 661`), with `gameStartsSize null`.
-   - The refused write is the restart: Cloudflare resets a Durable Object
-     after a failed storage write.
+   - ~~The refused write is the restart: Cloudflare resets a Durable Object
+     after a failed storage write.~~ Refuted; see the correction above. The
+     restarts are measured; their cause is not.
    - **Consequence.** A game that went live after the snapshot froze is not in
      it. In each new instance it therefore reads `prevState 'pre'`, and its
      closing line is bought again on every poll, at 3 credits a call.
@@ -130,8 +138,12 @@ post-freeze live game per poll" over-predicts some days:
   at 23:00Z.
 
 The freeze instant is not known, because the stored snapshot carries no time.
-So the closed days cannot be assigned to before or after it. The fix removes
-the measured mechanism either way, and done condition 3 measures what remains.
+So the closed days cannot be assigned to before or after it. The deploy
+verification adds a second unknown: the restart rate varies, from one instance
+per reading to one instance for two hours. A varying restart rate would
+produce days like 10-17, but that is not established and is not offered as
+the explanation. The fix removes the measured mechanism either way, and done
+condition 3 measures what remains.
 
 One artifact in the logs: the "games first seen live" list in
 `20261021T235932Z` is not a list of kickoffs. That run's first reading met an
@@ -207,6 +219,31 @@ finding.
 - `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`, extended: a game
   that left its board mid-game is still served as live, with a frozen score,
   for up to 6h.
+
+**Deploy and verification.** Deploy run 39713304241 was green, including the
+new harness step. The code step finished at 02:57:28Z. The probe artifacts:
+
+- **Run 39714396288** (`outbox/ambient-capture-probe-20261022T025948Z.log`)
+  spans the switch to the new code.
+  - **Before, until 03:02:23Z:** stored 661 entries, `lastPutError` "A value
+    of size 131814 was provided", `gameStartsSize null`.
+  - **After, from 03:02:53Z:** `gameStartsSize 0`, which only the new
+    constructor gives. Stored scores were **4 entries, 903 bytes**, so the
+    frozen 661 were pruned and the write landed. `lastPutError` was null.
+- **Run 39716768024** (`…20261022T032548Z.log`): for 6 minutes the stored
+  scores held at 4 entries and 903 bytes while `lastPoll` advanced every
+  61 s. No capture was charged; no covered game went live in the window.
+- **Also seen:** every reading on the new code met a fresh instance, with
+  `clients 0`. The restarts continue and are filed. They no longer cost
+  credits, because each instance restores the scores, the seen times and the
+  capture record.
+- **Probe defect found and fixed** (`4d99887`): the probe hung past its window
+  because SIGTERM reached `npx`, not the wrangler tail. Run 39716768024 is the
+  first to exit on time with a tail attached.
+
+**Live kickoff check, scheduled.** The first covered kickoffs after the deploy
+are 10-23 at 18:30Z, 18:45Z and 19:00Z: five games over three instants. A
+probe across them must show exactly 5 capture calls, one per game.
 
 **Done condition 3 has a ceiling it may not meet.** It sets at most 2x, with
 need counted per (sport, kickoff instant). This fix buys once per game, and

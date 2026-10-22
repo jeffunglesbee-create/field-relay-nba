@@ -1,5 +1,45 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-22 (night) — the closing capture buys once per game
+
+**HEAD:** `a13cb060` → `6ef722d` (the fix) → `4d99887` (probe exit) → this
+close-out · **Branch:** main
+
+`docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`, PARTIAL. TASK
+0 and TASK 1 are done; done condition 3 is STAGED.
+
+- **The cause.** AmbientDO's `scores:today` passed the 131072-byte value
+  limit (131814), so every write was refused. Every restart therefore
+  restored the same frozen 661 entries with the in-memory capture dedup
+  empty, and re-bought every post-freeze live game on every poll.
+- **The fix, `6ef722d`, deploy run 39713304241:**
+  - entries are pruned 6h after their last board (`seen:today`);
+  - the capture record is stored (`starts:today`, 24h) and written before
+    the first vendor call;
+  - the restore is marked done only after its read succeeds.
+- **The test.** `scripts/check-ambient-capture-dedup.mjs`, run by
+  `deploy.yml`: 29 checks (14 red at HEAD) and 24 mutations, all caught.
+- **Live.** The stored scores fell from 661 entries to 4 (903 bytes) and no
+  write was refused (runs 39714396288 and 39716768024).
+- **Correction.** "The refused write caused the restarts" is withdrawn: one
+  instance lived two hours while refusing it. The restarts continue, at one
+  per reading while `clients 0`, and no longer cost credits.
+
+**Scheduled in this session:**
+- the kickoff-window probe, 10-23 at 18:12Z: exactly 5 capture calls
+  expected;
+- demand reads on 10-24 and 10-25 at 11:07Z (done condition 3).
+
+**Filed (Rule 87.4):**
+- `CC-CMD-2026-10-22-ambient-capture-coverage-gaps`: NBA/NHL are not polled
+  in October; 00:00Z kickoffs are invisible; games that left their board are
+  served stale as live;
+- `…-capture-record-keyed-by-source-id`;
+- `…-closing-capture-buys-per-game`;
+- `…-ambient-do-restarts-on-every-event`.
+
+Session doc: outbox/cc-session-2026-10-22-closing-capture.md
+
 ## SESSION CLOSE-OUT — 2026-10-22 — two governance guards, and a budget that was a parsing artifact
 
 **HEAD:** `cb187f6c` → `3fbcbb5d` · **Branch:** main
