@@ -83,18 +83,28 @@ const t0 = Date.now(), end = t0 + MINUTES * 60000;
 let firstLive = null;               // ids that read 'live' at the first reading
 const seen = new Map();             // id first live in the window -> first/last state seen
 let prevCharge = null, prevN = null, minutes = 0;
+let lastInstance = null, instances = 0, warnedNoDiag = false;
 const series = [];
 
 while (Date.now() < end) {
   const at = new Date().toISOString().slice(11, 19);
   try {
-    const { body: s, bytes } = await getJson('/ambient/state');
+    const { body: s, bytes } = await getJson('/ambient/state?diag=1');
     if (!Array.isArray(s.liveGames)) throw new Error(`no liveGames array in /ambient/state`);
     const live = s.liveGames;
     if (!firstLive) {
       firstLive = new Set(live.map(g => g.id));
       say(`  first /ambient/state: ${bytes} bytes, sportCount ${s.sportCount}, live ${live.length}, clients ${s.clientCount}`);
     }
+    // The diagnostic (?diag=1, deployed in 9fcb1ac1): printed whole at the
+    // first reading and at every new instance, compactly otherwise.
+    const d = s.diag;
+    if (d && d.instanceStartedAt !== lastInstance) {
+      say(`  ${at} INSTANCE ${d.instanceStartedAt}  ${JSON.stringify(d)}`);
+      lastInstance = d.instanceStartedAt; instances++;
+    } else if (d) {
+      say(`  ${at} diag mem ${d.memCount}/${d.memJsonBytes}B stored ${d.storedCount}/${d.storedJsonBytes}B match ${d.storedMatchesMem} gameStarts ${d.gameStartsSize} putErr ${d.lastPutError ? d.lastPutError.message.slice(0, 80) : 'none'} alarmErr ${d.lastAlarmError ? d.lastAlarmError.message.slice(0, 80) : 'none'} clients ${s.clientCount}`);
+    } else if (!warnedNoDiag) { say('  NOTE: /ambient/state returned no diag field'); warnedNoDiag = true; }
     const fresh = live.filter(g => !firstLive.has(g.id));
     for (const g of fresh) {
       const e = seen.get(g.id) || { sport: g.sport, game: `${g.away} @ ${g.home}`, first: at, readings: 0 };
@@ -128,7 +138,7 @@ say(`\n── games first seen live in the window`);
 if (!seen.size) say('  none');
 for (const [id, e] of seen) say(`  ${id}  ${e.sport}  ${e.game}  live ${e.first}..${e.last} over ${e.readings} readings  last ${e.score}`);
 const counts = series.map(x => x.sportCount);
-say(`\n── AmbientDO entries: sportCount min ${Math.min(...counts)} max ${Math.max(...counts)} over ${series.length} readings`);
+say(`\n── AmbientDO entries: sportCount min ${Math.min(...counts)} max ${Math.max(...counts)} over ${series.length} readings; ${instances} distinct instance(s) seen`);
 say(`── tail: ${tally.events} events (${tally.unparsed} unparsed), ${tally.kept} kept to ${TAIL}, ${tally.exceptions} with exceptions, outcomes ${JSON.stringify(tally.outcomes)}`);
 say(`   by entrypoint:event  ${JSON.stringify(Object.entries(tally.by).sort((a, b) => b[1] - a[1]).slice(0, 12))}`);
 say(`\nCOVERAGE: ${series.length} readings of /ambient/state at 30 s, ${Math.ceil(series.length / 2)} of /budget/odds at 60 s,`);
