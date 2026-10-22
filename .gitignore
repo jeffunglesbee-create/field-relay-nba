@@ -6,3 +6,8 @@ node_modules/
 # every run of the checks that import it.
 __pycache__/
 *.pyc
+
+# Mutation harnesses (scripts/check-*.mjs --mutate, scripts/mutate-*.mjs) write
+# a mutant beside its source, named per run, and delete it in a finally. One
+# killed mid-run leaves it behind; it must never be committed.
+.mutant-*

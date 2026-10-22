@@ -489,7 +489,7 @@ function mutate() {
       text = text.slice(0, at) + to + text.slice(at + from.length);
     }
     if (why) { console.log(`  ANCHOR     ${name} (${why}): not run`); bad++; continue; }
-    const mutant = path.join(path.dirname(SRC), '.mutant-ambient-do-write.js');
+    const mutant = path.join(path.dirname(SRC), `.mutant-${process.pid}-write-ambient-do.js`);
     writeFileSync(mutant, text);
     try {
       const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], { encoding: 'utf8', env: { ...process.env, AMBIENT_MODULE: mutant } });

@@ -147,7 +147,7 @@ function mutate() {
       text = text.slice(0, at) + to + text.slice(at + from.length);
     }
     if (why) { console.log(`  ANCHOR     ${name} (${why}): not run`); bad++; continue; }
-    const mutant = path.join(path.dirname(file), `.mutant-${path.basename(file)}`);
+    const mutant = path.join(path.dirname(file), `.mutant-${process.pid}-no-briefs-${path.basename(file)}`);
     writeFileSync(mutant, text);
     try {
       const envVar = file === INDEX ? 'INDEX_MODULE' : 'AMBIENT_MODULE';
