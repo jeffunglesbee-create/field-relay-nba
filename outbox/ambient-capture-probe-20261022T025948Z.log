@@ -1,0 +1,44 @@
+=== AmbientDO closing-capture probe  utc=2026-10-22T02:59:48.516Z  window=10 min ===
+  first /ambient/state: 29187 bytes, sportCount 665, live 206, clients 2
+  02:59:48 INSTANCE 2026-10-22T00:54:54.464Z  {"instanceStartedAt":"2026-10-22T00:54:54.464Z","restoredAt":"2026-10-22T00:54:54.474Z","restoredCount":661,"lastAlarmError":null,"lastPutError":{"at":"2026-10-22T02:59:35.308Z","key":"scores:today","message":"Values cannot be larger than 131072 bytes. A value of size 131814 was provided."},"gameStartsSize":null,"memCount":665,"memJsonBytes":147690,"storedCount":661,"storedJsonBytes":146788,"storedMatchesMem":false,"memLiveCount":206}
+  02:59:48  capture charged     0 (+)   reconciled calls    0 (+)   fresh-live 0   sportCount 665   lastPoll 02:59:35
+  03:00:19 diag mem 665/147690B stored 661/146788B match false gameStarts null putErr Values cannot be larger than 131072 bytes. A value of size 131814 was provided. alarmErr none clients 2
+  03:00:49 diag mem 665/147690B stored 661/146788B match false gameStarts null putErr Values cannot be larger than 131072 bytes. A value of size 131814 was provided. alarmErr none clients 2
+  03:00:49  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 665   lastPoll 03:00:37
+  03:01:21 diag mem 665/147690B stored 661/146788B match false gameStarts null putErr Values cannot be larger than 131072 bytes. A value of size 131814 was provided. alarmErr none clients 2
+  03:01:51 diag mem 665/147690B stored 661/146788B match false gameStarts null putErr Values cannot be larger than 131072 bytes. A value of size 131814 was provided. alarmErr none clients 2
+  03:01:51  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 665   lastPoll 03:01:39
+  03:02:23 diag mem 665/147690B stored 661/146788B match false gameStarts null putErr Values cannot be larger than 131072 bytes. A value of size 131814 was provided. alarmErr none clients 2
+  03:02:53 INSTANCE 2026-10-22T03:02:53.554Z  {"instanceStartedAt":"2026-10-22T03:02:53.554Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:02:53  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 03:02:40
+  03:03:24 INSTANCE 2026-10-22T03:03:24.980Z  {"instanceStartedAt":"2026-10-22T03:03:24.980Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:03:55 INSTANCE 2026-10-22T03:03:55.100Z  {"instanceStartedAt":"2026-10-22T03:03:55.100Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:03:55  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 03:03:41
+  03:04:26 INSTANCE 2026-10-22T03:04:26.610Z  {"instanceStartedAt":"2026-10-22T03:04:26.610Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:04:56 INSTANCE 2026-10-22T03:04:56.864Z  {"instanceStartedAt":"2026-10-22T03:04:56.864Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:04:56  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 03:04:41
+  03:05:28 INSTANCE 2026-10-22T03:05:28.482Z  {"instanceStartedAt":"2026-10-22T03:05:28.482Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:05:58 INSTANCE 2026-10-22T03:05:58.587Z  {"instanceStartedAt":"2026-10-22T03:05:58.587Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:05:58  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 03:05:42
+  03:06:29 INSTANCE 2026-10-22T03:06:30.075Z  {"instanceStartedAt":"2026-10-22T03:06:30.075Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:07:00 INSTANCE 2026-10-22T03:07:00.251Z  {"instanceStartedAt":"2026-10-22T03:07:00.251Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:07:00  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 03:06:43
+  03:07:31 INSTANCE 2026-10-22T03:07:31.997Z  {"instanceStartedAt":"2026-10-22T03:07:31.997Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:08:02 INSTANCE 2026-10-22T03:08:02.258Z  {"instanceStartedAt":"2026-10-22T03:08:02.258Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:08:02  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 03:07:43
+  03:08:33 INSTANCE 2026-10-22T03:08:33.639Z  {"instanceStartedAt":"2026-10-22T03:08:33.639Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:09:03 INSTANCE 2026-10-22T03:09:03.860Z  {"instanceStartedAt":"2026-10-22T03:09:03.860Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+  03:09:03  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 03:08:44
+  03:09:35 INSTANCE 2026-10-22T03:09:35.212Z  {"instanceStartedAt":"2026-10-22T03:09:35.212Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":4,"storedJsonBytes":903,"storedMatchesMem":false,"memLiveCount":0}
+
+── games first seen live in the window
+  none
+
+── AmbientDO entries: sportCount min 0 max 665 over 20 readings; 15 distinct instance(s) seen
+── tail: 201 events (0 unparsed), 11 kept to outbox/ambient-capture-tail-20261022T025948Z.jsonl, 0 with exceptions, outcomes {"ok":11}
+   by entrypoint:event  [["GameDO:scheduledTime",124],["worker:request+response",65],["AmbientDO:request+response",10],["default:cron+scheduledTime",1],["AmbientDO:scheduledTime",1]]
+
+COVERAGE: 20 readings of /ambient/state at 30 s, 10 of /budget/odds at 60 s,
+over 10 minutes. Calls per minute are differences of the reconcile count, so a minute
+straddling UTC midnight reads as a reset, not a negative. The tail keeps only events matching
+/alarm|AmbientDO|closing-odds|odds-reconcile|odds credit|Durable Object|storage|exceeded|too large/i or carrying an exception; everything else is counted and dropped.
