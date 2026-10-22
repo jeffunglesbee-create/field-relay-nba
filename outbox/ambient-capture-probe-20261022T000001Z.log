@@ -1,0 +1,22 @@
+=== AmbientDO closing-capture probe  utc=2026-10-22T00:00:01.164Z  window=6 min ===
+  first /ambient/state: 28869 bytes, sportCount 665, live 207, clients 0
+  00:00:01  capture charged     0 (+)   reconciled calls    0 (+)   fresh-live 0   sportCount 665   lastPoll 23:59:53
+  00:01:08  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 665   lastPoll 00:00:55
+  00:02:14  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 665   lastPoll 00:02:14
+  tail stderr: This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason:
+APIError: A request to the Cloudflare API (/accounts/b57e9af57ab46c52ca9215804e689c29/workers/scripts/field
+  00:03:21  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 665   lastPoll 00:03:16
+  00:04:29  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 0   lastPoll 00:03:32
+  00:05:36  capture charged     0 (+0)   reconciled calls    0 (+0)   fresh-live 0   sportCount 665   lastPoll 00:05:36
+
+── games first seen live in the window
+  none
+
+── AmbientDO entries: sportCount min 0 max 665 over 11 readings
+── tail: 270 events (0 unparsed), 12 kept to outbox/ambient-capture-tail-20261022T000001Z.jsonl, 2 with exceptions, outcomes {"ok":10,"exception":2}
+   by entrypoint:event  [["worker:request+response",204],["GameDO:scheduledTime",52],["AmbientDO:request+response",10],["default:cron+scheduledTime",2],["worker:batchSize+queue",2]]
+
+COVERAGE: 11 readings of /ambient/state at 30 s, 6 of /budget/odds at 60 s,
+over 6 minutes. Calls per minute are differences of the reconcile count, so a minute
+straddling UTC midnight reads as a reset, not a negative. The tail keeps only events matching
+/alarm|AmbientDO|closing-odds|odds-reconcile|odds credit|Durable Object|storage|exceeded|too large/i or carrying an exception; everything else is counted and dropped.
