@@ -185,6 +185,11 @@ export class AmbientDO {
         this._bsdSubscribed   = new Set();
         this._bsdReconnectTimer = null;
         this._bsdToken        = null;
+        // DIAGNOSTIC, docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md
+        // TASK 0. Read only through GET /ambient/state?diag=1. Nothing below
+        // changes what a poll does; it records what the poll and the restore saw.
+        this._diag = { instanceStartedAt: new Date().toISOString(), restoredAt: null,
+                       restoredCount: null, lastAlarmError: null, lastPutError: null };
     }
 
     // ── Main fetch handler ────────────────────────────────────────────────
@@ -230,6 +235,9 @@ export class AmbientDO {
                         homeScore: v.homeScore, awayScore: v.awayScore, period: v.period,
                         wp: this._wpState[id] || null })),
                 lastPoll:    await this.ctx.storage.get('last_poll') ?? null,
+                // Opt-in: reading the stored scores costs a storage read of the
+                // whole value, so the REST fallback never pays for it.
+                ...(url.searchParams.get('diag') === '1' ? { diag: await this._diagnostics() } : {}),
                 // Diagnostic fields added 2026-07-03: the general-scores
                 // _poll() bug fix above does NOT touch this separate BSD
                 // WebSocket relay path -- added real visibility here rather
@@ -327,12 +335,33 @@ export class AmbientDO {
         });
     }
 
+    // TASK 0 diagnostic for docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md:
+    // does the stored copy of the scores match the one in memory, and what has
+    // the last write or alarm said? Sizes are JSON lengths, a proxy for the
+    // serialized size the 128 KiB value limit applies to.
+    async _diagnostics() {
+        const stored = await this.ctx.storage.get('scores:today');
+        const storedKeys = stored && typeof stored === 'object' ? Object.keys(stored) : null;
+        const memJson = JSON.stringify(this._scores);
+        return {
+            ...this._diag,
+            gameStartsSize: this._gameStarts ? this._gameStarts.size : null,
+            memCount: Object.keys(this._scores).length,
+            memJsonBytes: memJson.length,
+            storedCount: storedKeys ? storedKeys.length : null,
+            storedJsonBytes: stored ? JSON.stringify(stored).length : null,
+            storedMatchesMem: stored ? JSON.stringify(stored) === memJson : null,
+            memLiveCount: Object.values(this._scores).filter(v => v.state === 'live').length,
+        };
+    }
+
     // ── Alarm handler — the poll heartbeat ───────────────────────────────
     async alarm() {
         try {
             await this._poll();
         } catch (e) {
             console.error('[AmbientDO] alarm error:', e.message);
+            this._diag.lastAlarmError = { at: new Date().toISOString(), message: String(e.message).slice(0, 300) };
         }
         // Always reschedule — never let the alarm die silently
         const hasLive = Object.values(this._scores).some(v => v.state === 'live');
@@ -358,6 +387,8 @@ export class AmbientDO {
             const storedFinals = stored.get('finals:today');
             this._finals  = storedFinals ? new Set(storedFinals) : new Set();
             this._wpState = stored.get('wp:today') ?? {};
+            this._diag.restoredAt = new Date().toISOString();
+            this._diag.restoredCount = Object.keys(this._scores).length;
         }
 
         const today   = _todayUTC();
@@ -552,7 +583,14 @@ export class AmbientDO {
             this.ctx.storage.put('leaders:today', this._leaders),
             this.ctx.storage.put('finals:today',  [...this._finals]),
             this.ctx.storage.put('wp:today',      this._wpState),
-        ]));
+        ]).then(results => {
+            // Still settled and swallowed as before; the first rejection is kept
+            // for ?diag=1 so a write that never lands is visible from outside.
+            const bad = results.findIndex(r => r.status === 'rejected');
+            if (bad >= 0) this._diag.lastPutError = { at: new Date().toISOString(),
+                key: ['scores:today', 'leaders:today', 'finals:today', 'wp:today'][bad],
+                message: String(results[bad].reason?.message ?? results[bad].reason).slice(0, 300) };
+        }));
     }
 
     // ── Live in-play odds → WP conversion ──────────────────────────────
