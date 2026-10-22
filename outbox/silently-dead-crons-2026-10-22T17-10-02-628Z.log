@@ -1,0 +1,84 @@
+=== silently dead crons  repos=4  streak=3  utc=2026-10-22T17:06:22.825Z ===
+    jeffunglesbee-create/field-relay-nba
+    jeffunglesbee-create/jubilant-bassoon
+    jeffunglesbee-create/field-laboratory
+    jeffunglesbee-create/field-playground
+
+  ── jeffunglesbee-create/field-relay-nba ──
+    186 workflow(s), 186 active  (all pages read)
+    scheduled and healthy             : 34
+    no schedule: block, not judged     : 146
+    declared detectors, red on purpose : 2   (not failures)
+      .github/workflows/rule90-staleness-monitor.yml  red at least 2.0 days
+        reports: rule-registry entries marked UNEXERCISED for more than 14 days
+        now:     rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/brief-label-migration.yml  red at least 17.1 days
+        reports: brief rows whose sport is outside the authority label set read from the games table
+        now:     4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+    DECLARES A CRON, NEVER FIRED       : 4
+      .github/workflows/drama-backfill.yml   cron 0 */2 * * *   added 2026-07-04 (109.7d ago)
+      .github/workflows/espn-reachability-monitor.yml   cron 0 * * * *   added 2026-08-08 (75.2d ago)
+      .github/workflows/rescore-quality-6b.yml   cron 0 6 * * 1   added 2026-08-23 (60.1d ago)
+      .github/workflows/odds-daily-vs-vendor.yml   cron 10 0 * * *   added 2026-09-18 (33.6d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/jubilant-bassoon ──
+    136 workflow(s), 136 active  (all pages read)
+    scheduled and healthy             : 29
+    no schedule: block, not judged     : 105
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 1
+      .github/workflows/mlbn-schedule.yml   cron 0 9 * * *   added 2026-05-28 (147.2d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/nba-clutch-update.yml
+        red since at least 2026-07-25T08:13:11Z, latest 2026-07-31T08:56:19Z
+        https://github.com/jeffunglesbee-create/jubilant-bassoon/actions/runs/30618071472
+
+  ── jeffunglesbee-create/field-laboratory ──
+    38 workflow(s), 38 active  (all pages read)
+    scheduled and healthy             : 6
+    no schedule: block, not judged     : 31
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 1
+      .github/workflows/skill-drift.yml   cron 17 6 * * 1   added 2026-08-25 (57.7d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/field-playground ──
+    83 workflow(s), 83 active  (all pages read)
+    scheduled and healthy             : 21
+    no schedule: block, not judged     : 61
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 1
+      .github/workflows/anomaly-null-model-probe.yml   cron 47 12 * * 1   added 2026-08-06 (77.0d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+    A never-fired cron is NOT automatically a fault: a monthly cron added
+    after its day-of-month, or a workflow added today, has legitimately not
+    reached a slot. The cron and the age are printed so that is decidable
+    here rather than inferred from a count. NEVER_FIRED_GRACE_DAYS=40.
+
+    COVERAGE: 4 repos, 443 workflows, 443 active, 93 JUDGED
+    (>= 3 completed scheduled runs each). NOT judged: 343 with no
+    schedule: block — their failures surface on the commit that caused them —
+    and 7 that declare a cron but have never produced a run,
+    named above rather than counted. A workflow is judged on its last 3
+    scheduled runs whenever they happened, so a firing delay cannot skew it.
+    NOT covered: any repo outside the 4 listed at the top.
+
+  ── ratchet (docs/dead-cron-baseline.json) ──
+    carried, already admitted : 1
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/nba-clutch-update.yml
+        kind dead  red since 2026-07-25  admitted 36d ago  review by 2027-05-15
+        unblocked by: read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing
+    NEW, not in the baseline  : 6
+      jeffunglesbee-create/field-laboratory:.github/workflows/skill-drift.yml
+      jeffunglesbee-create/field-playground:.github/workflows/anomaly-null-model-probe.yml
+      jeffunglesbee-create/field-relay-nba:.github/workflows/drama-backfill.yml
+      jeffunglesbee-create/field-relay-nba:.github/workflows/espn-reachability-monitor.yml
+      jeffunglesbee-create/field-relay-nba:.github/workflows/rescore-quality-6b.yml
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/mlbn-schedule.yml
+    baseline entries resolved : 1
+      jeffunglesbee-create/field-laboratory:.github/workflows/verify-full.yml   <- fixed or gone; remove it from docs/dead-cron-baseline.json
+    reviews overdue           : 0
