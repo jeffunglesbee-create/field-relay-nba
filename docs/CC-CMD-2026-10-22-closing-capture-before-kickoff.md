@@ -5,9 +5,10 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (real vendor spend with no output) and a data-semantics change ruled by the owner
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. TASK 0 and TASK 1 DONE; done condition 3 STAGED until the 10-23
-kickoffs (scheduled check 2026-10-23T18:12Z). Owner rulings 2026-10-22: "Repair
-the write fully now", then "Capture before kickoff".
+**Status:** DONE (2026-10-23). TASK 0 and TASK 1 DONE; done condition 3 met:
+checked 5 of 5 soccer kickoffs on the ESPN-id path (probe run 40001556103),
+after 12 of 12 NHL kickoffs on the name path the night before. Owner rulings
+2026-10-22: "Repair the write fully now", then "Capture before kickoff".
 **Absorbs:** `docs/CC-CMD-2026-10-22-closing-capture-buys-per-game.md` (one call per sport) and `docs/CC-CMD-2026-10-22-capture-record-keyed-by-source-id.md` (a failover id cannot buy twice once the row has its line).
 **Blocks:** `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md` TASK 1, parked until this lands.
 
@@ -171,3 +172,41 @@ Deploy run 39822565693, green; the Cloudflare deploy step finished at
    - zero writes to rows with `start_time` NULL.
 
    Reported as "checked N of M kickoffs" (Rule 91).
+
+### Done condition 3 — 2026-10-23: checked 5 of 5 kickoffs, all pass
+
+D1 `cc49101c` (`change_log.ts` is `YYYY-MM-DD HH:MM:SS`, with a space):
+
+```
+SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v,
+       json_extract(c.new_value,'$.source') src, g.start_time,
+       (g.closing_odds = c.new_value) same
+FROM change_log c LEFT JOIN regular_season_games g ON g.id = c.game_id
+WHERE c.source = 'closing_odds_capture'
+  AND c.ts >= '2026-10-23 18:00' AND c.ts < '2026-10-23 19:30'
+```
+
+| game_id | ts | v | src | start_time | same |
+|---|---|---|---|---|---|
+| Bundesliga_2026-10-23_e401884761 | 18:20:20 | 1 | draftkings | 18:30Z | 1 |
+| Serie A_2026-10-23_e401874957 | 18:35:07 | 1 | draftkings | 18:45Z | 1 |
+| Ligue 1_2026-10-23_e401876428 | 18:35:07 | 1 | draftkings | 18:45Z | 1 |
+| EPL_2026-10-23_e401879253 | 18:50:01 | 1 | draftkings | 19:00Z | 1 |
+| La Liga_2026-10-23_e401882836 | 18:50:02 | 1 | draftkings | 19:00Z | 1 |
+
+- **One row per kickoff,** each on exactly its `_e<espnEventId>` row (all 5
+  rows existed before kickoff, `start_time` set, `closing_odds` empty), each
+  verified, each equal to the row's `closing_odds`.
+- **5 calls, each before its kickoff.** `outbox/ambient-capture-probe-20261023T181344Z.log`
+  (run 40001556103, 18:13Z to 19:28Z, 144 readings): reconciled calls rose
+  +1 at 18:20, +2 at 18:35 and +2 at 18:50, and not again. Serie A and Ligue 1
+  are two sports, so two calls in one poll; so are EPL and La Liga.
+- **Zero writes to a row without `start_time`:** 0 of the 17
+  `closing_odds_capture` rows since 2026-10-22 17:30 (12 NHL on 10-22, these 5).
+- **AmbientDO health over the window:** 52 instances seen (the restarts filed in
+  `docs/CC-CMD-2026-10-22-ambient-do-restarts-on-every-event.md`), every one
+  with `lastPutError` and `lastAlarmError` null; the capture record held across
+  them (no second purchase).
+- **The name path** was checked the night before:
+  `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`, live checks 1 and
+  2, 12 of 12 NHL kickoffs.

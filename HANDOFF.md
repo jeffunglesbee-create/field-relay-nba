@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-23 — the closing capture before kickoff is DONE, verified on both paths
+
+**HEAD:** `48bc31e` → this close-out · **Branch:** main
+
+`docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md`: **DONE**.
+
+- **ESPN-id path (soccer), done condition 3:** checked 5 of 5 kickoffs.
+  Bundesliga 18:30Z, Serie A and Ligue 1 18:45Z, EPL and La Liga 19:00Z each
+  got one verified DraftKings line on its own `_e<eid>` row, 9.7 to 10
+  minutes before kickoff, in 5 calls (probe run 40001556103: calls rose only
+  at 18:20, 18:35 and 18:50).
+- **Name path (NHL), the night before:** 12 of 12 (coverage-gaps CC-CMD, live
+  checks 1 and 2), 5 calls.
+- **Since the deploy:** 17 writes, 0 on a row without `start_time`.
+- **`change_log.ts` has a space, not a `T`.** A `T` bound returns nothing; the
+  scheduled checks were corrected on 10-22.
+
+**Still open:** coverage-gaps done condition 3 and the 18x CC-CMD's demand
+reads, at 10-24 and 10-25 11:07Z.
+
+Session doc: outbox/cc-session-2026-10-22-closing-capture-before-kickoff.md
+
 ## SESSION CLOSE-OUT — 2026-10-22 (late) — AmbientDO polls NBA/NHL from October and reads the ET slate
 
 **HEAD:** `5cf8e2d` → `4dbb578` … `c47aaf0` → this close-out · **Branch:**

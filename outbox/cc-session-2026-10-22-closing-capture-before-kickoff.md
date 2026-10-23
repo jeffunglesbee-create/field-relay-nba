@@ -3,8 +3,7 @@
 `docs/CC-CMD-2026-10-22-closing-capture-before-kickoff.md`. The owner
 dispatched "next approved" (the coverage-gaps spend). Three rulings followed:
 "Fix per-game buying first", "Repair the write fully now", "Capture before
-kickoff". **Status:** TASK 0 and TASK 1 DONE. Done condition 3 is STAGED until
-the 10-23 18:30Z..19:00Z kickoffs.
+kickoff". **Status:** DONE. Done condition 3 met on 2026-10-23: 5 of 5 kickoffs.
 
 **HEAD:** `b0e85b8` → `892d841` (coverage-gaps TASK 0, NBA CDN 403 filed) →
 `90a72d1` (this CC-CMD filed) → `e658b09` (the fix) → this close-out. Branch
@@ -69,18 +68,14 @@ main throughout. jubilant-bassoon: `bee5fc7` (CONTRACTS.md copy), on main.
 - **Consumers.** Unchanged: `selectLineOdds` and `knownPostKickoff` read
   `_kickoff.verified`. A verified capture is now used where before it was
   skipped.
-- **Status.** STAGED. Verify on the 10-23 kickoffs: Bundesliga espn:401884761
-  18:30Z; Serie A espn:401874957 and Ligue 1 espn:401876428 18:45Z; EPL
-  espn:401879253 and La Liga espn:401882836 19:00Z. Blocked by: no kickoff of a
-  sport AmbientDO polls with an odds key before then (the 14 remaining 10-22
-  kickoffs are NBA and NHL, not polled in October). Unblocked by: those
-  kickoffs. Verify:
-  - `ambient-capture-probe.yml` minutes=75 from 18:12Z: at most 5 rises of
-    `ambientCaptureClosingOdds` reconciled calls, each in the 10 minutes
-    before its kickoff.
+- **Status.** VERIFIED (2026-10-23). The ESPN-id path: 5 of 5 soccer kickoffs
+  (Bundesliga 18:30Z; Serie A and Ligue 1 18:45Z; EPL and La Liga 19:00Z) got
+  one verified DraftKings line on their own `_e<eid>` row, 9.7 to 10 minutes
+  before kickoff, in 5 calls (probe run 40001556103). The name path: 12 of 12
+  NHL kickoffs on 10-22 (coverage-gaps CC-CMD). Zero writes to rows without
+  `start_time`. Re-run with:
   - D1 `cc49101c`: `SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v FROM change_log c WHERE c.source='closing_odds_capture' AND c.ts >= '2026-10-23 18:00'`
-    gives one row per kickoff above, on `_e<eid>`, `v = 1`.
-  - Scheduled: trig_011xqk7EcLqic7NyH583g2KT at 2026-10-23T18:12Z.
+    (`ts` has a space, not a `T`).
 - **Known mismatches.** None in field names.
 
 ## Open items, each filed
