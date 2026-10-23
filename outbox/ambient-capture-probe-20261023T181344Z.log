@@ -1,0 +1,236 @@
+=== AmbientDO closing-capture probe  utc=2026-10-23T18:13:44.171Z  window=75 min ===
+  first /ambient/state: 438 bytes, sportCount 13, live 0, clients 0
+  18:13:44 INSTANCE 2026-10-23T18:13:39.516Z  clients 0  {"instanceStartedAt":"2026-10-23T18:13:39.516Z","restoredAt":"2026-10-23T18:13:39.519Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":12,"memCount":13,"memJsonBytes":2856,"storedCount":13,"storedJsonBytes":2856,"storedMatchesMem":true,"memLiveCount":0}
+  18:13:44  capture charged     6 (+)   reconciled calls    2 (+)   fresh-live 0   sportCount 13   lastPoll 18:13:40
+  18:14:16 INSTANCE 2026-10-23T18:14:16.554Z  clients 0  {"instanceStartedAt":"2026-10-23T18:14:16.554Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2856,"storedMatchesMem":false,"memLiveCount":0}
+  18:14:46 INSTANCE 2026-10-23T18:14:40.168Z  clients 0  {"instanceStartedAt":"2026-10-23T18:14:40.168Z","restoredAt":"2026-10-23T18:14:40.171Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":12,"memCount":13,"memJsonBytes":2856,"storedCount":13,"storedJsonBytes":2856,"storedMatchesMem":true,"memLiveCount":0}
+  18:14:46  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 13   lastPoll 18:14:40
+  18:15:18 INSTANCE 2026-10-23T18:15:00.292Z  clients 1  {"instanceStartedAt":"2026-10-23T18:15:00.292Z","restoredAt":"2026-10-23T18:15:15.296Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":12,"memCount":13,"memJsonBytes":2856,"storedCount":13,"storedJsonBytes":2856,"storedMatchesMem":true,"memLiveCount":0}
+  18:15:48 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:15:48  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 13   lastPoll 18:15:15
+  18:16:20 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:16:50 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:16:50  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 13   lastPoll 18:16:17
+  18:17:22 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:17:52 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:17:52  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 13   lastPoll 18:17:17
+  18:18:24 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:18:54 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:18:54  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 13   lastPoll 18:18:18
+  18:19:26 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:19:56 diag mem 13/2856B stored 13/2856B match true gameStarts 12 putErr none alarmErr none clients 1
+  18:19:56  capture charged     6 (+0)   reconciled calls    2 (+0)   fresh-live 0   sportCount 13   lastPoll 18:19:19
+  18:20:28 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:20:58 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:20:58  capture charged     9 (+3)   reconciled calls    3 (+1)   fresh-live 0   sportCount 13   lastPoll 18:20:20
+  18:21:30 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:22:00 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:22:00  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:21:20
+  18:22:32 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:23:02 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:23:02  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:22:21
+  18:23:34 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:24:04 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:24:04  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:23:22
+  18:24:36 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:25:06 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:25:06  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:24:22
+  18:25:38 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:26:09 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:26:09  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:25:23
+  18:26:41 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:27:11 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:27:11  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:26:24
+  18:27:43 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:28:13 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:28:13  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:27:24
+  18:28:45 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:29:16 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:29:16  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:28:25
+  18:29:47 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:30:18 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:30:18  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:29:25
+  18:30:50 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:31:20 diag mem 13/2856B stored 13/2856B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:31:20  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 0   sportCount 13   lastPoll 18:30:26
+  18:31:52 diag mem 13/2863B stored 13/2863B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:32:22 diag mem 13/2863B stored 13/2863B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:32:22  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 1   sportCount 13   lastPoll 18:32:15
+  18:32:53 diag mem 13/2863B stored 13/2863B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:33:24 diag mem 13/2863B stored 13/2863B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:33:24  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 1   sportCount 13   lastPoll 18:33:19
+  18:33:55 diag mem 13/2863B stored 13/2863B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:34:26 diag mem 13/2863B stored 13/2863B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:34:26  capture charged     9 (+0)   reconciled calls    3 (+0)   fresh-live 1   sportCount 13   lastPoll 18:34:05
+  18:34:57 diag mem 13/2863B stored 13/2863B match true gameStarts 13 putErr none alarmErr none clients 1
+  18:35:27 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:35:27  capture charged    15 (+6)   reconciled calls    5 (+2)   fresh-live 1   sportCount 13   lastPoll 18:35:23
+  18:35:59 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:36:29 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:36:29  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:36:26
+  18:37:01 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:37:31 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:37:31  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:37:29
+  18:38:03 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:38:33 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:38:33  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:38:31
+  18:39:05 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:39:35 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:39:35  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:39:34
+  18:40:08 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:40:38 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:40:38  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:40:36
+  18:41:10 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:41:40 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:41:40  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:41:39
+  18:42:12 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:42:43 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:42:43  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:42:42
+  18:43:14 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:43:44 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:43:44  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:43:29
+  18:44:16 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:44:46 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:44:46  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:44:31
+  18:45:18 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:45:49 diag mem 13/2863B stored 13/2863B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:45:49  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 1   sportCount 13   lastPoll 18:45:34
+  18:46:20 diag mem 13/2866B stored 13/2866B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:46:51 diag mem 13/2866B stored 13/2866B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:46:51  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 2   sportCount 13   lastPoll 18:46:36
+  18:47:23 diag mem 13/2866B stored 13/2866B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:47:53 diag mem 13/2869B stored 13/2869B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:47:53  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 3   sportCount 13   lastPoll 18:47:39
+  18:48:25 diag mem 13/2869B stored 13/2869B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:48:55 diag mem 13/2869B stored 13/2869B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:48:55  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 3   sportCount 13   lastPoll 18:48:43
+  18:49:27 diag mem 13/2869B stored 13/2869B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:49:57 diag mem 13/2869B stored 13/2869B match true gameStarts 15 putErr none alarmErr none clients 1
+  18:49:57  capture charged    15 (+0)   reconciled calls    5 (+0)   fresh-live 3   sportCount 13   lastPoll 18:49:45
+  18:50:29 diag mem 13/2869B stored 13/2869B match true gameStarts 17 putErr none alarmErr none clients 1
+  18:50:59 diag mem 13/2869B stored 13/2869B match true gameStarts 17 putErr none alarmErr none clients 1
+  18:50:59  capture charged    21 (+6)   reconciled calls    7 (+2)   fresh-live 3   sportCount 13   lastPoll 18:50:49
+  18:51:31 diag mem 13/2869B stored 13/2869B match true gameStarts 17 putErr none alarmErr none clients 1
+  18:52:01 INSTANCE 2026-10-23T18:51:52.198Z  clients 0  {"instanceStartedAt":"2026-10-23T18:51:52.198Z","restoredAt":"2026-10-23T18:51:52.203Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:52:01  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:51:52
+  18:52:33 INSTANCE 2026-10-23T18:52:23.392Z  clients 0  {"instanceStartedAt":"2026-10-23T18:52:23.392Z","restoredAt":"2026-10-23T18:52:23.396Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:53:03 INSTANCE 2026-10-23T18:52:54.656Z  clients 0  {"instanceStartedAt":"2026-10-23T18:52:54.656Z","restoredAt":"2026-10-23T18:52:54.659Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:53:03  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:52:55
+  18:53:35 INSTANCE 2026-10-23T18:53:25.842Z  clients 0  {"instanceStartedAt":"2026-10-23T18:53:25.842Z","restoredAt":"2026-10-23T18:53:25.844Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:54:05 INSTANCE 2026-10-23T18:53:57.059Z  clients 0  {"instanceStartedAt":"2026-10-23T18:53:57.059Z","restoredAt":"2026-10-23T18:53:57.063Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:54:05  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:53:57
+  18:54:37 INSTANCE 2026-10-23T18:54:28.245Z  clients 0  {"instanceStartedAt":"2026-10-23T18:54:28.245Z","restoredAt":"2026-10-23T18:54:28.248Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:55:08 INSTANCE 2026-10-23T18:54:59.411Z  clients 0  {"instanceStartedAt":"2026-10-23T18:54:59.411Z","restoredAt":"2026-10-23T18:54:59.415Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:55:08  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:54:59
+  18:55:40 INSTANCE 2026-10-23T18:55:40.331Z  clients 0  {"instanceStartedAt":"2026-10-23T18:55:40.331Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":false,"memLiveCount":0}
+  18:56:10 INSTANCE 2026-10-23T18:56:00.407Z  clients 0  {"instanceStartedAt":"2026-10-23T18:56:00.407Z","restoredAt":"2026-10-23T18:56:00.410Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:56:10  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:56:01
+  18:56:42 INSTANCE 2026-10-23T18:56:42.386Z  clients 0  {"instanceStartedAt":"2026-10-23T18:56:42.386Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":false,"memLiveCount":0}
+  18:57:12 INSTANCE 2026-10-23T18:57:03.559Z  clients 0  {"instanceStartedAt":"2026-10-23T18:57:03.559Z","restoredAt":"2026-10-23T18:57:03.563Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:57:12  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:57:04
+  18:57:44 INSTANCE 2026-10-23T18:57:34.686Z  clients 0  {"instanceStartedAt":"2026-10-23T18:57:34.686Z","restoredAt":"2026-10-23T18:57:34.690Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:58:14 INSTANCE 2026-10-23T18:58:05.791Z  clients 0  {"instanceStartedAt":"2026-10-23T18:58:05.791Z","restoredAt":"2026-10-23T18:58:05.794Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:58:14  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:58:06
+  18:58:46 INSTANCE 2026-10-23T18:58:37.850Z  clients 0  {"instanceStartedAt":"2026-10-23T18:58:37.850Z","restoredAt":"2026-10-23T18:58:37.854Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:59:16 INSTANCE 2026-10-23T18:59:09.146Z  clients 0  {"instanceStartedAt":"2026-10-23T18:59:09.146Z","restoredAt":"2026-10-23T18:59:09.150Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  18:59:16  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 18:59:09
+  18:59:48 INSTANCE 2026-10-23T18:59:40.321Z  clients 0  {"instanceStartedAt":"2026-10-23T18:59:40.321Z","restoredAt":"2026-10-23T18:59:40.324Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  19:00:18 INSTANCE 2026-10-23T19:00:11.521Z  clients 0  {"instanceStartedAt":"2026-10-23T19:00:11.521Z","restoredAt":"2026-10-23T19:00:11.524Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2869,"storedCount":13,"storedJsonBytes":2869,"storedMatchesMem":true,"memLiveCount":3}
+  19:00:18  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 3   sportCount 13   lastPoll 19:00:13
+  19:00:51 INSTANCE 2026-10-23T19:00:44.581Z  clients 0  {"instanceStartedAt":"2026-10-23T19:00:44.581Z","restoredAt":"2026-10-23T19:00:44.584Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2875,"storedCount":13,"storedJsonBytes":2875,"storedMatchesMem":true,"memLiveCount":3}
+  19:01:21 INSTANCE 2026-10-23T19:01:22.278Z  clients 0  {"instanceStartedAt":"2026-10-23T19:01:22.278Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2875,"storedMatchesMem":false,"memLiveCount":0}
+  19:01:21  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 0   sportCount 0   lastPoll 19:01:00
+  19:01:54 INSTANCE 2026-10-23T19:01:54.701Z  clients 0  {"instanceStartedAt":"2026-10-23T19:01:54.701Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2875,"storedMatchesMem":false,"memLiveCount":0}
+  19:02:24 INSTANCE 2026-10-23T19:02:18.014Z  clients 0  {"instanceStartedAt":"2026-10-23T19:02:18.014Z","restoredAt":"2026-10-23T19:02:18.021Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:02:24  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:02:18
+  19:02:56 INSTANCE 2026-10-23T19:02:49.433Z  clients 0  {"instanceStartedAt":"2026-10-23T19:02:49.433Z","restoredAt":"2026-10-23T19:02:49.438Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:03:27 INSTANCE 2026-10-23T19:03:20.920Z  clients 0  {"instanceStartedAt":"2026-10-23T19:03:20.920Z","restoredAt":"2026-10-23T19:03:20.923Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:03:27  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:03:21
+  19:03:59 INSTANCE 2026-10-23T19:03:52.107Z  clients 0  {"instanceStartedAt":"2026-10-23T19:03:52.107Z","restoredAt":"2026-10-23T19:03:52.109Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:04:29 INSTANCE 2026-10-23T19:04:23.317Z  clients 0  {"instanceStartedAt":"2026-10-23T19:04:23.317Z","restoredAt":"2026-10-23T19:04:23.320Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:04:29  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:04:23
+  19:05:01 INSTANCE 2026-10-23T19:04:54.477Z  clients 0  {"instanceStartedAt":"2026-10-23T19:04:54.477Z","restoredAt":"2026-10-23T19:04:54.479Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:05:32 INSTANCE 2026-10-23T19:05:25.618Z  clients 0  {"instanceStartedAt":"2026-10-23T19:05:25.618Z","restoredAt":"2026-10-23T19:05:25.621Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:05:32  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:05:26
+  19:06:03 INSTANCE 2026-10-23T19:05:56.793Z  clients 0  {"instanceStartedAt":"2026-10-23T19:05:56.793Z","restoredAt":"2026-10-23T19:05:56.796Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:06:34 INSTANCE 2026-10-23T19:06:28.014Z  clients 0  {"instanceStartedAt":"2026-10-23T19:06:28.014Z","restoredAt":"2026-10-23T19:06:28.017Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:06:34  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:06:28
+  19:07:05 INSTANCE 2026-10-23T19:06:59.243Z  clients 0  {"instanceStartedAt":"2026-10-23T19:06:59.243Z","restoredAt":"2026-10-23T19:06:59.246Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:07:36 INSTANCE 2026-10-23T19:07:31.386Z  clients 0  {"instanceStartedAt":"2026-10-23T19:07:31.386Z","restoredAt":"2026-10-23T19:07:31.389Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:07:36  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:07:32
+  19:08:07 INSTANCE 2026-10-23T19:08:02.573Z  clients 0  {"instanceStartedAt":"2026-10-23T19:08:02.573Z","restoredAt":"2026-10-23T19:08:02.576Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2885,"storedCount":13,"storedJsonBytes":2885,"storedMatchesMem":true,"memLiveCount":5}
+  19:08:37 INSTANCE 2026-10-23T19:08:33.735Z  clients 0  {"instanceStartedAt":"2026-10-23T19:08:33.735Z","restoredAt":"2026-10-23T19:08:33.738Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2887,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":true,"memLiveCount":5}
+  19:08:37  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:08:34
+  19:09:09 INSTANCE 2026-10-23T19:09:04.863Z  clients 0  {"instanceStartedAt":"2026-10-23T19:09:04.863Z","restoredAt":"2026-10-23T19:09:04.866Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2887,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":true,"memLiveCount":5}
+  19:09:40 INSTANCE 2026-10-23T19:09:35.929Z  clients 0  {"instanceStartedAt":"2026-10-23T19:09:35.929Z","restoredAt":"2026-10-23T19:09:35.932Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2887,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":true,"memLiveCount":5}
+  19:09:40  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:09:36
+  19:10:19 INSTANCE 2026-10-23T19:10:20.404Z  clients 0  {"instanceStartedAt":"2026-10-23T19:10:20.404Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:10:50 INSTANCE 2026-10-23T19:10:50.844Z  clients 0  {"instanceStartedAt":"2026-10-23T19:10:50.844Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:10:50  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 0   sportCount 0   lastPoll 19:10:38
+  19:11:22 INSTANCE 2026-10-23T19:11:22.644Z  clients 0  {"instanceStartedAt":"2026-10-23T19:11:22.644Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:11:52 INSTANCE 2026-10-23T19:11:52.855Z  clients 0  {"instanceStartedAt":"2026-10-23T19:11:52.855Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:11:52  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 0   sportCount 0   lastPoll 19:11:41
+  19:12:24 INSTANCE 2026-10-23T19:12:24.826Z  clients 0  {"instanceStartedAt":"2026-10-23T19:12:24.826Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:12:54 INSTANCE 2026-10-23T19:12:55.333Z  clients 0  {"instanceStartedAt":"2026-10-23T19:12:55.333Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:12:54  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 0   sportCount 0   lastPoll 19:12:44
+  19:13:26 INSTANCE 2026-10-23T19:13:27.097Z  clients 0  {"instanceStartedAt":"2026-10-23T19:13:27.097Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:13:57 INSTANCE 2026-10-23T19:13:57.444Z  clients 0  {"instanceStartedAt":"2026-10-23T19:13:57.444Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:13:57  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 0   sportCount 0   lastPoll 19:13:46
+  19:14:28 INSTANCE 2026-10-23T19:14:28.789Z  clients 0  {"instanceStartedAt":"2026-10-23T19:14:28.789Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:14:58 INSTANCE 2026-10-23T19:14:58.917Z  clients 0  {"instanceStartedAt":"2026-10-23T19:14:58.917Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2887,"storedMatchesMem":false,"memLiveCount":0}
+  19:14:58  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 0   sportCount 0   lastPoll 19:14:02
+  19:15:30 INSTANCE 2026-10-23T19:15:30.485Z  clients 0  {"instanceStartedAt":"2026-10-23T19:15:30.485Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2893,"storedMatchesMem":false,"memLiveCount":0}
+  19:16:00 INSTANCE 2026-10-23T19:15:50.343Z  clients 0  {"instanceStartedAt":"2026-10-23T19:15:50.343Z","restoredAt":"2026-10-23T19:15:50.348Z","restoredCount":13,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":17,"memCount":13,"memJsonBytes":2893,"storedCount":13,"storedJsonBytes":2893,"storedMatchesMem":true,"memLiveCount":5}
+  19:16:00  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:15:50
+  19:16:32 INSTANCE 2026-10-23T19:16:18.191Z  clients 1  {"instanceStartedAt":"2026-10-23T19:16:18.191Z","restoredAt":null,"restoredCount":null,"lastAlarmError":null,"lastPutError":null,"gameStartsSize":0,"memCount":0,"memJsonBytes":2,"storedCount":13,"storedJsonBytes":2893,"storedMatchesMem":false,"memLiveCount":0}
+  19:17:02 /ambient/state: fetch failed
+  19:17:02  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 0   sportCount 0   lastPoll 19:16:06
+  19:17:34 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:18:05 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:18:05  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:17:51
+  19:18:36 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:19:06 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:19:06  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:18:54
+  19:19:38 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:20:08 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:20:08  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:19:56
+  19:20:40 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:21:10 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:21:10  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:20:59
+  19:21:42 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:22:12 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:22:12  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:22:02
+  19:22:44 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:23:14 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:23:14  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:23:04
+  19:23:46 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:24:16 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:24:16  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:24:07
+  19:24:47 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:25:18 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:25:18  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:25:09
+  19:25:50 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:26:20 diag mem 13/2893B stored 13/2893B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:26:20  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:26:13
+  19:26:51 diag mem 13/2899B stored 13/2899B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:27:22 diag mem 13/2899B stored 13/2899B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:27:22  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:27:16
+  19:27:53 diag mem 13/2899B stored 13/2899B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:28:24 diag mem 13/2899B stored 13/2899B match true gameStarts 17 putErr none alarmErr none clients 1
+  19:28:24  capture charged    21 (+0)   reconciled calls    7 (+0)   fresh-live 5   sportCount 13   lastPoll 19:28:18
+
+── games first seen live in the window
+  espn:401884761  bundesliga  Borussia Mönchengladbach @ VfB Stuttgart  live 18:31:52..19:28:24 over 93 readings  last 1-1 p1
+  espn:401876428  ligue1  Nice @ Brest  live 18:46:20..19:28:24 over 65 readings  last 0-1 p1
+  espn:401874957  seriea  Monza @ Torino  live 18:47:53..19:28:24 over 62 readings  last 0-1 p1
+  espn:401879253  epl  Nottingham Forest @ Ipswich Town  live 19:02:24..19:28:24 over 38 readings  last 1-0 p1
+  espn:401882836  laliga  Málaga @ Alavés  live 19:02:24..19:28:24 over 38 readings  last 0-0 p1
+
+── AmbientDO entries: sportCount min 0 max 13 over 144 readings; 52 distinct instance(s) seen
+── tail: 4280 events (0 unparsed), 196 kept to outbox/ambient-capture-tail-20261023T181344Z.jsonl, 0 with exceptions, outcomes {"ok":193,"canceled":3}
+   by entrypoint:event  [["worker:request+response",2142],["GameDO:scheduledTime",1458],["GameDO:request+response",448],["AmbientDO:request+response",106],["AmbientDO:scheduledTime",89],["default:cron+scheduledTime",21],["worker:request",13],["worker:batchSize+queue",2],["AmbientDO:request",1]]
+
+COVERAGE: 144 readings of /ambient/state at 30 s, 72 of /budget/odds at 60 s,
+over 75 minutes. Calls per minute are differences of the reconcile count, so a minute
+straddling UTC midnight reads as a reset, not a negative. The tail keeps only events matching
+/alarm|AmbientDO|closing-odds|odds-reconcile|odds credit|Durable Object|storage|exceeded|too large/i or carrying an exception; everything else is counted and dropped.
