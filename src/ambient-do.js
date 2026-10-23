@@ -621,7 +621,21 @@ export class AmbientDO {
                     this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts))
                         .catch(e => { this._diag.lastPutError = { at: new Date().toISOString(), key: 'starts:today',
                             message: String(e?.message ?? e).slice(0, 300) }; });
-                    await this._captureClosingOdds(sport, due);
+                    // A refused charge makes no vendor call, so the record
+                    // written above is withdrawn and written at once (a poll cut
+                    // off before its end-of-poll writes would otherwise leave it
+                    // stored), and the next poll inside the window tries again.
+                    // Kept, it would lose the only line bought before kickoff
+                    // for good (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md,
+                    // fix 1). Every other outcome keeps the record: a vendor call
+                    // was made, or may have been.
+                    if ((await this._captureClosingOdds(sport, due)) === false) {
+                        for (const d of due) this._gameStarts.delete(d.gameId);
+                        this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts)).catch(e => {
+                            this._diag.lastPutError = { at: new Date().toISOString(), key: 'starts:today',
+                                message: String(e?.message ?? e).slice(0, 300) };
+                        });
+                    }
                 } catch (e) { console.warn('[AmbientDO] closing odds capture failed:', e.message); }
             }
         }
@@ -1007,9 +1021,10 @@ export class AmbientDO {
         // Note cf.cacheTtl is 0 here, deliberately: a closing line must be the
         // line at the moment it is bought. Every one of these is a fresh
         // billed call, which is why the accounting mattering is not theoretical.
+        // false tells _poll that no vendor call was made, so it may try again.
         if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {
             console.warn('[closing-odds] odds credit guard declined — skipping capture');
-            return;
+            return false;
         }
         let events;
         try {

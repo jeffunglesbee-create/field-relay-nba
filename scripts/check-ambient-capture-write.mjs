@@ -69,12 +69,20 @@ function makeDb(world) {
       return { rows: [], changes: row ? 1 : 0 };
     }
     if (/^INSERT INTO change_log/.test(s)) { world.changeLog.push(params[0]); return { rows: [], changes: 1 }; }
+    // The odds ledger, for a scenario that sets world.ledger: the day and month
+    // charges return their row only when the charge fits, as D1 does with
+    // RETURNING. Every other scenario runs without FIELD_JOURNALISM, where the
+    // guard opens before it reaches the ledger.
+    if (world.ledger && /^UPDATE odds_budget(_month)? SET used = used \+ \? .*RETURNING used$/.test(s)) {
+      world.ledger.charges++;
+      return { rows: world.ledger.full ? [] : [{ used: 3 }], changes: world.ledger.full ? 0 : 1 };
+    }
     return { rows: [], changes: 0 };   // the odds-budget tally's DDL and writes: not under test
   };
   const stmt = (sql, params = []) => ({
     bind: (...p) => stmt(sql, p),
     all: async () => { await tick(); return { results: run(sql, params).rows }; },
-    run: async () => { await tick(); const r = run(sql, params); return { success: true, meta: { changes: r.changes } }; },
+    run: async () => { await tick(); const r = run(sql, params); return { success: true, results: r.rows, meta: { changes: r.changes } }; },
     first: async () => { await tick(); return run(sql, params).rows[0] ?? null; },
   });
   return { prepare: (sql) => stmt(sql), batch: async (list) => Promise.all(list.map(x => x.run())) };
@@ -110,7 +118,8 @@ function installFetch(world) {
 function instance(C, world, db = true) {
   const ctx = { storage: world.storage, id: 't', waitUntil(p) { ctx.pending.push(p); }, pending: [] };
   const inst = new C(ctx, {});
-  inst.env = { ODDS_API_KEY: 'k', RELAY_BASE: 'http://relay.test', ...(db ? { ARCHIVE_DB: makeDb(world) } : {}) };
+  inst.env = { ODDS_API_KEY: 'k', RELAY_BASE: 'http://relay.test', ...(db ? { ARCHIVE_DB: makeDb(world) } : {}),
+    ...(world.ledger ? { FIELD_JOURNALISM: { get: async () => null, put: async () => {} } } : {}) };
   return { inst, ctx };
 }
 
@@ -434,6 +443,29 @@ async function selfTest() {
     eq('W20: the preferred book is src/index.js\'s ODDS_PREFERRED_BOOK', [!!index, mine], [true, index]);
   }
 
+  // W21 — the odds guard declines the purchase (the day's ceiling is full):
+  // no vendor call, no write, and the game is not recorded as bought, so the
+  // next poll inside the window, with room on the ledger, buys and writes it
+  // once (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 1).
+  {
+    const w = makeWorld({ at: '2026-10-23T18:51:00Z',
+      board: [bg('espn:401879269', 'epl', 'EPL', '2026-10-23T19:00Z', 'Fulham', 'Brentford', '401879269')],
+      tables: { regular_season_games: [row('EPL_2026-10-23_e401879269', 'EPL', '2026-10-23', '2026-10-23T19:00Z', 'Fulham', 'Brentford', '401879269')] },
+      vendor: { soccer_epl: [event('Fulham', 'Brentford', '2026-10-23T19:00:00Z')] } });
+    w.ledger = { full: true, charges: 0 };
+    await poll(C, w);
+    const refused = [w.ledger.charges > 0, w.vendorCalls.length, w.updates.length,
+      Object.keys(w.storage._m.get('starts:today') ?? {})];
+    w.ledger.full = false;
+    w.at = '2026-10-23T18:52:00Z';
+    await poll(C, w);
+    eq('W21: a declined charge buys nothing and records nothing',
+      refused, [true, 0, 0, []]);
+    eq('W21: the next poll in the window buys it and writes its row once',
+      [w.vendorCalls, w.updates, Object.keys(w.storage._m.get('starts:today') ?? {})],
+      [['soccer_epl'], ['regular_season_games/EPL_2026-10-23_e401879269'], ['espn:401879269']]);
+  }
+
   globalThis.Date = RealDate;
   console.log(failed ? `\nSELF-TEST FAILED: ${failed}` : '\nself-test passed');
   return failed;
@@ -442,6 +474,8 @@ async function selfTest() {
 const ROWS_NEAR = '                return gap !== null && Math.abs(gap) <= CONTESTED_KICKOFF_MINUTES\n                    && kickoffMark(new Date().toISOString(), r.start_time).verified;';
 const VENDOR_NEAR = '            const gap = kickoffGapMinutes({ start_time: start.start }, e);\n            return gap !== null && Math.abs(gap) <= CONTESTED_KICKOFF_MINUTES;';
 const MUTATIONS = [
+  ['a declined charge reads as bought', [["            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return false;",
+    "            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return;"]]],
   ['any nearby row, not the event id', [["? near.filter(r => String(r.espn_event_id) === String(st.espnEventId))", '? near']]],
   ['names, not the event id, on ESPN boards', [["? near.filter(r => String(r.espn_event_id) === String(st.espnEventId))",
     '? near.filter(r => nameMatches(r.home, st.home) && nameMatches(r.away, st.away))']]],

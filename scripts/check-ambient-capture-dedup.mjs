@@ -47,7 +47,8 @@ class PinnedDate extends RealDate {
 function makeWorld() {
   const store = new Map();
   const world = { store, refused: 0, board: {}, failing: new Set(), captures: [], calls: [], events: [],
-    refuseKeys: new Set(), dead: false, failGet: 0, onCapture: null, clock: AT, noRow: new Set(), unconfirmed: 0 };
+    refuseKeys: new Set(), dead: false, failGet: 0, onCapture: null, clock: AT, noRow: new Set(), unconfirmed: 0,
+    decline: 0, declined: [] };
   world.storage = {
     async get(k) {
       if (world.failGet > 0) { world.failGet--; throw new Error('storage read failed'); }
@@ -85,6 +86,9 @@ async function load() {
   };
   // The purchase's own fetch and D1 writes are not under test; its CALLS are.
   C.prototype._captureClosingOdds = async function (sport, due) {
+    // The odds guard declines the charge: no vendor call, nothing bought, so it
+    // is not in `calls`, which counts vendor calls.
+    if (this.__world.decline > 0) { this.__world.decline--; this.__world.declined.push(sport); return false; }
     this.__world.calls.push(sport);
     for (const d of due) this.__world.captures.push(d.gameId);
     if (this.__world.onCapture) this.__world.onCapture(sport);
@@ -479,6 +483,43 @@ async function selfTest() {
       [1, [true, true, false, false]]);
   }
 
+  // S20 — the odds guard declines a purchase. No vendor call was made, so the
+  // games are not recorded as bought, and a later poll inside the window buys
+  // them, across a restart too; a game bought before stays recorded
+  // (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 1).
+  {
+    const w = makeWorld();
+    const kickA = AT + 9 * MIN, kickB = AT + 12 * MIN;
+    const boards = (world) => {
+      world.board.epl = [pre('espn:745001', 'epl', kickA)];
+      world.board.seriea = [pre('espn:745002', 'seriea', kickB)];
+    };
+    await run(C, w, 1, (p, world) => boards(world));            // A due and bought; B not yet due
+    w.decline = 1;
+    await run(C, w, 1, (p, world) => { boards(world); world.clock = AT + 3 * MIN; });   // B due, refused
+    const afterRefusal = Object.keys(w.store.get('starts:today') ?? {}).sort();
+    await run(C, w, 1, (p, world) => { boards(world); world.clock = AT + 4 * MIN; });   // a new instance: B bought
+    eq('S20: a refused purchase is not recorded, a game bought before still is',
+      afterRefusal, ['espn:745001']);
+    eq('S20: the refused game is bought on a later poll, once, and the other not again',
+      [w.captures, w.declined, w.calls], [['espn:745001', 'espn:745002'], ['seriea'], ['epl', 'seriea']]);
+  }
+
+  // S21 — the poll that was declined is cut off before its end-of-poll writes
+  // (its last_poll write is refused, so the object is reset). Only the
+  // withdrawal written at once keeps the game buyable.
+  {
+    const w = makeWorld();
+    const kick = AT + 8 * MIN;
+    w.decline = 1;
+    await run(C, w, 2, (p, world) => {
+      world.board.epl = [pre('espn:745003', 'epl', kick)];
+      if (p === 0) world.refuseKeys.add('last_poll'); else world.refuseKeys.clear();
+    });
+    eq('S21: declined, then reset before the end-of-poll writes: bought once by the next instance',
+      [w.instances, w.declined, w.captures], [2, ['epl'], ['espn:745003']]);
+  }
+
   globalThis.Date = RealDate;
   console.log(failed ? `\nSELF-TEST FAILED: ${failed}` : '\nself-test passed');
   return failed;
@@ -539,6 +580,10 @@ const MUTATIONS = [
     "    'nba':        [9,11,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,11,0,1,2,3,4,5,6],   // Oct–Jul"]]],
   ['December dropped', [["    'nba':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,11,0,1,2,3,4,5,6],   // Oct–Jul",
     "    'nba':        [9,10,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,0,1,2,3,4,5,6],   // Oct–Jul"]]],
+  ['a refused purchase stays recorded', [['if ((await this._captureClosingOdds(sport, due)) === false) {', 'if ((await this._captureClosingOdds(sport, due)) === "never") {']]],
+  ['a refusal withdraws every record', [['for (const d of due) this._gameStarts.delete(d.gameId);', 'this._gameStarts.clear();']]],
+  ['a withdrawal written only at the end of the poll', [["                        this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts)).catch(e => {",
+    "                        Promise.resolve().catch(e => {"]]],
   ['board read by the UTC date', [['const today   = getFieldDateKey();', 'const today   = new Date().toISOString().slice(0, 10);']]],
   ['season month read in UTC', [['const month   = Number(today.slice(5, 7)) - 1;', 'const month   = new Date().getUTCMonth();']]],
   ['season month from the ET calendar date', [['const month   = Number(today.slice(5, 7)) - 1;',
