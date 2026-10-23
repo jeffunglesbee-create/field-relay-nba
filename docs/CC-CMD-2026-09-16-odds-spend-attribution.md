@@ -196,14 +196,53 @@ batch, a site-veto signal of its own, `mutate-odds-budget-batch.mjs` and
 `check-odds-ceiling-grant.mjs` updated in the same commit, caps only where
 charged equals kept, values from post-fix demand.
 
+**Also when Task 3 lands: a month veto charges neither the day nor the
+site.** Moved here 2026-10-23 from item 1 of
+`docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md` (BUILD-ON-A; audit
+`wf_dd67792d-4ca`), because it rewrites the same five-statement batch and is
+a capacity change under the 2026-10-18 ruling ("Do not fix the over-record
+yet"). What was seen: a harness against HEAD `src/budget-helpers.js`, KV
+month seed 84998: `chargeOdds(env, 3, 'ambientCaptureClosingOdds')` returned
+`false` and left `odds_budget.used = 3` and `odds_budget_site.used = 3`, the
+month at 84998. The source calls it intentional ("The day and the site keep
+their charge and the call is refused"). Since fix 1 of the prerequisites
+(`da44521`), a declined capture is retried each poll inside its 10-minute
+window, so under a month veto each sport window adds up to 3 per poll (40
+polls at 15 s, 10 at 60 s) to the day and site with no vendor call; 29
+windows on a busy Saturday could reach the day ceiling on phantom charges.
+It binds only near the 85,000 month limit (41,036 on 10-23, worst case
+74,744 for October), and fix 3 (`35d61ec`) turns the pairing watch red as
+soon as month headroom is below the largest call, so it cannot happen
+unseen. **Same commit:** `check-monthly-atomic.mjs` case B ("today's
+behaviour, pinned") and the "day keeps its charge" case of
+`mutate-odds-budget-batch.mjs` change with it.
+
 **Corrections to this document** (Rule 72): "five callers distinguish
 `guarded: true` from failure" is false at HEAD (none does); "three monthly
 implementations" is history. Both stand above as written on 09-16.
+Appended 2026-10-23, the "Open and unowned" list, each item to its owner
+(found by the audit `wf_dd67792d-4ca`; the list stands as written):
+- The ~19,700 ledger-vs-provider gap: `docs/CC-CMD-2026-09-19-daily-vs-vendor.md`,
+  ruled 2026-10-18; the sign has since reversed (ledger over vendor). The
+  window-aligned residual is `docs/CC-CMD-2026-10-13-vendor-residual-window.md`
+  (OPEN). Not a work item here (09-19: "Do not fix the over-record yet").
+- Whether `x-requests-used` is monthly-cumulative: answered in 09-19 Task 0c
+  (it reset; the pairing watch saw the counter go backwards on 2026-09-17).
+- Call sites that return `null`/`undefined` on refusal: `_captureClosingOdds`
+  now returns `false` and retries (prerequisites fix 1, `da44521`); a refusal
+  of any caller turns the pairing watch red (fix 3, `35d61ec`).
+  `getWCPregameLambdas` (`return null`) and `_fetchLiveOdds` (bare `return`,
+  live polling off) are unchanged.
 
 **Owner ruling 2026-10-23: "Hold it; fix 3 first".** The three fixes are
 `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`. The other defects
 found are filed: `docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md`,
 `docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`,
 `docs/CC-CMD-2026-10-23-odds-spend-without-need.md`,
-`docs/CC-CMD-2026-10-23-odds-docs-stale.md`.
+`docs/CC-CMD-2026-10-23-odds-docs-stale.md`. A content audit of those four
+against every existing CC-CMD (workflow `wf_dd67792d-4ca`, BUILD-ON-A)
+narrowed each: accounting-edges item 1 is above; prerequisites fix 2, the
+historical triggers and the demand-model splits are in
+`docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`; the
+stale "Open and unowned" list is answered in the Corrections above.
 

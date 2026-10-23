@@ -87,7 +87,44 @@ Found by the Task 3 premise test (workflow `wf_c984c219-a1f`):
   no sport column.
 - TASK 0 gains a fourth premise: the cron's matches and its billed calls per
   sport over 10-14..10-23, one command (a worker tail over one live-hours
-  window, counting `fetchSportOddsLive` URLs by sport key).
+  window, counting `fetchSportOddsLive` URLs by sport key). Count by caller
+  too: `/identity/mismatches` bills under the same label (weekly Saturday
+  workflow, up to 5 calls a run).
+
+**What a read-only map found toward premises 1 and 4** (2026-10-23, workflow
+`wf_de43d4bd-def`; no credits). Re-run at dispatch:
+- `change_log` source `odds_api` field `opening_odds`, 10-14..10-23: 0 rows
+  for NHL, NBA, CFB and NFL (re-checked by one D1 query, 2026-10-23). This
+  writer stamps `ts` as ISO (`2026-10-23T10:01:39.229Z`), unlike
+  `odds_backfill` and `closing_odds_capture`, which use a space. Bound days by
+  `substr(ts,1,10)`, which works for both.
+- The real `indexOddsByPair` and `findOddsForRow`, run on recorded vendor
+  names against the archive's names for 112 games (10-14..10-22): NHL 0/57,
+  CFB 0/36, NBA 0/15, NFL 0/4. The archive stores the nickname or school
+  (`Capitals`, `Knicks`, `Missouri St`), the vendor the full name
+  (`Washington Capitals`); `resolveTeamKey` has no alias for these. Controls
+  through the same join: MLB 23/23, WNBA 8/8, MLS 34/36, CFL 7/7.
+- The closing capture already matches these names per team
+  (`resolveTeamKey(b) === resolveTeamKey(v) || nameMatches(b, v)`, within the
+  contested-kickoff window, either orientation, exactly one event;
+  `src/ambient-do.js`). The same rule replayed on the 112 pairs: 110 right,
+  0 wrong ('Western KY' and 'GA Southern' unmatched); 74/74 controls kept.
+- Cost, modelled (the tally has no sport column): of 3,519 credits charged to
+  `fetchSportOddsLive` over 10-14..10-23, about 2,373 (67%) fall on the four
+  sports, by apportioning each day's charge over the sports pending per tick.
+  On 10-20 the site charged 264 credits and wrote 0 opening lines.
+
+5. **Who triggers the historical fetches** (added 2026-10-23, from
+   `docs/CC-CMD-2026-10-23-odds-spend-without-need.md`, BUILD-ON-A).
+   `fetchSportOddsHistorical` billed 30 calls against 5 demand units on 10-22
+   (12 against 3 on 10-21; 10-14..10-20 ran at 1.0-1.75 a unit). Three
+   triggers share the label: the `/archive/game` closing write, the dead-hour
+   `runOddsBackfillForDate`, and the `/archive/odds-backfill` route. Count
+   calls by trigger in the same worker tail as premise 4, on a closed day
+   after the 10-22 capture deploys (the 10-22 tally straddles two deploys).
+   The route's share is
+   `docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`; file a new
+   CC-CMD only for excess outside the four sports.
 
 ## TASK 1 — decided from TASK 0
 
@@ -99,15 +136,24 @@ There are two shapes, and the owner picks between them:
   already arrives from odds-backfill. This saves about 570 credits a week at
   October volume.
 
-The choice covers both paths: the `/archive/game` closing fetch and the
-opening-line cron. Under (b) the cron's skip goes in its sport discovery.
+The choice covers all three `findOddsForRow` callers: the `/archive/game`
+closing fetch, the opening-line cron, and the dead-hour
+`runOddsBackfillForDate` (widened 2026-10-23). Under (b) the cron's skip goes
+in its sport discovery. `runOddsBackfillForDate` also has item 4 of
+`docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md` (a refusal marks the
+date tried); design the two together.
 
 Either way, `JOIN_UNWRITABLE` is removed from
-`scripts/measure-odds-consumer-demand.mjs` in the same change.
+`scripts/measure-odds-consumer-demand.mjs` in the same change. The opening
+snapshot's unwritable split (10-20: 9 sport-days vs 0 writable; 10-22: 12 vs
+0) is used only as the before-measurement for done condition 4, under the
+same removal rule. Model the dead-hour trigger only if premise 5 shows it
+spends. No edit to that script before the 2026-10-25 11:07Z read, which
+runs it.
 
 ## Done condition (Rule 90 artifacts)
 
-1. TASK 0's three outputs committed.
+1. TASK 0's five outputs committed.
 2. **(a):** a test feeding the 19 real name pairs through `findOddsForRow`. It
    is red at HEAD and green after, with a mutation that restores the miss.
    **(b):** a check that the path makes no historical fetch for an unservable
@@ -117,4 +163,5 @@ Either way, `JOIN_UNWRITABLE` is removed from
 4. The opening-line cron: on a closed day after the deploy, either the four
    sports' opening lines are written the same day by `odds_api`, or no
    `fetchSportOddsLive` call is made for them (a worker tail over one
-   live-hours window).
+   live-hours window). D1, with the ISO `ts` this writer uses:
+   `SELECT substr(game_id,1,instr(game_id,'_')-1) lg, count(*) FROM change_log WHERE source='odds_api' AND field='opening_odds' AND substr(ts,1,10)='<D>' GROUP BY 1`.
