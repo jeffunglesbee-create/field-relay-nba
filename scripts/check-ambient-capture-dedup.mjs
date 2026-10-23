@@ -486,13 +486,15 @@ async function selfTest() {
   // S20 — the odds guard declines a purchase. No vendor call was made, so the
   // games are not recorded as bought, and a later poll inside the window buys
   // them, across a restart too; a game bought before stays recorded
-  // (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 1).
+  // (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 1). B is two
+  // games of one sport, refused in one purchase: both must come off the
+  // record, not the first only.
   {
     const w = makeWorld();
     const kickA = AT + 9 * MIN, kickB = AT + 12 * MIN;
     const boards = (world) => {
       world.board.epl = [pre('espn:745001', 'epl', kickA)];
-      world.board.seriea = [pre('espn:745002', 'seriea', kickB)];
+      world.board.seriea = [pre('espn:745002', 'seriea', kickB), pre('espn:745003', 'seriea', kickB)];
     };
     await run(C, w, 1, (p, world) => boards(world));            // A due and bought; B not yet due
     w.decline = 1;
@@ -501,8 +503,8 @@ async function selfTest() {
     await run(C, w, 1, (p, world) => { boards(world); world.clock = AT + 4 * MIN; });   // a new instance: B bought
     eq('S20: a refused purchase is not recorded, a game bought before still is',
       afterRefusal, ['espn:745001']);
-    eq('S20: the refused game is bought on a later poll, once, and the other not again',
-      [w.captures, w.declined, w.calls], [['espn:745001', 'espn:745002'], ['seriea'], ['epl', 'seriea']]);
+    eq('S20: both refused games are bought on a later poll, once, in one call, and the other not again',
+      [[...w.captures].sort(), w.declined, w.calls], [['espn:745001', 'espn:745002', 'espn:745003'], ['seriea'], ['epl', 'seriea']]);
   }
 
   // S21 — the poll that was declined is cut off before its end-of-poll writes
@@ -582,6 +584,7 @@ const MUTATIONS = [
     "    'nba':        [9,10,0,1,2,3,4,5,6],   // Oct–Jul\n    'nhl':        [9,10,0,1,2,3,4,5,6],   // Oct–Jul"]]],
   ['a refused purchase stays recorded', [['if ((await this._captureClosingOdds(sport, due)) === false) {', 'if ((await this._captureClosingOdds(sport, due)) === "never") {']]],
   ['a refusal withdraws every record', [['for (const d of due) this._gameStarts.delete(d.gameId);', 'this._gameStarts.clear();']]],
+  ['a refusal withdraws the first game only', [['for (const d of due) this._gameStarts.delete(d.gameId);', 'for (const d of due.slice(0, 1)) this._gameStarts.delete(d.gameId);']]],
   ['a withdrawal written only at the end of the poll', [["                        this.ctx.storage.put('starts:today', Object.fromEntries(this._gameStarts)).catch(e => {",
     "                        Promise.resolve().catch(e => {"]]],
   ['board read by the UTC date', [['const today   = getFieldDateKey();', 'const today   = new Date().toISOString().slice(0, 10);']]],

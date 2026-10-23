@@ -19,12 +19,15 @@
 //     shows in behaviour;
 //   - a fake relay whose boards are keyed by the ET date of each kickoff, as
 //     the relay's are (a 00:30Z kickoff is on the previous day's board);
-//   - a fake vendor. A billed call is a fetch of its /odds URL.
+//   - a fake vendor. A billed call is a fetch of its /odds URL;
+//   - for W22 only, the real odds ledger: chargeOdds's own SQL run on
+//     node:sqlite, as scripts/check-monthly-atomic.mjs runs it.
 //
 //   node scripts/check-ambient-capture-write.mjs            # self-test
 //   node scripts/check-ambient-capture-write.mjs --mutate   # Rule 90
 
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -48,6 +51,12 @@ function makeDb(world) {
     const s = sql.replace(/\s+/g, ' ').trim();
     const holes = (s.match(/\?/g) || []).length;
     if (holes !== params.length) throw new Error('D1_ERROR: Wrong number of parameter bindings for SQL query.: SQLITE_ERROR');
+    // The real ledger (W22): every odds-budget statement runs on SQLite.
+    if (world.sqlite && /\bodds_(budget|budget_site|budget_month|reconcile_state)\b/.test(s)) {
+      const st = world.sqlite.prepare(s);
+      if (/RETURNING/.test(s)) return { rows: st.all(...params), changes: 0 };
+      return { rows: [], changes: Number(st.run(...params).changes) };
+    }
     let m;
     if ((m = s.match(/^SELECT id, start_time, espn_event_id, home, away FROM (\w+) WHERE sport = \? AND date IN \(([?, ]+)\) AND start_time IS NOT NULL AND closing_odds IS NULL$/))) {
       if (world.d1Fail) throw new Error('D1_ERROR: network connection lost');
@@ -83,14 +92,24 @@ function makeDb(world) {
     bind: (...p) => stmt(sql, p),
     all: async () => { await tick(); return { results: run(sql, params).rows }; },
     run: async () => { await tick(); const r = run(sql, params); return { success: true, results: r.rows, meta: { changes: r.changes } }; },
+    runNow: () => { const r = run(sql, params); return { success: true, results: r.rows, meta: { changes: r.changes } }; },
     first: async () => { await tick(); return run(sql, params).rows[0] ?? null; },
   });
-  return { prepare: (sql) => stmt(sql), batch: async (list) => Promise.all(list.map(x => x.run())) };
+  // With the real ledger a batch is one transaction, as D1's is.
+  const batch = async (list) => {
+    if (!world.sqlite) return Promise.all(list.map(x => x.run()));
+    await tick();
+    world.sqlite.exec('BEGIN');
+    try { const out = list.map(x => x.runNow()); world.sqlite.exec('COMMIT'); return out; }
+    catch (e) { world.sqlite.exec('ROLLBACK'); throw e; }
+  };
+  return { prepare: (sql) => stmt(sql), batch };
 }
 
 function makeWorld({ at, tables = {}, board = [], vendor = {} }) {
   const world = { tables: { regular_season_games: [], postseason_games: [], ...tables }, board, vendor,
-    vendorCalls: [], updates: [], changeLog: [], lookups: 0, otherSelects: [], d1Fail: false, at, onVendor: null };
+    vendorCalls: [], updates: [], changeLog: [], lookups: 0, otherSelects: [], d1Fail: false, at, onVendor: null,
+    vendorFail: null, sqlite: null, kvPuts: [] };
   world.storage = {
     _m: new Map(),
     async get(k) { return Array.isArray(k) ? new Map(k.filter(x => this._m.has(x)).map(x => [x, this._m.get(x)])) : this._m.get(k); },
@@ -108,6 +127,11 @@ function installFetch(world) {
       const key = u.pathname.split('/')[3];
       world.vendorCalls.push(key);
       if (world.onVendor) world.onVendor(world);
+      // A billed call that yields no events: an error status, a dropped
+      // connection, or a body that is not a list.
+      if (world.vendorFail === 'status') return new Response('{"message":"internal"}', { status: 500 });
+      if (world.vendorFail === 'throw') throw new TypeError('fetch failed');
+      if (world.vendorFail === 'object') return new Response('{"message":"not a list"}', { status: 200 });
       return new Response(JSON.stringify(world.vendor[key] || []), { status: 200 });
     }
     const sport = u.searchParams.get('sport'), date = u.searchParams.get('date');
@@ -119,7 +143,8 @@ function instance(C, world, db = true) {
   const ctx = { storage: world.storage, id: 't', waitUntil(p) { ctx.pending.push(p); }, pending: [] };
   const inst = new C(ctx, {});
   inst.env = { ODDS_API_KEY: 'k', RELAY_BASE: 'http://relay.test', ...(db ? { ARCHIVE_DB: makeDb(world) } : {}),
-    ...(world.ledger ? { FIELD_JOURNALISM: { get: async () => null, put: async () => {} } } : {}) };
+    ...(world.ledger || world.sqlite ? { FIELD_JOURNALISM: { get: async () => null,
+      put: async (k) => { world.kvPuts.push(k); } } } : {}) };
   return { inst, ctx };
 }
 
@@ -444,14 +469,18 @@ async function selfTest() {
   }
 
   // W21 — the odds guard declines the purchase (the day's ceiling is full):
-  // no vendor call, no write, and the game is not recorded as bought, so the
-  // next poll inside the window, with room on the ledger, buys and writes it
-  // once (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 1).
+  // no vendor call, no write, and neither game is recorded as bought, so the
+  // next poll inside the window, with room on the ledger, buys both in one call
+  // and writes each row once (docs/CC-CMD-2026-10-23-odds-ceiling-
+  // prerequisites.md, fix 1). Two games of one sport, so a withdrawal of the
+  // first only is seen.
   {
     const w = makeWorld({ at: '2026-10-23T18:51:00Z',
-      board: [bg('espn:401879269', 'epl', 'EPL', '2026-10-23T19:00Z', 'Fulham', 'Brentford', '401879269')],
-      tables: { regular_season_games: [row('EPL_2026-10-23_e401879269', 'EPL', '2026-10-23', '2026-10-23T19:00Z', 'Fulham', 'Brentford', '401879269')] },
-      vendor: { soccer_epl: [event('Fulham', 'Brentford', '2026-10-23T19:00:00Z')] } });
+      board: [bg('espn:401879269', 'epl', 'EPL', '2026-10-23T19:00Z', 'Fulham', 'Brentford', '401879269'),
+              bg('espn:401879270', 'epl', 'EPL', '2026-10-23T19:00Z', 'Everton', 'Burnley', '401879270')],
+      tables: { regular_season_games: [row('EPL_2026-10-23_e401879269', 'EPL', '2026-10-23', '2026-10-23T19:00Z', 'Fulham', 'Brentford', '401879269'),
+                                       row('EPL_2026-10-23_e401879270', 'EPL', '2026-10-23', '2026-10-23T19:00Z', 'Everton', 'Burnley', '401879270')] },
+      vendor: { soccer_epl: [event('Fulham', 'Brentford', '2026-10-23T19:00:00Z'), event('Everton', 'Burnley', '2026-10-23T19:00:00Z')] } });
     w.ledger = { full: true, charges: 0 };
     await poll(C, w);
     const refused = [w.ledger.charges > 0, w.vendorCalls.length, w.updates.length,
@@ -461,9 +490,57 @@ async function selfTest() {
     await poll(C, w);
     eq('W21: a declined charge buys nothing and records nothing',
       refused, [true, 0, 0, []]);
-    eq('W21: the next poll in the window buys it and writes its row once',
-      [w.vendorCalls, w.updates, Object.keys(w.storage._m.get('starts:today') ?? {})],
-      [['soccer_epl'], ['regular_season_games/EPL_2026-10-23_e401879269'], ['espn:401879269']]);
+    eq('W21: the next poll in the window buys both in one call and writes each row once',
+      [w.vendorCalls, [...w.updates].sort(), Object.keys(w.storage._m.get('starts:today') ?? {}).sort()],
+      [['soccer_epl'], ['regular_season_games/EPL_2026-10-23_e401879269', 'regular_season_games/EPL_2026-10-23_e401879270'],
+       ['espn:401879269', 'espn:401879270']]);
+  }
+
+  // W22 — THE REFUSAL'S COST ON THE REAL LEDGER, PINNED. The month has no room
+  // (84,999 of 85,000) and the day has. chargeOdds charges the day and the site
+  // and refuses the call: what its own comment calls intended, and what
+  // scripts/check-monthly-atomic.mjs case B pins for one call. Because a refused
+  // capture is retried, four polls inside the window are four refusals: day and
+  // site +12, the month unmoved, no vendor call. This is today's behaviour, not
+  // the wanted one; Task 3 of docs/CC-CMD-2026-09-16-odds-spend-attribution.md
+  // changes it, and changes this pin in the same commit.
+  {
+    const w = makeWorld({ at: '2026-11-14T18:51:00Z',
+      board: [bg('espn:401879271', 'epl', 'EPL', '2026-11-14T19:00Z', 'Chelsea', 'Arsenal', '401879271')],
+      tables: { regular_season_games: [row('EPL_2026-11-14_e401879271', 'EPL', '2026-11-14', '2026-11-14T19:00Z', 'Chelsea', 'Arsenal', '401879271')] },
+      vendor: { soccer_epl: [event('Chelsea', 'Arsenal', '2026-11-14T19:00:00Z')] } });
+    w.sqlite = new DatabaseSync(':memory:');
+    w.sqlite.exec(`CREATE TABLE odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site));
+      CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE odds_reconcile_state (day TEXT NOT NULL, site TEXT NOT NULL, state TEXT NOT NULL, cache TEXT NOT NULL,
+        n INTEGER NOT NULL DEFAULT 0, credits_kept INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site, state, cache));
+      INSERT INTO odds_budget VALUES ('2026-11-14', 100);
+      INSERT INTO odds_budget_month VALUES ('2026-11', 84999);`);
+    for (const at of ['18:51', '18:52', '18:53', '18:54']) { w.at = `2026-11-14T${at}:00Z`; await poll(C, w); }
+    const one = (q) => w.sqlite.prepare(q).get()?.v ?? null;
+    eq('W22: four refused polls under a month veto: day and site +12, the month unmoved, no vendor call, the limit key written',
+      [one("SELECT used v FROM odds_budget WHERE day = '2026-11-14'"),
+       one("SELECT used v FROM odds_budget_site WHERE day = '2026-11-14' AND site = 'ambientCaptureClosingOdds'"),
+       one("SELECT used v FROM odds_budget_month WHERE month = '2026-11'"),
+       w.vendorCalls.length, w.kvPuts.includes('odds:credits:2026-11:warned:limit'),
+       Object.keys(w.storage._m.get('starts:today') ?? {})],
+      [112, 12, 84999, 0, true, []]);
+  }
+
+  // W23 — a billed call that yields no events (an error status, a dropped
+  // connection, a body that is not a list) keeps the game recorded: the vendor
+  // was called, or may have been, so later polls inside the window do not call
+  // again. Only a refusal, which makes no call, is retried.
+  for (const fail of ['status', 'throw', 'object']) {
+    const w = makeWorld({ at: '2026-10-23T18:51:00Z',
+      board: [bg('espn:401879272', 'epl', 'EPL', '2026-10-23T19:00Z', 'Leeds United', 'Wolverhampton Wanderers', '401879272')],
+      tables: { regular_season_games: [row('EPL_2026-10-23_e401879272', 'EPL', '2026-10-23', '2026-10-23T19:00Z', 'Leeds', 'Wolves', '401879272')] },
+      vendor: { soccer_epl: [event('Leeds United', 'Wolverhampton Wanderers', '2026-10-23T19:00:00Z')] } });
+    w.vendorFail = fail;
+    for (const at of ['18:51', '18:52', '18:53']) { w.at = `2026-10-23T${at}:00Z`; await poll(C, w); }
+    eq(`W23 (${fail}): one vendor call across three polls, nothing written, the game still recorded`,
+      [w.vendorCalls.length, w.updates, Object.keys(w.storage._m.get('starts:today') ?? {})], [1, [], ['espn:401879272']]);
   }
 
   globalThis.Date = RealDate;
@@ -476,6 +553,12 @@ const VENDOR_NEAR = '            const gap = kickoffGapMinutes({ start_time: sta
 const MUTATIONS = [
   ['a declined charge reads as bought', [["            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return false;",
     "            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return;"]]],
+  ['an error status after a billed call reads as declined', [["                console.warn(`[closing-odds] fetch ${r.status} for ${sport}`);\n                return;",
+    "                console.warn(`[closing-odds] fetch ${r.status} for ${sport}`);\n                return false;"]]],
+  ['a failed fetch reads as declined', [["            console.warn(`[closing-odds] fetch error for ${sport}: ${e.message}`);\n            return;",
+    "            console.warn(`[closing-odds] fetch error for ${sport}: ${e.message}`);\n            return false;"]]],
+  ['a body that is not a list reads as declined', [['        if (!Array.isArray(events)) return;', '        if (!Array.isArray(events)) return false;']]],
+  ['a refusal withdraws the first game only', [['for (const d of due) this._gameStarts.delete(d.gameId);', 'for (const d of due.slice(0, 1)) this._gameStarts.delete(d.gameId);']]],
   ['any nearby row, not the event id', [["? near.filter(r => String(r.espn_event_id) === String(st.espnEventId))", '? near']]],
   ['names, not the event id, on ESPN boards', [["? near.filter(r => String(r.espn_event_id) === String(st.espnEventId))",
     '? near.filter(r => nameMatches(r.home, st.home) && nameMatches(r.away, st.away))']]],
