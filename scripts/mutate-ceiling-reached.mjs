@@ -90,6 +90,24 @@ const MUTATIONS = [
    '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
    '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 - 1 });',
    'the boundary: a stamp from the first instant of D must survive to the last instant of D+2'],
+
+  // THE MONTH'S STAMP (fix 3 B).
+  ['B1 the month stamp is read for the current month',
+   'get(`odds:credits:${date.slice(0, 7)}:warned:limit`)',
+   'get(`odds:credits:${new Date().toISOString().slice(0, 7)}:warned:limit`)',
+   "THE STATE THIS ENDS: a veto on the 31st read on the 1st found November's key, empty"],
+  ['B2 the month field never reaches the response',
+   '            month_limit_reached_at: monthLimitHit,',
+   '            // month_limit_reached_at removed',
+   'the watch cannot judge a month refusal it is not given'],
+  ['B3 the month stamp loses its hour',
+   "            if (raw) monthLimitHit = /^\\d{4}-\\d{2}-\\d{2}T/.test(raw) ? raw : true;",
+   '            if (raw) monthLimitHit = true;',
+   'without the hour the watch cannot tell a limit reached before the day from one reached after it'],
+  ['B4 an absent month stamp reads as false',
+   '        let monthLimitHit = null;',
+   '        let monthLimitHit = false;',
+   'false reads as "checked, no refusal"; null is the only honest value for a read that found nothing (Rule 99)'],
 ];
 
 let caught = 0;
@@ -106,7 +124,7 @@ for (const [name, anchor, repl, why] of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log('COVERAGE: the day veto\'s writer, its lifetime, and its reader in');
+console.log('COVERAGE: the day veto\'s writer, its lifetime, and the day and month readers in');
 console.log('src/budget-helpers.js — 1 file. It does NOT run the Worker, and proves nothing');
 console.log('about whether a veto occurred.');
 process.exit(caught === MUTATIONS.length ? 0 : 1);

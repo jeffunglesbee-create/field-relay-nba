@@ -114,7 +114,9 @@ ok('the field is on the /budget/odds response',
 // pairing watch reads the CLOSED day the next afternoon, so a ceiling reached
 // in the morning had no stamp by the time anyone looked: the watch read "no
 // refusal" for ceiling days (docs/CC-CMD-2026-10-23-odds-ceiling-
-// prerequisites.md, fix 3 A). This runs the real chargeOdds to stamp a veto at an instant and the
+// prerequisites.md, fix 3). And the monthly limit was judged from the route's
+// monthly block, which is the CURRENT month, so a veto on the 31st vanished on
+// the 1st. This runs the real chargeOdds to stamp a veto at an instant and the
 // real peekDailyOdds to read it later, on node:sqlite and a KV that expires
 // keys as Cloudflare does (expirationTtl is seconds from the write).
 const RealDate = Date;
@@ -141,8 +143,9 @@ function sqliteD1(db) {
     catch (e) { db.exec('ROLLBACK'); throw e; } } };
 }
 let caseNo = 0;
-// One day veto at `at`, read back for `day` at `readAt`.
-async function replay({ at, readAt, day }) {
+// One veto at `at`, read back for `day` at `readAt`. `kind` 'day' fills the
+// day; 'month' fills the month and leaves the day room.
+async function replay({ kind, at, readAt, day }) {
   const mod = await import(`${pathToFileURL(resolve(SRC)).href}?case=${++caseNo}`);
   const db = new DatabaseSync(':memory:');
   const env = { FIELD_JOURNALISM: ttlKV(), ARCHIVE_DB: sqliteD1(db) };
@@ -155,11 +158,12 @@ async function replay({ at, readAt, day }) {
       CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE odds_reconcile_state (day TEXT NOT NULL, site TEXT NOT NULL, state TEXT NOT NULL, cache TEXT NOT NULL,
         n INTEGER NOT NULL DEFAULT 0, credits_kept INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site, state, cache));`);
-    db.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(at.slice(0, 10), 1e9);
+    if (kind === 'day') db.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(at.slice(0, 10), 1e9);
+    else db.prepare('INSERT INTO odds_budget_month VALUES (?, ?)').run(at.slice(0, 7), mod.ODDS_HARD_LIMIT);
     const refused = (await mod.chargeOdds(env, 3, 'probe')) === false;
     clock = RealDate.parse(readAt);
     const got = await mod.peekDailyOdds(env, day);
-    return { refused, ceiling: got?.ceiling_reached_at };
+    return { refused, ceiling: got?.ceiling_reached_at, month: got?.month_limit_reached_at, hasMonth: !!got && 'month_limit_reached_at' in got };
   } finally { globalThis.Date = RealDate; console.warn = warn; }
 }
 // The four recorded ceiling days, each read at the minute the scheduled pairing
@@ -172,15 +176,27 @@ const READS = [['2026-10-07', '2026-10-08T17:40:55Z'], ['2026-10-10', '2026-10-1
                ['2026-10-21', '2026-10-23T23:59:59.999Z']];
 for (const [day, readAt] of READS) {
   const at = `${day}T00:00:00.001Z`;
-  const r = await replay({ at, readAt, day });
+  const r = await replay({ kind: 'day', at, readAt, day });
   ok(`a ceiling reached at ${at} is still reported when read at ${readAt}`,
     r.refused && r.ceiling === at,
     `refused ${r.refused}, ceiling_reached_at ${JSON.stringify(r.ceiling)}: the stamp expired before its reader, so a day that refused calls reads as one that did not`);
 }
+{
+  const at = '2026-10-31T22:00:00.000Z';
+  const r = await replay({ kind: 'month', at, readAt: '2026-11-01T15:36:00Z', day: '2026-10-31' });
+  ok('a month veto on the 31st is reported for that day when read on the 1st',
+    r.refused && r.month === at && r.ceiling === null,
+    `refused ${r.refused}, month_limit_reached_at ${JSON.stringify(r.month)}, ceiling_reached_at ${JSON.stringify(r.ceiling)}`);
+  const nov = await replay({ kind: 'month', at, readAt: '2026-11-01T15:36:00Z', day: '2026-11-01' });
+  ok("...and is not reported for the next month's days",
+    nov.hasMonth && nov.month === null,
+    `month_limit_reached_at ${JSON.stringify(nov.month)} for 2026-11-01: the reader is not keyed by the day's month`);
+}
+
 console.log(`\n${n - bad} of ${n} passed.`);
 console.log(`COVERAGE: source text in ${SRC} for the stamp's shape, and an executed`);
 console.log(`replay of chargeOdds and peekDailyOdds for its lifetime: ${READS.length} day stamps read at`);
-console.log('real watch read times or the last served instant. It cannot say whether a');
-console.log('veto has actually occurred;');
+console.log('real watch read times or the last served instant, and one month veto read');
+console.log('across a month boundary. It cannot say whether a veto has actually occurred;');
 console.log('that is what the live /budget/odds reading is for.');
 process.exit(bad ? 1 : 0);

@@ -606,6 +606,16 @@ async function peekDailyOdds(env, forDate = null) {
             const raw = await env.FIELD_JOURNALISM.get(`odds:daily:${date}:warned`);
             if (raw) ceilingHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
         } catch (_) { ceilingHit = null; }
+        // THE MONTH'S LIMIT, FOR THE MONTH OF THE DAY ASKED ABOUT. chargeOdds
+        // stamps odds:credits:<month>:warned:limit the first time the 85,000
+        // limit refuses a call (60-day TTL). The monthly block of this route is
+        // the CURRENT month, so a watch reading 10-31 on 11-01 saw November's
+        // headroom and no refusal (fix 3 B). Same three states as above.
+        let monthLimitHit = null;
+        try {
+            const raw = await env.FIELD_JOURNALISM.get(`odds:credits:${date.slice(0, 7)}:warned:limit`);
+            if (raw) monthLimitHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
+        } catch (_) { monthLimitHit = null; }
         const unreadable = Object.keys(sites).filter(k => sites[k] === null);
         const sum = unreadable.length
             ? null
@@ -631,6 +641,10 @@ async function peekDailyOdds(env, forDate = null) {
             // failed read are both null here, and `remaining` above already
             // distinguishes an exhausted budget from a spent one.
             ceiling_reached_at: ceilingHit,
+            // null = the monthly limit has not refused a call this day's month.
+            // An ISO string = the moment it first did, which may be after this
+            // day; `true` = it did, hour unknown. Read with `date` to judge a day.
+            month_limit_reached_at: monthLimitHit,
             // Present and null on an ordinary day, so an unusual ceiling always
             // carries its own explanation rather than looking like drift.
             standing_ceiling: ODDS_DAILY_CEILING,
