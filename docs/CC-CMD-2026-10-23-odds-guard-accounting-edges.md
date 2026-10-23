@@ -24,6 +24,14 @@
    charge and the call is refused"). It inflates `by_site` for calls never
    made. The month limit does not bind in October (41,036 of 85,000 on
    10-23).
+   **Now multiplied by the closing capture's retry** (the prerequisites
+   CC-CMD, fix 1): a declined capture is tried again each poll inside its
+   10-minute window, so under a month veto each sport window adds up to +3
+   per poll (40 polls at 15 s, 10 at 60 s) to the day and site counters,
+   with no vendor call; a busy Saturday's 29 windows could reach the day
+   ceiling on phantom charges alone and stamp `ceiling_reached_at`. Measured
+   in scratch against real `chargeOdds` (+3 per refused poll). Fixing this
+   item removes it; nothing else needs to change.
 2. **Degrade-open hangs on the KV binding, not the D1 store the guard
    charges.** Every wrapper and `chargeOdds` start with
    `if (!env.FIELD_JOURNALISM) return true;`. Harness:
