@@ -169,3 +169,11 @@ Task 3's done condition:
 
 - No Odds API call without the owner's approval.
 - No change to what the backfill writes until A1 is decided.
+  **Owner ruling 2026-10-23 (an exception, not a decision of A1):** the
+  opening-line cron, once its join matches
+  (`docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`,
+  shape (a)), writes CFB opening lines the same morning, before every kickoff,
+  so the CI backfill fills fewer CFB `opening_odds` rows. The owner also ruled
+  that the `/archive/game` closing path matches CFB, so its noon snapshot
+  takes CFB `closing_odds` rows before the CI backfill's later line can. A1
+  itself (the CI backfill's snapshot) stays open.

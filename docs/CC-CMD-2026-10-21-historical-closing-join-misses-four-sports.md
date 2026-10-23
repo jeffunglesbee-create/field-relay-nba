@@ -138,6 +138,51 @@ all three `findOddsForRow` callers, with a refusal after kickoff,
 map's commit B) after it as its own concern. It lands after the 2026-10-25
 11:07Z read, which runs `scripts/measure-odds-consumer-demand.mjs`.
 
+**Two further owner rulings, 2026-10-23,** after a read-only design and two
+critics (workflow `wf_0d274771-67f`) found consequences the first choice had
+not shown:
+1. **The closing path: "Fix it as first ruled".** Matched, `/archive/game`
+   writes the noon historical snapshot as `closing_odds` for NBA, NHL, CFB and
+   NFL. Put to the owner with D1 (since 10-01): the CI backfill's pre-kickoff
+   closing lines for these sports land 21-82 minutes before kickoff (CFB 34
+   rows, avg 77; NBA 8, 82; NFL 10, 21; NHL 57, 69); the noon snapshot on the
+   same rows is 736-798 minutes before. CI fills only empty rows
+   (`.github/scripts/odds-backfill.js`), so the noon line takes the row. The
+   blob's `_kickoff` carries the capture instant, so a reader can see the lead.
+   NBA and NHL rows the AmbientDO capture fills at T-10 are not affected (the
+   closing path skips a row that has a line).
+2. **CFB: "Include CFB".** The opening cron writes CFB opening lines the same
+   morning, before every kickoff. This changes which writer fills CFB
+   `opening_odds` while `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`
+   forbids changing what the backfill writes until its A1; the owner ruled
+   it, and the ruling is recorded there too.
+
+**Design changes from the critics** (each measured; built into the change):
+- The worker backfill (`runOddsBackfillForDate`) gets the same after-kickoff
+  refusal, clocked by `snapshotAt`. Without it the shared join newly writes
+  an in-play price as opening on `NBA_2026-10-11_e401898400` (tip 10:00Z,
+  snapshot 11:55:36Z, late 116 min), the only D1 row in that state.
+- A row with no readable kickoff keeps HEAD's breadth: the resolved-key test
+  only (no name-token test), straight orientation, exactly one candidate.
+  Cup rows filed as MLS have no start_time and their own games are never in
+  `soccer_usa_mls`; the token test would let a league fixture of the same
+  clubs price them.
+- The backfill SELECTs gain `start_time` only; their WHERE and the
+  deliberately unguarded finality are unchanged. A row refused after kickoff
+  is skipped like a miss, so a date with only such rows is marked tried, which
+  is right: they never become pre-kickoff. Recorded in item 4 of
+  `docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md`.
+- `JOIN_UNWRITABLE` gets an end date, the landing day, instead of being
+  deleted: deleting it would count the pre-fix days' fetches as demand.
+- Landing: after the 10-25 11:07Z demand read's dispatched run has finished
+  and its log is on main (checked through the Actions API, not the clock),
+  and before 2026-11-08: the CFL judging run checks `git log` on
+  `src/index.js` from then.
+- TASK 0 premises 4 and 5 (calls by sport and by trigger) need a per-call log
+  line that does not exist; `fetchSportOddsLive` logs nothing. They were
+  inputs to the (a)/(b) choice, which is made. The post-fix artifact is the
+  D1 total below.
+
 There are two shapes, and the owner picks between them:
 
 - **(a) Make the join match.** For example, resolve the archive name through
@@ -170,8 +215,14 @@ runs it.
    sport, with its mutation.
 3. A per-consumer demand run whose fetchSportOddsHistorical "unwritable" line
    reads 0 credits, because the join now writes or the fetch is no longer made.
-4. The opening-line cron: on a closed day after the deploy, either the four
-   sports' opening lines are written the same day by `odds_api`, or no
-   `fetchSportOddsLive` call is made for them (a worker tail over one
-   live-hours window). D1, with the ISO `ts` this writer uses:
+4. The opening-line cron: for each of NHL, NBA, CFB and NFL, on the first
+   closed day after the deploy that has rows of that sport, `odds_api`
+   opening writes are above 0 (only 3 of 22 October dates had all four
+   sports, all Thursdays). And `fetchSportOddsLive` billed calls per day on
+   the first full closed days after the deploy, from `odds_reconcile_state`,
+   against the same weekdays of 10-14..10-23 (264-570 credits a day then).
+   **Added:** no `odds_api` opening write captured at or after its row's
+   kickoff since the deploy; `archive_game_closing` writes for NFL or CFB
+   above 0 on a closed day, and at most that day's four-sport demand units.
+   D1, with the ISO `ts` this writer uses:
    `SELECT substr(game_id,1,instr(game_id,'_')-1) lg, count(*) FROM change_log WHERE source='odds_api' AND field='opening_odds' AND substr(ts,1,10)='<D>' GROUP BY 1`.

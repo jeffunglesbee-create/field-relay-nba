@@ -86,6 +86,12 @@ that references to "item N" stay valid.
    third `findOddsForRow` caller in
    `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`,
    which may cut its purchases; design the two together.
+   **Designed together, 2026-10-23:** the 10-21 change adds `start_time` to
+   both of this function's SELECTs and nothing else; the WHERE and the
+   unguarded finality stay. It refuses a line captured after the row's
+   kickoff as a skip, like a miss, so a date with only such rows is still
+   marked tried (right: they never become pre-kickoff). It does not touch the
+   guard refusal or the tried key, so this item is unchanged by it.
 5. **The stale-data sentinel watches KV counters the guard no longer
    charges.** `src/stale-data-sentinel.js` checks `odds:daily:<day>` and
    `odds:credits:<month>` in KV; since the D1 move those are written only by
