@@ -270,5 +270,33 @@ WHERE c.source = 'closing_odds_capture' AND c.ts >= '2026-10-22 19:15'
   no rows. The first run of this check used it and read 0 rows; the rows were
   there. The session docs and the scheduled checks now use the space form.
 
-The 00:00Z, 01:00Z and 02:00Z kickoffs, which only gap 2 makes visible, are
-checked at 02:20Z.
+### Live check 2 — 2026-10-23T02:21Z: checked 12 of 12 NHL kickoffs, all pass
+
+The rest of the night, including the kickoffs only gap 2 makes visible. Same
+query, `c.ts >= '2026-10-22 23:45'`:
+
+| game_id | ts | v | book | start_time | same |
+|---|---|---|---|---|---|
+| NHL_2026-10-22_e401892558 | 10-22 23:50:07 | 1 | draftkings | 10-23 00:00Z | 1 |
+| NHL_2026-10-22_e401892559 | 10-22 23:50:08 | 1 | draftkings | 10-23 00:00Z | 1 |
+| NHL_2026-10-22_e401892560 | 10-23 00:50:13 | 1 | draftkings | 10-23 01:00Z | 1 |
+| NHL_2026-10-22_e401892561 | 10-23 00:50:13 | 1 | draftkings | 10-23 01:00Z | 1 |
+| NHL_2026-10-22_e401892562 | 10-23 01:50:33 | 1 | draftkings | 10-23 02:00Z | 1 |
+| NHL_2026-10-22_e401892563 | 10-23 01:50:33 | 1 | draftkings | 10-23 02:00Z | 1 |
+
+- **Gap 2, seen working.** The 01:00Z and 02:00Z games were bought at 00:50Z
+  and 01:50Z. By then the UTC date was 10-23, whose NHL board does not list
+  them; only the 10-22 slate board does. Before this change they could not be
+  seen inside their window.
+- **Every NHL row of the night** (the cross-check on the rows themselves): all
+  12 `NHL_2026-10-22_e*` rows hold a DraftKings line marked verified,
+  captured 9.4 to 9.9 minutes before kickoff.
+- **Not captured, as expected:** `NBA_2026-10-22_e401909094` (Thunder v
+  Nuggets, 01:30Z). The NBA board answers 403 in season
+  (`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`).
+- **Spend:** `ambientCaptureClosingOdds` 9 credits on 10-22 (3 calls) and 6 on
+  10-23 (2 calls), every call reconciled at 3 kept: 5 calls, 15 credits, one
+  per kickoff time, for 12 lines.
+
+Done condition 3 (the demand ratio on a closed day with NHL games) is read on
+2026-10-24 at 11:07Z for closed day 10-23.

@@ -44,8 +44,12 @@ Branch main throughout. jubilant-bassoon: `3b8ae577` → `3e489fd5`.
   04:00Z (EDT) or 05:00Z (EST).
 - **Client:** `window.TODAY_ISO` and the relay's slate date agree at every
   instant.
-- **Status:** STAGED. Blocked by: the first NHL kickoffs after the deploy
-  (23:00Z). Unblocked by: tonight's 12 NHL kickoffs. Verify:
+- **Status:** VERIFIED live for the capture: 12 of 12 NHL kickoffs on
+  2026-10-22 got one verified DraftKings line on their own row, 9.4 to 9.9
+  minutes before kickoff, in 5 calls (15 credits). The 01:00Z and 02:00Z games
+  were bought after the UTC date turned, which only gap 2 allows. Done
+  condition 3 (the demand ratio) stays STAGED until the 10-24 read. The
+  verification, for re-running:
   - `SELECT c.game_id, c.ts, json_extract(c.new_value,'$._kickoff.verified') v, g.start_time FROM change_log c JOIN regular_season_games g ON g.id=c.game_id WHERE c.source='closing_odds_capture' AND c.ts >= '2026-10-22 19:15'`
     gives one row per NHL kickoff, v = 1, ts before start_time;
   - `odds_budget_site` `ambientCaptureClosingOdds` grows by 3 per kickoff time
