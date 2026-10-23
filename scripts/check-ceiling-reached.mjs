@@ -91,7 +91,7 @@ ok('an absent key is null, never false',
   'false reads as "checked, no veto"; null is the only honest value for a read that found nothing');
 
 ok('a failed read does not invent a veto',
-  /catch \(_\) \{ ceilingHit = null; \}/.test(reader),
+  /catch \(_\) \{ ceilingHit = null; stampsUnreadable\.push\('ceiling_reached_at'\); \}/.test(reader),
   'an unreadable KV must not report a ceiling that was never hit');
 
 // THE SCOPE ITSELF IS ASSERTED. Without this, a future edit that widens either
@@ -182,7 +182,8 @@ async function replay({ kind, at, again = null, readAt, day, failGet = null }) {
     clock = RealDate.parse(readAt);
     env.FIELD_JOURNALISM.failGet = failGet;
     const got = await mod.peekDailyOdds(env, day);
-    return { refused, ceiling: got?.ceiling_reached_at, month: got?.month_limit_reached_at, hasMonth: !!got && 'month_limit_reached_at' in got };
+    return { refused, ceiling: got?.ceiling_reached_at, month: got?.month_limit_reached_at, hasMonth: !!got && 'month_limit_reached_at' in got,
+             unreadable: got ? got.stamps_unreadable : undefined };
   } finally { globalThis.Date = RealDate; console.warn = warn; }
 }
 // The four recorded ceiling days, each read at the minute the scheduled pairing
@@ -204,8 +205,8 @@ for (const [day, readAt] of READS) {
   const at = '2026-10-31T22:00:00.000Z';
   const r = await replay({ kind: 'month', at, readAt: '2026-11-01T15:36:00Z', day: '2026-10-31' });
   ok('a month veto on the 31st is reported for that day when read on the 1st',
-    r.refused && r.month === at && r.ceiling === null,
-    `refused ${r.refused}, month_limit_reached_at ${JSON.stringify(r.month)}, ceiling_reached_at ${JSON.stringify(r.ceiling)}`);
+    r.refused && r.month === at && r.ceiling === null && r.unreadable === null,
+    `refused ${r.refused}, month_limit_reached_at ${JSON.stringify(r.month)}, ceiling_reached_at ${JSON.stringify(r.ceiling)}, stamps_unreadable ${JSON.stringify(r.unreadable)}`);
   const nov = await replay({ kind: 'month', at, readAt: '2026-11-01T15:36:00Z', day: '2026-11-01' });
   ok("...and is not reported for the next month's days",
     nov.hasMonth && nov.month === null,
@@ -238,15 +239,28 @@ for (const [day, readAt] of READS) {
     `refused ${m.refused}, month_limit_reached_at ${JSON.stringify(m.month)}`);
 }
 {
-  // A FAILED READ INVENTS NOTHING. The stamp exists and every read of a stamp
-  // throws: the field is null, never `true`, which the watch counts as a
-  // refusal with no hour. Once for each stamp.
-  for (const kind of ['day', 'month']) {
-    const r = await replay({ kind, at: '2026-10-31T22:00:00.000Z', readAt: '2026-11-01T15:36:00Z',
-      day: '2026-10-31', failGet: /:warned/ });
-    ok(`a ${kind} stamp whose read throws is reported as null`,
-      r.refused && r.ceiling === null && r.month === null,
-      `ceiling_reached_at ${JSON.stringify(r.ceiling)}, month_limit_reached_at ${JSON.stringify(r.month)}: a KV failure reads as a refusal`);
+  // A FAILED READ INVENTS NOTHING, AND SAYS SO. The stamp exists and the read
+  // of a stamp throws: the field is null, never `true` (which the watch counts
+  // as a refusal with no hour), and stamps_unreadable names it, so the null is
+  // not read as "no refusal" (Rule 99). Each stamp alone, then both.
+  for (const [kind, failGet, names] of [['day', /:warned$/, ['ceiling_reached_at']],
+                                        ['month', /:warned:limit$/, ['month_limit_reached_at']],
+                                        ['month', /:warned/, ['ceiling_reached_at', 'month_limit_reached_at']]]) {
+    const r = await replay({ kind, at: '2026-10-31T22:00:00.000Z', readAt: '2026-11-01T15:36:00Z', day: '2026-10-31', failGet });
+    ok(`a ${kind} veto, reads of ${failGet} throw: both stamps null, ${names.join(' and ')} named unreadable`,
+      r.refused && r.ceiling === null && r.month === null && JSON.stringify(r.unreadable) === JSON.stringify(names),
+      `ceiling_reached_at ${JSON.stringify(r.ceiling)}, month_limit_reached_at ${JSON.stringify(r.month)}, stamps_unreadable ${JSON.stringify(r.unreadable)}`);
+  }
+  // ...AND A FAILED READ OF ONE STAMP LEAVES THE OTHER ALONE. The stamp that
+  // was read and shows a refusal is still served, beside the name of the one
+  // that could not be read.
+  for (const [kind, failGet, field, other] of [['day', /:warned:limit$/, 'ceiling', 'month_limit_reached_at'],
+                                               ['month', /:warned$/, 'month', 'ceiling_reached_at']]) {
+    const at = '2026-10-31T22:00:00.000Z';
+    const r = await replay({ kind, at, readAt: '2026-11-01T15:36:00Z', day: '2026-10-31', failGet });
+    ok(`a ${kind} veto read, the ${other} read throws: the ${kind} stamp is still served`,
+      r.refused && r[field] === at && JSON.stringify(r.unreadable) === JSON.stringify([other]),
+      `ceiling_reached_at ${JSON.stringify(r.ceiling)}, month_limit_reached_at ${JSON.stringify(r.month)}, stamps_unreadable ${JSON.stringify(r.unreadable)}`);
   }
 }
 

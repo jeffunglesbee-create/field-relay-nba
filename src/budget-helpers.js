@@ -598,14 +598,17 @@ async function peekDailyOdds(env, forDate = null) {
         //
         // Three states, never two (Rule 99): a timestamp, `true` with no time
         // (a legacy '1', or an unparseable value — reached, hour unknown), and
-        // null for not reached. An unreadable KV read is `null` here and the
-        // response's other fields already carry that failure, so this does not
-        // invent a fourth.
+        // null for not reached. An unreadable KV read is also `null` here, and
+        // it is NAMED in stamps_unreadable below. It used to be said that the
+        // response's other fields already carried that failure; on a failure of
+        // this one key they read normally, so a refusing day and a clean one
+        // answered alike (fix 3 D).
+        const stampsUnreadable = [];
         let ceilingHit = null;
         try {
             const raw = await env.FIELD_JOURNALISM.get(`odds:daily:${date}:warned`);
             if (raw) ceilingHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
-        } catch (_) { ceilingHit = null; }
+        } catch (_) { ceilingHit = null; stampsUnreadable.push('ceiling_reached_at'); }
         // THE MONTH'S LIMIT, FOR THE MONTH OF THE DAY ASKED ABOUT. chargeOdds
         // stamps odds:credits:<month>:warned:limit the first time the 85,000
         // limit refuses a call (60-day TTL). The monthly block of this route is
@@ -615,7 +618,7 @@ async function peekDailyOdds(env, forDate = null) {
         try {
             const raw = await env.FIELD_JOURNALISM.get(`odds:credits:${date.slice(0, 7)}:warned:limit`);
             if (raw) monthLimitHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
-        } catch (_) { monthLimitHit = null; }
+        } catch (_) { monthLimitHit = null; stampsUnreadable.push('month_limit_reached_at'); }
         const unreadable = Object.keys(sites).filter(k => sites[k] === null);
         const sum = unreadable.length
             ? null
@@ -645,6 +648,10 @@ async function peekDailyOdds(env, forDate = null) {
             // An ISO string = the moment it first did, which may be after this
             // day; `true` = it did, hour unknown. Read with `date` to judge a day.
             month_limit_reached_at: monthLimitHit,
+            // null = both stamps were read. Otherwise the names of the stamp
+            // fields above whose read failed: their null means unknown, not
+            // "no refusal".
+            stamps_unreadable: stampsUnreadable.length ? stampsUnreadable : null,
             // Present and null on an ordinary day, so an unusual ceiling always
             // carries its own explanation rather than looking like drift.
             standing_ceiling: ODDS_DAILY_CEILING,
