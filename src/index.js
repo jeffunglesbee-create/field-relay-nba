@@ -5,7 +5,7 @@ import { GameDO } from './game-do.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOddsKey } from './odds-sport-keys.js';
 import { readQuotaHeader } from './budget-helpers.js';
 import { oddsDigest, reachableCollisions as reachableOf } from './collision-reach.js';
-import { stampKickoff } from './odds-kickoff.js';
+import { stampKickoff, kickoffMark } from './odds-kickoff.js';
 import { forwardBsdFields } from './bsd-fields.js';
 // A closing line captured after kickoff is an in-play price. Prose must not
 // call it a close -- MEASURED 2026-09-14: 126 debrief rows would have.
@@ -6693,7 +6693,7 @@ async function snapshotCronOdds(env, dateKey) {
     const oddsIndex = indexOddsByPair(games);
     for (const table of ['regular_season_games', 'postseason_games']) {
       const rows = await env.ARCHIVE_DB.prepare(
-        `SELECT id, home, away FROM ${table}
+        `SELECT id, home, away, start_time FROM ${table}
           WHERE date = ? AND sport = ? AND opening_odds IS NULL
             AND finalized_at IS NULL`
       ).bind(dateKey, sport).all();
@@ -6703,10 +6703,18 @@ async function snapshotCronOdds(env, dateKey) {
       // applied change is observable via /changelog/{date}.
       const updates = [];
       for (const row of (rows.results || [])) {
+        // NOT AN OPENING LINE ONCE THE GAME HAS STARTED, by either clock: the
+        // row's kickoff, or the vendor's commence for a row that has none.
+        // finalized_at IS NULL above lets a game in progress through, and 7 of
+        // 191 opening writes since 10-01 were captured after kickoff (MLB 3,
+        // CFL 2, MLS 1, WNBA 1; up to 241 minutes in). kickoffMark reads an
+        // unreadable instant as unknown, never as late, so it refuses nothing.
         const og = findOddsForRow(oddsIndex, row.home, row.away);
         if (!og) continue;
         const odds = extractOddsForGame(og);
         if (!odds) continue;
+        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null
+            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) continue;
         updates.push({ id: row.id, fields: { opening_odds: JSON.stringify(odds) } });
       }
       if (updates.length) {
@@ -6780,11 +6788,11 @@ async function runOddsBackfillForDate(env, isoDate) {
   if (!apiKey) return { ok: false, reason: 'ODDS_API_KEY not configured', date: isoDate };
 
   const rs = await env.ARCHIVE_DB.prepare(
-    `SELECT id, sport, league, home, away FROM regular_season_games
+    `SELECT id, sport, league, home, away, start_time FROM regular_season_games
       WHERE date = ? AND opening_odds IS NULL`
   ).bind(isoDate).all();
   const ps = await env.ARCHIVE_DB.prepare(
-    `SELECT id, sport, league, home, away FROM postseason_games
+    `SELECT id, sport, league, home, away, start_time FROM postseason_games
       WHERE date = ? AND opening_odds IS NULL`
   ).bind(isoDate).all();
 
@@ -6843,6 +6851,11 @@ async function runOddsBackfillForDate(env, isoDate) {
         // this backfill happened to run.
         const odds = extractOddsForGame(og, ODDS_PREFERRED_BOOK, snapshotAt);
         if (!odds) { oddsSkipped++; continue; }
+        // The snapshot is noon; a game that tipped before it was in play.
+        // Skipped like a miss, so a date of only such rows is still marked
+        // tried: they never become pre-kickoff.
+        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null
+            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) { oddsSkipped++; continue; }
         updates.push({ id: row.id, fields: { opening_odds: JSON.stringify(odds) } });
       }
       if (!updates.length) return;

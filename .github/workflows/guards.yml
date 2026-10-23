@@ -182,6 +182,9 @@ jobs:
           node scripts/check-ceiling-reached.mjs
           node scripts/mutate-ceiling-reached.mjs
 
+      - name: the odds writers, run for real, write only pre-kickoff lines
+        run: node scripts/check-odds-join-shared.mjs
+
       - name: every table a script creates is on the /d1/execute allow-list
         run: |
           node scripts/check-script-created-tables.mjs --self-test
