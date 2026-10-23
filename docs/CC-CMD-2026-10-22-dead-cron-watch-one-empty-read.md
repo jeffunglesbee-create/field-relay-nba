@@ -42,6 +42,11 @@
    empty answers. Record `total_count` on each, to see whether an empty list
    arrives with a non-zero count.
 
+**Observed 2026-10-23, toward step 1 (no dispatch needed):** the next
+scheduled run, 39991639926 (17:01Z), read `DECLARES A CRON, NEVER FIRED : 0`
+in all four repos, so none of the 6 came back. Step 2 (20 reads of one
+workflow) is not done, so the premise is neither confirmed nor withdrawn.
+
 ## TASK 1 — only if TASK 0 shows the empty answers
 
 - Before filing a workflow as never fired, read it once more, without the
