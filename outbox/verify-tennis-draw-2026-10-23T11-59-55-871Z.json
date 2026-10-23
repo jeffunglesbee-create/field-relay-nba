@@ -1,0 +1,329 @@
+{
+  "ts": "2026-10-23T11:59:55.871Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "checks": [
+    {
+      "name": "a missing tournament is a 400, not an unfiltered page",
+      "ok": true
+    },
+    {
+      "name": "a two-digit season is a 400",
+      "ok": true
+    },
+    {
+      "name": "a non-numeric tournament is a 400",
+      "ok": true
+    },
+    {
+      "name": "135/2025 answers 200",
+      "ok": true
+    },
+    {
+      "name": "135/2025 ladder is 64/31/16/8/4/2/1",
+      "ok": true
+    },
+    {
+      "name": "135/2025 the round table counts the nodes it shipped",
+      "ok": true
+    },
+    {
+      "name": "135/2025 all 123 edges re-derive from the shipped nodes",
+      "ok": true
+    },
+    {
+      "name": "135/2025 every joinable winner produced an edge (123)",
+      "ok": true
+    },
+    {
+      "name": "135/2025 no player appears twice in one round",
+      "ok": true
+    },
+    {
+      "name": "135/2025 every node's date is in the requested season",
+      "ok": true
+    },
+    {
+      "name": "135/2025 the entry round declares no canonical size",
+      "ok": true
+    },
+    {
+      "name": "135/2025 every INTERIOR round has a canonical size",
+      "ok": true
+    },
+    {
+      "name": "135/2025 an open innermost round is only possible on an unfinished draw",
+      "ok": true
+    },
+    {
+      "name": "135/2025 reads as a completed draw",
+      "ok": true
+    },
+    {
+      "name": "135/2025 the entry round is never an anomaly",
+      "ok": true
+    },
+    {
+      "name": "135/2025 every off-canonical round is declared an anomaly (Round of 64)",
+      "ok": true
+    },
+    {
+      "name": "135/2025 the read was not truncated",
+      "ok": true
+    },
+    {
+      "name": "77/2026 answers 200",
+      "ok": true
+    },
+    {
+      "name": "77/2026 ladder is 64/32/16/8/4/2/1",
+      "ok": true
+    },
+    {
+      "name": "77/2026 the round table counts the nodes it shipped",
+      "ok": true
+    },
+    {
+      "name": "77/2026 all 126 edges re-derive from the shipped nodes",
+      "ok": true
+    },
+    {
+      "name": "77/2026 every joinable winner produced an edge (126)",
+      "ok": true
+    },
+    {
+      "name": "77/2026 no player appears twice in one round",
+      "ok": true
+    },
+    {
+      "name": "77/2026 every node's date is in the requested season",
+      "ok": true
+    },
+    {
+      "name": "77/2026 the entry round declares no canonical size",
+      "ok": true
+    },
+    {
+      "name": "77/2026 every INTERIOR round has a canonical size",
+      "ok": true
+    },
+    {
+      "name": "77/2026 an open innermost round is only possible on an unfinished draw",
+      "ok": true
+    },
+    {
+      "name": "77/2026 reads as a completed draw",
+      "ok": true
+    },
+    {
+      "name": "77/2026 the entry round is never an anomaly",
+      "ok": true
+    },
+    {
+      "name": "77/2026 every off-canonical round is declared an anomaly (none off-canonical)",
+      "ok": true
+    },
+    {
+      "name": "77/2026 the read was not truncated",
+      "ok": true
+    },
+    {
+      "name": "14/2026 answers 200",
+      "ok": true
+    },
+    {
+      "name": "14/2026 ladder is 64/32/16/8/4/2/1",
+      "ok": true
+    },
+    {
+      "name": "14/2026 the round table counts the nodes it shipped",
+      "ok": true
+    },
+    {
+      "name": "14/2026 all 126 edges re-derive from the shipped nodes",
+      "ok": true
+    },
+    {
+      "name": "14/2026 every joinable winner produced an edge (126)",
+      "ok": true
+    },
+    {
+      "name": "14/2026 no player appears twice in one round",
+      "ok": true
+    },
+    {
+      "name": "14/2026 every node's date is in the requested season",
+      "ok": true
+    },
+    {
+      "name": "14/2026 the entry round declares no canonical size",
+      "ok": true
+    },
+    {
+      "name": "14/2026 every INTERIOR round has a canonical size",
+      "ok": true
+    },
+    {
+      "name": "14/2026 an open innermost round is only possible on an unfinished draw",
+      "ok": true
+    },
+    {
+      "name": "14/2026 reads as a completed draw",
+      "ok": true
+    },
+    {
+      "name": "14/2026 the entry round is never an anomaly",
+      "ok": true
+    },
+    {
+      "name": "14/2026 every off-canonical round is declared an anomaly (none off-canonical)",
+      "ok": true
+    },
+    {
+      "name": "14/2026 the read was not truncated",
+      "ok": true
+    },
+    {
+      "name": "63/2026 answers 200",
+      "ok": true
+    },
+    {
+      "name": "63/2026 ladder is 32/32/16/8/4/2/1",
+      "ok": true
+    },
+    {
+      "name": "63/2026 the round table counts the nodes it shipped",
+      "ok": true
+    },
+    {
+      "name": "63/2026 all 94 edges re-derive from the shipped nodes",
+      "ok": true
+    },
+    {
+      "name": "63/2026 every joinable winner produced an edge (94)",
+      "ok": true
+    },
+    {
+      "name": "63/2026 no player appears twice in one round",
+      "ok": true
+    },
+    {
+      "name": "63/2026 every node's date is in the requested season",
+      "ok": true
+    },
+    {
+      "name": "63/2026 the entry round declares no canonical size",
+      "ok": true
+    },
+    {
+      "name": "63/2026 every INTERIOR round has a canonical size",
+      "ok": true
+    },
+    {
+      "name": "63/2026 an open innermost round is only possible on an unfinished draw",
+      "ok": true
+    },
+    {
+      "name": "63/2026 reads as a completed draw",
+      "ok": true
+    },
+    {
+      "name": "63/2026 the entry round is never an anomaly",
+      "ok": true
+    },
+    {
+      "name": "63/2026 every off-canonical round is declared an anomaly (none off-canonical)",
+      "ok": true
+    },
+    {
+      "name": "63/2026 the read was not truncated",
+      "ok": true
+    }
+  ],
+  "editions": [
+    {
+      "tid": 135,
+      "season": "2025",
+      "status": 200,
+      "ladder": [
+        64,
+        31,
+        16,
+        8,
+        4,
+        2,
+        1
+      ],
+      "edges": 123,
+      "edgesRederived": 123,
+      "offCanonical": [
+        "Round of 64"
+      ],
+      "champion": "Carlos Alcaraz"
+    },
+    {
+      "tid": 77,
+      "season": "2026",
+      "status": 200,
+      "ladder": [
+        64,
+        32,
+        16,
+        8,
+        4,
+        2,
+        1
+      ],
+      "edges": 126,
+      "edgesRederived": 126,
+      "offCanonical": [],
+      "champion": "Mirra Andreeva"
+    },
+    {
+      "tid": 14,
+      "season": "2026",
+      "status": 200,
+      "ladder": [
+        64,
+        32,
+        16,
+        8,
+        4,
+        2,
+        1
+      ],
+      "edges": 126,
+      "edgesRederived": 126,
+      "offCanonical": [],
+      "champion": "Carlos Alcaraz"
+    },
+    {
+      "tid": 63,
+      "season": "2026",
+      "status": 200,
+      "ladder": [
+        32,
+        32,
+        16,
+        8,
+        4,
+        2,
+        1
+      ],
+      "edges": 94,
+      "edgesRederived": 94,
+      "offCanonical": [],
+      "champion": "Jannik Sinner"
+    }
+  ],
+  "coverage": {
+    "editionsChecked": 4,
+    "grandSlam": "3 of 14",
+    "masters1000": "1 of 10",
+    "tournamentsInCensus": 637,
+    "uncheckedTiers": [
+      "wta_1000",
+      "atp_500",
+      "and below"
+    ]
+  }
+}
