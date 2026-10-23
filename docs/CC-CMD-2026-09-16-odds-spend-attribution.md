@@ -1,7 +1,8 @@
 # CC-CMD 2026-09-16 — attribute odds spend before changing any ceiling
 
-Status: **Tasks 1 and 2 DONE** (2026-10-21). Task 3 is unblocked and not
-dispatched: it is the owner's call. Results are under "Results" at the end.
+Status: **Tasks 1 and 2 DONE** (2026-10-21). Task 3 dispatched 2026-10-23;
+its premises were tested before any build and most are refused (Results, Task
+3). The owner's ruling on holding it is pending. Results are under "Results" at the end.
 Session doc: `outbox/cc-session-2026-10-21-per-consumer-demand.md`.
 Supersedes the demand-derived-ceiling proposal made earlier the same day, which
 this document's own probe block refutes.
@@ -160,3 +161,44 @@ Two figures are printed outside that total:
 - The models were mapped and attacked before any code was written (Rule 100).
 - A four-lens review then confirmed 15 findings, all fixed before the push.
 - All of it is recorded in the session doc.
+
+### Task 3 — premises tested 2026-10-23, before any build (Rule 100)
+
+Dispatched by the owner ("next approved", 2026-10-23). Four readers and a
+premise critic (workflow `wf_c984c219-a1f`), read-only, no credits. Each
+premise with the one command that tests it:
+
+| premise | result | evidence |
+|---|---|---|
+| The shared 3,800 daily ceiling still binds, so consumers crowd each other out | **refuted** | Reached on 10-07, 10-10, 10-11, 10-12 and on no day since. Highest since: 3442 (10-18). 10-19..10-23: 1569, 818, 878, 1521, 492 (partial) |
+| The consumers that filled those days still spend that way | **refuted** | Each ceiling day had one leader: WC lambdas 2536 (10-07), live polling 2078 (10-10), closing capture 1608 and 2583 (10-11, 10-12). Live polling is off, WC lambdas net 0 on 10-22/23, the closing capture charged 9 and 21 |
+| A site's charged amount is what the vendor billed | **refuted** | 10-14..10-23 charged/kept: CFL 5112/798 (6.4x), WC lambdas 116/8. Closing 5472/5472, live 3510/3513, historical 3030/3030 |
+| Kept follows the vendor's bill | holds | Over 10-21T04:36Z..10-23T04:40Z: vendor 2184 for the worker, kept 2247 (2.9% over), ledger 2336 (7.0%) |
+| `odds_budget_site` is exact enough to enforce on | holds | Attribution gap 0 on all 23 days |
+| One guard implementation | holds | All three wrappers call `chargeOdds`. The IMPACT doc's "three monthly implementations" is history |
+| A per-site check fits the existing batch by copying the day predicate | **refuted** | Against a reference model: 398 of 400 sequences disagree. A token-stamped variant (one new column, same five statements) agreed 400 of 400 on SQLite, not D1 |
+| A site label is one consumer | **refuted** | `fetchSportOddsLive` and `fetchSportOddsHistorical` each serve a cron and an unauthenticated GET route |
+| A refused closing capture loses nothing a later writer fills | **refuted** | The game is recorded bought before the charge, so a refusal is never retried; the only at-kickoff writer is this one (17/17 at T-10 min) |
+| The Task 2 demand models still describe need | **refuted** | The live-odds model counts sport-days the path cannot write; closing spend now sits below its model |
+| A caller or a watch can tell a ceiling refusal from a failure | **refuted** | No reader of `guarded` in `src/` or the client; no watch exits on `ceiling_reached_at` |
+| `chargeOdds` can change now without confounding a pending read | **refuted** | Reads at 10-24 and 10-25 11:07Z, 10-25T06:30Z, and the 11-08..11-23 CFL VOID window |
+| The 85,000 monthly limit will not bind in October | holds | 41,036 used; worst case 74,744 |
+
+**The critic's recommendation:** hold Task 3. The ceiling is not binding,
+the consumers that crowded it are fixed or off, a cap on charged spend would
+bind on credits never billed, and a change to `chargeOdds` now confounds four
+scheduled reads. Build first: (1) a refused closing capture becomes
+retryable; (2) the opening-line cron stops re-buying NBA, NHL, CFB and NFL,
+which it never writes (the largest site on 10-23, 267 of 492; how much of it
+those four sports are is UNVERIFIED, the tally has no sport column); (3) a
+refusal becomes visible to a watch. When Task 3 does land: the token-stamped
+batch, a site-veto signal of its own, `mutate-odds-budget-batch.mjs` and
+`check-odds-ceiling-grant.mjs` updated in the same commit, caps only where
+charged equals kept, values from post-fix demand.
+
+**Corrections to this document** (Rule 72): "five callers distinguish
+`guarded: true` from failure" is false at HEAD (none does); "three monthly
+implementations" is history. Both stand above as written on 09-16.
+
+The owner's ruling on the recommendation is pending.
+
