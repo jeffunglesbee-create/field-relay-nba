@@ -350,7 +350,10 @@ export function ceilingVerdict(daily) {
  * ceiling was gone by the next afternoon's read. Both stamps are now served for
  * the day itself.
  *
- * A missing field is not a clean day (Rule 99): `not-reported`.
+ * A missing field is not a clean day (Rule 99): `not-reported`. Nor is a stamp
+ * whose read failed: the route names it in stamps_unreadable (fix 3 D), and its
+ * null then means unknown. A stamp that was read and shows a refusal still
+ * counts, whatever else failed.
  */
 export function refusalVerdict(day) {
   const has = (k) => !!day && Object.prototype.hasOwnProperty.call(day, k);
@@ -361,6 +364,7 @@ export function refusalVerdict(day) {
   if (m === true) return { state: 'month-limit', at: null };
   // An hour after the closed day means the limit was reached later, not on it.
   if (typeof m === 'string' && m.slice(0, 10) <= day.date) return { state: 'month-limit', at: m };
+  if (Array.isArray(day.stamps_unreadable) && day.stamps_unreadable.length) return { state: 'not-reported', unreadable: day.stamps_unreadable };
   return { state: 'none' };
 }
 
@@ -623,6 +627,11 @@ if (SELF) {
     [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'month-limit', 'reached two days before: it was still in force'],
     [{ date: '2026-10-28', ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'none', 'reached the day after: the closed day had no month refusal'],
     [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: true }, 'month-limit', 'a stamp with no hour is reached, hour unknown'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, stamps_unreadable: ['month_limit_reached_at'] }, 'not-reported', 'the month stamp could not be read: its null is unknown, not clean (Rule 99)'],
+    [{ date: RD, ceiling_reached_at: '2026-10-31T20:00:00.000Z', month_limit_reached_at: null, stamps_unreadable: ['month_limit_reached_at'] }, 'day-ceiling', 'a stamp that was read and shows a refusal counts, whatever else failed'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, stamps_unreadable: null }, 'none', 'both stamps read, neither set'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-11-01T09:00:00.000Z', stamps_unreadable: ['ceiling_reached_at'] }, 'not-reported', 'the day stamp is unread and the month limit came after the day: unknown, not clean'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z', stamps_unreadable: ['ceiling_reached_at'] }, 'month-limit', 'the day stamp is unread, but a month refusal that was read is in force'],
   ];
   for (const [day, want, why] of REFUSAL) {
     const got = refusalVerdict(day).state;
@@ -946,8 +955,10 @@ if (closedDay) {
       console.log(`\nFAIL: the monthly odds limit first refused a call ${refusal.at ? `at ${refusal.at}` : 'at an unknown hour'}, on or before`);
       console.log(`      ${OVL_DAY}. Calls that did not fit were refused from then on, and no caller says so.`);
     } else {
-      console.log(`\nFAIL: refusals on ${OVL_DAY} are ${refusal.state}: ceiling_reached_at, month_limit_reached_at`);
-      console.log(`      or date is missing from /budget/odds?date=. Absence is not a clean day (Rule 99).`);
+      console.log(`\nFAIL: refusals on ${OVL_DAY} are ${refusal.state}: ${refusal.unreadable
+        ? `the relay could not read ${refusal.unreadable.join(' and ')}`
+        : 'ceiling_reached_at, month_limit_reached_at or date is missing from /budget/odds?date='}.`);
+      console.log(`      Unknown is not a clean day (Rule 99).`);
     }
   }
 }

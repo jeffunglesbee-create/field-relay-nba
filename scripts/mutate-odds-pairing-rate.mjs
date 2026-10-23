@@ -49,6 +49,18 @@ const MUTATIONS = [
   { name: 'R7 a month stamp with no hour reads as no refusal',
     anchor: "  if (m === true) return { state: 'month-limit', at: null };",
     replace: "  if (false) return { state: 'month-limit', at: null };" },
+  { name: 'R8 a stamp the relay could not read counts as no refusal',
+    anchor: "  if (Array.isArray(day.stamps_unreadable) && day.stamps_unreadable.length) return { state: 'not-reported', unreadable: day.stamps_unreadable };\n",
+    replace: "" },
+  { name: 'R9 an unreadable stamp overrides a refusal that was read',
+    anchor: "  if (day.ceiling_reached_at) return { state: 'day-ceiling', at: day.ceiling_reached_at };",
+    replace: "  if (Array.isArray(day.stamps_unreadable) && day.stamps_unreadable.length) return { state: 'not-reported' };\n  if (day.ceiling_reached_at) return { state: 'day-ceiling', at: day.ceiling_reached_at };" },
+  { name: 'R10 a month stamp dated after the day ends the verdict before the unread check',
+    anchor: "  if (typeof m === 'string' && m.slice(0, 10) <= day.date) return { state: 'month-limit', at: m };",
+    replace: "  if (typeof m === 'string' && m.slice(0, 10) <= day.date) return { state: 'month-limit', at: m };\n  if (typeof m === 'string') return { state: 'none' };" },
+  { name: 'R11 the unread check runs before the month limit',
+    anchor: "  // `true` is a stamp without an hour: reached, when unknown, so it counts.",
+    replace: "  if (Array.isArray(day.stamps_unreadable) && day.stamps_unreadable.length) return { state: 'not-reported' };\n  // `true` is a stamp without an hour: reached, when unknown, so it counts." },
   { name: 'P1 a field missing from the response reads as zero',
     anchor: "  if (block === undefined) return { state: 'not-reported', overloads: null };",
     replace: "  if (block === undefined) return { state: 'none', overloads: 0 };",
@@ -151,6 +163,6 @@ for (const mut of MUTATIONS) {
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
 console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12-P15), degradeVerdict (P8-P11) and`);
-console.log(`refusalVerdict (R1-R7) only. It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
+console.log(`refusalVerdict (R1-R11) only. It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
 console.log(`predicates in this watch; the fetch is verified by a scheduled run.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);
