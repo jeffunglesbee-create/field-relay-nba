@@ -51,8 +51,10 @@ function makeDb(world) {
     const s = sql.replace(/\s+/g, ' ').trim();
     const holes = (s.match(/\?/g) || []).length;
     if (holes !== params.length) throw new Error('D1_ERROR: Wrong number of parameter bindings for SQL query.: SQLITE_ERROR');
-    // The real ledger (W22): every odds-budget statement runs on SQLite.
-    if (world.sqlite && /\bodds_(budget|budget_site|budget_month|reconcile_state)\b/.test(s)) {
+    // The real ledger (W22): every statement naming an odds_* table runs on
+    // SQLite, a misspelt one included, so it fails as D1 would ("no such
+    // table") instead of falling through to the empty answer below.
+    if (world.sqlite && /\bodds_\w+/.test(s)) {
       const st = world.sqlite.prepare(s);
       if (/RETURNING/.test(s)) return { rows: st.all(...params), changes: 0 };
       return { rows: [], changes: Number(st.run(...params).changes) };
