@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (spend and lost captures) and B (visibility)
 **Confidence gate:** >= 95 before any commit
-**Status:** IN PROGRESS. Owner ruling 2026-10-23: "Hold it; fix 3 first".
+**Status:** PARTIAL. Fix 1 and fix 3 A-D live; done condition 3 waits on the 2026-10-24 scheduled pairing-watch run. Fix 2 moved to the 10-21 join CC-CMD (ruled (a)). Fix 3 E is the owner's call. Owner ruling 2026-10-23: "Hold it; fix 3 first".
 **Blocks:** Task 3 of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`,
 HELD until this is DONE.
 **Do not land 2026-11-08..11-23** anything that changes `chargeOdds`,

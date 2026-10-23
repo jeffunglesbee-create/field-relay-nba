@@ -1,5 +1,29 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-23 (night) — odds refusals become visible; Task 3's prerequisites
+
+**HEAD:** `4bcfc5a` → `e259c39` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-23-odds-ceiling-prerequisites.md
+
+`docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`: **PARTIAL**.
+
+- **Fix 1 live** (`da44521`): a capture the odds guard declines is retried in
+  its window. Harness gaps closed in `8e4a4cf`.
+- **Fix 3 A-D live** (deploy 40029905648, then `e259c39`): the day stamp lives
+  3 days; `/budget/odds?date=` serves `month_limit_reached_at` and
+  `stamps_unreadable`; the pairing watch reads both stamps. Done condition 3
+  waits on the 2026-10-24 scheduled watch run.
+- **Fix 2:** owner ruled shape (a), "make the join match", in
+  `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`;
+  being built; lands after the 2026-10-25 11:07Z read.
+- **Fix 3 E** (a failed stamp WRITE still reads as no refusal) is filed for
+  the owner: closing it needs a schema change in the charge path.
+- The 10-23 audit narrowed four new CC-CMDs into the ones that already owned
+  their findings (`b3f8d69`, BUILD-ON-A).
+- Commits keep `claude@field.dev` / FIELD CI (owner, 2026-10-23).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-23 — the closing capture before kickoff is DONE, verified on both paths
 
 **HEAD:** `48bc31e` → this close-out · **Branch:** main
