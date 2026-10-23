@@ -118,7 +118,10 @@ ok('the field is on the /budget/odds response',
 // monthly block, which is the CURRENT month, so a veto on the 31st vanished on
 // the 1st. This runs the real chargeOdds to stamp a veto at an instant and the
 // real peekDailyOdds to read it later, on node:sqlite and a KV that expires
-// keys as Cloudflare does (expirationTtl is seconds from the write).
+// keys as Cloudflare does: expirationTtl is seconds from the write and at least
+// 60; expiration is absolute epoch seconds at least 60 ahead. Any other option,
+// or a value the runtime refuses, throws, so the replay cannot be satisfied by
+// an expiry that Cloudflare would treat differently.
 const RealDate = Date;
 let clock = 0;
 class PinnedDate extends RealDate {
@@ -127,10 +130,23 @@ class PinnedDate extends RealDate {
 }
 function ttlKV() {
   const m = new Map();
-  return {
-    get: async (k) => { const e = m.get(k); return e && clock < e.exp ? e.v : null; },
-    put: async (k, v, o = {}) => { m.set(k, { v: String(v), exp: o.expirationTtl ? clock + o.expirationTtl * 1000 : Infinity }); },
+  const kv = {
+    failGet: null,   // a regex: reads of matching keys throw, as a KV 429 does
+    get: async (k) => {
+      if (kv.failGet && kv.failGet.test(k)) throw new Error('KV GET failed: 429 Too Many Requests');
+      const e = m.get(k); return e && clock < e.exp ? e.v : null;
+    },
+    put: async (k, v, o = {}) => {
+      const unknown = Object.keys(o).filter((x) => !['expirationTtl', 'expiration', 'metadata'].includes(x));
+      if (unknown.length) throw new Error(`KV put: unknown option ${unknown.join(', ')}`);
+      if (o.expirationTtl !== undefined && !(o.expirationTtl >= 60)) throw new Error(`KV put: expirationTtl ${o.expirationTtl} is below 60`);
+      if (o.expiration !== undefined && !(o.expiration * 1000 >= clock + 60000)) throw new Error('KV put: expiration is less than 60 s ahead');
+      const exp = o.expirationTtl !== undefined ? clock + o.expirationTtl * 1000
+        : o.expiration !== undefined ? o.expiration * 1000 : Infinity;
+      m.set(k, { v: String(v), exp });
+    },
   };
+  return kv;
 }
 function sqliteD1(db) {
   const stmt = (sql, args = []) => ({ sql, args, bind: (...a) => stmt(sql, a),
@@ -143,9 +159,10 @@ function sqliteD1(db) {
     catch (e) { db.exec('ROLLBACK'); throw e; } } };
 }
 let caseNo = 0;
-// One veto at `at`, read back for `day` at `readAt`. `kind` 'day' fills the
-// day; 'month' fills the month and leaves the day room.
-async function replay({ kind, at, readAt, day }) {
+// A veto at `at` (and a second at `again`, if given), read back for `day` at
+// `readAt`, with stamp reads failing when `failGet` is set. `kind` 'day' fills
+// the day; 'month' fills the month and leaves the day room.
+async function replay({ kind, at, again = null, readAt, day, failGet = null }) {
   const mod = await import(`${pathToFileURL(resolve(SRC)).href}?case=${++caseNo}`);
   const db = new DatabaseSync(':memory:');
   const env = { FIELD_JOURNALISM: ttlKV(), ARCHIVE_DB: sqliteD1(db) };
@@ -160,8 +177,10 @@ async function replay({ kind, at, readAt, day }) {
         n INTEGER NOT NULL DEFAULT 0, credits_kept INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site, state, cache));`);
     if (kind === 'day') db.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(at.slice(0, 10), 1e9);
     else db.prepare('INSERT INTO odds_budget_month VALUES (?, ?)').run(at.slice(0, 7), mod.ODDS_HARD_LIMIT);
-    const refused = (await mod.chargeOdds(env, 3, 'probe')) === false;
+    let refused = (await mod.chargeOdds(env, 3, 'probe')) === false;
+    if (again) { clock = RealDate.parse(again); refused = refused && (await mod.chargeOdds(env, 3, 'probe')) === false; }
     clock = RealDate.parse(readAt);
+    env.FIELD_JOURNALISM.failGet = failGet;
     const got = await mod.peekDailyOdds(env, day);
     return { refused, ceiling: got?.ceiling_reached_at, month: got?.month_limit_reached_at, hasMonth: !!got && 'month_limit_reached_at' in got };
   } finally { globalThis.Date = RealDate; console.warn = warn; }
@@ -192,11 +211,50 @@ for (const [day, readAt] of READS) {
     nov.hasMonth && nov.month === null,
     `month_limit_reached_at ${JSON.stringify(nov.month)} for 2026-11-01: the reader is not keyed by the day's month`);
 }
+{
+  // THE MONTH STAMP OUTLIVES ITS READERS TOO. The oldest stamp a reader can
+  // still need: written at the first instant of a month, read for that month's
+  // last day at the last instant the route serves it. That takes about 33 days.
+  const at = '2026-10-01T00:00:00.001Z';
+  const r = await replay({ kind: 'month', at, readAt: '2026-11-02T23:59:59.999Z', day: '2026-10-31' });
+  ok(`a month veto at ${at} is still reported for 10-31 at its last served instant`,
+    r.refused && r.month === at,
+    `refused ${r.refused}, month_limit_reached_at ${JSON.stringify(r.month)}: the month stamp expired before its last reader`);
+}
+{
+  // FIRST, NOT LATEST. Both stamps are written once, at the first refusal, and a
+  // later refusal must not move them: the watch judges the month by the date of
+  // the first, so a stamp rewritten on every refusal makes a month that was
+  // already refusing read as one that started after the closed day.
+  const d = await replay({ kind: 'day', at: '2026-10-21T08:00:00.000Z', again: '2026-10-21T20:00:00.000Z',
+    readAt: '2026-10-22T15:36:00Z', day: '2026-10-21' });
+  ok('two day vetoes: ceiling_reached_at is the first',
+    d.refused && d.ceiling === '2026-10-21T08:00:00.000Z',
+    `refused ${d.refused}, ceiling_reached_at ${JSON.stringify(d.ceiling)}`);
+  const m = await replay({ kind: 'month', at: '2026-10-31T08:00:00.000Z', again: '2026-10-31T22:00:00.000Z',
+    readAt: '2026-11-01T15:36:00Z', day: '2026-10-31' });
+  ok('two month vetoes: month_limit_reached_at is the first',
+    m.refused && m.month === '2026-10-31T08:00:00.000Z',
+    `refused ${m.refused}, month_limit_reached_at ${JSON.stringify(m.month)}`);
+}
+{
+  // A FAILED READ INVENTS NOTHING. The stamp exists and every read of a stamp
+  // throws: the field is null, never `true`, which the watch counts as a
+  // refusal with no hour. Once for each stamp.
+  for (const kind of ['day', 'month']) {
+    const r = await replay({ kind, at: '2026-10-31T22:00:00.000Z', readAt: '2026-11-01T15:36:00Z',
+      day: '2026-10-31', failGet: /:warned/ });
+    ok(`a ${kind} stamp whose read throws is reported as null`,
+      r.refused && r.ceiling === null && r.month === null,
+      `ceiling_reached_at ${JSON.stringify(r.ceiling)}, month_limit_reached_at ${JSON.stringify(r.month)}: a KV failure reads as a refusal`);
+  }
+}
 
 console.log(`\n${n - bad} of ${n} passed.`);
 console.log(`COVERAGE: source text in ${SRC} for the stamp's shape, and an executed`);
-console.log(`replay of chargeOdds and peekDailyOdds for its lifetime: ${READS.length} day stamps read at`);
-console.log('real watch read times or the last served instant, and one month veto read');
-console.log('across a month boundary. It cannot say whether a veto has actually occurred;');
+console.log(`replay of chargeOdds and peekDailyOdds: ${READS.length} day stamps read at real watch read`);
+console.log('times or the last served instant; month vetoes across a month boundary and at');
+console.log('the oldest stamp a reader needs; first-not-latest for both; a failed read. It');
+console.log('cannot say whether a veto has actually occurred;');
 console.log('that is what the live /budget/odds reading is for.');
 process.exit(bad ? 1 : 0);

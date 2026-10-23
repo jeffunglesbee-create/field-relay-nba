@@ -21,17 +21,23 @@ const place = (text, tag) => {
 };
 process.on('exit', () => { for (const p of born) { try { unlinkSync(p); } catch (_e) {} } });
 
+// 'pass', 'red' (an assertion failed: a FAIL line and an "N of M passed." with
+// N < M), or 'error' (anything else: a crash or a load failure proves nothing
+// about what the check asserts, so it is never counted as caught).
 const run = (path) => {
+  let out = '', code = 0;
   try {
-    execFileSync(process.execPath, ['scripts/check-ceiling-reached.mjs'],
+    out = execFileSync(process.execPath, ['scripts/check-ceiling-reached.mjs'],
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, BUDGET_HELPERS_SRC: path } });
-    return true;
-  } catch { return false; }
+  } catch (e) { out = String(e.stdout || ''); code = e.status ?? 1; }
+  const m = /^(\d+) of (\d+) passed\.$/m.exec(out);
+  if (code === 0) return m && m[1] === m[2] ? 'pass' : 'error';
+  return m && Number(m[1]) < Number(m[2]) && /^FAIL  /m.test(out) ? 'red' : 'error';
 };
 
-if (!run(resolve(SRC))) { console.log('FAIL — the check is already red on clean source.'); process.exit(1); }
-if (!run(place(original, 'control'))) {
+if (run(resolve(SRC)) !== 'pass') { console.log('FAIL — the check is already red on clean source.'); process.exit(1); }
+if (run(place(original, 'control')) !== 'pass') {
   console.log('FAIL — an UNMUTATED copy at the mutant location is red, so no verdict below would mean anything.');
   process.exit(1);
 }
@@ -90,6 +96,14 @@ const MUTATIONS = [
    '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
    '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 - 1 });',
    'the boundary: a stamp from the first instant of D must survive to the last instant of D+2'],
+  ['T4 one day, spelt as an absolute expiry',
+   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
+   '{ expiration: Math.floor(Date.now() / 1000) + 86400 });',
+   'Cloudflare honours `expiration` too; a replay that modelled only expirationTtl passed this'],
+  ['T5 the day stamp is refreshed on every veto',
+   '                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),\n                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });\n                }',
+   '                }\n                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),\n                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
+   'a plausible fix for the lifetime that moves ceiling_reached_at to the latest refusal; the warning still fires once, so only an executed second veto sees it'],
 
   // THE MONTH'S STAMP (fix 3 B).
   ['B1 the month stamp is read for the current month',
@@ -108,6 +122,22 @@ const MUTATIONS = [
    '        let monthLimitHit = null;',
    '        let monthLimitHit = false;',
    'false reads as "checked, no refusal"; null is the only honest value for a read that found nothing (Rule 99)'],
+  ['B5 an unreadable month stamp invents a refusal',
+   '        } catch (_) { monthLimitHit = null; }',
+   '        } catch (_) { monthLimitHit = true; }',
+   'the watch counts `true` as a month refusal with no hour, so a KV blip would turn it red'],
+  ['B6 the month stamp lives one day',
+   "await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });",
+   "await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 86400 });",
+   'the fix 3 A defect, on the stamp fix 3 B relies on: a month that started refusing on the 5th reads as no refusal on the 30th'],
+  ['B7 the month stamp lives 30 days',
+   "await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });",
+   "await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 30 * 86400 });",
+   'a stamp from the 1st must survive to the last read of the 31st, about 33 days on'],
+  ['B8 the month stamp is rewritten on every refusal',
+   '            const warnedKey = `odds:credits:${month}:warned:limit`;\n            try {\n                const already = await env.FIELD_JOURNALISM.get(warnedKey);',
+   '            const warnedKey = `odds:credits:${month}:warned:limit`;\n            try {\n                const already = null;',
+   'month_limit_reached_at moves to the latest refusal, and the watch reads a month that had been refusing since the 5th as clean on the 30th'],
 ];
 
 let caught = 0;
@@ -118,9 +148,10 @@ for (const [name, anchor, repl, why] of MUTATIONS) {
   if (mutated === original) { console.log(`FAIL       ${name}\n            file unchanged — NOTHING MUTATED.`); continue; }
   const path = place(mutated, 'm');
   if (readFileSync(path, 'utf8') === original) { console.log(`FAIL       ${name}\n            the written copy is identical — NOTHING MUTATED.`); continue; }
-  const red = !run(path);
-  console.log(`${red ? 'CAUGHT    ' : 'NOT CAUGHT'} ${name}\n            (${why})`);
-  if (red) caught++;
+  const verdict = run(path);
+  const label = verdict === 'red' ? 'CAUGHT    ' : verdict === 'pass' ? 'NOT CAUGHT' : 'HARNESS ERROR (no assertion failed; a crash is not a catch)';
+  console.log(`${label} ${name}\n            (${why})`);
+  if (verdict === 'red') caught++;
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
