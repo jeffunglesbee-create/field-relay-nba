@@ -9,6 +9,12 @@
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2). Rule 87.4: found
 in its adversarial review, outside its scope.
+**Widened 2026-10-23:** the opening-line cron (`snapshotCronOdds`) pays for
+the same four sports through the same `findOddsForRow` and writes none of
+their opening lines. That was filed as fix 2 of
+`docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` and is folded here
+(BUILD-ON-A): one join, one owner choice. This document now blocks the hold
+on Task 3 of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`.
 **Related:** `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`
 (FILED) already covers CFB's join. This document covers the shared cause in
 all four sports and what it costs.
@@ -66,6 +72,23 @@ through a dated constant, `JOIN_UNWRITABLE`, and prints them as "unwritable".
    path made for the four sports over 14 days. This uses the change_log
    absence above, and the reconcile tally for fetchSportOddsHistorical.
 
+## The opening-line cron, the same join (added 2026-10-23)
+
+Found by the Task 3 premise test (workflow `wf_c984c219-a1f`):
+- `snapshotCronOdds` (called from `handleJournalismCycle`) buys
+  `fetchSportOddsLive` for every live-hours sport, NBA, NHL, CFB and NFL
+  included, and writes opening lines through `findOddsForRow`.
+- Over 10-14..10-23 the cron (`change_log` source `odds_api`) wrote opening
+  lines for MLS 55, Serie A 10, EPL 10, MLB 8, La Liga 7, Ligue 1 6, WNBA 3,
+  Bundesliga 1, and **0** for NHL, NBA, CFB and NFL. The next-day CI backfill
+  wrote NHL 73, CFB 38, NBA 15, NFL 4.
+- `fetchSportOddsLive` was the largest site on 10-23 (267 of 492 credits by
+  20:00Z). How much of it is these four sports is UNVERIFIED: the tally has
+  no sport column.
+- TASK 0 gains a fourth premise: the cron's matches and its billed calls per
+  sport over 10-14..10-23, one command (a worker tail over one live-hours
+  window, counting `fetchSportOddsLive` URLs by sport key).
+
 ## TASK 1 — decided from TASK 0
 
 There are two shapes, and the owner picks between them:
@@ -75,6 +98,9 @@ There are two shapes, and the owner picks between them:
 - **(b) Do not fetch.** Skip a sport the join cannot serve. Its closing line
   already arrives from odds-backfill. This saves about 570 credits a week at
   October volume.
+
+The choice covers both paths: the `/archive/game` closing fetch and the
+opening-line cron. Under (b) the cron's skip goes in its sport discovery.
 
 Either way, `JOIN_UNWRITABLE` is removed from
 `scripts/measure-odds-consumer-demand.mjs` in the same change.
@@ -88,3 +114,7 @@ Either way, `JOIN_UNWRITABLE` is removed from
    sport, with its mutation.
 3. A per-consumer demand run whose fetchSportOddsHistorical "unwritable" line
    reads 0 credits, because the join now writes or the fetch is no longer made.
+4. The opening-line cron: on a closed day after the deploy, either the four
+   sports' opening lines are written the same day by `odds_api`, or no
+   `fetchSportOddsLive` call is made for them (a worker tail over one
+   live-hours window).
