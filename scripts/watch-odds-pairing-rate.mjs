@@ -332,24 +332,35 @@ export function ceilingVerdict(daily) {
 }
 
 /**
- * Did the guard refuse a call? chargeOdds refuses on two limits and nothing
- * else: the daily ceiling, which it stamps once as odds:daily:<date>:warned and
- * /budget/odds?date= serves as ceiling_reached_at, and the monthly limit, which
- * has no served marker, so it is read as headroom below the largest single
- * call. No caller reads a refusal (none checks `guarded`), so this is the one
- * place it can show (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md,
- * fix 3). ceilingVerdict above asks a different question: whether the guard
- * LET a call through past the ceiling.
+ * Did the guard refuse a call on the closed day? chargeOdds refuses on two
+ * limits and nothing else, and stamps each the first time it refuses: the daily
+ * ceiling as odds:daily:<date>:warned, served by /budget/odds?date= as
+ * ceiling_reached_at, and the monthly limit as odds:credits:<month>:warned:limit,
+ * served as month_limit_reached_at for the month of the date asked about. No
+ * caller reads a refusal (none checks `guarded`), so this is the one place it
+ * can show (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 3).
+ * ceilingVerdict above asks a different question: whether the guard LET a call
+ * through past the ceiling.
+ *
+ * A stamp says when the guard FIRST refused. It does not say every later call
+ * was refused: the check is per call, and refunds lower the counter.
+ *
+ * Until 2026-10-23 the month was read as the current month's headroom, which on
+ * the 1st is the new month's, and the day stamp lived 24 hours, so a morning
+ * ceiling was gone by the next afternoon's read. Both stamps are now served for
+ * the day itself.
  *
  * A missing field is not a clean day (Rule 99): `not-reported`.
  */
-export const LARGEST_ODDS_CALL = 30;   // oddsCreditCost of a 3-market historical call: 3 x 10
-export function refusalVerdict(day, monthly) {
-  if (!day || !Object.prototype.hasOwnProperty.call(day, 'ceiling_reached_at')) return { state: 'not-reported' };
+export function refusalVerdict(day) {
+  const has = (k) => !!day && Object.prototype.hasOwnProperty.call(day, k);
+  if (!has('ceiling_reached_at') || !has('month_limit_reached_at') || typeof day.date !== 'string') return { state: 'not-reported' };
   if (day.ceiling_reached_at) return { state: 'day-ceiling', at: day.ceiling_reached_at };
-  const used = _num(monthly?.used), limit = _num(monthly?.limit);
-  if (used === null || limit === null || limit <= 0) return { state: 'month-unreadable' };
-  if (limit - used < LARGEST_ODDS_CALL) return { state: 'month-limit', used, limit };
+  const m = day.month_limit_reached_at;
+  // `true` is a stamp without an hour: reached, when unknown, so it counts.
+  if (m === true) return { state: 'month-limit', at: null };
+  // An hour after the closed day means the limit was reached later, not on it.
+  if (typeof m === 'string' && m.slice(0, 10) <= day.date) return { state: 'month-limit', at: m };
   return { state: 'none' };
 }
 
@@ -601,16 +612,20 @@ if (SELF) {
                  : (bad++, console.log(`  FAIL  ceiling: got ${got} want ${want}  (${why})`));
   }
 
+  const RD = '2026-10-31';
   const REFUSAL = [
-    [{ ceiling_reached_at: '2026-01-01T20:00:00.000Z' }, { used: 39000, limit: 85000 }, 'day-ceiling', 'a stamped day: every call after the stamp was refused (synthetic instant)'],
-    [{ ceiling_reached_at: null }, { used: 41045, limit: 85000 }, 'none', 'the real 2026-10-22 close: no stamp, the month far from its limit'],
-    [{ used: 1521 }, { used: 41045, limit: 85000 }, 'not-reported', 'no ceiling_reached_at field at all is not a clean day (Rule 99)'],
-    [{ ceiling_reached_at: null }, { used: 84971, limit: 85000 }, 'month-limit', '29 left: a 30-credit historical call is refused'],
-    [{ ceiling_reached_at: null }, { used: 84970, limit: 85000 }, 'none', 'exactly 30 left: the largest call still fits'],
-    [{ ceiling_reached_at: null }, { used: null, limit: 85000 }, 'month-unreadable', 'an unreadable month is not headroom'],
+    [{ date: RD, ceiling_reached_at: '2026-10-31T20:00:00.000Z', month_limit_reached_at: null }, 'day-ceiling', 'a stamped day: the ceiling first refused a call then (synthetic instant)'],
+    [{ date: '2026-10-22', ceiling_reached_at: null, month_limit_reached_at: null }, 'none', 'the real 2026-10-22 close: neither stamp'],
+    [{ date: RD, used: 1521, month_limit_reached_at: null }, 'not-reported', 'no ceiling_reached_at field at all is not a clean day (Rule 99)'],
+    [{ date: RD, ceiling_reached_at: null }, 'not-reported', 'no month_limit_reached_at field (a relay before fix 3 B) is not a clean day'],
+    [{ ceiling_reached_at: null, month_limit_reached_at: null }, 'not-reported', 'no date: the month stamp cannot be judged against the day'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-31T22:00:00.000Z' }, 'month-limit', 'the month limit first refused on the closed day itself (synthetic instant)'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'month-limit', 'reached two days before: it was still in force'],
+    [{ date: '2026-10-28', ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'none', 'reached the day after: the closed day had no month refusal'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: true }, 'month-limit', 'a stamp with no hour is reached, hour unknown'],
   ];
-  for (const [day, monthly, want, why] of REFUSAL) {
-    const got = refusalVerdict(day, monthly).state;
+  for (const [day, want, why] of REFUSAL) {
+    const got = refusalVerdict(day).state;
     got === want ? console.log(`  PASS  refusal: ${want.padEnd(27)} (${why})`)
                  : (bad++, console.log(`  FAIL  refusal: got ${got} want ${want}  (${why})`));
   }
@@ -737,7 +752,7 @@ const reading = {
 // ?date= reads a closed day, which makes both immune to the 104-405 minute
 // runner delay measured here, and the 2-day TTL covers yesterday.
 const OVL_DAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-let closedDay = null, closedMonthly = null, ovlWhy = '';
+let closedDay = null, ovlWhy = '';
 try {
   const rr = await fetch(`${RELAY}/budget/odds?date=${OVL_DAY}`, { headers: { Accept: 'application/json' } });
   if (!rr.ok) {
@@ -751,7 +766,6 @@ try {
       ovlWhy = `${OVL_DAY} is still running; a day must be CLOSED before its total means anything`;
     } else {
       closedDay = d;
-      closedMonthly = bj.monthly ?? null;
     }
   }
 } catch (e) { ovlWhy = `the closed-day read threw: ${e.message}`; }
@@ -918,22 +932,22 @@ if (integrity.over) {
 
 // A refusal on the closed day. An unreadable closed day already failed above.
 if (closedDay) {
-  const refusal = refusalVerdict(closedDay, closedMonthly);
-  console.log(`\n  refusals, closed day ${OVL_DAY}  : ${refusal.state}${refusal.at ? ` — daily ceiling reached at ${refusal.at}` : ''}${
-    refusal.state === 'month-limit' ? ` — ${refusal.limit - refusal.used} credit(s) left of ${refusal.limit}` : ''}`);
+  const refusal = refusalVerdict(closedDay);
+  const when = refusal.at ? ` — first refused a call at ${refusal.at}` : refusal.state === 'month-limit' ? ' — first refused a call, hour unknown' : '';
+  console.log(`\n  refusals, closed day ${OVL_DAY}  : ${refusal.state}${when}`);
   if (refusal.state !== 'none') {
     failed = true;
     if (refusal.state === 'day-ceiling') {
-      console.log(`\nFAIL: the daily ceiling was reached on ${OVL_DAY} at ${refusal.at}. From then on`);
-      console.log(`      chargeOdds refused every odds call that day, and no caller says so: closing`);
-      console.log(`      captures, opening lines and CFL/WC probabilities went unbought. Read`);
-      console.log(`      /budget/odds?date=${OVL_DAY} by_site for who spent the day.`);
+      console.log(`\nFAIL: the daily ceiling first refused an odds call on ${OVL_DAY} at ${refusal.at}.`);
+      console.log(`      Calls that did not fit after that were refused too, and no caller says so:`);
+      console.log(`      closing captures, opening lines and CFL/WC probabilities may have gone`);
+      console.log(`      unbought. Read /budget/odds?date=${OVL_DAY} by_site for who spent the day.`);
     } else if (refusal.state === 'month-limit') {
-      console.log(`\nFAIL: the monthly odds limit has ${refusal.limit - refusal.used} credit(s) left of ${refusal.limit}, less than`);
-      console.log(`      one ${LARGEST_ODDS_CALL}-credit call. chargeOdds is refusing calls for the rest of the month.`);
+      console.log(`\nFAIL: the monthly odds limit first refused a call ${refusal.at ? `at ${refusal.at}` : 'at an unknown hour'}, on or before`);
+      console.log(`      ${OVL_DAY}. Calls that did not fit were refused from then on, and no caller says so.`);
     } else {
-      console.log(`\nFAIL: refusals on ${OVL_DAY} are ${refusal.state}: ceiling_reached_at or the monthly`);
-      console.log(`      block is missing from /budget/odds. Absence is not a clean day (Rule 99).`);
+      console.log(`\nFAIL: refusals on ${OVL_DAY} are ${refusal.state}: ceiling_reached_at, month_limit_reached_at`);
+      console.log(`      or date is missing from /budget/odds?date=. Absence is not a clean day (Rule 99).`);
     }
   }
 }

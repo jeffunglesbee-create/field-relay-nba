@@ -32,14 +32,23 @@ const MUTATIONS = [
     anchor: "  if (day.ceiling_reached_at) return { state: 'day-ceiling', at: day.ceiling_reached_at };",
     replace: "  if (false) return { state: 'day-ceiling', at: day.ceiling_reached_at };" },
   { name: 'R2 a missing ceiling_reached_at reads as a clean day',
-    anchor: "  if (!day || !Object.prototype.hasOwnProperty.call(day, 'ceiling_reached_at')) return { state: 'not-reported' };",
-    replace: "  if (!day || !Object.prototype.hasOwnProperty.call(day, 'ceiling_reached_at')) return { state: 'none' };" },
-  { name: 'R3 the month limit reads as reached only at zero headroom',
-    anchor: "  if (limit - used < LARGEST_ODDS_CALL) return { state: 'month-limit', used, limit };",
-    replace: "  if (limit - used < 0) return { state: 'month-limit', used, limit };" },
-  { name: 'R4 an unreadable month reads as headroom',
-    anchor: "  if (used === null || limit === null || limit <= 0) return { state: 'month-unreadable' };",
-    replace: "  if (used === null || limit === null || limit <= 0) return { state: 'none' };" },
+    anchor: "  if (!has('ceiling_reached_at') || !has('month_limit_reached_at') || typeof day.date !== 'string') return { state: 'not-reported' };",
+    replace: "  if (!has('month_limit_reached_at') || typeof day.date !== 'string') return { state: 'not-reported' };" },
+  { name: 'R3 a missing month_limit_reached_at reads as a clean day (a relay before fix 3 B)',
+    anchor: "  if (!has('ceiling_reached_at') || !has('month_limit_reached_at') || typeof day.date !== 'string') return { state: 'not-reported' };",
+    replace: "  if (!has('ceiling_reached_at') || typeof day.date !== 'string') return { state: 'not-reported' };" },
+  { name: 'R4 a missing date lets the month stamp be judged against nothing',
+    anchor: "  if (!has('ceiling_reached_at') || !has('month_limit_reached_at') || typeof day.date !== 'string') return { state: 'not-reported' };",
+    replace: "  if (!has('ceiling_reached_at') || !has('month_limit_reached_at')) return { state: 'not-reported' };" },
+  { name: 'R5 the month stamp is ignored (the headroom-only watch of 35d61ec, at its worst)',
+    anchor: "  if (typeof m === 'string' && m.slice(0, 10) <= day.date) return { state: 'month-limit', at: m };",
+    replace: "  if (false) return { state: 'month-limit', at: m };" },
+  { name: 'R6 a month stamp from after the closed day counts against it',
+    anchor: "  if (typeof m === 'string' && m.slice(0, 10) <= day.date) return { state: 'month-limit', at: m };",
+    replace: "  if (typeof m === 'string') return { state: 'month-limit', at: m };" },
+  { name: 'R7 a month stamp with no hour reads as no refusal',
+    anchor: "  if (m === true) return { state: 'month-limit', at: null };",
+    replace: "  if (false) return { state: 'month-limit', at: null };" },
   { name: 'P1 a field missing from the response reads as zero',
     anchor: "  if (block === undefined) return { state: 'not-reported', overloads: null };",
     replace: "  if (block === undefined) return { state: 'none', overloads: 0 };",
@@ -142,6 +151,6 @@ for (const mut of MUTATIONS) {
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
 console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12-P15), degradeVerdict (P8-P11) and`);
-console.log(`refusalVerdict (R1-R4) only. It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
+console.log(`refusalVerdict (R1-R7) only. It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
 console.log(`predicates in this watch; the fetch is verified by a scheduled run.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);
