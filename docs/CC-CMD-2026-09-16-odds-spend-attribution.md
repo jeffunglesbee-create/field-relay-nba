@@ -1,8 +1,8 @@
 # CC-CMD 2026-09-16 — attribute odds spend before changing any ceiling
 
-Status: **Tasks 1 and 2 DONE** (2026-10-21). Task 3 dispatched 2026-10-23;
-its premises were tested before any build and most are refused (Results, Task
-3). The owner's ruling on holding it is pending. Results are under "Results" at the end.
+Status: **BLOCKED.** Tasks 1 and 2 DONE (2026-10-21). Task 3 HELD by the owner
+2026-10-23 ("Hold it; fix 3 first") after its premise test (Results, Task 3),
+until `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` is DONE. Results are under "Results" at the end.
 Session doc: `outbox/cc-session-2026-10-21-per-consumer-demand.md`.
 Supersedes the demand-derived-ceiling proposal made earlier the same day, which
 this document's own probe block refutes.
@@ -200,5 +200,10 @@ charged equals kept, values from post-fix demand.
 `guarded: true` from failure" is false at HEAD (none does); "three monthly
 implementations" is history. Both stand above as written on 09-16.
 
-The owner's ruling on the recommendation is pending.
+**Owner ruling 2026-10-23: "Hold it; fix 3 first".** The three fixes are
+`docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`. The other defects
+found are filed: `docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md`,
+`docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`,
+`docs/CC-CMD-2026-10-23-odds-spend-without-need.md`,
+`docs/CC-CMD-2026-10-23-odds-docs-stale.md`.
 
