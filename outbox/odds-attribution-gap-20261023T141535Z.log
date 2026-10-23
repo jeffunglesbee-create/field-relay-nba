@@ -1,0 +1,29 @@
+=== odds attribution gap  for 2026-10-22 (a closed day) ===
+
+  date            : 2026-10-22  (requested 2026-10-22; is_today=false)
+  used            : 1521
+  by_site_sum     : 1521
+  unaccounted     : 0
+  unreadable_sites: none
+
+  by site:
+    ambientCaptureClosingOdds    9
+    fetchSportOddsHistorical     900
+    fetchSportOddsLive           438
+    getWCPregameLambdas          0
+    handleCFLOddsProbs           174
+    handleWCOddsProbs            0
+    wpResolver                   0
+    ambientFetchLiveOdds         0
+    oddsProxyRoute               0
+    unattributed                 0
+
+  verdict         : ok
+  detail          : |0| within 76
+
+COVERAGE: ONE reading, of ONE CLOSED UTC day (2026-10-22). It is not a series
+and it cannot see trends. Reading a closed day rather than a running one is
+what makes the verdict independent of when the runner happens to fire —
+measured delay in this repo is 104-405 minutes.
+
+the day's spend decomposes into the sites that spent it
