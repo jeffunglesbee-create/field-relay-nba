@@ -331,6 +331,28 @@ export function ceilingVerdict(daily) {
   };
 }
 
+/**
+ * Did the guard refuse a call? chargeOdds refuses on two limits and nothing
+ * else: the daily ceiling, which it stamps once as odds:daily:<date>:warned and
+ * /budget/odds?date= serves as ceiling_reached_at, and the monthly limit, which
+ * has no served marker, so it is read as headroom below the largest single
+ * call. No caller reads a refusal (none checks `guarded`), so this is the one
+ * place it can show (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md,
+ * fix 3). ceilingVerdict above asks a different question: whether the guard
+ * LET a call through past the ceiling.
+ *
+ * A missing field is not a clean day (Rule 99): `not-reported`.
+ */
+export const LARGEST_ODDS_CALL = 30;   // oddsCreditCost of a 3-market historical call: 3 x 10
+export function refusalVerdict(day, monthly) {
+  if (!day || !Object.prototype.hasOwnProperty.call(day, 'ceiling_reached_at')) return { state: 'not-reported' };
+  if (day.ceiling_reached_at) return { state: 'day-ceiling', at: day.ceiling_reached_at };
+  const used = _num(monthly?.used), limit = _num(monthly?.limit);
+  if (used === null || limit === null || limit <= 0) return { state: 'month-unreadable' };
+  if (limit - used < LARGEST_ODDS_CALL) return { state: 'month-limit', used, limit };
+  return { state: 'none' };
+}
+
 if (SELF) {
   const CASES = [
     [{ date: 'a', credits_used: 20, games_processed: 0 },  true,  'paid and paired nothing — the 0-of-80 signature'],
@@ -579,13 +601,27 @@ if (SELF) {
                  : (bad++, console.log(`  FAIL  ceiling: got ${got} want ${want}  (${why})`));
   }
 
+  const REFUSAL = [
+    [{ ceiling_reached_at: '2026-01-01T20:00:00.000Z' }, { used: 39000, limit: 85000 }, 'day-ceiling', 'a stamped day: every call after the stamp was refused (synthetic instant)'],
+    [{ ceiling_reached_at: null }, { used: 41045, limit: 85000 }, 'none', 'the real 2026-10-22 close: no stamp, the month far from its limit'],
+    [{ used: 1521 }, { used: 41045, limit: 85000 }, 'not-reported', 'no ceiling_reached_at field at all is not a clean day (Rule 99)'],
+    [{ ceiling_reached_at: null }, { used: 84971, limit: 85000 }, 'month-limit', '29 left: a 30-credit historical call is refused'],
+    [{ ceiling_reached_at: null }, { used: 84970, limit: 85000 }, 'none', 'exactly 30 left: the largest call still fits'],
+    [{ ceiling_reached_at: null }, { used: null, limit: 85000 }, 'month-unreadable', 'an unreadable month is not headroom'],
+  ];
+  for (const [day, monthly, want, why] of REFUSAL) {
+    const got = refusalVerdict(day, monthly).state;
+    got === want ? console.log(`  PASS  refusal: ${want.padEnd(27)} (${why})`)
+                 : (bad++, console.log(`  FAIL  refusal: got ${got} want ${want}  (${why})`));
+  }
+
   // COUNTED, NOT WRITTEN DOWN. This was `+ 32`, the number of one() calls on the
   // day it was typed, and adding an assertion without editing it would have
   // printed a denominator that was quietly wrong — the Rule 91 failure, inside
   // the self-test that exists to prevent it.
-  const _n = CASES.length + INTEGRITY.length + CEILING.length + ones;
+  const _n = CASES.length + INTEGRITY.length + CEILING.length + REFUSAL.length + ones;
   console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${_n}/${_n}`);
-  console.log(`COVERAGE: seven predicates on synthetic readings. None exercises D1, the`);
+  console.log(`COVERAGE: eight predicates on synthetic readings. None exercises D1, the`);
   console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers, three the real`);
   console.log(`2026-10-09/10/11 degrade counters.`);
   process.exit(bad ? 1 : 0);
@@ -701,7 +737,7 @@ const reading = {
 // ?date= reads a closed day, which makes both immune to the 104-405 minute
 // runner delay measured here, and the 2-day TTL covers yesterday.
 const OVL_DAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-let closedDay = null, ovlWhy = '';
+let closedDay = null, closedMonthly = null, ovlWhy = '';
 try {
   const rr = await fetch(`${RELAY}/budget/odds?date=${OVL_DAY}`, { headers: { Accept: 'application/json' } });
   if (!rr.ok) {
@@ -715,6 +751,7 @@ try {
       ovlWhy = `${OVL_DAY} is still running; a day must be CLOSED before its total means anything`;
     } else {
       closedDay = d;
+      closedMonthly = bj.monthly ?? null;
     }
   }
 } catch (e) { ovlWhy = `the closed-day read threw: ${e.message}`; }
@@ -877,6 +914,28 @@ if (integrity.over) {
   console.log(`vendor saw and we did not is the signature of a guard that stopped guarding.`);
   console.log(`This compares the two counters to EACH OTHER, so it is not the standing`);
   console.log(`cumulative gap (19,582 on 2026-09-16); it is new divergence in this interval.`);
+}
+
+// A refusal on the closed day. An unreadable closed day already failed above.
+if (closedDay) {
+  const refusal = refusalVerdict(closedDay, closedMonthly);
+  console.log(`\n  refusals, closed day ${OVL_DAY}  : ${refusal.state}${refusal.at ? ` — daily ceiling reached at ${refusal.at}` : ''}${
+    refusal.state === 'month-limit' ? ` — ${refusal.limit - refusal.used} credit(s) left of ${refusal.limit}` : ''}`);
+  if (refusal.state !== 'none') {
+    failed = true;
+    if (refusal.state === 'day-ceiling') {
+      console.log(`\nFAIL: the daily ceiling was reached on ${OVL_DAY} at ${refusal.at}. From then on`);
+      console.log(`      chargeOdds refused every odds call that day, and no caller says so: closing`);
+      console.log(`      captures, opening lines and CFL/WC probabilities went unbought. Read`);
+      console.log(`      /budget/odds?date=${OVL_DAY} by_site for who spent the day.`);
+    } else if (refusal.state === 'month-limit') {
+      console.log(`\nFAIL: the monthly odds limit has ${refusal.limit - refusal.used} credit(s) left of ${refusal.limit}, less than`);
+      console.log(`      one ${LARGEST_ODDS_CALL}-credit call. chargeOdds is refusing calls for the rest of the month.`);
+    } else {
+      console.log(`\nFAIL: refusals on ${OVL_DAY} are ${refusal.state}: ceiling_reached_at or the monthly`);
+      console.log(`      block is missing from /budget/odds. Absence is not a clean day (Rule 99).`);
+    }
+  }
 }
 
 if (cap.over) {

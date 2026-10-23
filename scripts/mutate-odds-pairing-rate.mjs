@@ -28,6 +28,18 @@ if (spawnSync('node', SELF, { stdio: 'ignore' }).status !== 0) {
 console.log(`baseline: ${WATCH} --self-test passes on clean source\n`);
 
 const MUTATIONS = [
+  { name: 'R1 a stamped day reads as no refusal',
+    anchor: "  if (day.ceiling_reached_at) return { state: 'day-ceiling', at: day.ceiling_reached_at };",
+    replace: "  if (false) return { state: 'day-ceiling', at: day.ceiling_reached_at };" },
+  { name: 'R2 a missing ceiling_reached_at reads as a clean day',
+    anchor: "  if (!day || !Object.prototype.hasOwnProperty.call(day, 'ceiling_reached_at')) return { state: 'not-reported' };",
+    replace: "  if (!day || !Object.prototype.hasOwnProperty.call(day, 'ceiling_reached_at')) return { state: 'none' };" },
+  { name: 'R3 the month limit reads as reached only at zero headroom',
+    anchor: "  if (limit - used < LARGEST_ODDS_CALL) return { state: 'month-limit', used, limit };",
+    replace: "  if (limit - used < 0) return { state: 'month-limit', used, limit };" },
+  { name: 'R4 an unreadable month reads as headroom',
+    anchor: "  if (used === null || limit === null || limit <= 0) return { state: 'month-unreadable' };",
+    replace: "  if (used === null || limit === null || limit <= 0) return { state: 'none' };" },
   { name: 'P1 a field missing from the response reads as zero',
     anchor: "  if (block === undefined) return { state: 'not-reported', overloads: null };",
     replace: "  if (block === undefined) return { state: 'none', overloads: 0 };",
@@ -129,7 +141,7 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12-P15) and degradeVerdict (P8-P11) only.`);
-console.log(`It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
+console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12-P15), degradeVerdict (P8-P11) and`);
+console.log(`refusalVerdict (R1-R4) only. It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
 console.log(`predicates in this watch; the fetch is verified by a scheduled run.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);
