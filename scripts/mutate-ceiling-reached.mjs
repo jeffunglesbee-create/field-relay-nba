@@ -39,8 +39,8 @@ console.log('baseline: the check passes on current source and on an unmutated co
 
 const MUTATIONS = [
   ['C1 the veto goes back to a boolean',
-   "                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),\n                        { expirationTtl: 86400 });",
-   "                    await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 86400 });",
+   "                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),\n                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });",
+   "                    await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });",
    'THE STATE THIS ENDS: on 2026-09-19 the counter sat at the ceiling from before 19:39 until at least 22:32. A boolean says the cap was hit; it cannot say for how long, which is the difference between a budget spent and a service suppressed'],
 
   // Anchored on the day's warned key as well: since 2026-10-18 the month's
@@ -75,6 +75,21 @@ const MUTATIONS = [
    '            ceiling_reached_at: ceilingHit,',
    '            // ceiling_reached_at removed',
    'a value only the worker knows is not an artifact — the whole reason this was invisible for the four days it has been happening'],
+
+  // THE LIFETIME (fix 3 A). Each is a stamp that dies before a reader the route
+  // still serves; only the executed replay can see them.
+  ['T1 the stamp lives one day again',
+   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
+   '{ expirationTtl: 86400 });',
+   'THE STATE THIS ENDS: the watch read 10-07 and 10-11 as days with no refusal, because the stamp was gone by the next afternoon'],
+  ['T2 the stamp lives exactly SITE_TTL_DAYS',
+   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
+   '{ expirationTtl: SITE_TTL_DAYS * 86400 });',
+   'a stamp from early on day D is gone before the route stops serving D at the end of D+2'],
+  ['T3 one second short',
+   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
+   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 - 1 });',
+   'the boundary: a stamp from the first instant of D must survive to the last instant of D+2'],
 ];
 
 let caught = 0;
@@ -91,6 +106,7 @@ for (const [name, anchor, repl, why] of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log('COVERAGE: the veto writer and reader in src/budget-helpers.js — 1 file. It');
-console.log('does NOT run the Worker, and proves nothing about whether a veto occurred.');
+console.log('COVERAGE: the day veto\'s writer, its lifetime, and its reader in');
+console.log('src/budget-helpers.js — 1 file. It does NOT run the Worker, and proves nothing');
+console.log('about whether a veto occurred.');
 process.exit(caught === MUTATIONS.length ? 0 : 1);

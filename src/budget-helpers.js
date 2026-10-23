@@ -389,8 +389,17 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
                     //
                     // Written as an ISO string. A legacy '1' still reads as reached
                     // with no time rather than as an error — three states, not two.
+                    //
+                    // KEPT AS LONG AS /budget/odds?date= SERVES THE DAY. At 86400 the
+                    // stamp died a day after it was written, so the pairing watch,
+                    // reading the closed day the next afternoon, found nothing for a
+                    // ceiling reached that morning: replayed at the watch's real read
+                    // times for 10-07, 10-10, 10-11 and 10-12, a stamp from the first
+                    // instant of the day was gone every time. One day past
+                    // SITE_TTL_DAYS, so such a stamp outlives the day's last possible
+                    // read (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 3 A).
                     await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),
-                        { expirationTtl: 86400 });
+                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });
                 }
             } catch (e) {
                 // A day veto whose warning cannot be recorded is still a veto.

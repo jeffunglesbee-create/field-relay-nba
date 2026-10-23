@@ -11,10 +11,14 @@
 // nothing outside the worker could read. It now carries the moment of the first
 // veto, and /budget/odds reports it.
 //
-// This checks the SOURCE, because the behaviour lives in a Worker that cannot
-// be imported here: the writer stores a timestamp, the reader distinguishes the
-// three states, and the field is on the response.
+// This checks the SOURCE for the shape — the writer stores a timestamp, the
+// reader distinguishes the three states, the field is on the response — and
+// then RUNS chargeOdds and peekDailyOdds for the lifetime, which no source
+// read can settle (below, "THE STAMP OUTLIVES ITS READERS").
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { DatabaseSync } from 'node:sqlite';
 
 const SRC = process.env.BUDGET_HELPERS_SRC || 'src/budget-helpers.js';
 const whole = readFileSync(SRC, 'utf8');
@@ -105,8 +109,78 @@ ok('the field is on the /budget/odds response',
   /ceiling_reached_at: ceilingHit,/.test(reader),
   'a value only the worker knows is not an artifact (Rule 90)');
 
+// ── THE STAMP OUTLIVES ITS READERS, EXECUTED ────────────────────────────────
+// Until 2026-10-23 the day stamp was written with expirationTtl 86400. The
+// pairing watch reads the CLOSED day the next afternoon, so a ceiling reached
+// in the morning had no stamp by the time anyone looked: the watch read "no
+// refusal" for ceiling days (docs/CC-CMD-2026-10-23-odds-ceiling-
+// prerequisites.md, fix 3 A). This runs the real chargeOdds to stamp a veto at an instant and the
+// real peekDailyOdds to read it later, on node:sqlite and a KV that expires
+// keys as Cloudflare does (expirationTtl is seconds from the write).
+const RealDate = Date;
+let clock = 0;
+class PinnedDate extends RealDate {
+  constructor(...a) { if (a.length) super(...a); else super(clock); }
+  static now() { return clock; }
+}
+function ttlKV() {
+  const m = new Map();
+  return {
+    get: async (k) => { const e = m.get(k); return e && clock < e.exp ? e.v : null; },
+    put: async (k, v, o = {}) => { m.set(k, { v: String(v), exp: o.expirationTtl ? clock + o.expirationTtl * 1000 : Infinity }); },
+  };
+}
+function sqliteD1(db) {
+  const stmt = (sql, args = []) => ({ sql, args, bind: (...a) => stmt(sql, a),
+    all: async () => ({ results: db.prepare(sql).all(...args) }),
+    first: async () => db.prepare(sql).get(...args) ?? null,
+    run: async () => { db.prepare(sql).run(...args); return { success: true }; } });
+  return { prepare: (sql) => stmt(sql), batch: async (list) => {
+    db.exec('BEGIN');
+    try { const out = list.map((x) => ({ results: db.prepare(x.sql).all(...x.args), success: true })); db.exec('COMMIT'); return out; }
+    catch (e) { db.exec('ROLLBACK'); throw e; } } };
+}
+let caseNo = 0;
+// One day veto at `at`, read back for `day` at `readAt`.
+async function replay({ at, readAt, day }) {
+  const mod = await import(`${pathToFileURL(resolve(SRC)).href}?case=${++caseNo}`);
+  const db = new DatabaseSync(':memory:');
+  const env = { FIELD_JOURNALISM: ttlKV(), ARCHIVE_DB: sqliteD1(db) };
+  const warn = console.warn; console.warn = () => {};
+  globalThis.Date = PinnedDate;
+  try {
+    clock = RealDate.parse(at);
+    db.exec(`CREATE TABLE odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site));
+      CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE odds_reconcile_state (day TEXT NOT NULL, site TEXT NOT NULL, state TEXT NOT NULL, cache TEXT NOT NULL,
+        n INTEGER NOT NULL DEFAULT 0, credits_kept INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site, state, cache));`);
+    db.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(at.slice(0, 10), 1e9);
+    const refused = (await mod.chargeOdds(env, 3, 'probe')) === false;
+    clock = RealDate.parse(readAt);
+    const got = await mod.peekDailyOdds(env, day);
+    return { refused, ceiling: got?.ceiling_reached_at };
+  } finally { globalThis.Date = RealDate; console.warn = warn; }
+}
+// The four recorded ceiling days, each read at the minute the scheduled pairing
+// watch actually read it (run start, from the Actions API). The stamp is put at
+// the first instant of the day, the earliest a stamp can be: the true veto
+// times are gone with the keys.
+const READS = [['2026-10-07', '2026-10-08T17:40:55Z'], ['2026-10-10', '2026-10-11T16:29:13Z'],
+               ['2026-10-11', '2026-10-12T20:04:56Z'], ['2026-10-12', '2026-10-13T17:53:43Z'],
+               // the last instant /budget/odds?date= serves a day (SITE_TTL_DAYS 2)
+               ['2026-10-21', '2026-10-23T23:59:59.999Z']];
+for (const [day, readAt] of READS) {
+  const at = `${day}T00:00:00.001Z`;
+  const r = await replay({ at, readAt, day });
+  ok(`a ceiling reached at ${at} is still reported when read at ${readAt}`,
+    r.refused && r.ceiling === at,
+    `refused ${r.refused}, ceiling_reached_at ${JSON.stringify(r.ceiling)}: the stamp expired before its reader, so a day that refused calls reads as one that did not`);
+}
 console.log(`\n${n - bad} of ${n} passed.`);
-console.log(`COVERAGE: source text in ${SRC} — one file, seven properties. It does NOT`);
-console.log('run the worker, and it cannot say whether any veto has actually occurred;');
+console.log(`COVERAGE: source text in ${SRC} for the stamp's shape, and an executed`);
+console.log(`replay of chargeOdds and peekDailyOdds for its lifetime: ${READS.length} day stamps read at`);
+console.log('real watch read times or the last served instant. It cannot say whether a');
+console.log('veto has actually occurred;');
 console.log('that is what the live /budget/odds reading is for.');
 process.exit(bad ? 1 : 0);
