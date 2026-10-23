@@ -95,6 +95,31 @@ here:
     headroom heuristic, and the messages say when the guard first refused.
   - A and B change no counter and no charge (`check-monthly-atomic` stays
     90/90). They land before 11-08 and outside a T-10 window of a capture.
+  - **Landed 2026-10-23:** A `15d5cfe`, B `09b89ea`, C `aadf296`, with the
+    harness hardening `0733d2b` and `b03bb01` from the adversarial review
+    (workflow `wf_ab03e793-34e`, 6 harness findings, all verified and fixed).
+    Deploy run 40029905648 green. Live: `/budget/odds?date=2026-10-22` serves
+    `ceiling_reached_at: null, month_limit_reached_at: null`, and the
+    committed `refusalVerdict` reads it as `none`.
+  - **D.** A stamp read that throws is named in `stamps_unreadable`, and the
+    watch reads it as `not-reported` (Rule 99). Found by the ops lens of the
+    same review: a month veto with a failed stamp read served exactly what a
+    clean day serves. Commits `1af8957` (relay) and `e05e04a` (watch);
+    replay 24 of 24 (17 of 22 against the parent at its first version),
+    `mutate-ceiling-reached` 26 of 26, watch self-test 14 refusal cases,
+    `mutate-odds-pairing-rate` 26 of 26. A second review (workflow
+    `wf_07599759-ba8`) added the cross cases (one stamp unread, the other a
+    refusal).
+  - **Residual, not built: the stamp's WRITE can fail.** If the KV put of a
+    stamp, or the get before it, throws, `chargeOdds` logs "veto held; ...
+    not recorded" and the day later reads `none` (replayed by the second
+    review on the real `chargeOdds`). The next refusal retries the write, so
+    the gap closes, but with that later hour; for the month stamp, a later
+    hour on D+1 leaves D reading `none`. Closing it needs a record outside KV
+    written in the veto path (for example a D1 column), which is a schema and
+    `chargeOdds` change: not before the 10-25 reads, not in 11-08..11-23.
+    Filed here (BUILD-ON-A) as fix 3 E; the owner decides whether it is
+    worth a schema change.
 
 ## Done condition (Rule 90 artifacts)
 
@@ -110,4 +135,7 @@ here:
    reads `day-ceiling`-grade stamps at the real read times of 10-08, 10-11 and
    10-12 and at D+2 23:59:59.999, and is red at TTL 86400, 2 x 86400 and one
    second short; a month veto on the last day of a month is reported for that
-   day when read the next month.
+   day when read the next month. **Added (D):** a stamp read that throws is
+   null and named in `stamps_unreadable`, and the watch reads it as
+   `not-reported`; a stamp that was read is still served when the other
+   cannot be.
