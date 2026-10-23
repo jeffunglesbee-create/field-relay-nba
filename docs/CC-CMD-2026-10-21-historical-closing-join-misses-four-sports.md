@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a fetch that cannot produce its write)
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** RULED 2026-10-23: shape (a), make the join match. Lands after the 2026-10-25 11:07Z read.
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2). Rule 87.4: found
 in its adversarial review, outside its scope.
@@ -127,6 +127,16 @@ Found by the Task 3 premise test (workflow `wf_c984c219-a1f`):
    CC-CMD only for excess outside the four sports.
 
 ## TASK 1 — decided from TASK 0
+
+**Owner ruling 2026-10-23: "(a) Make the join match".** Put to the owner with
+the read-only map of workflow `wf_de43d4bd-def`: the closing capture's
+per-team rule, replayed on 112 recorded name pairs of the four sports, chose
+110 right and 0 wrong, and kept 74 of 74 controls. Modelled saving on the
+opening cron about 150-230 credits a day. Built as one change to the join behind
+all three `findOddsForRow` callers, with a refusal after kickoff,
+`JOIN_UNWRITABLE` removed in the same change, and the purchase dedup (the
+map's commit B) after it as its own concern. It lands after the 2026-10-25
+11:07Z read, which runs `scripts/measure-odds-consumer-demand.mjs`.
 
 There are two shapes, and the owner picks between them:
 
