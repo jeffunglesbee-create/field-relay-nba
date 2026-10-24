@@ -6709,7 +6709,7 @@ async function snapshotCronOdds(env, dateKey) {
         // 191 opening writes since 10-01 were captured after kickoff (MLB 3,
         // CFL 2, MLS 1, WNBA 1; up to 241 minutes in). kickoffMark reads an
         // unreadable instant as unknown, never as late, so it refuses nothing.
-        const og = findOddsForRow(oddsIndex, row.home, row.away);
+        const og = findOddsForRow(oddsIndex, row.home, row.away, row.start_time);
         if (!og) continue;
         const odds = extractOddsForGame(og);
         if (!odds) continue;
@@ -6845,7 +6845,7 @@ async function runOddsBackfillForDate(env, isoDate) {
     const apply = async (rows, table) => {
       const updates = [];
       for (const row of rows) {
-        const og = findOddsForRow(oddsIndex, row.home, row.away);
+        const og = findOddsForRow(oddsIndex, row.home, row.away, row.start_time);
         if (!og) { oddsSkipped++; continue; }
         // Historical payload: stamp the snapshot's own time, not the moment
         // this backfill happened to run.
@@ -13522,7 +13522,7 @@ export default {
                                 const { games, ok: oddsOk, snapshotAt } = await fetchSportOddsHistorical(env, oddsSportKey, date);
                                 if (oddsOk && games.length) {
                                     const matched = findOddsForRow(
-                                        indexOddsByPair(games), home, away);
+                                        indexOddsByPair(games), home, away, start_time);
                                     if (matched) {
                                         const odds = extractOddsForGame(matched, ODDS_PREFERRED_BOOK, snapshotAt);
                                         // A closing line is the last price before kickoff; this route used

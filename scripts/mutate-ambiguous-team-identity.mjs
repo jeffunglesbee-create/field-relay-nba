@@ -42,10 +42,8 @@ const MUTATIONS = [
     expect: 'B both present refuses to pick' },
   { file: JOIN,
     name: 'N5  the real join resolves a row without consulting the payload',
-    anchor: `  const hk = resolveTeamKeyIn(home, index.vendorKeys);
-  const ak = resolveTeamKeyIn(away, index.vendorKeys);`,
-    replace: `  const hk = resolveTeamKey(home);
-  const ak = resolveTeamKey(away);`,
+    anchor: '    resolveTeamKeyIn(archiveName, index.vendorKeys) === resolveTeamKey(vendorName);',
+    replace: '    resolveTeamKey(archiveName) === resolveTeamKey(vendorName);',
     expect: 'C the real D1 row finds its own game' },
   { file: JOIN,
     name: 'N7  the vendor key set stops being collected, so context is empty',

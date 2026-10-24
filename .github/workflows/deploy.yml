@@ -613,9 +613,9 @@ jobs:
           node scripts/check-odds-writers-sport-scoped.mjs
           node scripts/mutate-odds-writers-sport-scoped.mjs
 
-      # The odds writers run for real over node:sqlite: no opening line after
-      # kickoff (docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md).
-      - name: the odds writers, run for real, write only pre-kickoff lines
+      # The odds writers run for real over node:sqlite: the per-team join, and no
+      # opening line after kickoff (docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md).
+      - name: the odds writers, run for real, match their own game and write only pre-kickoff lines
         run: |
           node scripts/check-odds-join-shared.mjs
           node scripts/mutate-odds-join-shared.mjs

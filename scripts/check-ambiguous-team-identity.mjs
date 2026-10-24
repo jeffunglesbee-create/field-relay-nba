@@ -80,6 +80,17 @@ eq('C a football row cannot match a baseball game',
    findOddsForRow(mlbIdx, 'Hull', 'Man United'), undefined);
 eq('C an empty payload matches nothing',
    findOddsForRow(indexOddsByPair([]), 'Tigers', 'White Sox'), undefined);
+// The same with a kickoff, which takes the per-team path that also reads name
+// tokens (docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md).
+// 'Tigers' shares no token with 'Hull City', so only resolution through the
+// payload finds the football game: N5 and N7 must reach this path too.
+const eplIdxK = indexOddsByPair([
+  { home_team: 'Hull City', away_team: 'Manchester United', commence_time: '2026-09-20T14:00:00Z', id: 'epl-game' },
+]);
+eq('C with a kickoff, an ambiguous row name still resolves through the payload',
+   findOddsForRow(eplIdxK, 'Tigers', 'Man United', '2026-09-20T14:00Z')?.id, 'epl-game');
+eq('C with a kickoff, a baseball row still cannot match a football game',
+   findOddsForRow(eplIdxK, 'Tigers', 'White Sox', '2026-09-20T14:00Z'), undefined);
 
 // ── D. nothing else moved ──────────────────────────────────────────────────
 // HAND-WRITTEN, not diffed against a previous commit. The first draft compared

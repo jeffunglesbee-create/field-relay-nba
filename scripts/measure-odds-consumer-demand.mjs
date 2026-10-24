@@ -37,9 +37,10 @@
 //     in-play relabel, and a kickoff after the snapshot instant (before it the
 //     write is refused: `_preKickoff` in the /archive/game closing path,
 //     src/index.js). Counted on the UTC day of the unit's first finalization.
-//     Units in JOIN_UNWRITABLE sports are printed apart and kept out of demand:
-//     the fetch is paid for, but findOddsForRow cannot match those archive
-//     names to the vendor's, so no closing line is ever written by this path.
+//     Units in JOIN_UNWRITABLE sports, on days before its `until`, are printed
+//     apart and kept out of demand: the fetch was paid for, but findOddsForRow
+//     could not match those archive names to the vendor's, so this path wrote
+//     no closing line. From `until` the join matches them and they are demand.
 //   getWCPregameLambdas  one snapshot per distinct World Cup kickoff instant.
 //   handleWCOddsProbs  96 snapshots (the 15-minute cron cadence) per day inside
 //     the cron's own World Cup window (_wcOpen.._wcClose, read from source)
@@ -75,13 +76,18 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const DAY_MS = 86400000;
 
-// The four sports whose closing line the historical path fetches and cannot
+// The four sports whose closing line the historical path fetched and could not
 // write. Measured 2026-10-21: findOddsForRow matched 0 of 19 NHL, NFL, NBA and
 // CFB games against the vendor's names for 10-15..10-20, and change_log holds
-// no archive_game_closing write for any of them since 2026-09-01. A dated
-// constant, not a measurement: it is removed by the CC-CMD that fixes the join.
+// no archive_game_closing write for any of them since 2026-09-01.
+//
+// ENDED, NOT DELETED, by the CC-CMD that fixed the join. `until` is the first
+// full UTC day the per-team join was live; days before it still had the miss,
+// and deleting the constant would count their paid-for, unwritable fetches as
+// demand.
 export const JOIN_UNWRITABLE = {
   asOf: '2026-10-21',
+  until: '2026-10-26',
   doc: 'docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md',
   keys: new Set(['basketball_nba', 'icehockey_nhl', 'americanfootball_nfl', 'americanfootball_ncaaf']),
 };
@@ -223,7 +229,7 @@ export function openingSnapshotDemand(games, days, cost) {
   return out;
 }
 
-export function historicalClosingDemand(games, closingWrites, days, cost, unwritable = JOIN_UNWRITABLE.keys) {
+export function historicalClosingDemand(games, closingWrites, days, cost, unwritable = JOIN_UNWRITABLE.keys, until = JOIN_UNWRITABLE.until) {
   const capturedBefore = new Map();   // game id -> earliest closing write
   for (const w of closingWrites) {
     const t = asUtc(w.ts);
@@ -243,7 +249,7 @@ export function historicalClosingDemand(games, closingWrites, days, cost, unwrit
   const out = {};
   for (const d of days) {
     const on = [...units].filter(([, t]) => utcDay(t) === d).map(([k]) => k.split('|')[0]);
-    const n = on.filter(k => !unwritable.has(k)).length, nU = on.length - n;
+    const n = on.filter(k => d >= until || !unwritable.has(k)).length, nU = on.length - n;
     out[d] = { demand: cost * n, units: n, unwritable: cost * nU,
       note: `${n} sport-dates${nU ? `, +${nU} unwritable` : ''}` };
   }
@@ -377,6 +383,8 @@ function selfTest() {
     historicalClosingDemand(G, W, ['2026-10-17'], 30)['2026-10-17'], { demand: 30, units: 1, unwritable: 30, note: '1 sport-dates, +1 unwritable' });
   eq('historical: an unwritable sport is printed apart, a relabelled final not at all',
     historicalClosingDemand(G, W, ['2026-10-18'], 30)['2026-10-18'], { demand: 0, units: 0, unwritable: 30, note: '0 sport-dates, +1 unwritable' });
+  eq('historical: from the day the join was fixed, that sport is demand',
+    historicalClosingDemand(G, W, ['2026-10-18'], 30, JOIN_UNWRITABLE.keys, '2026-10-18')['2026-10-18'], { demand: 30, units: 1, unwritable: 0, note: '1 sport-dates' });
   eq('wc lambdas: none scheduled is 0', wcLambdaDemand(G, D, 4)['2026-10-16'], { demand: 0, units: 0, note: '0 kickoffs' });
   eq('wc probs: open only inside the cron window, while fixtures remain',
     wcProbsDemand('2026-07-19', { open: '2026-06-11', close: '2026-07-20' }, ['2026-06-10', '2026-07-19', '2026-07-20'], 4),
@@ -434,7 +442,8 @@ const MUTATIONS = [
   ['historical ignores the closing capture', 'if (cap !== undefined && cap < g.finalMs) continue;', ''],
   ['historical ignores the noon refusal', "if (g.startMs <= Date.parse(`${g.date}T12:00:00Z`)) continue;", ''],
   ['historical keeps relabelled rows', 'if (g.has_inplay) continue;', ''],
-  ['historical counts unwritable units as demand', 'const n = on.filter(k => !unwritable.has(k)).length, nU = on.length - n;', 'const n = on.length, nU = 0;'],
+  ['historical counts unwritable units as demand', 'const n = on.filter(k => d >= until || !unwritable.has(k)).length, nU = on.length - n;', 'const n = on.length, nU = 0;'],
+  ['historical ignores the date the join was fixed', 'const n = on.filter(k => d >= until || !unwritable.has(k)).length, nU = on.length - n;', 'const n = on.filter(k => !unwritable.has(k)).length, nU = on.length - n;'],
   ['wc probs never closes', 'const open = inGate && lastWcDate != null && lastWcDate >= d;', 'const open = inGate && lastWcDate != null;'],
   ['wc probs ignores the cron window', 'const inGate = d >= gate.open && d < gate.close;', 'const inGate = true;'],
   ['live windows summed, not unioned', 'if (s > ce) { union += ce - cs; [cs, ce] = [s, e]; } else ce = Math.max(ce, e);', 'union += ce - cs; [cs, ce] = [s, e];'],
@@ -567,8 +576,8 @@ async function measure() {
   }
   const unwritableTot = days.reduce((s, d) => s + hist[d].unwritable, 0);
   console.log(`  fetchSportOddsHistorical: ${unwritableTot} credits of units in ${[...JOIN_UNWRITABLE.keys].join(', ')} are`);
-  console.log(`  printed as "unwritable" and kept out of demand: the join cannot write their closing line`);
-  console.log(`  (as of ${JOIN_UNWRITABLE.asOf}, ${JOIN_UNWRITABLE.doc}). Their fetches are inside "charged".\n`);
+  console.log(`  printed as "unwritable" and kept out of demand on days before ${JOIN_UNWRITABLE.until}, when the join`);
+  console.log(`  could not write their closing line (${JOIN_UNWRITABLE.doc}). Their fetches are inside "charged".\n`);
 
   console.log(`── ambientFetchLiveOdds  ${costs.ambientFetchLiveOdds.cost} credits/call  ${costs.ambientFetchLiveOdds.url}`);
   console.log(`  ${amb.liveDisabled ? 'UNSERVED: ODDS_LIVE_PATH_404 is true in src/ambient-do.js, so this path never calls the vendor.' : 'SERVED: ODDS_LIVE_PATH_404 is false.'}`);

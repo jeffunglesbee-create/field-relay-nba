@@ -60,7 +60,7 @@ eq('C no MLS or WNBA key reaches an NCAAF join', leaked, []);
 
 // And the pair lookup, which is where a matcher would have acted on it.
 const ncaafIdx = indexOddsByPair([
-  { home_team: 'Colorado Buffaloes', away_team: 'Weber St', id: 'cfb-game' },
+  { home_team: 'Colorado Buffaloes', away_team: 'Weber St', commence_time: '2026-09-05T19:00:00Z', id: 'cfb-game' },
 ]);
 const mlsIdx = indexOddsByPair([
   { home_team: 'Colorado Rapids', away_team: 'Sporting Kansas City', id: 'mls-game' },
@@ -69,6 +69,12 @@ eq('C an MLS row still finds its own game', findOddsForRow(mlsIdx, 'Colorado', '
 eq('C a CFB row cannot reach the MLS game', findOddsForRow(mlsIdx, 'Colorado', 'Weber St'), undefined);
 eq('C a CFB row misses cleanly in its own payload',
    findOddsForRow(ncaafIdx, 'Colorado', 'Weber St'), undefined);
+// With a kickoff the join also matches a side by its name tokens, inside the
+// kickoff window, so the school finds its own game; without one (above) only
+// the resolved key counts, as before (docs/CC-CMD-2026-10-21-historical-closing-
+// join-misses-four-sports.md).
+eq('C a CFB row with a kickoff finds its own game in its own payload',
+   findOddsForRow(ncaafIdx, 'Colorado', 'Weber St', '2026-09-05T19:00Z')?.id, 'cfb-game');
 
 // ── D. the three bridging callers stay a closed set ────────────────────────
 // They use the PLAIN resolver against a vendor name with no payload, and rely

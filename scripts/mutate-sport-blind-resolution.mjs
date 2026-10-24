@@ -8,10 +8,14 @@ import fs from 'node:fs';
 
 const CHECK = 'scripts/check-sport-blind-resolution.mjs';
 const RESOLVER = 'src/identity-resolver.js';
+const JOIN = 'src/odds-join.js';
 const sh = (c, a, t = 60000) => execFileSync(c, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: t });
 
-const d = sh('git', ['status', '--porcelain', '--', RESOLVER]).trim();
-if (d) { console.error(`FAIL — ${RESOLVER} is dirty; refusing to mutate.\n${d}`); process.exit(1); }
+// Restored with git checkout, so a dirty file would lose its edits: refuse.
+for (const f of [RESOLVER, JOIN]) {
+  const d = sh('git', ['status', '--porcelain', '--', f]).trim();
+  if (d) { console.error(`FAIL — ${f} is dirty; refusing to mutate.\n${d}`); process.exit(1); }
+}
 
 const MUTATIONS = [
   { file: RESOLVER,
@@ -36,6 +40,11 @@ const MUTATIONS = [
     anchor: "function resolveTeamKey(name) {\n    return resolveEntity('team', name);",
     replace: "function resolveTeamKey(name) {\n    return foldTeamName(name);",
     expect: 'E resolveTeamKey is untouched for a bare form' },
+  { file: JOIN,
+    name: 'S6  the join stops reading names it cannot key, so a CFB school misses its own game',
+    anchor: '  const same = judged ? (a, v) => keyed(a, v) || nameMatches(a, v) : keyed;',
+    replace: '  const same = keyed;',
+    expect: 'C a CFB row with a kickoff finds its own game in its own payload' },
   // S5 WAS HERE AND IS DELIBERATELY GONE: "the join stops passing the payload".
   // This check cannot discriminate it. Its MLS fixture is a payload where the
   // alias is CORRECT, so dropping the payload still yields coloradorapids and
@@ -74,8 +83,10 @@ for (const m of MUTATIONS) {
   }
 }
 
-const post = sh('git', ['status', '--porcelain', '--', RESOLVER]).trim();
-if (post) { console.error(`FAIL — ${RESOLVER} not restored:\n${post}`); process.exit(1); }
-console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; ${RESOLVER} restored clean`);
+for (const f of [RESOLVER, JOIN]) {
+  const post = sh('git', ['status', '--porcelain', '--', f]).trim();
+  if (post) { console.error(`FAIL — ${f} not restored:\n${post}`); process.exit(1); }
+}
+console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; ${RESOLVER} and ${JOIN} restored clean`);
 if (bad) { console.error(`FAIL — ${bad} mutation(s) not caught.`); process.exit(1); }
 console.log('PASS');
