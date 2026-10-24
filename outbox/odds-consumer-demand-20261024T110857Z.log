@@ -1,0 +1,95 @@
+=== odds per-consumer demand  utc=2026-10-24T11:08:57.495Z ===
+days: 2026-10-21 .. 2026-10-23 (3 closed UTC days)   games read for dates 2026-10-19 .. 2026-10-24
+
+── ambientCaptureClosingOdds  3 credits/call  https://api.the-odds-api.com/v4/sports/X/odds?regions=us&markets=h2h,spreads,totals&oddsFormat=american
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21      33      81      81             2.5x         2.5x   16 games
+  2026-10-22      24       9       9             0.4x         0.4x   14 games
+  2026-10-23      33      27      27             0.8x         0.8x   18 games
+
+── handleCFLOddsProbs  6 credits/call  https://api.the-odds-api.com/v4/sports/americanfootball_cfl/odds?markets=h2h,spreads,totals&regions=us,eu&oddsFormat=decimal
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21       0     138      84   spend, no need  spend, no need   0 games, 0 kickoffs
+  2026-10-22       0     174      84   spend, no need  spend, no need   0 games, 0 kickoffs
+  2026-10-23       6      54      54             9.0x         9.0x   2 games, 2 kickoffs
+
+── fetchSportOddsLive  3 credits/call  https://api.the-odds-api.com/v4/sports/X/odds?markets=h2h,spreads,totals&regions=us&oddsFormat=american
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21      12     291     291            24.3x        24.3x   4 sport-days
+  2026-10-22      12     438     438            36.5x        36.5x   4 sport-days
+  2026-10-23      27     375     375            13.9x        13.9x   9 sport-days
+
+── fetchSportOddsHistorical  30 credits/call  https://api.the-odds-api.com/v4/historical/sports/X/odds?date=X&markets=h2h,spreads,totals&regions=us&oddsFormat=american
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21      30     360     360            12.0x        12.0x   1 sport-dates, +2 unwritable
+  2026-10-22      60     900     900            15.0x        15.0x   2 sport-dates, +3 unwritable
+  2026-10-23       0     180     180   spend, no need  spend, no need   0 sport-dates, +4 unwritable
+
+── getWCPregameLambdas  4 credits/call  https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?markets=h2h,totals&regions=us,eu&oddsFormat=decimal
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21       0       8       0   spend, no need       both 0   0 kickoffs
+  2026-10-22       0       0       0           both 0       both 0   0 kickoffs
+  2026-10-23       0       0       0           both 0       both 0   0 kickoffs
+
+── handleWCOddsProbs  4 credits/call  https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?markets=h2h,totals&regions=us,eu&oddsFormat=decimal
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21       0       0       0           both 0       both 0   outside the cron window 2026-06-11..2026-07-20
+  2026-10-22       0       0       0           both 0       both 0   outside the cron window 2026-06-11..2026-07-20
+  2026-10-23       0       0       0           both 0       both 0   outside the cron window 2026-06-11..2026-07-20
+
+── oddsProxyRoute  
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21       0       0       0           both 0       both 0   no FIELD consumer
+  2026-10-22       0       0       0           both 0       both 0   no FIELD consumer
+  2026-10-23       0       0       0           both 0       both 0   no FIELD consumer
+
+── wpResolver  3 credits/call  https://api.the-odds-api.com/v4/sports/X/odds?markets=h2h,spreads,totals&regions=us&oddsFormat=american
+  day          demand  charged    kept   charged/demand  kept/demand   units
+  2026-10-21       —       0       0          UNKNOWN      UNKNOWN   pick volume not readable from CI
+  2026-10-22       —       0       0          UNKNOWN      UNKNOWN   pick volume not readable from CI
+  2026-10-23       —       0       0          UNKNOWN      UNKNOWN   pick volume not readable from CI
+
+  fetchSportOddsHistorical: 270 credits of units in basketball_nba, icehockey_nhl, americanfootball_nfl, americanfootball_ncaaf are
+  printed as "unwritable" and kept out of demand: the join cannot write their closing line
+  (as of 2026-10-21, docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md). Their fetches are inside "charged".
+
+── ambientFetchLiveOdds  2 credits/call  https://api.the-odds-api.com/v4/sports/X/odds-live?regions=us,eu&markets=h2h&oddsFormat=decimal
+  UNSERVED: ODDS_LIVE_PATH_404 is true in src/ambient-do.js, so this path never calls the vendor.
+  Demand IF SERVED = live minutes per sport / _getOddsCooldown x cost. Not added to any total below.
+  live window per sport = median(finalized_at - start_time) over 2395 finals since 2026-08-22:
+    baseball_mlb                 181 min  (n=492)
+    basketball_nba               166 min  (n=89)
+    basketball_wnba              150 min  (n=75)
+    icehockey_nhl                171 min  (n=205)
+    soccer_epl                   121 min  (n=70)
+    soccer_france_ligue_one      121 min  (n=63)
+    soccer_germany_bundesliga    121 min  (n=55)
+    soccer_italy_serie_a         121 min  (n=71)
+    soccer_spain_la_liga         121 min  (n=82)
+    soccer_usa_mls               136 min  (n=152)
+  day          if-served  charged    kept
+  2026-10-21       1684       0       0   4 sports live
+  2026-10-22       1312       0       0   4 sports live
+  2026-10-23       2762       0       0   7 sports live
+
+── 3-day summary
+  consumer                     demand  charged     kept   charged/demand  kept/demand
+  ambientCaptureClosingOdds       90      117      117             1.3x         1.3x
+  handleCFLOddsProbs               6      366      222            61.0x        37.0x
+  fetchSportOddsLive              51     1104     1104            21.6x        21.6x
+  fetchSportOddsHistorical        90     1440     1440            16.0x        16.0x
+  getWCPregameLambdas              0        8        0   spend, no need       both 0
+  handleWCOddsProbs                0        0        0           both 0       both 0
+  oddsProxyRoute                   0        0        0           both 0       both 0
+  wpResolver                       —        0        0          UNKNOWN      UNKNOWN
+  MODELLED TOTAL                 237     3035     2883            12.8x        12.2x
+  fetchSportOddsHistorical, unwritable: 270 credits, outside the total above
+  ambientFetchLiveOdds, IF SERVED: 5758 credits over 3 days (1919/day), outside the total above
+
+COVERAGE: 7 of 9 consumers have a demand model; wpResolver is UNKNOWN (charged 0
+in 3 days) and ambientFetchLiveOdds is printed IF SERVED, apart. 267 game rows read, 23 with
+no usable start_time: the CFL day count and the World Cup upper bound read them; every
+other model skips them. Demand is a FLOOR of need under each model stated in the header
+— a cadence above it is a product choice, not measured need. CI-triggered calls (probes,
+the deploy step) are traffic and sit inside "charged", not "demand". The vendor may not
+list every scheduled game (preseason, unlisted leagues); such games still count as demand.
