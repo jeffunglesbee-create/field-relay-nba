@@ -1,0 +1,10 @@
+=== NBA CDN egress probe  utc=2026-10-24T11:26:26.791Z  ET date 2026-10-24 ===
+{"label":"direct, bare","url":"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json","status":403,"ms":320,"bytes":445,"type":"text/html","server":null,"games":null,"source":null,"head":"<HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1> You don't have permission to access \"http&#58;&#47;&#47;cdn&#46;nba&#46;com&#47"}
+{"label":"direct, headers","url":"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json","status":200,"ms":78,"bytes":37865,"type":"text/plain","server":null,"games":12,"source":null}
+{"label":"relay","url":"https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json","status":403,"ms":239,"bytes":16,"type":"text/plain;charset=UTF-8","server":"cloudflare","games":null,"source":null,"head":"nba returned 403"}
+{"label":"relay board","url":"https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-10-24","status":200,"ms":60,"bytes":100,"type":"application/json","server":"cloudflare","games":0,"source":"nba-cdn-empty"}
+{"label":"espn","url":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20261024","status":200,"ms":162,"bytes":159294,"type":"application/json;charset=UTF-8","server":null,"games":8,"source":null}
+
+VERDICT: cdn-refuses-the-worker
+COVERAGE: one read of each URL from one GitHub-hosted runner at one instant. A runner IP is
+not a Cloudflare egress IP, which is the point; it is also one IP, not every runner's.
