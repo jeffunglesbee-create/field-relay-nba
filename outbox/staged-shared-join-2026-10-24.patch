@@ -1,0 +1,3128 @@
+From 4e6ef275dbb61b53d2077515763da5bb46f3f6f8 Mon Sep 17 00:00:00 2001
+From: FIELD CI <claude@field.dev>
+Date: Fri, 23 Oct 2026 23:31:04 +0000
+Subject: [PATCH 1/2] fix: no opening line is written once its game has started
+
+snapshotCronOdds selects rows with finalized_at IS NULL, so a game in
+progress gets through, and the live feed still lists it. 7 of the 191
+odds_api opening writes since 10-01 were captured after kickoff (MLB 3,
+CFL 2, MLS 1, WNBA 1, up to 241 minutes in; D1, 2026-10-23). The worker
+backfill stamps its noon historical snapshot, so a game that tipped before
+noon was in play.
+
+Both writers now skip a line whose capture instant is at or after the
+row's kickoff, or the vendor's commence for a row that has no kickoff.
+kickoffMark reads an unreadable instant as unknown, never as late, so it
+refuses nothing it cannot judge. Both SELECTs gain start_time; their WHERE
+clauses and the backfill's deliberately unguarded finality are unchanged.
+A refused backfill row is skipped like a miss, so a date holding only such
+rows is still marked tried.
+
+This is the first commit of shape (a) of
+docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md. It
+stands alone with today's join, and the next commit gives the join its
+per-team rule.
+
+scripts/check-odds-join-shared.mjs runs the REAL snapshotCronOdds and
+runOddsBackfillForDate, text-extracted with each anchor asserted unique,
+over node:sqlite with a stubbed vendor. It checks:
+- the refusal on each clock alone, for both writers and both backfill
+  tables;
+- the kickoff instant itself;
+- that index.js imports every helper the harness hands the writers.
+6 of 6 pass, and the 5 refusal scenarios fail against the parent.
+
+mutate-odds-join-shared works on copies of the source and counts a mutant
+only when its named scenario fails: 10 of 10. mutate-odds-writers-sport-
+scoped's M1 anchor moves with the cron SELECT. The harness hardening came
+from an adversarial review (workflow wf_ffee75ef-5a0).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_017FXC1oRxRstzY2xGJBFu2k
+---
+ .github/workflows/deploy.yml                 |   7 +
+ .github/workflows/guards.yml                 |   3 +
+ scripts/check-odds-join-shared.mjs           | 214 +++++++++++++++++++
+ scripts/mutate-odds-join-shared.mjs          |  79 +++++++
+ scripts/mutate-odds-writers-sport-scoped.mjs |   4 +-
+ src/index.js                                 |  21 +-
+ 6 files changed, 322 insertions(+), 6 deletions(-)
+ create mode 100644 scripts/check-odds-join-shared.mjs
+ create mode 100644 scripts/mutate-odds-join-shared.mjs
+
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index a3379f1..7e594e3 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -603,6 +603,13 @@ jobs:
+           node scripts/check-odds-writers-sport-scoped.mjs
+           node scripts/mutate-odds-writers-sport-scoped.mjs
+ 
++      # The odds writers run for real over node:sqlite: no opening line after
++      # kickoff (docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md).
++      - name: the odds writers, run for real, write only pre-kickoff lines
++        run: |
++          node scripts/check-odds-join-shared.mjs
++          node scripts/mutate-odds-join-shared.mjs
++
+       # The keeper table decides which of two duplicate archive rows survives,
+       # and its output feeds a DELETE. A classifier that answers every case is
+       # the failure mode: the set it refuses to decide is the set a delete must
+diff --git a/.github/workflows/guards.yml b/.github/workflows/guards.yml
+index 065f11a..4d5f666 100644
+--- a/.github/workflows/guards.yml
++++ b/.github/workflows/guards.yml
+@@ -182,6 +182,9 @@ jobs:
+           node scripts/check-ceiling-reached.mjs
+           node scripts/mutate-ceiling-reached.mjs
+ 
++      - name: the odds writers, run for real, write only pre-kickoff lines
++        run: node scripts/check-odds-join-shared.mjs
++
+       - name: every table a script creates is on the /d1/execute allow-list
+         run: |
+           node scripts/check-script-created-tables.mjs --self-test
+diff --git a/scripts/check-odds-join-shared.mjs b/scripts/check-odds-join-shared.mjs
+new file mode 100644
+index 0000000..ec3a977
+--- /dev/null
++++ b/scripts/check-odds-join-shared.mjs
+@@ -0,0 +1,214 @@
++#!/usr/bin/env node
++// The odds writers that join a vendor payload to archive rows, run for real.
++// docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md.
++//
++// WHAT IT RUNS. The REAL snapshotCronOdds and runOddsBackfillForDate, and
++// extractOddsForGame with the constants they read, text-extracted from
++// src/index.js (every anchor asserted to occur exactly once) and built with
++// new Function, as scripts/check-archive-date-keying.mjs does. Their imports
++// are the real modules: the join, kickoffMark, the odds shape helpers and
++// reconcile. Only the vendor is stubbed, and the archive is node:sqlite behind
++// a D1-shaped adapter, so every SELECT, UPDATE and change_log row is the
++// writer's own SQL.
++//
++// THE PRICES NAME THEIR SOURCE. Each stub event carries a sentinel moneyline
++// per side (100000+i home, 200000+i away), so a written blob says which event
++// and which side it came from, and a wrong game or a swapped price is visible.
++//
++//   node scripts/check-odds-join-shared.mjs
++//   INDEX_SRC=<copy of src/index.js> ...   runs the writers from that text
++//   (scripts/mutate-odds-join-shared.mjs uses it; the tree is never mutated)
++
++import fs from 'node:fs';
++import path from 'node:path';
++import { DatabaseSync } from 'node:sqlite';
++import { fileURLToPath, pathToFileURL } from 'node:url';
++
++const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
++const INDEX = process.env.INDEX_SRC || path.join(ROOT, 'src/index.js');
++const SRC = fs.readFileSync(INDEX, 'utf8');
++const imp = (f) => import(pathToFileURL(path.join(ROOT, 'src', f)).href);
++const { indexOddsByPair, findOddsForRow } = await imp('odds-join.js');
++const { stampKickoff, kickoffMark } = await imp('odds-kickoff.js');
++const { drawPriceFrom, spreadFrom } = await imp('odds-shape.js');
++const { reconcile } = await imp('sync-reconciler.js');
++const { archiveSportToOddsKey } = await imp('odds-sport-keys.js');
++
++// ── extraction ──────────────────────────────────────────────────────────────
++const once = (anchor) => {
++  const n = SRC.split(anchor).length - 1;
++  if (n !== 1) throw new Error(`ANCHOR ${JSON.stringify(anchor.slice(0, 70))} occurs ${n} times in ${INDEX}`);
++  return SRC.indexOf(anchor);
++};
++// From a signature to its matching close brace, skipping strings, template
++// literals and comments.
++function balanced(from) {
++  let i = SRC.indexOf('{', from), depth = 0, q = null;
++  for (; i < SRC.length; i++) {
++    const c = SRC[i], n = SRC[i + 1];
++    if (q) { if (c === '\\') { i++; continue; } if (c === q) q = null; continue; }
++    if (c === '/' && n === '/') { i = SRC.indexOf('\n', i); continue; }
++    if (c === '/' && n === '*') { i = SRC.indexOf('*/', i) + 1; continue; }
++    if (c === '"' || c === "'" || c === '`') { q = c; continue; }
++    if (c === '{') depth++;
++    else if (c === '}' && --depth === 0) return SRC.slice(from, i + 1);
++  }
++  throw new Error(`unbalanced body from offset ${from}`);
++}
++const fnText = (sig) => balanced(once(sig));
++const constLine = (a) => { const i = once(a); return SRC.slice(i, SRC.indexOf('\n', i)); };
++const PRELUDE = [constLine('const ODDS_QUOTA_FLOOR = '), constLine('const ODDS_PREFERRED_BOOK = '),
++  fnText('function extractOddsForGame(oddsGame,')].join('\n');
++const DEPS = ['indexOddsByPair', 'findOddsForRow', 'stampKickoff', 'kickoffMark', 'drawPriceFrom', 'spreadFrom',
++  'reconcile', 'archiveSportToOddsKey', 'fetchSportOddsLive', 'fetchSportOddsHistorical', '_oddsPrimaryKey'];
++const build = (body, name) => new Function(...DEPS, `${PRELUDE}\n${body}\nreturn ${name};`);
++// THE HARNESS SUPPLIES THE WRITERS' IMPORTS, so it must prove index.js supplies
++// them too: every DEPS name the extracted code calls is imported by one of
++// index.js's own import lines or defined in it. Without this, deleting
++// kickoffMark from index.js's import left every scenario green (review,
++// 2026-10-24) while the deployed worker would throw on its first late line.
++const IMPORTED = new Set();
++for (const m of SRC.matchAll(/^import\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/gm)) {
++  for (const part of m[1].split(',')) { const n = part.trim().split(/\s+as\s+/).pop(); if (n) IMPORTED.add(n); }
++}
++const DEFINED = (n) => new RegExp(`^(?:export\\s+)?(?:async\\s+)?function\\s+${n}\\s*\\(`, 'm').test(SRC);
++const CALLED_TEXT = [PRELUDE, fnText('async function snapshotCronOdds('), fnText('async function runOddsBackfillForDate(')].join('\n');
++const UNSUPPLIED = DEPS.filter((n) => new RegExp(`\\b${n}\\s*\\(`).test(CALLED_TEXT) && !IMPORTED.has(n) && !DEFINED(n));
++const mkCron = build(fnText('async function snapshotCronOdds('), 'snapshotCronOdds');
++const mkBackfill = build(fnText('async function runOddsBackfillForDate('), 'runOddsBackfillForDate');
++
++// ── the archive, on SQLite ──────────────────────────────────────────────────
++function makeDb() {
++  const db = new DatabaseSync(':memory:');
++  for (const t of ['regular_season_games', 'postseason_games']) {
++    db.exec(`CREATE TABLE ${t} (id TEXT PRIMARY KEY, sport TEXT, league TEXT, date TEXT, home TEXT, away TEXT,
++      start_time TEXT, series_key TEXT, opening_odds TEXT, closing_odds TEXT, inplay_odds TEXT, finalized_at TEXT)`);
++  }
++  db.exec(`CREATE TABLE change_log (id INTEGER PRIMARY KEY AUTOINCREMENT, game_id TEXT NOT NULL, source TEXT NOT NULL,
++    field TEXT NOT NULL, old_value TEXT, new_value TEXT NOT NULL, ts TEXT NOT NULL DEFAULT (datetime('now')), consumed INTEGER DEFAULT 0)`);
++  const stmt = (sql, p = []) => ({
++    bind: (...a) => stmt(sql, a),
++    all: async () => ({ results: db.prepare(sql).all(...p) }),
++    first: async () => db.prepare(sql).get(...p) ?? null,
++    run: async () => ({ success: true, meta: { changes: Number(db.prepare(sql).run(...p).changes) } }),
++    now: () => db.prepare(sql).run(...p),
++  });
++  const batch = async (list) => {
++    db.exec('BEGIN');
++    try { const out = list.map((s) => ({ success: true, meta: { changes: Number(s.now().changes) } })); db.exec('COMMIT'); return out; }
++    catch (e) { db.exec('ROLLBACK'); throw e; }
++  };
++  return { db, d1: { prepare: (sql) => stmt(sql), batch } };
++}
++function seed(db, rows, table = 'regular_season_games') {
++  const ins = db.prepare(`INSERT INTO ${table} (id, sport, date, home, away, start_time, finalized_at) VALUES (?,?,?,?,?,?,?)`);
++  for (const r of rows) ins.run(r.id, r.sport, r.date, r.home, r.away, r.start_time ?? null, r.finalized_at ?? null);
++}
++const blobOf = (db, id, col, table = 'regular_season_games') => {
++  const r = db.prepare(`SELECT ${col} FROM ${table} WHERE id = ?`).get(id);
++  return r && r[col] ? JSON.parse(r[col]) : null;
++};
++
++// ── the vendor and the clock ────────────────────────────────────────────────
++const priced = (evs) => evs.map((e, i) => ({ ...e, bookmakers: [{ key: 'draftkings', markets: [{ key: 'h2h', outcomes: [
++  { name: e.home_team, price: 100000 + i }, { name: e.away_team, price: 200000 + i }] }] }] }));
++const RealDate = Date;
++let clock = 0;
++class PinnedDate extends RealDate {
++  constructor(...a) { if (a.length) super(...a); else super(clock); }
++  static now() { return clock; }
++}
++async function at(iso, fn) {
++  clock = RealDate.parse(iso); globalThis.Date = PinnedDate;
++  try { return await fn(); } finally { globalThis.Date = RealDate; }
++}
++function deps(world) {
++  return [indexOddsByPair, findOddsForRow, stampKickoff, kickoffMark, drawPriceFrom, spreadFrom, reconcile, archiveSportToOddsKey,
++    async (env, key) => ({ games: world.live?.[key] || [], quotaRemaining: 10000, ok: true }),
++    async (env, key, iso) => ({ games: world.hist?.[`${key}|${iso}`] || [], quotaRemaining: 10000, ok: true, snapshotAt: world.snapshotAt }),
++    () => 'k'];
++}
++async function cronOne(row, events, now) {
++  const { db, d1 } = makeDb(); seed(db, [row]);
++  const evs = priced(events);
++  await at(now, () => mkCron(...deps({ live: { [archiveSportToOddsKey(row.sport)]: evs } }))({ ARCHIVE_DB: d1 }, row.date));
++  return blobOf(db, row.id, 'opening_odds');
++}
++async function backfillOne(row, events, snapshotAt, table = 'regular_season_games') {
++  const { db, d1 } = makeDb(); seed(db, [row], table);
++  const evs = priced(events);
++  const res = await at('2026-10-23T05:00:00Z', () => mkBackfill(...deps({
++    hist: { [`${archiveSportToOddsKey(row.sport)}|${row.date}`]: evs }, snapshotAt }))({ ARCHIVE_DB: d1, ODDS_API_KEY: 'k' }, row.date));
++  return { blob: blobOf(db, row.id, 'opening_odds', table), res };
++}
++
++let failed = 0, scenarios = 0;
++const ok = (name, cond, detail) => { scenarios++; if (!cond) failed++; console.log(`${cond ? 'ok  ' : 'FAIL'}  ${name}  — ${detail}`); };
++
++ok('I0 every helper the writers call is imported or defined by index.js itself', UNSUPPLIED.length === 0,
++  UNSUPPLIED.length ? `not supplied by index.js: ${UNSUPPLIED.join(', ')}` : `${DEPS.length} names checked`);
++
++// ── R: no opening line once the game has started ────────────────────────────
++// A game in progress is not finalised, so the cron's finalized_at IS NULL lets
++// it through, and the live feed still lists it. Measured: 7 of 191 opening
++// writes since 10-01 were captured after kickoff.
++{
++  // The feed restamps a game in progress (commence +8 min here), so only the
++  // row's own kickoff can refuse it: each clock is tested alone.
++  const row = { id: 'MLB_2026-09-15_e401816943', sport: 'MLB', date: '2026-09-15', home: 'Rays', away: 'Athletics', start_time: '2026-09-15T22:40Z' };
++  const ev = [{ id: 'e', home_team: 'Tampa Bay Rays', away_team: 'Athletics', commence_time: '2026-09-15T22:48:00Z' }];
++  const late = await cronOne(row, ev, '2026-09-15T22:45:00Z');
++  const atKick = await cronOne(row, ev, '2026-09-15T22:40:00Z');
++  const early = await cronOne(row, ev, '2026-09-15T22:39:59Z');
++  ok('R1 the cron writes before the row\'s kickoff and refuses at and after it', !late && !atKick && !!early,
++    `5 min after kickoff written ${!!late}; at the kickoff instant ${!!atKick}; one second before ${!!early}`);
++}
++{
++  // No kickoff on the row: the vendor's commence is the clock.
++  const row = { id: '2026-10-14-mls-stl-van', sport: 'MLS', date: '2026-10-14', home: 'St. Louis CITY SC', away: 'Vancouver Whitecaps FC', start_time: null };
++  const ev = [{ id: 'e', home_team: 'St. Louis City SC', away_team: 'Vancouver Whitecaps FC', commence_time: '2026-10-15T00:30:00Z' }];
++  const late = await cronOne(row, ev, '2026-10-15T00:40:00Z');
++  const early = await cronOne(row, ev, '2026-10-14T20:00:00Z');
++  ok('R2 a row with no kickoff is refused after the vendor\'s commence, written before it', !late && !!early,
++    `after commence written ${!!late}; before ${!!early}`);
++}
++{
++  // The worker backfill stamps the noon snapshot; a game that started before
++  // it was in play. The row's own clock.
++  // The snapshot lists it restamped after the snapshot, so only the row's
++  // kickoff can refuse it.
++  const row = { id: 'MLB_2026-09-20_e401816990', sport: 'MLB', date: '2026-09-20', home: 'Rays', away: 'Athletics', start_time: '2026-09-20T11:05Z' };
++  const ev = [{ id: 'e', home_team: 'Tampa Bay Rays', away_team: 'Athletics', commence_time: '2026-09-20T12:05:00Z' }];
++  const late = await backfillOne(row, ev, '2026-09-20T11:55:36Z');
++  const atKick = await backfillOne({ ...row, start_time: '2026-09-20T11:55:36Z' }, ev, '2026-09-20T11:55:36Z');
++  const early = await backfillOne({ ...row, start_time: '2026-09-20T17:05Z' },
++    [{ ...ev[0], commence_time: '2026-09-20T17:05:00Z' }], '2026-09-20T11:55:36Z');
++  ok('R3 the backfill refuses a snapshot taken at or after the row\'s kickoff, writes one before it',
++    !late.blob && !atKick.blob && !!early.blob && late.res.odds_populated === 0 && early.blob.captured_at === '2026-09-20T11:55:36Z',
++    `after written ${!!late.blob} (odds_populated ${late.res.odds_populated}); at the kickoff instant ${!!atKick.blob}; before ${!!early.blob}, stamped ${early.blob?.captured_at}`);
++}
++{
++  // The vendor's commence, for a backfill row with no kickoff.
++  const row = { id: '2026-09-20-mls-stl-van', sport: 'MLS', date: '2026-09-20', home: 'St. Louis CITY SC', away: 'Vancouver Whitecaps FC', start_time: null };
++  const late = await backfillOne(row, [{ id: 'e', home_team: 'St. Louis City SC', away_team: 'Vancouver Whitecaps FC', commence_time: '2026-09-20T11:00:00Z' }], '2026-09-20T11:55:36Z');
++  const early = await backfillOne(row, [{ id: 'e', home_team: 'St. Louis City SC', away_team: 'Vancouver Whitecaps FC', commence_time: '2026-09-21T00:30:00Z' }], '2026-09-20T11:55:36Z');
++  ok('R4 a backfill row with no kickoff is refused after the vendor\'s commence, written before it', !late.blob && !!early.blob,
++    `after commence written ${!!late.blob}; before ${!!early.blob}`);
++}
++
++{
++  // The same, for a postseason row: the backfill reads that table separately.
++  const row = { id: 'MLB_MLB-WC-TB-OAK_G1_2026-09-29', sport: 'MLB', date: '2026-09-29', home: 'Rays', away: 'Athletics', start_time: '2026-09-29T11:05Z' };
++  const ev = [{ id: 'e', home_team: 'Tampa Bay Rays', away_team: 'Athletics', commence_time: '2026-09-29T12:05:00Z' }];
++  const late = await backfillOne(row, ev, '2026-09-29T11:55:36Z', 'postseason_games');
++  const early = await backfillOne({ ...row, start_time: '2026-09-29T17:05Z' },
++    [{ ...ev[0], commence_time: '2026-09-29T17:05:00Z' }], '2026-09-29T11:55:36Z', 'postseason_games');
++  ok('R5 the backfill refuses a postseason row the same way', !late.blob && !!early.blob,
++    `after written ${!!late.blob}; before ${!!early.blob}`);
++}
++
++console.log(failed ? `\nFAILED: ${failed}` : '\nall scenarios pass');
++console.log(`COVERAGE: the REAL snapshotCronOdds and runOddsBackfillForDate from ${path.relative(ROOT, INDEX) || INDEX},`);
++console.log(`on node:sqlite with a stubbed vendor: ${scenarios} scenarios, each a single row. It does not run the`);
++console.log('/archive/game closing write, the live vendor, or any deployed worker.');
++process.exit(failed ? 1 : 0);
+diff --git a/scripts/mutate-odds-join-shared.mjs b/scripts/mutate-odds-join-shared.mjs
+new file mode 100644
+index 0000000..fd65c50
+--- /dev/null
++++ b/scripts/mutate-odds-join-shared.mjs
+@@ -0,0 +1,79 @@
++#!/usr/bin/env node
++// Rule 90 for scripts/check-odds-join-shared.mjs. Each mutation restores a
++// state the check exists to end, in a COPY of the source (the tree is never
++// touched), asserts its anchor is unique and the replacement is in the copy,
++// and counts as caught only when the scenario it names prints FAIL. A crash or
++// a different scenario going red is reported, not counted.
++//
++//   node scripts/mutate-odds-join-shared.mjs
++
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import { spawnSync } from 'node:child_process';
++import { fileURLToPath } from 'node:url';
++
++const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
++const CHECK = path.join(ROOT, 'scripts/check-odds-join-shared.mjs');
++const INDEX = path.join(ROOT, 'src/index.js');
++
++const M = [
++  ['X6 the cron forgets the row\'s kickoff', INDEX,
++   '        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) continue;',
++   '        if (false\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) continue;', 'R1'],
++  ['X7 the cron forgets the vendor\'s commence', INDEX,
++   '            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) continue;',
++   '            || false) continue;', 'R2'],
++  ['X8 the cron stops selecting start_time', INDEX,
++   '        `SELECT id, home, away, start_time FROM ${table}',
++   '        `SELECT id, home, away FROM ${table}', 'R1'],
++  ['B1 the backfill forgets the row\'s kickoff', INDEX,
++   '        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) { oddsSkipped++; continue; }',
++   '        if (false\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) { oddsSkipped++; continue; }', 'R3'],
++  ['B2 the backfill forgets the vendor\'s commence', INDEX,
++   '            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) { oddsSkipped++; continue; }',
++   '            || false) { oddsSkipped++; continue; }', 'R4'],
++  ['B3 the backfill stops selecting start_time for regular-season rows', INDEX,
++   '    `SELECT id, sport, league, home, away, start_time FROM regular_season_games',
++   '    `SELECT id, sport, league, home, away FROM regular_season_games', 'R3'],
++  ['B4 the backfill stops selecting start_time for postseason rows', INDEX,
++   '    `SELECT id, sport, league, home, away, start_time FROM postseason_games',
++   '    `SELECT id, sport, league, home, away FROM postseason_games', 'R5'],
++  // The refusal at the kickoff instant itself (late_minutes 0), not only after.
++  ['X15 the cron refuses only strictly after kickoff', INDEX,
++   '        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) continue;',
++   '        if (kickoffMark(odds.captured_at, row.start_time).late_minutes > 0\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes > 0) continue;', 'R1'],
++  ['X16 the backfill refuses only strictly after kickoff', INDEX,
++   '        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) { oddsSkipped++; continue; }',
++   '        if (kickoffMark(odds.captured_at, row.start_time).late_minutes > 0\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes > 0) { oddsSkipped++; continue; }', 'R3'],
++  // The harness supplies imports; index.js must too.
++  ['X17 index.js stops importing kickoffMark', INDEX,
++   "import { stampKickoff, kickoffMark } from './odds-kickoff.js';",
++   "import { stampKickoff } from './odds-kickoff.js';", 'I0'],
++];
++
++const base = spawnSync(process.execPath, [CHECK], { encoding: 'utf8' });
++if (base.status !== 0) { console.log(`BASELINE RED: the check fails on clean source; nothing run.\n${base.stdout}${base.stderr}`); process.exit(1); }
++
++const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mutate-odds-join-shared-'));
++let caught = 0;
++try {
++  for (const [name, file, anchor, repl, expect] of M) {
++    const src = fs.readFileSync(file, 'utf8');
++    const n = src.split(anchor).length - 1;
++    if (n !== 1) { console.log(`ANCHOR      ${name}: occurs ${n} times — NOTHING MUTATED`); continue; }
++    const mutant = path.join(tmp, path.basename(file));
++    fs.writeFileSync(mutant, src.replace(anchor, repl));
++    if (!fs.readFileSync(mutant, 'utf8').includes(repl)) { console.log(`NOTAPPLIED  ${name}`); continue; }
++    const r = spawnSync(process.execPath, [CHECK], { encoding: 'utf8', env: { ...process.env, INDEX_SRC: mutant } });
++    const red = (r.stdout.match(/^FAIL  \S+/gm) || []).map((l) => l.slice(6));
++    if (r.status === 0) console.log(`NOT CAUGHT  ${name}`);
++    else if (!red.includes(expect)) console.log(`HARNESS ERROR ${name}: red ${JSON.stringify(red)}, wanted ${expect}\n${(r.stderr || '').slice(0, 300)}`);
++    else { caught++; console.log(`CAUGHT      ${name} by ${expect}${red.length > 1 ? ` (also ${red.filter((x) => x !== expect).join(', ')})` : ''}`); }
++  }
++} finally { fs.rmSync(tmp, { recursive: true, force: true }); }
++
++console.log(`\n${caught} of ${M.length} mutations caught.`);
++console.log('COVERAGE: the after-kickoff refusal and the start_time it needs, in snapshotCronOdds and');
++console.log('runOddsBackfillForDate (src/index.js). Mutants are copies; the tree is not modified.');
++process.exit(caught === M.length ? 0 : 1);
+diff --git a/scripts/mutate-odds-writers-sport-scoped.mjs b/scripts/mutate-odds-writers-sport-scoped.mjs
+index 4b2ed16..c4c2186 100644
+--- a/scripts/mutate-odds-writers-sport-scoped.mjs
++++ b/scripts/mutate-odds-writers-sport-scoped.mjs
+@@ -23,8 +23,8 @@ const MUTATIONS = [
+     // (docs/CC-CMD-2026-08-25-misjoined-opening-odds.md) split the WHERE clause
+     // across a third line. The harness reported ANCHOR again rather than a
+     // false CAUGHT, which is the same corollary paying twice on one query.
+-    anchor: 'SELECT id, home, away FROM ${table}\n          WHERE date = ? AND sport = ? AND opening_odds IS NULL\n            AND finalized_at IS NULL`',
+-    replace: 'SELECT id, home, away FROM ${table}\n          WHERE date = ? AND opening_odds IS NULL\n            AND finalized_at IS NULL`',
++    anchor: 'SELECT id, home, away, start_time FROM ${table}\n          WHERE date = ? AND sport = ? AND opening_odds IS NULL\n            AND finalized_at IS NULL`',
++    replace: 'SELECT id, home, away, start_time FROM ${table}\n          WHERE date = ? AND opening_odds IS NULL\n            AND finalized_at IS NULL`',
+     expect: 'snapshotCronOdds selects only rows of the sport it just fetched' },
+ 
+   { name: 'M2  the backfill hardcodes one sport instead of dispatching per bucket',
+diff --git a/src/index.js b/src/index.js
+index 57a8bbb..4aa0248 100644
+--- a/src/index.js
++++ b/src/index.js
+@@ -5,7 +5,7 @@ import { GameDO } from './game-do.js';
+ import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOddsKey } from './odds-sport-keys.js';
+ import { readQuotaHeader } from './budget-helpers.js';
+ import { oddsDigest, reachableCollisions as reachableOf } from './collision-reach.js';
+-import { stampKickoff } from './odds-kickoff.js';
++import { stampKickoff, kickoffMark } from './odds-kickoff.js';
+ import { forwardBsdFields } from './bsd-fields.js';
+ // A closing line captured after kickoff is an in-play price. Prose must not
+ // call it a close -- MEASURED 2026-09-14: 126 debrief rows would have.
+@@ -6864,7 +6864,7 @@ async function snapshotCronOdds(env, dateKey) {
+     const oddsIndex = indexOddsByPair(games);
+     for (const table of ['regular_season_games', 'postseason_games']) {
+       const rows = await env.ARCHIVE_DB.prepare(
+-        `SELECT id, home, away FROM ${table}
++        `SELECT id, home, away, start_time FROM ${table}
+           WHERE date = ? AND sport = ? AND opening_odds IS NULL
+             AND finalized_at IS NULL`
+       ).bind(dateKey, sport).all();
+@@ -6874,10 +6874,18 @@ async function snapshotCronOdds(env, dateKey) {
+       // applied change is observable via /changelog/{date}.
+       const updates = [];
+       for (const row of (rows.results || [])) {
++        // NOT AN OPENING LINE ONCE THE GAME HAS STARTED, by either clock: the
++        // row's kickoff, or the vendor's commence for a row that has none.
++        // finalized_at IS NULL above lets a game in progress through, and 7 of
++        // 191 opening writes since 10-01 were captured after kickoff (MLB 3,
++        // CFL 2, MLS 1, WNBA 1; up to 241 minutes in). kickoffMark reads an
++        // unreadable instant as unknown, never as late, so it refuses nothing.
+         const og = findOddsForRow(oddsIndex, row.home, row.away);
+         if (!og) continue;
+         const odds = extractOddsForGame(og);
+         if (!odds) continue;
++        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null
++            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) continue;
+         updates.push({ id: row.id, fields: { opening_odds: JSON.stringify(odds) } });
+       }
+       if (updates.length) {
+@@ -6951,11 +6959,11 @@ async function runOddsBackfillForDate(env, isoDate) {
+   if (!apiKey) return { ok: false, reason: 'ODDS_API_KEY not configured', date: isoDate };
+ 
+   const rs = await env.ARCHIVE_DB.prepare(
+-    `SELECT id, sport, league, home, away FROM regular_season_games
++    `SELECT id, sport, league, home, away, start_time FROM regular_season_games
+       WHERE date = ? AND opening_odds IS NULL`
+   ).bind(isoDate).all();
+   const ps = await env.ARCHIVE_DB.prepare(
+-    `SELECT id, sport, league, home, away FROM postseason_games
++    `SELECT id, sport, league, home, away, start_time FROM postseason_games
+       WHERE date = ? AND opening_odds IS NULL`
+   ).bind(isoDate).all();
+ 
+@@ -7014,6 +7022,11 @@ async function runOddsBackfillForDate(env, isoDate) {
+         // this backfill happened to run.
+         const odds = extractOddsForGame(og, ODDS_PREFERRED_BOOK, snapshotAt);
+         if (!odds) { oddsSkipped++; continue; }
++        // The snapshot is noon; a game that tipped before it was in play.
++        // Skipped like a miss, so a date of only such rows is still marked
++        // tried: they never become pre-kickoff.
++        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null
++            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) { oddsSkipped++; continue; }
+         updates.push({ id: row.id, fields: { opening_odds: JSON.stringify(odds) } });
+       }
+       if (!updates.length) return;
+-- 
+2.43.0
+
+
+From 7aa907f96d097864670931e31e74f0b864e53c32 Mon Sep 17 00:00:00 2001
+From: FIELD CI <claude@field.dev>
+Date: Sat, 24 Oct 2026 00:31:12 +0000
+Subject: [PATCH 2/2] fix: one per-team join behind the three odds writers that
+ match by name
+
+findOddsForRow matched a row to a vendor event by both teams' resolved
+keys. For NBA, NHL, CFB and NFL that never matched: the archive stores
+'Capitals', 'Knicks', 'Missouri St', the vendor 'Washington Capitals', and
+no alias joins them. So the opening cron, the worker backfill and the
+/archive/game closing write paid for those sports and wrote nothing. The
+pair map also kept the LAST event listed for a pairing, so a series or a
+doubleheader could price a row from another game.
+
+Shape (a) of
+docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md,
+as the owner ruled it:
+- with a readable kickoff, a side matches on its resolved key or its name
+  tokens (the rule AmbientDO's capture runs), and the vendor event must
+  start within 90 minutes;
+- exactly one listing may qualify, as listed;
+- a row with no kickoff keeps the old rule (resolved keys, as listed),
+  now also exactly once;
+- the three callers hand the join the row's start_time.
+
+The closing path now matches the four sports too, so the noon snapshot
+becomes their closing line. The owner ruled that knowing it lands about
+13 hours before kickoff, where the CI backfill's line lands 21-82 minutes
+before.
+
+Reversed listings are not accepted. Each row is decided alone, so a split
+squad (same clubs, same instant, two cities; three NHL preseason pairs)
+had one listing price both rows, one from the other game. Reversed
+acceptance gained 1 row in 768 recorded pairs.
+
+JOIN_UNWRITABLE gets an end date instead of being deleted, so the demand
+script still keeps pre-fix days' unwritable fetches out of demand.
+
+Harness (scripts/check-odds-join-shared.mjs, the real writers on
+node:sqlite):
+- on 165 recorded rows, the four sports go from 0 to 110 of 112 right,
+  0 wrong; MLS from 40 to 41 of 43; MLB, CFL and WNBA unchanged;
+- the 09-12 CFB full feed: 73 right, 0 wrong;
+- covered: a split squad, doubleheader twins either side, several
+  listings with and without a kickoff, a cup row with no kickoff, an NBA
+  game in progress at the snapshot, the closing write.
+19 of 19 pass; 21 of 21 mutations caught.
+
+Gates:
+- G4 gains kickoff-bearing cases, and its N5 anchor moves: 43 of 43, 7 of
+  7 caught.
+- G5 gains a kickoff case and S6: 27 of 27, 5 of 5.
+- The demand script: 21 of 21.
+
+A design pass, two critics and an adversarial review (workflows
+wf_0d274771-67f and wf_ffee75ef-5a0) shaped this commit. Every finding
+was verified.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_017FXC1oRxRstzY2xGJBFu2k
+---
+ .github/workflows/deploy.yml                  |    6 +-
+ .github/workflows/guards.yml                  |    2 +-
+ .../fixture-odds-join-shared-2026-10-23.json  | 1844 +++++++++++++++++
+ scripts/check-ambiguous-team-identity.mjs     |   11 +
+ scripts/check-odds-join-shared.mjs            |  225 +-
+ scripts/check-sport-blind-resolution.mjs      |    8 +-
+ scripts/measure-odds-consumer-demand.mjs      |   31 +-
+ scripts/mutate-ambiguous-team-identity.mjs    |    6 +-
+ scripts/mutate-odds-join-shared.mjs           |   54 +-
+ scripts/mutate-sport-blind-resolution.mjs     |   21 +-
+ src/index.js                                  |    6 +-
+ src/odds-join.js                              |   50 +-
+ 12 files changed, 2213 insertions(+), 51 deletions(-)
+ create mode 100644 outbox/fixture-odds-join-shared-2026-10-23.json
+
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index 7e594e3..fa47413 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -603,9 +603,9 @@ jobs:
+           node scripts/check-odds-writers-sport-scoped.mjs
+           node scripts/mutate-odds-writers-sport-scoped.mjs
+ 
+-      # The odds writers run for real over node:sqlite: no opening line after
+-      # kickoff (docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md).
+-      - name: the odds writers, run for real, write only pre-kickoff lines
++      # The odds writers run for real over node:sqlite: the per-team join, and no
++      # opening line after kickoff (docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md).
++      - name: the odds writers, run for real, match their own game and write only pre-kickoff lines
+         run: |
+           node scripts/check-odds-join-shared.mjs
+           node scripts/mutate-odds-join-shared.mjs
+diff --git a/.github/workflows/guards.yml b/.github/workflows/guards.yml
+index 4d5f666..b772c93 100644
+--- a/.github/workflows/guards.yml
++++ b/.github/workflows/guards.yml
+@@ -182,7 +182,7 @@ jobs:
+           node scripts/check-ceiling-reached.mjs
+           node scripts/mutate-ceiling-reached.mjs
+ 
+-      - name: the odds writers, run for real, write only pre-kickoff lines
++      - name: the odds writers, run for real, match their own game and write only pre-kickoff lines
+         run: node scripts/check-odds-join-shared.mjs
+ 
+       - name: every table a script creates is on the /d1/execute allow-list
+diff --git a/outbox/fixture-odds-join-shared-2026-10-23.json b/outbox/fixture-odds-join-shared-2026-10-23.json
+new file mode 100644
+index 0000000..dad0014
+--- /dev/null
++++ b/outbox/fixture-odds-join-shared-2026-10-23.json
+@@ -0,0 +1,1844 @@
++{
++ "what": "Recorded archive and vendor names for the same games, 2026-10-14..10-22: one archive row per game and the vendor event its odds_history row recorded. Used by scripts/check-odds-join-shared.mjs.",
++ "exported": "2026-10-23, D1 field-archive (cc49101c), read-only",
++ "query": "SELECT g.id, g.sport, g.date, g.home, g.away, g.start_time, oh.home_team, oh.away_team, oh.commence_time FROM odds_history oh JOIN (SELECT id, sport, date, home, away, start_time FROM regular_season_games UNION ALL SELECT id, sport, date, home, away, start_time FROM postseason_games) g ON g.id = oh.game_id WHERE oh.date BETWEEN 2026-10-14 AND 2026-10-22 AND g.sport IN (NBA,NHL,CFB,NFL,MLB,MLS,WNBA,CFL) GROUP BY g.id",
++ "counts_by_sport": {
++  "CFB": 36,
++  "CFL": 2,
++  "MLB": 6,
++  "MLS": 43,
++  "NBA": 15,
++  "NFL": 4,
++  "NHL": 57,
++  "WNBA": 2
++ },
++ "bias": "odds_history holds only pairs the CI backfill could pair, so these are games whose names some matcher could join; rows it never paired are not here.",
++ "columns": [
++  "id",
++  "sport",
++  "date",
++  "home",
++  "away",
++  "start_time",
++  "vendor_home",
++  "vendor_away",
++  "vendor_commence"
++ ],
++ "rows": [
++  [
++   "CFB_2026-10-14_e401871054",
++   "CFB",
++   "2026-10-14",
++   "Missouri St",
++   "Kennesaw St",
++   "2026-10-14T23:30Z",
++   "Missouri State Bears",
++   "Kennesaw State Owls",
++   "2026-10-14T23:35:00Z"
++  ],
++  [
++   "CFB_2026-10-14_e401871068",
++   "CFB",
++   "2026-10-14",
++   "Sam Houston",
++   "Western KY",
++   "2026-10-15T00:00Z",
++   "Sam Houston State Bearkats",
++   "Western Kentucky Hilltoppers",
++   "2026-10-15T00:00:00Z"
++  ],
++  [
++   "CFB_2026-10-15_e401860923",
++   "CFB",
++   "2026-10-15",
++   "Texas St",
++   "Colorado St",
++   "2026-10-16T00:00Z",
++   "Texas State Bobcats",
++   "Colorado State Rams",
++   "2026-10-16T00:00:00Z"
++  ],
++  [
++   "CFB_2026-10-15_e401862800",
++   "CFB",
++   "2026-10-15",
++   "UAB",
++   "East Carolina",
++   "2026-10-15T23:30Z",
++   "UAB Blazers",
++   "East Carolina Pirates",
++   "2026-10-15T23:30:00Z"
++  ],
++  [
++   "CFB_2026-10-15_e401869950",
++   "CFB",
++   "2026-10-15",
++   "Old Dominion",
++   "GA Southern",
++   "2026-10-15T23:30Z",
++   "Old Dominion Monarchs",
++   "Georgia Southern Eagles",
++   "2026-10-15T23:37:00Z"
++  ],
++  [
++   "CFB_2026-10-16_e401858493",
++   "CFB",
++   "2026-10-16",
++   "Purdue",
++   "Washington",
++   "2026-10-17T00:00Z",
++   "Purdue Boilermakers",
++   "Washington Huskies",
++   "2026-10-17T00:00:00Z"
++  ],
++  [
++   "CFB_2026-10-16_e401862801",
++   "CFB",
++   "2026-10-16",
++   "Tulane",
++   "Memphis",
++   "2026-10-16T23:30Z",
++   "Tulane Green Wave",
++   "Memphis Tigers",
++   "2026-10-16T23:37:00Z"
++  ],
++  [
++   "CFB_2026-10-16_e401869844",
++   "CFB",
++   "2026-10-16",
++   "Coastal",
++   "App State",
++   "2026-10-17T00:00Z",
++   "Coastal Carolina Chanticleers",
++   "Appalachian State Mountaineers",
++   "2026-10-17T00:00:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401856722",
++   "CFB",
++   "2026-10-17",
++   "Oklahoma",
++   "Kentucky",
++   "2026-10-17T23:30Z",
++   "Oklahoma Sooners",
++   "Kentucky Wildcats",
++   "2026-10-17T23:40:37Z"
++  ],
++  [
++   "CFB_2026-10-17_e401856726",
++   "CFB",
++   "2026-10-17",
++   "Vanderbilt",
++   "Arkansas",
++   "2026-10-17T23:00Z",
++   "Vanderbilt Commodores",
++   "Arkansas Razorbacks",
++   "2026-10-17T23:05:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401856809",
++   "CFB",
++   "2026-10-17",
++   "BYU",
++   "Notre Dame",
++   "2026-10-17T23:30Z",
++   "BYU Cougars",
++   "Notre Dame Fighting Irish",
++   "2026-10-17T23:44:23Z"
++  ],
++  [
++   "CFB_2026-10-17_e401856831",
++   "CFB",
++   "2026-10-17",
++   "Houston",
++   "Oklahoma St",
++   "2026-10-17T23:30Z",
++   "Houston Cougars",
++   "Oklahoma State Cowboys",
++   "2026-10-17T23:35:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401856832",
++   "CFB",
++   "2026-10-17",
++   "Baylor",
++   "TCU",
++   "2026-10-17T23:00Z",
++   "Baylor Bears",
++   "TCU Horned Frogs",
++   "2026-10-17T23:10:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401856833",
++   "CFB",
++   "2026-10-17",
++   "Colorado",
++   "Utah",
++   "2026-10-18T02:15Z",
++   "Colorado Buffaloes",
++   "Utah Utes",
++   "2026-10-18T02:15:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401858262",
++   "CFB",
++   "2026-10-17",
++   "Stanford",
++   "Elon",
++   "2026-10-17T23:30Z",
++   "Stanford Cardinal",
++   "Elon Phoenix",
++   "2026-10-17T23:30:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401858263",
++   "CFB",
++   "2026-10-17",
++   "Miami",
++   "Florida St",
++   "2026-10-17T23:00Z",
++   "Miami Hurricanes",
++   "Florida State Seminoles",
++   "2026-10-17T23:06:06Z"
++  ],
++  [
++   "CFB_2026-10-17_e401858265",
++   "CFB",
++   "2026-10-17",
++   "Syracuse",
++   "Louisville",
++   "2026-10-17T23:30Z",
++   "Syracuse Orange",
++   "Louisville Cardinals",
++   "2026-10-17T23:30:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401858269",
++   "CFB",
++   "2026-10-17",
++   "California",
++   "Wake Forest",
++   "2026-10-18T02:30Z",
++   "California Golden Bears",
++   "Wake Forest Demon Deacons",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401858492",
++   "CFB",
++   "2026-10-17",
++   "Oregon",
++   "Nebraska",
++   "2026-10-18T03:00Z",
++   "Oregon Ducks",
++   "Nebraska Cornhuskers",
++   "2026-10-18T03:00:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401858494",
++   "CFB",
++   "2026-10-17",
++   "UCLA",
++   "Wisconsin",
++   "2026-10-17T23:30Z",
++   "UCLA Bruins",
++   "Wisconsin Badgers",
++   "2026-10-17T23:37:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401860903",
++   "CFB",
++   "2026-10-17",
++   "Oregon St",
++   "Washington St",
++   "2026-10-17T22:00Z",
++   "Oregon State Beavers",
++   "Washington State Cougars",
++   "2026-10-17T22:06:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401860904",
++   "CFB",
++   "2026-10-17",
++   "San Diego St",
++   "Fresno St",
++   "2026-10-18T02:30Z",
++   "San Diego State Aztecs",
++   "Fresno State Bulldogs",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401862804",
++   "CFB",
++   "2026-10-17",
++   "UTSA",
++   "Navy",
++   "2026-10-18T00:00Z",
++   "UTSA Roadrunners",
++   "Navy Midshipmen",
++   "2026-10-18T00:05:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401862806",
++   "CFB",
++   "2026-10-17",
++   "South Florida",
++   "Kent State",
++   "2026-10-17T23:00Z",
++   "South Florida Bulls",
++   "Kent State Golden Flashes",
++   "2026-10-17T23:00:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401864520",
++   "CFB",
++   "2026-10-17",
++   "N Dakota St",
++   "Nevada",
++   "2026-10-17T23:00Z",
++   "North Dakota State Bison",
++   "Nevada Wolf Pack",
++   "2026-10-17T23:00:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401864521",
++   "CFB",
++   "2026-10-17",
++   "Hawai'i",
++   "New Mexico",
++   "2026-10-18T02:30Z",
++   "Hawaii Rainbow Warriors",
++   "New Mexico Lobos",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401864523",
++   "CFB",
++   "2026-10-17",
++   "UTEP",
++   "San José St",
++   "2026-10-18T01:00Z",
++   "UTEP Miners",
++   "San Jose State Spartans",
++   "2026-10-18T01:00:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401866445",
++   "CFB",
++   "2026-10-17",
++   "Sacramento St",
++   "Ohio",
++   "2026-10-18T02:00Z",
++   "Sacramento State Hornets",
++   "Ohio Bobcats",
++   "2026-10-18T02:00:00Z"
++  ],
++  [
++   "CFB_2026-10-17_e401869934",
++   "CFB",
++   "2026-10-17",
++   "Southern Miss",
++   "Arkansas St",
++   "2026-10-17T23:00Z",
++   "Southern Mississippi Golden Eagles",
++   "Arkansas State Red Wolves",
++   "2026-10-17T23:02:20Z"
++  ],
++  [
++   "CFB_2026-10-17_e401871091",
++   "CFB",
++   "2026-10-17",
++   "UL Monroe",
++   "Louisiana Tech",
++   "2026-10-18T00:00Z",
++   "UL Monroe Warhawks",
++   "Louisiana Tech Bulldogs",
++   "2026-10-18T00:00:00Z"
++  ],
++  [
++   "CFB_2026-10-20_e401871069",
++   "CFB",
++   "2026-10-20",
++   "Delaware",
++   "Missouri St",
++   "2026-10-20T23:00Z",
++   "Delaware Blue Hens",
++   "Missouri State Bears",
++   "2026-10-20T23:02:44Z"
++  ],
++  [
++   "CFB_2026-10-20_e401871092",
++   "CFB",
++   "2026-10-20",
++   "Marshall",
++   "South Alabama",
++   "2026-10-20T23:30Z",
++   "Marshall Thundering Herd",
++   "South Alabama Jaguars",
++   "2026-10-20T23:36:59Z"
++  ],
++  [
++   "CFB_2026-10-21_e401871070",
++   "CFB",
++   "2026-10-21",
++   "Sam Houston",
++   "New Mexico St",
++   "2026-10-22T00:00Z",
++   "Sam Houston State Bearkats",
++   "New Mexico State Aggies",
++   "2026-10-22T00:05:00Z"
++  ],
++  [
++   "CFB_2026-10-22_e401862807",
++   "CFB",
++   "2026-10-22",
++   "Memphis",
++   "East Carolina",
++   "2026-10-22T23:30Z",
++   "Memphis Tigers",
++   "East Carolina Pirates",
++   "2026-10-22T23:35:40Z"
++  ],
++  [
++   "CFB_2026-10-22_e401869845",
++   "CFB",
++   "2026-10-22",
++   "App State",
++   "James Madison",
++   "2026-10-22T23:00Z",
++   "Appalachian State Mountaineers",
++   "James Madison Dukes",
++   "2026-10-22T23:02:31Z"
++  ],
++  [
++   "CFB_2026-10-22_e401871056",
++   "CFB",
++   "2026-10-22",
++   "Kennesaw St",
++   "Liberty",
++   "2026-10-22T23:00Z",
++   "Kennesaw State Owls",
++   "Liberty Flames",
++   "2026-10-22T23:03:21Z"
++  ],
++  [
++   "CFL_2026-10-16_e13419747",
++   "CFL",
++   "2026-10-16",
++   "Ottawa RedBlacks",
++   "Toronto Argonauts",
++   "2026-10-16T23:00:00+00:00",
++   "Ottawa Redblacks",
++   "Toronto Argonauts",
++   "2026-10-16T23:00:00Z"
++  ],
++  [
++   "CFL_2026-10-17_e13419750",
++   "CFL",
++   "2026-10-17",
++   "Calgary Stampeders",
++   "BC Lions",
++   "2026-10-17T23:00:00+00:00",
++   "Calgary Stampeders",
++   "BC Lions",
++   "2026-10-17T23:00:00Z"
++  ],
++  [
++   "MLB_2026-10-14_e401908032",
++   "MLB",
++   "2026-10-14",
++   "Dodgers",
++   "Brewers",
++   "2026-10-15T00:00Z",
++   "Los Angeles Dodgers",
++   "Milwaukee Brewers",
++   "2026-10-15T00:00:00Z"
++  ],
++  [
++   "MLB_2026-10-15_e401908033",
++   "MLB",
++   "2026-10-15",
++   "Dodgers",
++   "Brewers",
++   "2026-10-16T00:00Z",
++   "Los Angeles Dodgers",
++   "Milwaukee Brewers",
++   "2026-10-16T00:00:00Z"
++  ],
++  [
++   "MLB_2026-10-16_e401908026",
++   "MLB",
++   "2026-10-16",
++   "Guardians",
++   "Rays",
++   "2026-10-17T00:00Z",
++   "Cleveland Guardians",
++   "Tampa Bay Rays",
++   "2026-10-17T00:30:00Z"
++  ],
++  [
++   "MLB_2026-10-17_e401908027",
++   "MLB",
++   "2026-10-17",
++   "Guardians",
++   "Rays",
++   "2026-10-18T00:00Z",
++   "Cleveland Guardians",
++   "Tampa Bay Rays",
++   "2026-10-18T00:00:00Z"
++  ],
++  [
++   "MLB_2026-10-18_e401930515",
++   "MLB",
++   "2026-10-18",
++   "Guardians",
++   "Rays",
++   "2026-10-18T21:00Z",
++   "Cleveland Guardians",
++   "Tampa Bay Rays",
++   "2026-10-18T21:08:16Z"
++  ],
++  [
++   "MLB_2026-10-19_e401908028",
++   "MLB",
++   "2026-10-19",
++   "Rays",
++   "Guardians",
++   "2026-10-20T00:00Z",
++   "Tampa Bay Rays",
++   "Cleveland Guardians",
++   "2026-10-20T00:10:00Z"
++  ],
++  [
++   "2026-10-14-mls-cin-ne",
++   "MLS",
++   "2026-10-14",
++   "FC Cincinnati",
++   "New England Revolution",
++   null,
++   "FC Cincinnati",
++   "New England Revolution",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-clb-clt",
++   "MLS",
++   "2026-10-14",
++   "Columbus Crew",
++   "Charlotte FC",
++   null,
++   "Columbus Crew SC",
++   "Charlotte FC",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-col-min",
++   "MLS",
++   "2026-10-14",
++   "Colorado Rapids",
++   "Minnesota United FC",
++   null,
++   "Colorado Rapids",
++   "Minnesota United FC",
++   "2026-10-15T01:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-dal-sea",
++   "MLS",
++   "2026-10-14",
++   "FC Dallas",
++   "Seattle Sounders FC",
++   null,
++   "FC Dallas",
++   "Seattle Sounders FC",
++   "2026-10-15T00:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-la-por",
++   "MLS",
++   "2026-10-14",
++   "LA Galaxy",
++   "Portland Timbers",
++   null,
++   "LA Galaxy",
++   "Portland Timbers",
++   "2026-10-15T02:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-mtl-atl",
++   "MLS",
++   "2026-10-14",
++   "CF Montréal",
++   "Atlanta United",
++   null,
++   "CF Montreal",
++   "Atlanta United FC",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-nsh-skc",
++   "MLS",
++   "2026-10-14",
++   "Nashville SC",
++   "Sporting Kansas City",
++   null,
++   "Nashville SC",
++   "Sporting Kansas City",
++   "2026-10-15T00:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-rsl-sj",
++   "MLS",
++   "2026-10-14",
++   "Real Salt Lake",
++   "San Jose Earthquakes",
++   null,
++   "Real Salt Lake",
++   "San Jose Earthquakes",
++   "2026-10-15T01:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-stl-van",
++   "MLS",
++   "2026-10-14",
++   "St. Louis CITY SC",
++   "Vancouver Whitecaps FC",
++   null,
++   "St. Louis City SC",
++   "Vancouver Whitecaps FC",
++   "2026-10-15T00:30:00Z"
++  ],
++  [
++   "2026-10-14-mls-tor-orl",
++   "MLS",
++   "2026-10-14",
++   "Toronto FC",
++   "Orlando City",
++   null,
++   "Toronto FC",
++   "Orlando City SC",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761860",
++   "MLS",
++   "2026-10-14",
++   "Toronto",
++   "Orlando",
++   "2026-10-14T23:30Z",
++   "Toronto FC",
++   "Orlando City SC",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761862",
++   "MLS",
++   "2026-10-14",
++   "Cincinnati",
++   "New England",
++   "2026-10-14T23:30Z",
++   "FC Cincinnati",
++   "New England Revolution",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761864",
++   "MLS",
++   "2026-10-14",
++   "CF Montréal",
++   "Atlanta",
++   "2026-10-14T23:30Z",
++   "CF Montreal",
++   "Atlanta United FC",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761865",
++   "MLS",
++   "2026-10-14",
++   "Columbus",
++   "Charlotte",
++   "2026-10-14T23:30Z",
++   "Columbus Crew SC",
++   "Charlotte FC",
++   "2026-10-14T23:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761866",
++   "MLS",
++   "2026-10-14",
++   "Nashville",
++   "Kansas City",
++   "2026-10-15T00:30Z",
++   "Nashville SC",
++   "Sporting Kansas City",
++   "2026-10-15T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761867",
++   "MLS",
++   "2026-10-14",
++   "Dallas",
++   "Seattle",
++   "2026-10-15T00:30Z",
++   "FC Dallas",
++   "Seattle Sounders FC",
++   "2026-10-15T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761868",
++   "MLS",
++   "2026-10-14",
++   "St. Louis",
++   "Vancouver",
++   "2026-10-15T00:30Z",
++   "St. Louis City SC",
++   "Vancouver Whitecaps FC",
++   "2026-10-15T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761869",
++   "MLS",
++   "2026-10-14",
++   "Chicago",
++   "Philadelphia",
++   "2026-10-15T00:30Z",
++   "Chicago Fire",
++   "Philadelphia Union",
++   "2026-10-15T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761870",
++   "MLS",
++   "2026-10-14",
++   "Salt Lake",
++   "San Jose",
++   "2026-10-15T01:30Z",
++   "Real Salt Lake",
++   "San Jose Earthquakes",
++   "2026-10-15T01:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761871",
++   "MLS",
++   "2026-10-14",
++   "Colorado",
++   "Minnesota",
++   "2026-10-15T01:30Z",
++   "Colorado Rapids",
++   "Minnesota United FC",
++   "2026-10-15T01:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761872",
++   "MLS",
++   "2026-10-14",
++   "San Diego",
++   "Houston",
++   "2026-10-15T02:30Z",
++   "San Diego FC",
++   "Houston Dynamo",
++   "2026-10-15T02:30:00Z"
++  ],
++  [
++   "MLS_2026-10-14_e761874",
++   "MLS",
++   "2026-10-14",
++   "LA Galaxy",
++   "Portland",
++   "2026-10-15T02:30Z",
++   "LA Galaxy",
++   "Portland Timbers",
++   "2026-10-15T02:30:00Z"
++  ],
++  [
++   "2026-10-17-mls-atl-mia",
++   "MLS",
++   "2026-10-17",
++   "Atlanta United",
++   "Inter Miami CF",
++   null,
++   "Atlanta United FC",
++   "Inter Miami CF",
++   "2026-10-17T23:42:00Z"
++  ],
++  [
++   "2026-10-17-mls-atx-van",
++   "MLS",
++   "2026-10-17",
++   "Austin FC",
++   "Vancouver Whitecaps FC",
++   null,
++   "Austin FC",
++   "Vancouver Whitecaps FC",
++   "2026-10-18T00:30:00Z"
++  ],
++  [
++   "2026-10-17-mls-cin-clb",
++   "MLS",
++   "2026-10-17",
++   "FC Cincinnati",
++   "Columbus Crew",
++   null,
++   "FC Cincinnati",
++   "Columbus Crew SC",
++   "2026-10-18T21:00:00Z"
++  ],
++  [
++   "2026-10-17-mls-la-sd",
++   "MLS",
++   "2026-10-17",
++   "LA Galaxy",
++   "San Diego FC",
++   null,
++   "LA Galaxy",
++   "San Diego FC",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "2026-10-17-mls-orl-dc",
++   "MLS",
++   "2026-10-17",
++   "Orlando City",
++   "D.C. United",
++   null,
++   "Orlando City SC",
++   "D.C. United",
++   "2026-10-17T23:40:00Z"
++  ],
++  [
++   "2026-10-17-mls-por-col",
++   "MLS",
++   "2026-10-17",
++   "Portland Timbers",
++   "Colorado Rapids",
++   null,
++   "Portland Timbers",
++   "Colorado Rapids",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "2026-10-17-mls-sea-mtl",
++   "MLS",
++   "2026-10-17",
++   "Seattle Sounders FC",
++   "CF Montréal",
++   null,
++   "Seattle Sounders FC",
++   "CF Montreal",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "2026-10-17-mls-sj-nsh",
++   "MLS",
++   "2026-10-17",
++   "San Jose Earthquakes",
++   "Nashville SC",
++   null,
++   "San Jose Earthquakes",
++   "Nashville SC",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "2026-10-17-mls-skc-rsl",
++   "MLS",
++   "2026-10-17",
++   "Sporting Kansas City",
++   "Real Salt Lake",
++   null,
++   "Sporting Kansas City",
++   "Real Salt Lake",
++   "2026-10-18T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761879",
++   "MLS",
++   "2026-10-17",
++   "New England",
++   "Chicago",
++   "2026-10-17T23:30Z",
++   "New England Revolution",
++   "Chicago Fire",
++   "2026-10-17T23:40:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761880",
++   "MLS",
++   "2026-10-17",
++   "Atlanta",
++   "Miami",
++   "2026-10-17T23:30Z",
++   "Atlanta United FC",
++   "Inter Miami CF",
++   "2026-10-17T23:42:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761881",
++   "MLS",
++   "2026-10-17",
++   "Orlando",
++   "D.C. United",
++   "2026-10-17T23:30Z",
++   "Orlando City SC",
++   "D.C. United",
++   "2026-10-17T23:40:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761882",
++   "MLS",
++   "2026-10-17",
++   "Austin",
++   "Vancouver",
++   "2026-10-18T00:30Z",
++   "Austin FC",
++   "Vancouver Whitecaps FC",
++   "2026-10-18T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761883",
++   "MLS",
++   "2026-10-17",
++   "Houston",
++   "Dallas",
++   "2026-10-18T00:30Z",
++   "Houston Dynamo",
++   "FC Dallas",
++   "2026-10-18T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761884",
++   "MLS",
++   "2026-10-17",
++   "Kansas City",
++   "Salt Lake",
++   "2026-10-18T00:30Z",
++   "Sporting Kansas City",
++   "Real Salt Lake",
++   "2026-10-18T00:30:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761885",
++   "MLS",
++   "2026-10-17",
++   "Seattle",
++   "CF Montréal",
++   "2026-10-18T02:30Z",
++   "Seattle Sounders FC",
++   "CF Montreal",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761886",
++   "MLS",
++   "2026-10-17",
++   "San Jose",
++   "Nashville",
++   "2026-10-18T02:30Z",
++   "San Jose Earthquakes",
++   "Nashville SC",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761887",
++   "MLS",
++   "2026-10-17",
++   "LA Galaxy",
++   "San Diego",
++   "2026-10-18T02:30Z",
++   "LA Galaxy",
++   "San Diego FC",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "MLS_2026-10-17_e761888",
++   "MLS",
++   "2026-10-17",
++   "Portland",
++   "Colorado",
++   "2026-10-18T02:30Z",
++   "Portland Timbers",
++   "Colorado Rapids",
++   "2026-10-18T02:30:00Z"
++  ],
++  [
++   "2026-10-21-mls-cin-dc",
++   "MLS",
++   "2026-10-21",
++   "FC Cincinnati",
++   "D.C. United",
++   null,
++   "FC Cincinnati",
++   "D.C. United",
++   "2026-10-21T23:15:00Z"
++  ],
++  [
++   "MLS_2026-10-21_e761773",
++   "MLS",
++   "2026-10-21",
++   "Cincinnati",
++   "D.C. United",
++   "2026-10-21T23:00Z",
++   "FC Cincinnati",
++   "D.C. United",
++   "2026-10-21T23:15:00Z"
++  ],
++  [
++   "NBA_2026-10-20_e401909089",
++   "NBA",
++   "2026-10-20",
++   "Knicks",
++   "76ers",
++   "2026-10-20T23:00Z",
++   "New York Knicks",
++   "Philadelphia 76ers",
++   "2026-10-20T23:18:02Z"
++  ],
++  [
++   "NBA_2026-10-20_e401909090",
++   "NBA",
++   "2026-10-20",
++   "Spurs",
++   "Thunder",
++   "2026-10-21T01:50Z",
++   "San Antonio Spurs",
++   "Oklahoma City Thunder",
++   "2026-10-21T01:30:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909091",
++   "NBA",
++   "2026-10-21",
++   "Heat",
++   "Timberwolves",
++   "2026-10-21T23:30Z",
++   "Miami Heat",
++   "Minnesota Timberwolves",
++   "2026-10-21T23:43:03Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909092",
++   "NBA",
++   "2026-10-21",
++   "Lakers",
++   "Warriors",
++   "2026-10-22T02:00Z",
++   "Los Angeles Lakers",
++   "Golden State Warriors",
++   "2026-10-22T02:00:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909834",
++   "NBA",
++   "2026-10-21",
++   "Magic",
++   "Hawks",
++   "2026-10-21T23:00Z",
++   "Orlando Magic",
++   "Atlanta Hawks",
++   "2026-10-21T23:14:08Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909835",
++   "NBA",
++   "2026-10-21",
++   "Wizards",
++   "Bucks",
++   "2026-10-21T23:00Z",
++   "Washington Wizards",
++   "Milwaukee Bucks",
++   "2026-10-21T23:15:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909836",
++   "NBA",
++   "2026-10-21",
++   "Nets",
++   "Hornets",
++   "2026-10-21T23:30Z",
++   "Brooklyn Nets",
++   "Charlotte Hornets",
++   "2026-10-21T23:44:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909837",
++   "NBA",
++   "2026-10-21",
++   "Raptors",
++   "Bulls",
++   "2026-10-21T23:30Z",
++   "Toronto Raptors",
++   "Chicago Bulls",
++   "2026-10-21T23:45:11Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909838",
++   "NBA",
++   "2026-10-21",
++   "Grizzlies",
++   "Jazz",
++   "2026-10-22T00:00Z",
++   "Memphis Grizzlies",
++   "Utah Jazz",
++   "2026-10-22T00:10:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909839",
++   "NBA",
++   "2026-10-21",
++   "Pelicans",
++   "Pacers",
++   "2026-10-22T00:00Z",
++   "New Orleans Pelicans",
++   "Indiana Pacers",
++   "2026-10-22T00:10:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909840",
++   "NBA",
++   "2026-10-21",
++   "Rockets",
++   "Mavericks",
++   "2026-10-22T00:30Z",
++   "Houston Rockets",
++   "Dallas Mavericks",
++   "2026-10-22T00:40:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909841",
++   "NBA",
++   "2026-10-21",
++   "Trail Blazers",
++   "Suns",
++   "2026-10-22T02:00Z",
++   "Portland Trail Blazers",
++   "Phoenix Suns",
++   "2026-10-22T02:10:00Z"
++  ],
++  [
++   "NBA_2026-10-21_e401909842",
++   "NBA",
++   "2026-10-21",
++   "Clippers",
++   "Kings",
++   "2026-10-22T02:30Z",
++   "Los Angeles Clippers",
++   "Sacramento Kings",
++   "2026-10-22T02:40:00Z"
++  ],
++  [
++   "NBA_2026-10-22_e401909093",
++   "NBA",
++   "2026-10-22",
++   "76ers",
++   "Cavaliers",
++   "2026-10-22T23:00Z",
++   "Philadelphia 76ers",
++   "Cleveland Cavaliers",
++   "2026-10-22T23:13:54Z"
++  ],
++  [
++   "NBA_2026-10-22_e401909094",
++   "NBA",
++   "2026-10-22",
++   "Thunder",
++   "Nuggets",
++   "2026-10-23T01:30Z",
++   "Oklahoma City Thunder",
++   "Denver Nuggets",
++   "2026-10-23T01:40:00Z"
++  ],
++  [
++   "NFL_2026-10-15_e401872995",
++   "NFL",
++   "2026-10-15",
++   "Broncos",
++   "Seahawks",
++   "2026-10-16T00:15Z",
++   "Denver Broncos",
++   "Seattle Seahawks",
++   "2026-10-16T00:15:00Z"
++  ],
++  [
++   "NFL_2026-10-18_e401873007",
++   "NFL",
++   "2026-10-18",
++   "Packers",
++   "Cowboys",
++   "2026-10-19T00:20Z",
++   "Green Bay Packers",
++   "Dallas Cowboys",
++   "2026-10-19T00:20:00Z"
++  ],
++  [
++   "NFL_2026-10-19_e401873008",
++   "NFL",
++   "2026-10-19",
++   "49ers",
++   "Commanders",
++   "2026-10-20T00:15Z",
++   "San Francisco 49ers",
++   "Washington Commanders",
++   "2026-10-20T00:15:00Z"
++  ],
++  [
++   "NFL_2026-10-22_e401873010",
++   "NFL",
++   "2026-10-22",
++   "Bears",
++   "Patriots",
++   "2026-10-23T00:15Z",
++   "Chicago Bears",
++   "New England Patriots",
++   "2026-10-23T00:15:00Z"
++  ],
++  [
++   "NHL_2026-10-14_e401892504",
++   "NHL",
++   "2026-10-14",
++   "Capitals",
++   "Canadiens",
++   "2026-10-14T23:30Z",
++   "Washington Capitals",
++   "Montréal Canadiens",
++   "2026-10-14T23:45:23Z"
++  ],
++  [
++   "NHL_2026-10-14_e401892505",
++   "NHL",
++   "2026-10-14",
++   "Avalanche",
++   "Stars",
++   "2026-10-15T00:30Z",
++   "Colorado Avalanche",
++   "Dallas Stars",
++   "2026-10-15T00:40:00Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892506",
++   "NHL",
++   "2026-10-15",
++   "Maple Leafs",
++   "Sabres",
++   "2026-10-15T23:00Z",
++   "Toronto Maple Leafs",
++   "Buffalo Sabres",
++   "2026-10-15T23:11:57Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892507",
++   "NHL",
++   "2026-10-15",
++   "Senators",
++   "Islanders",
++   "2026-10-15T23:00Z",
++   "Ottawa Senators",
++   "New York Islanders",
++   "2026-10-15T23:08:26Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892508",
++   "NHL",
++   "2026-10-15",
++   "Red Wings",
++   "Flyers",
++   "2026-10-15T23:30Z",
++   "Detroit Red Wings",
++   "Philadelphia Flyers",
++   "2026-10-15T23:38:43Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892509",
++   "NHL",
++   "2026-10-15",
++   "Lightning",
++   "Kraken",
++   "2026-10-15T23:00Z",
++   "Tampa Bay Lightning",
++   "Seattle Kraken",
++   "2026-10-15T23:11:04Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892510",
++   "NHL",
++   "2026-10-15",
++   "Panthers",
++   "Canucks",
++   "2026-10-15T23:00Z",
++   "Florida Panthers",
++   "Vancouver Canucks",
++   "2026-10-15T23:08:17Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892511",
++   "NHL",
++   "2026-10-15",
++   "Devils",
++   "Rangers",
++   "2026-10-15T23:00Z",
++   "New Jersey Devils",
++   "New York Rangers",
++   "2026-10-15T23:08:44Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892512",
++   "NHL",
++   "2026-10-15",
++   "Blackhawks",
++   "Jets",
++   "2026-10-16T00:00Z",
++   "Chicago Blackhawks",
++   "Winnipeg Jets",
++   "2026-10-16T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892513",
++   "NHL",
++   "2026-10-15",
++   "Predators",
++   "Sharks",
++   "2026-10-16T00:00Z",
++   "Nashville Predators",
++   "San Jose Sharks",
++   "2026-10-16T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892514",
++   "NHL",
++   "2026-10-15",
++   "Wild",
++   "Blues",
++   "2026-10-16T00:00Z",
++   "Minnesota Wild",
++   "St Louis Blues",
++   "2026-10-16T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892515",
++   "NHL",
++   "2026-10-15",
++   "Oilers",
++   "Mammoth",
++   "2026-10-16T01:00Z",
++   "Edmonton Oilers",
++   "Utah Mammoth",
++   "2026-10-16T01:10:00Z"
++  ],
++  [
++   "NHL_2026-10-15_e401892516",
++   "NHL",
++   "2026-10-15",
++   "Golden Knights",
++   "Flames",
++   "2026-10-16T02:00Z",
++   "Vegas Golden Knights",
++   "Calgary Flames",
++   "2026-10-16T02:00:00Z"
++  ],
++  [
++   "NHL_2026-10-16_e401892517",
++   "NHL",
++   "2026-10-16",
++   "Avalanche",
++   "Penguins",
++   "2026-10-17T01:00Z",
++   "Colorado Avalanche",
++   "Pittsburgh Penguins",
++   "2026-10-17T01:10:00Z"
++  ],
++  [
++   "NHL_2026-10-16_e401892518",
++   "NHL",
++   "2026-10-16",
++   "Ducks",
++   "Bruins",
++   "2026-10-17T02:00Z",
++   "Anaheim Ducks",
++   "Boston Bruins",
++   "2026-10-17T02:10:00Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892522",
++   "NHL",
++   "2026-10-17",
++   "Panthers",
++   "Kraken",
++   "2026-10-17T22:00Z",
++   "Florida Panthers",
++   "Seattle Kraken",
++   "2026-10-17T22:09:53Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892523",
++   "NHL",
++   "2026-10-17",
++   "Maple Leafs",
++   "Islanders",
++   "2026-10-17T23:00Z",
++   "Toronto Maple Leafs",
++   "New York Islanders",
++   "2026-10-17T23:15:08Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892524",
++   "NHL",
++   "2026-10-17",
++   "Canadiens",
++   "Sabres",
++   "2026-10-17T23:00Z",
++   "Montréal Canadiens",
++   "Buffalo Sabres",
++   "2026-10-17T23:15:36Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892525",
++   "NHL",
++   "2026-10-17",
++   "Red Wings",
++   "Sharks",
++   "2026-10-17T23:00Z",
++   "Detroit Red Wings",
++   "San Jose Sharks",
++   "2026-10-17T23:08:15Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892526",
++   "NHL",
++   "2026-10-17",
++   "Flyers",
++   "Senators",
++   "2026-10-17T23:00Z",
++   "Philadelphia Flyers",
++   "Ottawa Senators",
++   "2026-10-17T23:17:02Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892527",
++   "NHL",
++   "2026-10-17",
++   "Blue Jackets",
++   "Rangers",
++   "2026-10-17T23:00Z",
++   "Columbus Blue Jackets",
++   "New York Rangers",
++   "2026-10-17T23:08:54Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892528",
++   "NHL",
++   "2026-10-17",
++   "Blackhawks",
++   "Stars",
++   "2026-10-17T23:00Z",
++   "Chicago Blackhawks",
++   "Dallas Stars",
++   "2026-10-17T23:08:44Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892529",
++   "NHL",
++   "2026-10-17",
++   "Predators",
++   "Blues",
++   "2026-10-18T00:00Z",
++   "Nashville Predators",
++   "St Louis Blues",
++   "2026-10-18T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892530",
++   "NHL",
++   "2026-10-17",
++   "Kings",
++   "Bruins",
++   "2026-10-18T01:00Z",
++   "Los Angeles Kings",
++   "Boston Bruins",
++   "2026-10-18T01:10:00Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892531",
++   "NHL",
++   "2026-10-17",
++   "Mammoth",
++   "Oilers",
++   "2026-10-18T02:00Z",
++   "Utah Mammoth",
++   "Edmonton Oilers",
++   "2026-10-18T02:10:00Z"
++  ],
++  [
++   "NHL_2026-10-17_e401892532",
++   "NHL",
++   "2026-10-17",
++   "Golden Knights",
++   "Penguins",
++   "2026-10-18T02:00Z",
++   "Vegas Golden Knights",
++   "Pittsburgh Penguins",
++   "2026-10-18T02:10:00Z"
++  ],
++  [
++   "NHL_2026-10-18_e401892533",
++   "NHL",
++   "2026-10-18",
++   "Wild",
++   "Blue Jackets",
++   "2026-10-18T22:00Z",
++   "Minnesota Wild",
++   "Columbus Blue Jackets",
++   "2026-10-18T22:08:50Z"
++  ],
++  [
++   "NHL_2026-10-18_e401892534",
++   "NHL",
++   "2026-10-18",
++   "Flames",
++   "Hurricanes",
++   "2026-10-19T00:00Z",
++   "Calgary Flames",
++   "Carolina Hurricanes",
++   "2026-10-19T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-19_e401892535",
++   "NHL",
++   "2026-10-19",
++   "Rangers",
++   "Ducks",
++   "2026-10-19T23:00Z",
++   "New York Rangers",
++   "Anaheim Ducks",
++   "2026-10-19T23:10:00Z"
++  ],
++  [
++   "NHL_2026-10-19_e401892536",
++   "NHL",
++   "2026-10-19",
++   "Flyers",
++   "Avalanche",
++   "2026-10-19T23:00Z",
++   "Philadelphia Flyers",
++   "Colorado Avalanche",
++   "2026-10-19T23:10:00Z"
++  ],
++  [
++   "NHL_2026-10-19_e401892537",
++   "NHL",
++   "2026-10-19",
++   "Maple Leafs",
++   "Sharks",
++   "2026-10-19T23:30Z",
++   "Toronto Maple Leafs",
++   "San Jose Sharks",
++   "2026-10-19T23:40:00Z"
++  ],
++  [
++   "NHL_2026-10-19_e401892538",
++   "NHL",
++   "2026-10-19",
++   "Mammoth",
++   "Penguins",
++   "2026-10-20T01:00Z",
++   "Utah Mammoth",
++   "Pittsburgh Penguins",
++   "2026-10-20T01:10:00Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892539",
++   "NHL",
++   "2026-10-20",
++   "Canadiens",
++   "Sharks",
++   "2026-10-20T23:00Z",
++   "Montréal Canadiens",
++   "San Jose Sharks",
++   "2026-10-20T23:08:49Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892540",
++   "NHL",
++   "2026-10-20",
++   "Devils",
++   "Avalanche",
++   "2026-10-20T23:00Z",
++   "New Jersey Devils",
++   "Colorado Avalanche",
++   "2026-10-20T23:12:12Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892541",
++   "NHL",
++   "2026-10-20",
++   "Islanders",
++   "Ducks",
++   "2026-10-20T23:00Z",
++   "New York Islanders",
++   "Anaheim Ducks",
++   "2026-10-20T23:08:34Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892542",
++   "NHL",
++   "2026-10-20",
++   "Capitals",
++   "Kings",
++   "2026-10-20T23:00Z",
++   "Washington Capitals",
++   "Los Angeles Kings",
++   "2026-10-20T23:08:23Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892543",
++   "NHL",
++   "2026-10-20",
++   "Blue Jackets",
++   "Maple Leafs",
++   "2026-10-20T23:00Z",
++   "Columbus Blue Jackets",
++   "Toronto Maple Leafs",
++   "2026-10-20T23:08:50Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892544",
++   "NHL",
++   "2026-10-20",
++   "Blues",
++   "Jets",
++   "2026-10-21T00:00Z",
++   "St Louis Blues",
++   "Winnipeg Jets",
++   "2026-10-21T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892545",
++   "NHL",
++   "2026-10-20",
++   "Stars",
++   "Bruins",
++   "2026-10-21T00:00Z",
++   "Dallas Stars",
++   "Boston Bruins",
++   "2026-10-21T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892546",
++   "NHL",
++   "2026-10-20",
++   "Oilers",
++   "Wild",
++   "2026-10-21T01:00Z",
++   "Edmonton Oilers",
++   "Minnesota Wild",
++   "2026-10-21T01:10:00Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892547",
++   "NHL",
++   "2026-10-20",
++   "Kraken",
++   "Red Wings",
++   "2026-10-21T01:40Z",
++   "Seattle Kraken",
++   "Detroit Red Wings",
++   "2026-10-21T01:50:00Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892548",
++   "NHL",
++   "2026-10-20",
++   "Canucks",
++   "Hurricanes",
++   "2026-10-21T02:00Z",
++   "Vancouver Canucks",
++   "Carolina Hurricanes",
++   "2026-10-21T02:10:00Z"
++  ],
++  [
++   "NHL_2026-10-20_e401892549",
++   "NHL",
++   "2026-10-20",
++   "Golden Knights",
++   "Lightning",
++   "2026-10-21T02:45Z",
++   "Vegas Golden Knights",
++   "Tampa Bay Lightning",
++   "2026-10-21T02:40:00Z"
++  ],
++  [
++   "NHL_2026-10-21_e401892550",
++   "NHL",
++   "2026-10-21",
++   "Sabres",
++   "Flyers",
++   "2026-10-21T23:30Z",
++   "Buffalo Sabres",
++   "Philadelphia Flyers",
++   "2026-10-21T23:38:12Z"
++  ],
++  [
++   "NHL_2026-10-21_e401892551",
++   "NHL",
++   "2026-10-21",
++   "Senators",
++   "Panthers",
++   "2026-10-21T23:30Z",
++   "Ottawa Senators",
++   "Florida Panthers",
++   "2026-10-21T23:46:45Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892552",
++   "NHL",
++   "2026-10-22",
++   "Bruins",
++   "Predators",
++   "2026-10-22T23:00Z",
++   "Boston Bruins",
++   "Nashville Predators",
++   "2026-10-22T23:08:54Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892553",
++   "NHL",
++   "2026-10-22",
++   "Maple Leafs",
++   "Rangers",
++   "2026-10-22T23:00Z",
++   "Toronto Maple Leafs",
++   "New York Rangers",
++   "2026-10-22T23:08:03Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892554",
++   "NHL",
++   "2026-10-22",
++   "Senators",
++   "Sharks",
++   "2026-10-22T23:00Z",
++   "Ottawa Senators",
++   "San Jose Sharks",
++   "2026-10-22T23:08:20Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892555",
++   "NHL",
++   "2026-10-22",
++   "Devils",
++   "Ducks",
++   "2026-10-22T23:00Z",
++   "New Jersey Devils",
++   "Anaheim Ducks",
++   "2026-10-22T23:08:34Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892556",
++   "NHL",
++   "2026-10-22",
++   "Penguins",
++   "Panthers",
++   "2026-10-22T23:00Z",
++   "Pittsburgh Penguins",
++   "Florida Panthers",
++   "2026-10-22T23:08:21Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892557",
++   "NHL",
++   "2026-10-22",
++   "Islanders",
++   "Kings",
++   "2026-10-22T23:30Z",
++   "New York Islanders",
++   "Los Angeles Kings",
++   "2026-10-22T23:38:46Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892558",
++   "NHL",
++   "2026-10-22",
++   "Blues",
++   "Golden Knights",
++   "2026-10-23T00:00Z",
++   "St Louis Blues",
++   "Vegas Golden Knights",
++   "2026-10-23T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892559",
++   "NHL",
++   "2026-10-22",
++   "Stars",
++   "Jets",
++   "2026-10-23T00:00Z",
++   "Dallas Stars",
++   "Winnipeg Jets",
++   "2026-10-23T00:10:00Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892560",
++   "NHL",
++   "2026-10-22",
++   "Flames",
++   "Wild",
++   "2026-10-23T01:00Z",
++   "Calgary Flames",
++   "Minnesota Wild",
++   "2026-10-23T01:10:00Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892561",
++   "NHL",
++   "2026-10-22",
++   "Oilers",
++   "Hurricanes",
++   "2026-10-23T01:00Z",
++   "Edmonton Oilers",
++   "Carolina Hurricanes",
++   "2026-10-23T01:10:00Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892562",
++   "NHL",
++   "2026-10-22",
++   "Kraken",
++   "Mammoth",
++   "2026-10-23T02:00Z",
++   "Seattle Kraken",
++   "Utah Mammoth",
++   "2026-10-23T02:10:00Z"
++  ],
++  [
++   "NHL_2026-10-22_e401892563",
++   "NHL",
++   "2026-10-22",
++   "Canucks",
++   "Red Wings",
++   "2026-10-23T02:00Z",
++   "Vancouver Canucks",
++   "Detroit Red Wings",
++   "2026-10-23T02:10:00Z"
++  ],
++  [
++   "WNBA_2026-10-19_e401918306",
++   "WNBA",
++   "2026-10-19",
++   "Valkyries",
++   "Dream",
++   "2026-10-20T00:00Z",
++   "Golden State Valkyries",
++   "Atlanta Dream",
++   "2026-10-20T00:10:00Z"
++  ],
++  [
++   "WNBA_2026-10-21_e401918307",
++   "WNBA",
++   "2026-10-21",
++   "Dream",
++   "Valkyries",
++   "2026-10-22T00:00Z",
++   "Atlanta Dream",
++   "Golden State Valkyries",
++   "2026-10-22T00:10:00Z"
++  ]
++ ]
++}
+\ No newline at end of file
+diff --git a/scripts/check-ambiguous-team-identity.mjs b/scripts/check-ambiguous-team-identity.mjs
+index 0660518..3721d2f 100644
+--- a/scripts/check-ambiguous-team-identity.mjs
++++ b/scripts/check-ambiguous-team-identity.mjs
+@@ -80,6 +80,17 @@ eq('C a football row cannot match a baseball game',
+    findOddsForRow(mlbIdx, 'Hull', 'Man United'), undefined);
+ eq('C an empty payload matches nothing',
+    findOddsForRow(indexOddsByPair([]), 'Tigers', 'White Sox'), undefined);
++// The same with a kickoff, which takes the per-team path that also reads name
++// tokens (docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md).
++// 'Tigers' shares no token with 'Hull City', so only resolution through the
++// payload finds the football game: N5 and N7 must reach this path too.
++const eplIdxK = indexOddsByPair([
++  { home_team: 'Hull City', away_team: 'Manchester United', commence_time: '2026-09-20T14:00:00Z', id: 'epl-game' },
++]);
++eq('C with a kickoff, an ambiguous row name still resolves through the payload',
++   findOddsForRow(eplIdxK, 'Tigers', 'Man United', '2026-09-20T14:00Z')?.id, 'epl-game');
++eq('C with a kickoff, a baseball row still cannot match a football game',
++   findOddsForRow(eplIdxK, 'Tigers', 'White Sox', '2026-09-20T14:00Z'), undefined);
+ 
+ // ── D. nothing else moved ──────────────────────────────────────────────────
+ // HAND-WRITTEN, not diffed against a previous commit. The first draft compared
+diff --git a/scripts/check-odds-join-shared.mjs b/scripts/check-odds-join-shared.mjs
+index ec3a977..2a4f048 100644
+--- a/scripts/check-odds-join-shared.mjs
++++ b/scripts/check-odds-join-shared.mjs
+@@ -2,8 +2,9 @@
+ // The odds writers that join a vendor payload to archive rows, run for real.
+ // docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md.
+ //
+-// WHAT IT RUNS. The REAL snapshotCronOdds and runOddsBackfillForDate, and
+-// extractOddsForGame with the constants they read, text-extracted from
++// WHAT IT RUNS. The REAL snapshotCronOdds, runOddsBackfillForDate and the
++// /archive/game closing block, and extractOddsForGame with the constants they
++// read, text-extracted from
+ // src/index.js (every anchor asserted to occur exactly once) and built with
+ // new Function, as scripts/check-archive-date-keying.mjs does. Their imports
+ // are the real modules: the join, kickoffMark, the odds shape helpers and
+@@ -17,7 +18,9 @@
+ //
+ //   node scripts/check-odds-join-shared.mjs
+ //   INDEX_SRC=<copy of src/index.js> ...   runs the writers from that text
+-//   (scripts/mutate-odds-join-shared.mjs uses it; the tree is never mutated)
++//   JOIN_SRC=<copy of src/odds-join.js placed in src/> ...   uses that join
++//   (scripts/mutate-odds-join-shared.mjs uses both; tracked files are never
++//   mutated)
+ 
+ import fs from 'node:fs';
+ import path from 'node:path';
+@@ -28,11 +31,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+ const INDEX = process.env.INDEX_SRC || path.join(ROOT, 'src/index.js');
+ const SRC = fs.readFileSync(INDEX, 'utf8');
+ const imp = (f) => import(pathToFileURL(path.join(ROOT, 'src', f)).href);
+-const { indexOddsByPair, findOddsForRow } = await imp('odds-join.js');
++const { indexOddsByPair, findOddsForRow } = await import(pathToFileURL(process.env.JOIN_SRC || path.join(ROOT, 'src/odds-join.js')).href);
+ const { stampKickoff, kickoffMark } = await imp('odds-kickoff.js');
+ const { drawPriceFrom, spreadFrom } = await imp('odds-shape.js');
+ const { reconcile } = await imp('sync-reconciler.js');
+ const { archiveSportToOddsKey } = await imp('odds-sport-keys.js');
++const { pairOrientation, matchSlate } = await imp('odds-name-match.js');
+ 
+ // ── extraction ──────────────────────────────────────────────────────────────
+ const once = (anchor) => {
+@@ -60,7 +64,8 @@ const constLine = (a) => { const i = once(a); return SRC.slice(i, SRC.indexOf('\
+ const PRELUDE = [constLine('const ODDS_QUOTA_FLOOR = '), constLine('const ODDS_PREFERRED_BOOK = '),
+   fnText('function extractOddsForGame(oddsGame,')].join('\n');
+ const DEPS = ['indexOddsByPair', 'findOddsForRow', 'stampKickoff', 'kickoffMark', 'drawPriceFrom', 'spreadFrom',
+-  'reconcile', 'archiveSportToOddsKey', 'fetchSportOddsLive', 'fetchSportOddsHistorical', '_oddsPrimaryKey'];
++  'reconcile', 'archiveSportToOddsKey', 'fetchSportOddsLive', 'fetchSportOddsHistorical', '_oddsPrimaryKey',
++  'ensureInPlayOddsColumn'];
+ const build = (body, name) => new Function(...DEPS, `${PRELUDE}\n${body}\nreturn ${name};`);
+ // THE HARNESS SUPPLIES THE WRITERS' IMPORTS, so it must prove index.js supplies
+ // them too: every DEPS name the extracted code calls is imported by one of
+@@ -72,10 +77,19 @@ for (const m of SRC.matchAll(/^import\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/gm))
+   for (const part of m[1].split(',')) { const n = part.trim().split(/\s+as\s+/).pop(); if (n) IMPORTED.add(n); }
+ }
+ const DEFINED = (n) => new RegExp(`^(?:export\\s+)?(?:async\\s+)?function\\s+${n}\\s*\\(`, 'm').test(SRC);
+-const CALLED_TEXT = [PRELUDE, fnText('async function snapshotCronOdds('), fnText('async function runOddsBackfillForDate(')].join('\n');
+-const UNSUPPLIED = DEPS.filter((n) => new RegExp(`\\b${n}\\s*\\(`).test(CALLED_TEXT) && !IMPORTED.has(n) && !DEFINED(n));
+ const mkCron = build(fnText('async function snapshotCronOdds('), 'snapshotCronOdds');
+ const mkBackfill = build(fnText('async function runOddsBackfillForDate('), 'runOddsBackfillForDate');
++// The /archive/game closing block, from its banner to its catch, run with the
++// route's own variables as parameters.
++const CLOSING = (() => {
++  const a = once('                // ── Closing-odds capture ──'), b = once('closing-odds capture failed:');
++  return SRC.slice(a, SRC.indexOf('\n', b));
++})();
++const AsyncFunction = (async () => {}).constructor;
++const CALLED_TEXT = [PRELUDE, fnText('async function snapshotCronOdds('), fnText('async function runOddsBackfillForDate('), CLOSING].join('\n');
++const UNSUPPLIED = DEPS.filter((n) => new RegExp(`\\b${n}\\s*\\(`).test(CALLED_TEXT) && !IMPORTED.has(n) && !DEFINED(n));
++const mkClosing = () => new AsyncFunction('env', 'id', 'sport', 'date', 'home', 'away', 'start_time', 'series_key', ...DEPS,
++  `${PRELUDE}\n${CLOSING}`);
+ 
+ // ── the archive, on SQLite ──────────────────────────────────────────────────
+ function makeDb() {
+@@ -126,7 +140,7 @@ function deps(world) {
+   return [indexOddsByPair, findOddsForRow, stampKickoff, kickoffMark, drawPriceFrom, spreadFrom, reconcile, archiveSportToOddsKey,
+     async (env, key) => ({ games: world.live?.[key] || [], quotaRemaining: 10000, ok: true }),
+     async (env, key, iso) => ({ games: world.hist?.[`${key}|${iso}`] || [], quotaRemaining: 10000, ok: true, snapshotAt: world.snapshotAt }),
+-    () => 'k'];
++    () => 'k', async () => {}];
+ }
+ async function cronOne(row, events, now) {
+   const { db, d1 } = makeDb(); seed(db, [row]);
+@@ -142,6 +156,26 @@ async function backfillOne(row, events, snapshotAt, table = 'regular_season_game
+   return { blob: blobOf(db, row.id, 'opening_odds', table), res };
+ }
+ 
++// Which event and side a written blob came from, judged against the event the
++// row truly belongs to and pairOrientation (the join's own code is not used to
++// judge it).
++//
++// BOTH PRICES. Each must come from the true event, the home price from the
++// side that is the row's home team and the away price from the other: reading
++// only the home price let a blob carrying one team's price twice pass.
++function judge(row, blob, evs, truth) {
++  if (!blob) return 'none';
++  const ph = blob.moneyline?.home, pa = blob.moneyline?.away;
++  if (typeof ph !== 'number' || typeof pa !== 'number') return 'unreadable';
++  const src = (p) => ({ e: evs[p % 100000], side: p >= 200000 ? 'away' : 'home' });
++  const h = src(ph), a = src(pa);
++  const isTruth = (e) => !!truth && !!e && e.home_team === truth.home_team && e.away_team === truth.away_team
++    && e.commence_time === truth.commence_time;
++  if (!isTruth(h.e) || !isTruth(a.e)) return 'wrong-event';
++  const swapped = pairOrientation(row, truth) === 'swapped';
++  return h.side === (swapped ? 'away' : 'home') && a.side === (swapped ? 'home' : 'away') ? 'right' : 'wrong-side';
++}
++
+ let failed = 0, scenarios = 0;
+ const ok = (name, cond, detail) => { scenarios++; if (!cond) failed++; console.log(`${cond ? 'ok  ' : 'FAIL'}  ${name}  — ${detail}`); };
+ 
+@@ -207,8 +241,177 @@ ok('I0 every helper the writers call is imported or defined by index.js itself',
+     `after written ${!!late.blob}; before ${!!early.blob}`);
+ }
+ 
++// ── J: the per-team join, through the real writers ──────────────────────────
++// J1. The opening cron over recorded names: each sport-date's rows, with the
++// payload that sport-date's recorded vendor events make, at 10:00Z (the cron's
++// first tick, before every kickoff in the fixture). Measured 2026-10-23 with
++// the join before this change: the four sports 0 of 112, MLS 40 of 43, the
++// other controls as now. MLS gains 'Columbus' v 'Charlotte', a row with a
++// kickoff; the two it still misses are rows without one, as before.
++const FIX = JSON.parse(fs.readFileSync(path.join(ROOT, 'outbox/fixture-odds-join-shared-2026-10-23.json'), 'utf8'));
++let fixtureRows = 0;
++{
++  const groups = new Map();
++  for (const r of FIX.rows) {
++    const k = `${r[1]}|${r[2]}`;
++    if (!groups.has(k)) groups.set(k, []);
++    groups.get(k).push(r);
++  }
++  const tally = {};
++  for (const [k, rs] of groups) {
++    const [sport, date] = k.split('|');
++    const { db, d1 } = makeDb();
++    seed(db, rs.map((r) => ({ id: r[0], sport, date, home: r[3], away: r[4], start_time: r[5] })));
++    const seen = new Map();
++    for (const r of rs) seen.set(`${r[6]}|${r[7]}|${r[8]}`, { home_team: r[6], away_team: r[7], commence_time: r[8] });
++    const evs = priced([...seen.values()]);
++    await at(`${date}T10:00:00Z`, () => mkCron(...deps({ live: { [archiveSportToOddsKey(sport)]: evs } }))({ ARCHIVE_DB: d1 }, date));
++    if (!tally[sport]) tally[sport] = { rows: 0, right: 0, none: 0, wrong: 0 };
++    for (const r of rs) {
++      fixtureRows++;
++      const t = tally[sport]; t.rows++;
++      const v = judge({ home: r[3], away: r[4] }, blobOf(db, r[0], 'opening_odds'), evs, { home_team: r[6], away_team: r[7], commence_time: r[8] });
++      if (v === 'right') t.right++; else if (v === 'none') t.none++; else t.wrong++;
++    }
++  }
++  let fourRight = 0, fourRows = 0, wrong = 0;
++  for (const [sport, t] of Object.entries(tally)) {
++    wrong += t.wrong;
++    if (['NHL', 'NBA', 'NFL', 'CFB'].includes(sport)) { fourRight += t.right; fourRows += t.rows; }
++  }
++  const ctl = (s) => tally[s] ? `${tally[s].right}/${tally[s].rows}` : 'absent';
++  ok('J1 the opening cron writes NHL, NBA, NFL and CFB from recorded names, and no wrong line anywhere',
++    fourRight === 110 && fourRows === 112 && wrong === 0 && ctl('MLB') === '6/6' && ctl('CFL') === '2/2' && ctl('WNBA') === '2/2' && ctl('MLS') === '41/43',
++    `four sports ${fourRight} of ${fourRows} right, wrong ${wrong} (all sports); MLB ${ctl('MLB')}, CFL ${ctl('CFL')}, WNBA ${ctl('WNBA')}, MLS ${ctl('MLS')}; checked ${fixtureRows} of ${FIX.rows.length} fixture rows, games some matcher had already paired, each payload only the recorded events`);
++}
++{
++  // J3. The vendor lists the pairing reversed (the one recorded case, Virginia
++  // v West Virginia): not accepted, so no row decided alone can take another
++  // row's game. The CI backfill's matcher, which sees the whole slate, fills it.
++  const row = { id: 'CFB_2026-09-19_e401856802', sport: 'CFB', date: '2026-09-19', home: 'Virginia', away: 'West Virginia', start_time: '2026-09-19T23:30Z' };
++  const blob = await cronOne(row, [{ home_team: 'West Virginia Mountaineers', away_team: 'Virginia Cavaliers', commence_time: '2026-09-19T23:35:29Z' }], '2026-09-19T12:00:00Z');
++  ok('J3 a reversed listing is not accepted', !blob, `written ${!!blob}`);
++}
++{
++  // J12. A split squad, from the archive: the same two clubs, the same
++  // instant, one game in each city (NHL preseason 2026-09-19). With only one
++  // game listed, only its own row is written; with both listed, each row gets
++  // its own game.
++  const A = { id: 'NHL_2026-09-19_e401881922', sport: 'NHL', date: '2026-09-19', home: 'Maple Leafs', away: 'Canadiens', start_time: '2026-09-19T23:00Z' };
++  const B = { id: 'NHL_2026-09-19_e401881923', sport: 'NHL', date: '2026-09-19', home: 'Canadiens', away: 'Maple Leafs', start_time: '2026-09-19T23:00Z' };
++  const gA = { home_team: 'Toronto Maple Leafs', away_team: 'Montréal Canadiens', commence_time: '2026-09-19T23:00:00Z' };
++  const gB = { home_team: 'Montréal Canadiens', away_team: 'Toronto Maple Leafs', commence_time: '2026-09-19T23:00:00Z' };
++  const run = async (events) => {
++    const { db, d1 } = makeDb(); seed(db, [A, B]);
++    const evs = priced(events);
++    await at('2026-09-19T12:00:00Z', () => mkCron(...deps({ live: { icehockey_nhl: evs } }))({ ARCHIVE_DB: d1 }, '2026-09-19'));
++    return { a: judge(A, blobOf(db, A.id, 'opening_odds'), evs, gA), b: judge(B, blobOf(db, B.id, 'opening_odds'), evs, gB) };
++  };
++  const one = await run([gA]), both = await run([gB, gA]);
++  ok('J12 a split squad: one listing writes only its own row; two listings write each row its own game',
++    one.a === 'right' && one.b === 'none' && both.a === 'right' && both.b === 'right',
++    `one listing: A ${one.a}, B ${one.b}; both: A ${both.a}, B ${both.b}`);
++}
++{
++  // J4. The row's own game is absent; the same teams' doubleheader twin starts
++  // 206 minutes later. It is not this game.
++  const row = { id: 'MLB_2026-09-25_e401817088', sport: 'MLB', date: '2026-09-25', home: 'Yankees', away: 'Orioles', start_time: '2026-09-25T20:05Z' };
++  const blob = await cronOne(row, [{ home_team: 'New York Yankees', away_team: 'Baltimore Orioles', commence_time: '2026-09-25T23:31:12Z' }], '2026-09-25T12:00:00Z');
++  ok('J4 a doubleheader twin 206 minutes off is not this game', !blob, `written ${!!blob}`);
++  // J4b. The same doubleheader from game 2's row: only game 1, 206 minutes
++  // EARLIER, is listed. The window is on both sides.
++  const row2 = { ...row, id: 'MLB_2026-09-25_e401817089', start_time: '2026-09-25T23:31Z' };
++  const blob2 = await cronOne(row2, [{ home_team: 'New York Yankees', away_team: 'Baltimore Orioles', commence_time: '2026-09-25T20:05:00Z' }], '2026-09-25T12:00:00Z');
++  ok('J4b a doubleheader twin 206 minutes earlier is not this game', !blob2, `written ${!!blob2}`);
++}
++{
++  // J6. No kickoff on the row, and only the reverse fixture listed (a two-legged
++  // tie): not accepted. J6b, A3: no kickoff, and only a league fixture of the
++  // same clubs under longer names: name tokens are not used without a kickoff.
++  const r6 = { id: 'MLS_x_semis_2026-09-15', sport: 'MLS', date: '2026-09-15', home: 'CF Montréal', away: 'Vancouver Whitecaps FC', start_time: null };
++  const b6 = await cronOne(r6, [{ home_team: 'Vancouver Whitecaps FC', away_team: 'CF Montréal', commence_time: '2026-09-16T02:30:00Z' }], '2026-09-15T12:00:00Z');
++  ok('J6 without a kickoff a reversed listing is not accepted', !b6, `written ${!!b6}`);
++  const ra = { id: 'MLS_MLS-COM-00002U_SF-01_semifinal_2026-09-16', sport: 'MLS', date: '2026-09-16', home: 'Columbus Crew', away: 'Orlando City', start_time: null };
++  const ba = await cronOne(ra, [{ home_team: 'Columbus Crew SC', away_team: 'Orlando City SC', commence_time: '2026-09-27T23:30:00Z' }], '2026-09-16T12:00:00Z');
++  ok('A3 a cup row with no kickoff is not priced from a league fixture of the same clubs', !ba, `written ${!!ba}`);
++}
++{
++  // J10. No kickoff, two listings of the same pairing: refused, never the last one.
++  const row = { id: '2026-10-14-mls-stl-van', sport: 'MLS', date: '2026-10-14', home: 'St. Louis CITY SC', away: 'Vancouver Whitecaps FC', start_time: null };
++  const blob = await cronOne(row, [{ home_team: 'St. Louis City SC', away_team: 'Vancouver Whitecaps FC', commence_time: '2026-10-15T00:30:00Z' },
++    { home_team: 'St. Louis City SC', away_team: 'Vancouver Whitecaps FC', commence_time: '2026-10-18T00:30:00Z' }], '2026-10-14T12:00:00Z');
++  ok('J10 two candidate listings write nothing', !blob, `written ${!!blob}`);
++  // J10b. The same with a kickoff: two listings of the pairing inside the
++  // 90-minute window are ambiguous too.
++  const rk = { id: 'MLB_2026-09-27_e401817200', sport: 'MLB', date: '2026-09-27', home: 'Rays', away: 'Athletics', start_time: '2026-09-27T17:10Z' };
++  const bk = await cronOne(rk, [{ home_team: 'Tampa Bay Rays', away_team: 'Athletics', commence_time: '2026-09-27T17:10:00Z' },
++    { home_team: 'Tampa Bay Rays', away_team: 'Athletics', commence_time: '2026-09-27T18:20:00Z' }], '2026-09-27T12:00:00Z');
++  ok('J10b with a kickoff, two listings inside the window write nothing', !bk, `written ${!!bk}`);
++}
++{
++  // J7. The worker backfill on the 2026-09-12 CFB full feed (80 rows, 95
++  // events), judged against matchSlate's pairing.
++  const fx = JSON.parse(fs.readFileSync(path.join(ROOT, 'outbox/fixture-cfb-2026-09-12.json'), 'utf8'));
++  const truth = matchSlate(fx.archive, fx.vendor, fx.date).byGameId;
++  const { db, d1 } = makeDb();
++  seed(db, fx.archive.map((a) => ({ ...a, sport: 'CFB', date: fx.date })));
++  const evs = priced(fx.vendor);
++  const res = await at('2026-10-23T05:00:00Z', () => mkBackfill(...deps({ hist: { [`americanfootball_ncaaf|${fx.date}`]: evs },
++    snapshotAt: fx.snapshot_timestamp }))({ ARCHIVE_DB: d1, ODDS_API_KEY: 'k' }, fx.date));
++  let right = 0, wrong = 0;
++  const stamps = new Set();
++  for (const a of fx.archive) {
++    const b = blobOf(db, a.id, 'opening_odds');
++    if (!b) continue;
++    stamps.add(b.captured_at);
++    const v = judge(a, b, evs, truth.get(a.id)?.event);
++    if (v === 'right') right++; else wrong++;
++  }
++  ok('J7 the backfill writes CFB from the historical snapshot, stamped with it',
++    right === 73 && wrong === 0 && stamps.size === 1 && stamps.has(fx.snapshot_timestamp),
++    `right ${right}, wrong ${wrong}, of ${fx.archive.length} rows; stamps ${[...stamps].join(',')}; odds_populated ${res.odds_populated}`);
++}
++{
++  // J7b. The backfill, a snapshot listing this game and the next meeting of the
++  // same teams: the kickoff picks this one.
++  const row = { id: 'NHL_2026-10-20_e401892543', sport: 'NHL', date: '2026-10-20', home: 'Blue Jackets', away: 'Maple Leafs', start_time: '2026-10-20T23:00Z' };
++  const truth = { home_team: 'Columbus Blue Jackets', away_team: 'Toronto Maple Leafs', commence_time: '2026-10-20T23:00:00Z' };
++  const evs = [truth, { home_team: 'Columbus Blue Jackets', away_team: 'Toronto Maple Leafs', commence_time: '2026-10-22T23:00:00Z' }];
++  const { blob } = await backfillOne(row, evs, '2026-10-20T11:55:36Z');
++  const v = judge(row, blob, priced(evs), truth);
++  ok('J7b the backfill picks this game, not the next meeting', v === 'right', `verdict ${v}`);
++}
++{
++  // J11. The one D1 row a kickoff-blind backfill would newly mis-write
++  // (critic, 2026-10-23): an NBA tip at 10:00Z, the noon snapshot at
++  // 11:55:36Z. The join now matches it; the refusal must stop it.
++  const row = { id: 'NBA_2026-10-11_e401898400', sport: 'NBA', date: '2026-10-11', home: 'Rockets', away: 'Mavericks', start_time: '2026-10-11T10:00Z' };
++  const { blob } = await backfillOne(row, [{ home_team: 'Houston Rockets', away_team: 'Dallas Mavericks', commence_time: '2026-10-11T10:00:00Z' }], '2026-10-11T11:55:36Z');
++  ok('J11 an NBA game in progress at the snapshot gets no opening line', !blob, `written ${!!blob}`);
++}
++{
++  // J8. The /archive/game closing block for an NHL final: a pre-kickoff line,
++  // verified, one change_log row. The snapshot also lists the next meeting.
++  const row = { id: 'NHL_2026-10-20_e401892543', sport: 'NHL', date: '2026-10-20', home: 'Blue Jackets', away: 'Maple Leafs', start_time: '2026-10-20T23:00Z', finalized_at: '2026-10-21 01:40:00' };
++  const truth = { home_team: 'Columbus Blue Jackets', away_team: 'Toronto Maple Leafs', commence_time: '2026-10-20T23:00:00Z' };
++  const evs = priced([truth, { home_team: 'Columbus Blue Jackets', away_team: 'Toronto Maple Leafs', commence_time: '2026-10-22T23:00:00Z' }]);
++  const { db, d1 } = makeDb(); seed(db, [row]);
++  const warn = console.warn; console.warn = () => {};
++  try {
++    await mkClosing()({ ARCHIVE_DB: d1, FIELD_JOURNALISM: {} }, row.id, 'NHL', row.date, row.home, row.away, row.start_time, null,
++      ...deps({ hist: { [`icehockey_nhl|${row.date}`]: evs }, snapshotAt: '2026-10-20T11:55:36Z' }));
++  } finally { console.warn = warn; }
++  const blob = blobOf(db, row.id, 'closing_odds');
++  const log = db.prepare('SELECT source FROM change_log WHERE game_id = ?').all(row.id).map((r) => r.source);
++  const v = judge(row, blob, evs, truth);
++  ok('J8 the closing write lands for an NHL final: this game, before kickoff, logged once',
++    v === 'right' && blob?._kickoff?.verified === true && log.length === 1 && log[0] === 'archive_game_closing',
++    `verdict ${v}, verified ${blob?._kickoff?.verified}, change_log ${JSON.stringify(log)}`);
++}
++
+ console.log(failed ? `\nFAILED: ${failed}` : '\nall scenarios pass');
+-console.log(`COVERAGE: the REAL snapshotCronOdds and runOddsBackfillForDate from ${path.relative(ROOT, INDEX) || INDEX},`);
+-console.log(`on node:sqlite with a stubbed vendor: ${scenarios} scenarios, each a single row. It does not run the`);
+-console.log('/archive/game closing write, the live vendor, or any deployed worker.');
++console.log(`COVERAGE: the REAL snapshotCronOdds, runOddsBackfillForDate and /archive/game closing block from`);
++console.log(`${path.relative(ROOT, INDEX) || INDEX}, on node:sqlite with a stubbed vendor: ${scenarios} scenarios. J1 checked ${fixtureRows} of`);
++console.log(`${FIX.rows.length} rows of outbox/fixture-odds-join-shared-2026-10-23.json; J7 the 80 rows of fixture-cfb-2026-09-12.`);
++console.log('It does not run the live vendor or any deployed worker.');
+ process.exit(failed ? 1 : 0);
+diff --git a/scripts/check-sport-blind-resolution.mjs b/scripts/check-sport-blind-resolution.mjs
+index 8a80217..976339d 100644
+--- a/scripts/check-sport-blind-resolution.mjs
++++ b/scripts/check-sport-blind-resolution.mjs
+@@ -60,7 +60,7 @@ eq('C no MLS or WNBA key reaches an NCAAF join', leaked, []);
+ 
+ // And the pair lookup, which is where a matcher would have acted on it.
+ const ncaafIdx = indexOddsByPair([
+-  { home_team: 'Colorado Buffaloes', away_team: 'Weber St', id: 'cfb-game' },
++  { home_team: 'Colorado Buffaloes', away_team: 'Weber St', commence_time: '2026-09-05T19:00:00Z', id: 'cfb-game' },
+ ]);
+ const mlsIdx = indexOddsByPair([
+   { home_team: 'Colorado Rapids', away_team: 'Sporting Kansas City', id: 'mls-game' },
+@@ -69,6 +69,12 @@ eq('C an MLS row still finds its own game', findOddsForRow(mlsIdx, 'Colorado', '
+ eq('C a CFB row cannot reach the MLS game', findOddsForRow(mlsIdx, 'Colorado', 'Weber St'), undefined);
+ eq('C a CFB row misses cleanly in its own payload',
+    findOddsForRow(ncaafIdx, 'Colorado', 'Weber St'), undefined);
++// With a kickoff the join also matches a side by its name tokens, inside the
++// kickoff window, so the school finds its own game; without one (above) only
++// the resolved key counts, as before (docs/CC-CMD-2026-10-21-historical-closing-
++// join-misses-four-sports.md).
++eq('C a CFB row with a kickoff finds its own game in its own payload',
++   findOddsForRow(ncaafIdx, 'Colorado', 'Weber St', '2026-09-05T19:00Z')?.id, 'cfb-game');
+ 
+ // ── D. the three bridging callers stay a closed set ────────────────────────
+ // They use the PLAIN resolver against a vendor name with no payload, and rely
+diff --git a/scripts/measure-odds-consumer-demand.mjs b/scripts/measure-odds-consumer-demand.mjs
+index 4866424..ba42971 100644
+--- a/scripts/measure-odds-consumer-demand.mjs
++++ b/scripts/measure-odds-consumer-demand.mjs
+@@ -37,9 +37,10 @@
+ //     in-play relabel, and a kickoff after the snapshot instant (before it the
+ //     write is refused: `_preKickoff` in the /archive/game closing path,
+ //     src/index.js). Counted on the UTC day of the unit's first finalization.
+-//     Units in JOIN_UNWRITABLE sports are printed apart and kept out of demand:
+-//     the fetch is paid for, but findOddsForRow cannot match those archive
+-//     names to the vendor's, so no closing line is ever written by this path.
++//     Units in JOIN_UNWRITABLE sports, on days before its `until`, are printed
++//     apart and kept out of demand: the fetch was paid for, but findOddsForRow
++//     could not match those archive names to the vendor's, so this path wrote
++//     no closing line. From `until` the join matches them and they are demand.
+ //   getWCPregameLambdas  one snapshot per distinct World Cup kickoff instant.
+ //   handleWCOddsProbs  96 snapshots (the 15-minute cron cadence) per day inside
+ //     the cron's own World Cup window (_wcOpen.._wcClose, read from source)
+@@ -75,13 +76,18 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
+ const ROOT = path.resolve(HERE, '..');
+ const DAY_MS = 86400000;
+ 
+-// The four sports whose closing line the historical path fetches and cannot
++// The four sports whose closing line the historical path fetched and could not
+ // write. Measured 2026-10-21: findOddsForRow matched 0 of 19 NHL, NFL, NBA and
+ // CFB games against the vendor's names for 10-15..10-20, and change_log holds
+-// no archive_game_closing write for any of them since 2026-09-01. A dated
+-// constant, not a measurement: it is removed by the CC-CMD that fixes the join.
++// no archive_game_closing write for any of them since 2026-09-01.
++//
++// ENDED, NOT DELETED, by the CC-CMD that fixed the join. `until` is the first
++// full UTC day the per-team join was live; days before it still had the miss,
++// and deleting the constant would count their paid-for, unwritable fetches as
++// demand.
+ export const JOIN_UNWRITABLE = {
+   asOf: '2026-10-21',
++  until: '2026-10-26',
+   doc: 'docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md',
+   keys: new Set(['basketball_nba', 'icehockey_nhl', 'americanfootball_nfl', 'americanfootball_ncaaf']),
+ };
+@@ -223,7 +229,7 @@ export function openingSnapshotDemand(games, days, cost) {
+   return out;
+ }
+ 
+-export function historicalClosingDemand(games, closingWrites, days, cost, unwritable = JOIN_UNWRITABLE.keys) {
++export function historicalClosingDemand(games, closingWrites, days, cost, unwritable = JOIN_UNWRITABLE.keys, until = JOIN_UNWRITABLE.until) {
+   const capturedBefore = new Map();   // game id -> earliest closing write
+   for (const w of closingWrites) {
+     const t = asUtc(w.ts);
+@@ -243,7 +249,7 @@ export function historicalClosingDemand(games, closingWrites, days, cost, unwrit
+   const out = {};
+   for (const d of days) {
+     const on = [...units].filter(([, t]) => utcDay(t) === d).map(([k]) => k.split('|')[0]);
+-    const n = on.filter(k => !unwritable.has(k)).length, nU = on.length - n;
++    const n = on.filter(k => d >= until || !unwritable.has(k)).length, nU = on.length - n;
+     out[d] = { demand: cost * n, units: n, unwritable: cost * nU,
+       note: `${n} sport-dates${nU ? `, +${nU} unwritable` : ''}` };
+   }
+@@ -377,6 +383,8 @@ function selfTest() {
+     historicalClosingDemand(G, W, ['2026-10-17'], 30)['2026-10-17'], { demand: 30, units: 1, unwritable: 30, note: '1 sport-dates, +1 unwritable' });
+   eq('historical: an unwritable sport is printed apart, a relabelled final not at all',
+     historicalClosingDemand(G, W, ['2026-10-18'], 30)['2026-10-18'], { demand: 0, units: 0, unwritable: 30, note: '0 sport-dates, +1 unwritable' });
++  eq('historical: from the day the join was fixed, that sport is demand',
++    historicalClosingDemand(G, W, ['2026-10-18'], 30, JOIN_UNWRITABLE.keys, '2026-10-18')['2026-10-18'], { demand: 30, units: 1, unwritable: 0, note: '1 sport-dates' });
+   eq('wc lambdas: none scheduled is 0', wcLambdaDemand(G, D, 4)['2026-10-16'], { demand: 0, units: 0, note: '0 kickoffs' });
+   eq('wc probs: open only inside the cron window, while fixtures remain',
+     wcProbsDemand('2026-07-19', { open: '2026-06-11', close: '2026-07-20' }, ['2026-06-10', '2026-07-19', '2026-07-20'], 4),
+@@ -434,7 +442,8 @@ const MUTATIONS = [
+   ['historical ignores the closing capture', 'if (cap !== undefined && cap < g.finalMs) continue;', ''],
+   ['historical ignores the noon refusal', "if (g.startMs <= Date.parse(`${g.date}T12:00:00Z`)) continue;", ''],
+   ['historical keeps relabelled rows', 'if (g.has_inplay) continue;', ''],
+-  ['historical counts unwritable units as demand', 'const n = on.filter(k => !unwritable.has(k)).length, nU = on.length - n;', 'const n = on.length, nU = 0;'],
++  ['historical counts unwritable units as demand', 'const n = on.filter(k => d >= until || !unwritable.has(k)).length, nU = on.length - n;', 'const n = on.length, nU = 0;'],
++  ['historical ignores the date the join was fixed', 'const n = on.filter(k => d >= until || !unwritable.has(k)).length, nU = on.length - n;', 'const n = on.filter(k => !unwritable.has(k)).length, nU = on.length - n;'],
+   ['wc probs never closes', 'const open = inGate && lastWcDate != null && lastWcDate >= d;', 'const open = inGate && lastWcDate != null;'],
+   ['wc probs ignores the cron window', 'const inGate = d >= gate.open && d < gate.close;', 'const inGate = true;'],
+   ['live windows summed, not unioned', 'if (s > ce) { union += ce - cs; [cs, ce] = [s, e]; } else ce = Math.max(ce, e);', 'union += ce - cs; [cs, ce] = [s, e];'],
+@@ -567,8 +576,8 @@ async function measure() {
+   }
+   const unwritableTot = days.reduce((s, d) => s + hist[d].unwritable, 0);
+   console.log(`  fetchSportOddsHistorical: ${unwritableTot} credits of units in ${[...JOIN_UNWRITABLE.keys].join(', ')} are`);
+-  console.log(`  printed as "unwritable" and kept out of demand: the join cannot write their closing line`);
+-  console.log(`  (as of ${JOIN_UNWRITABLE.asOf}, ${JOIN_UNWRITABLE.doc}). Their fetches are inside "charged".\n`);
++  console.log(`  printed as "unwritable" and kept out of demand on days before ${JOIN_UNWRITABLE.until}, when the join`);
++  console.log(`  could not write their closing line (${JOIN_UNWRITABLE.doc}). Their fetches are inside "charged".\n`);
+ 
+   console.log(`── ambientFetchLiveOdds  ${costs.ambientFetchLiveOdds.cost} credits/call  ${costs.ambientFetchLiveOdds.url}`);
+   console.log(`  ${amb.liveDisabled ? 'UNSERVED: ODDS_LIVE_PATH_404 is true in src/ambient-do.js, so this path never calls the vendor.' : 'SERVED: ODDS_LIVE_PATH_404 is false.'}`);
+diff --git a/scripts/mutate-ambiguous-team-identity.mjs b/scripts/mutate-ambiguous-team-identity.mjs
+index 40d49c5..88cd321 100644
+--- a/scripts/mutate-ambiguous-team-identity.mjs
++++ b/scripts/mutate-ambiguous-team-identity.mjs
+@@ -42,10 +42,8 @@ const MUTATIONS = [
+     expect: 'B both present refuses to pick' },
+   { file: JOIN,
+     name: 'N5  the real join resolves a row without consulting the payload',
+-    anchor: `  const hk = resolveTeamKeyIn(home, index.vendorKeys);
+-  const ak = resolveTeamKeyIn(away, index.vendorKeys);`,
+-    replace: `  const hk = resolveTeamKey(home);
+-  const ak = resolveTeamKey(away);`,
++    anchor: '    resolveTeamKeyIn(archiveName, index.vendorKeys) === resolveTeamKey(vendorName);',
++    replace: '    resolveTeamKey(archiveName) === resolveTeamKey(vendorName);',
+     expect: 'C the real D1 row finds its own game' },
+   { file: JOIN,
+     name: 'N7  the vendor key set stops being collected, so context is empty',
+diff --git a/scripts/mutate-odds-join-shared.mjs b/scripts/mutate-odds-join-shared.mjs
+index fd65c50..294f4c0 100644
+--- a/scripts/mutate-odds-join-shared.mjs
++++ b/scripts/mutate-odds-join-shared.mjs
+@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
+ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+ const CHECK = path.join(ROOT, 'scripts/check-odds-join-shared.mjs');
+ const INDEX = path.join(ROOT, 'src/index.js');
++const JOIN = path.join(ROOT, 'src/odds-join.js');
+ 
+ const M = [
+   ['X6 the cron forgets the row\'s kickoff', INDEX,
+@@ -39,6 +40,28 @@ const M = [
+   ['B4 the backfill stops selecting start_time for postseason rows', INDEX,
+    '    `SELECT id, sport, league, home, away, start_time FROM postseason_games',
+    '    `SELECT id, sport, league, home, away FROM postseason_games', 'R5'],
++  // THE JOIN (src/odds-join.js) and the kickoff each caller hands it.
++  ['X1 the join goes back to whole-pair keys (the miss restored)', JOIN,
++   '  return hits.length === 1 ? hits[0] : undefined;',
++   '  return index.events.find(e => keyed(home, e.home_team) && keyed(away, e.away_team));', 'J1'],
++  ['X2 the kickoff window is dropped', JOIN,
++   '    return gap !== null && Math.abs(gap) <= CONTESTED_KICKOFF_MINUTES;',
++   '    return true;', 'J4'],
++  ['X2b the window is one-sided', JOIN,
++   '    return gap !== null && Math.abs(gap) <= CONTESTED_KICKOFF_MINUTES;',
++   '    return gap !== null && gap <= CONTESTED_KICKOFF_MINUTES;', 'J4b'],
++  ['X3 reversed listings are accepted again', JOIN,
++   '  const hits = near.filter(e => same(home, e.home_team) && same(away, e.away_team));',
++   '  const hits = near.filter(e => (same(home, e.home_team) && same(away, e.away_team)) || (same(away, e.home_team) && same(home, e.away_team)));', 'J12'],
++  ['X4 several candidates take the first', JOIN,
++   '  return hits.length === 1 ? hits[0] : undefined;',
++   '  return hits[0];', 'J10b'],
++  ['X13 name tokens are used without a kickoff', JOIN,
++   '  const same = judged ? (a, v) => keyed(a, v) || nameMatches(a, v) : keyed;',
++   '  const same = (a, v) => keyed(a, v) || nameMatches(a, v);', 'A3'],
++  ['X14 name tokens are never used', JOIN,
++   '  const same = judged ? (a, v) => keyed(a, v) || nameMatches(a, v) : keyed;',
++   '  const same = keyed;', 'J1'],
+   // The refusal at the kickoff instant itself (late_minutes 0), not only after.
+   ['X15 the cron refuses only strictly after kickoff', INDEX,
+    '        if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null\n            || kickoffMark(odds.captured_at, og.commence_time).late_minutes !== null) continue;',
+@@ -50,6 +73,19 @@ const M = [
+   ['X17 index.js stops importing kickoffMark', INDEX,
+    "import { stampKickoff, kickoffMark } from './odds-kickoff.js';",
+    "import { stampKickoff } from './odds-kickoff.js';", 'I0'],
++  // A blob with one team's price twice must not pass as right.
++  ['X18 the away price is read from the home team', INDEX,
++   '    const a = h2h.outcomes.find(o => o.name === away);',
++   '    const a = h2h.outcomes.find(o => o.name === home);', 'J1'],
++  ['X9 the closing write does not hand the join its kickoff', INDEX,
++   'indexOddsByPair(games), home, away, start_time);',
++   'indexOddsByPair(games), home, away);', 'J8'],
++  ['X11 the backfill does not hand the join its kickoff', INDEX,
++   '        const og = findOddsForRow(oddsIndex, row.home, row.away, row.start_time);\n        if (!og) { oddsSkipped++; continue; }',
++   '        const og = findOddsForRow(oddsIndex, row.home, row.away);\n        if (!og) { oddsSkipped++; continue; }', 'J7'],
++  ['X12 the cron does not hand the join its kickoff', INDEX,
++   '        const og = findOddsForRow(oddsIndex, row.home, row.away, row.start_time);\n        if (!og) continue;',
++   '        const og = findOddsForRow(oddsIndex, row.home, row.away);\n        if (!og) continue;', 'J1'],
+ ];
+ 
+ const base = spawnSync(process.execPath, [CHECK], { encoding: 'utf8' });
+@@ -62,10 +98,17 @@ try {
+     const src = fs.readFileSync(file, 'utf8');
+     const n = src.split(anchor).length - 1;
+     if (n !== 1) { console.log(`ANCHOR      ${name}: occurs ${n} times — NOTHING MUTATED`); continue; }
+-    const mutant = path.join(tmp, path.basename(file));
++    // The join is imported, so its copy sits beside it in src/ where its own
++    // relative imports resolve (ignored by git, .mutant-*), and is removed.
++    const isJoin = file === JOIN;
++    const mutant = isJoin ? path.join(ROOT, 'src', `.mutant-${process.pid}-odds-join.js`) : path.join(tmp, path.basename(file));
+     fs.writeFileSync(mutant, src.replace(anchor, repl));
+-    if (!fs.readFileSync(mutant, 'utf8').includes(repl)) { console.log(`NOTAPPLIED  ${name}`); continue; }
+-    const r = spawnSync(process.execPath, [CHECK], { encoding: 'utf8', env: { ...process.env, INDEX_SRC: mutant } });
++    let r;
++    try {
++      if (!fs.readFileSync(mutant, 'utf8').includes(repl)) { console.log(`NOTAPPLIED  ${name}`); continue; }
++      r = spawnSync(process.execPath, [CHECK], { encoding: 'utf8',
++        env: { ...process.env, ...(isJoin ? { JOIN_SRC: mutant } : { INDEX_SRC: mutant }) } });
++    } finally { if (isJoin) fs.rmSync(mutant, { force: true }); }
+     const red = (r.stdout.match(/^FAIL  \S+/gm) || []).map((l) => l.slice(6));
+     if (r.status === 0) console.log(`NOT CAUGHT  ${name}`);
+     else if (!red.includes(expect)) console.log(`HARNESS ERROR ${name}: red ${JSON.stringify(red)}, wanted ${expect}\n${(r.stderr || '').slice(0, 300)}`);
+@@ -74,6 +117,7 @@ try {
+ } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+ 
+ console.log(`\n${caught} of ${M.length} mutations caught.`);
+-console.log('COVERAGE: the after-kickoff refusal and the start_time it needs, in snapshotCronOdds and');
+-console.log('runOddsBackfillForDate (src/index.js). Mutants are copies; the tree is not modified.');
++console.log('COVERAGE: the after-kickoff refusal and the start_time it needs (snapshotCronOdds and');
++console.log('runOddsBackfillForDate), the per-team join (src/odds-join.js), and the kickoff each of the three');
++console.log('callers hands it. Mutants are copies; no tracked file is modified.');
+ process.exit(caught === M.length ? 0 : 1);
+diff --git a/scripts/mutate-sport-blind-resolution.mjs b/scripts/mutate-sport-blind-resolution.mjs
+index 238560e..08274e1 100644
+--- a/scripts/mutate-sport-blind-resolution.mjs
++++ b/scripts/mutate-sport-blind-resolution.mjs
+@@ -8,10 +8,14 @@ import fs from 'node:fs';
+ 
+ const CHECK = 'scripts/check-sport-blind-resolution.mjs';
+ const RESOLVER = 'src/identity-resolver.js';
++const JOIN = 'src/odds-join.js';
+ const sh = (c, a, t = 60000) => execFileSync(c, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: t });
+ 
+-const d = sh('git', ['status', '--porcelain', '--', RESOLVER]).trim();
+-if (d) { console.error(`FAIL — ${RESOLVER} is dirty; refusing to mutate.\n${d}`); process.exit(1); }
++// Restored with git checkout, so a dirty file would lose its edits: refuse.
++for (const f of [RESOLVER, JOIN]) {
++  const d = sh('git', ['status', '--porcelain', '--', f]).trim();
++  if (d) { console.error(`FAIL — ${f} is dirty; refusing to mutate.\n${d}`); process.exit(1); }
++}
+ 
+ const MUTATIONS = [
+   { file: RESOLVER,
+@@ -36,6 +40,11 @@ const MUTATIONS = [
+     anchor: "function resolveTeamKey(name) {\n    return resolveEntity('team', name);",
+     replace: "function resolveTeamKey(name) {\n    return foldTeamName(name);",
+     expect: 'E resolveTeamKey is untouched for a bare form' },
++  { file: JOIN,
++    name: 'S6  the join stops reading names it cannot key, so a CFB school misses its own game',
++    anchor: '  const same = judged ? (a, v) => keyed(a, v) || nameMatches(a, v) : keyed;',
++    replace: '  const same = keyed;',
++    expect: 'C a CFB row with a kickoff finds its own game in its own payload' },
+   // S5 WAS HERE AND IS DELIBERATELY GONE: "the join stops passing the payload".
+   // This check cannot discriminate it. Its MLS fixture is a payload where the
+   // alias is CORRECT, so dropping the payload still yields coloradorapids and
+@@ -74,8 +83,10 @@ for (const m of MUTATIONS) {
+   }
+ }
+ 
+-const post = sh('git', ['status', '--porcelain', '--', RESOLVER]).trim();
+-if (post) { console.error(`FAIL — ${RESOLVER} not restored:\n${post}`); process.exit(1); }
+-console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; ${RESOLVER} restored clean`);
++for (const f of [RESOLVER, JOIN]) {
++  const post = sh('git', ['status', '--porcelain', '--', f]).trim();
++  if (post) { console.error(`FAIL — ${f} not restored:\n${post}`); process.exit(1); }
++}
++console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; ${RESOLVER} and ${JOIN} restored clean`);
+ if (bad) { console.error(`FAIL — ${bad} mutation(s) not caught.`); process.exit(1); }
+ console.log('PASS');
+diff --git a/src/index.js b/src/index.js
+index 4aa0248..765bea2 100644
+--- a/src/index.js
++++ b/src/index.js
+@@ -6880,7 +6880,7 @@ async function snapshotCronOdds(env, dateKey) {
+         // 191 opening writes since 10-01 were captured after kickoff (MLB 3,
+         // CFL 2, MLS 1, WNBA 1; up to 241 minutes in). kickoffMark reads an
+         // unreadable instant as unknown, never as late, so it refuses nothing.
+-        const og = findOddsForRow(oddsIndex, row.home, row.away);
++        const og = findOddsForRow(oddsIndex, row.home, row.away, row.start_time);
+         if (!og) continue;
+         const odds = extractOddsForGame(og);
+         if (!odds) continue;
+@@ -7016,7 +7016,7 @@ async function runOddsBackfillForDate(env, isoDate) {
+     const apply = async (rows, table) => {
+       const updates = [];
+       for (const row of rows) {
+-        const og = findOddsForRow(oddsIndex, row.home, row.away);
++        const og = findOddsForRow(oddsIndex, row.home, row.away, row.start_time);
+         if (!og) { oddsSkipped++; continue; }
+         // Historical payload: stamp the snapshot's own time, not the moment
+         // this backfill happened to run.
+@@ -13693,7 +13693,7 @@ export default {
+                                 const { games, ok: oddsOk, snapshotAt } = await fetchSportOddsHistorical(env, oddsSportKey, date);
+                                 if (oddsOk && games.length) {
+                                     const matched = findOddsForRow(
+-                                        indexOddsByPair(games), home, away);
++                                        indexOddsByPair(games), home, away, start_time);
+                                     if (matched) {
+                                         const odds = extractOddsForGame(matched, ODDS_PREFERRED_BOOK, snapshotAt);
+                                         // A closing line is the last price before kickoff; this route used
+diff --git a/src/odds-join.js b/src/odds-join.js
+index 66d915b..4569315 100644
+--- a/src/odds-join.js
++++ b/src/odds-join.js
+@@ -6,6 +6,7 @@
+ // green — it was asserting against a copy. Extracting the two functions is what
+ // makes the check able to import the thing it claims to verify.
+ import { resolveTeamKey, resolveTeamKeyIn } from './identity-resolver.js';
++import { nameMatches, kickoffGapMinutes, CONTESTED_KICKOFF_MINUTES } from './odds-name-match.js';
+ 
+ // Index a vendor odds payload for joining, and keep the set of team keys it
+ // contains.
+@@ -19,25 +20,60 @@ import { resolveTeamKey, resolveTeamKeyIn } from './identity-resolver.js';
+ // The vendor sends unambiguous full names, one sport per response, and it is
+ // resolved FIRST. So by the time a D1 name needs a meaning, the answer is
+ // already sitting in `vendorKeys`. See resolveTeamKeyIn.
++//
++// THE EVENTS ARE KEPT WHOLE, NOT KEYED BY PAIR. A pair map kept the LAST event
++// listed for a pairing, so a feed listing a series or a doubleheader priced a
++// row from whichever game came last (docs/CC-CMD-2026-10-21-historical-closing-
++// join-misses-four-sports.md).
+ export function indexOddsByPair(games) {
+-  const byPair = new Map(), vendorKeys = new Set();
++  const events = [], vendorKeys = new Set();
+   for (const g of games || []) {
+     // Centralised identity resolution: same canonical key from either side
+     // (Odds-API name OR D1 name) — handles aliases (Brighton & Hove Albion,
+     // Aces, Athletics, Türkiye, …).
+     const hk = resolveTeamKey(g.home_team), ak = resolveTeamKey(g.away_team);
+     vendorKeys.add(hk); vendorKeys.add(ak);
+-    byPair.set(`${hk}|${ak}`, g);
++    events.push(g);
+   }
+-  return { byPair, vendorKeys };
++  return { events, vendorKeys };
+ }
+ 
+ // Find a D1 row's game in an indexed payload, resolving each side against the
+ // payload's own keys so an ambiguous name resolves to the team this sport
+ // actually fielded — or to nothing, never to the other sport's team.
+-export function findOddsForRow(index, home, away) {
+-  const hk = resolveTeamKeyIn(home, index.vendorKeys);
+-  const ak = resolveTeamKeyIn(away, index.vendorKeys);
+-  return index.byPair.get(`${hk}|${ak}`);
++//
++// PER TEAM, THE RULE AMBIENTDO'S CLOSING CAPTURE ALREADY RUNS, AS LISTED. Matching
++// the whole pair on resolved keys found 0 of 112 NBA, NHL, CFB and NFL games:
++// the archive stores 'Capitals', 'Knicks', 'Missouri St', the vendor
++// 'Washington Capitals', and no alias joins them. So a side matches on its
++// resolved key OR on its name tokens (nameMatches), the vendor event must start
++// within CONTESTED_KICKOFF_MINUTES of the row's kickoff, and exactly one event
++// may qualify: two is ambiguity and is refused, never guessed. Replayed on the
++// 112 recorded pairs: 110 right, 0 wrong.
++//
++// ONLY AS LISTED, NOT REVERSED. Each row is decided alone, so a reversed match
++// cannot see that another row owns the event as listed: a split-squad pair
++// (the same two clubs, the same instant, one game in each city; three NHL
++// preseason pairs in the archive) had one listing price both rows, one of them
++// from the other city's game (adversarial review, 2026-10-24). Reversed
++// listings gained 1 row in 768 recorded pairs; the CI backfill's matcher,
++// which sees the whole slate, still fills it.
++//
++// A ROW WITH NO READABLE KICKOFF GETS HEAD'S RULE, NOT THIS ONE. Without an
++// instant there is no window, so only the resolved key matches, only as listed,
++// and still only once. Cup rows filed as MLS carry no start_time and their own
++// games are never in the MLS feed; name tokens alone would price them from a
++// league fixture of the same clubs weeks away.
++export function findOddsForRow(index, home, away, startTime = null) {
++  const keyed = (archiveName, vendorName) =>
++    resolveTeamKeyIn(archiveName, index.vendorKeys) === resolveTeamKey(vendorName);
++  const judged = Number.isFinite(Date.parse(startTime ?? ''));
++  const same = judged ? (a, v) => keyed(a, v) || nameMatches(a, v) : keyed;
++  const near = !judged ? index.events : index.events.filter(e => {
++    const gap = kickoffGapMinutes({ start_time: startTime }, e);
++    return gap !== null && Math.abs(gap) <= CONTESTED_KICKOFF_MINUTES;
++  });
++  const hits = near.filter(e => same(home, e.home_team) && same(away, e.away_team));
++  return hits.length === 1 ? hits[0] : undefined;
+ }
+ 
+-- 
+2.43.0
+

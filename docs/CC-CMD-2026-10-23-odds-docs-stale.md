@@ -45,6 +45,17 @@ wrapper comments sit on `consumeOddsCredit` (the CFL experiment's VOID list).
   "KV-backed" misses. Describe the degrade condition as it is at HEAD; item 2
   of `docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md` owns the update
   when it changes it.
+- **Added 2026-10-24, stale once the shared join lands**
+  (`docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`):
+  comments that describe the join as `byPair.get(...)` (`src/index.js` about
+  :15884 and :16082, `scripts/identity_ambiguity_conditions.py:91`,
+  `scripts/check-team-identity-collisions.mjs:7`). The one at :16082 also
+  explains what the identity-ambiguity watch's same-slate collision count
+  measures: rows indistinguishable by resolved keys. After the change the join
+  can also merge rows whose keys differ, by name tokens, which a count that
+  reads only the archive cannot see. Correct the comment to say so; whether the
+  watch should measure it with a payload is a question for its owner, not a
+  comment fix.
 - The record of the 2026-10-18 ruling calls the daily ceiling monthly:
   `docs/CC-CMD-2026-09-19-daily-vs-vendor.md` ("against a 3,800/month
   ceiling") and its copy in `HANDOFF.md`.

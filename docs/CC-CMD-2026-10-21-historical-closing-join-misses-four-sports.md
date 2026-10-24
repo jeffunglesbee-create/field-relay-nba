@@ -206,6 +206,65 @@ same removal rule. Model the dead-hour trigger only if premise 5 shows it
 spends. No edit to that script before the 2026-10-25 11:07Z read, which
 runs it.
 
+## Built 2026-10-24, not landed: STAGED (Rule 74)
+
+**What is staged.** Two commits, kept local and saved as
+`outbox/staged-shared-join-2026-10-24.patch` (`git am` applies them):
+1. `fix: no opening line is written once its game has started`: the cron and
+   the worker backfill refuse a line captured at or after the row's kickoff,
+   or the vendor's commence for a row without one.
+2. `fix: one per-team join behind the three odds writers that match by name`:
+   `src/odds-join.js`, the three callers hand it `start_time`, `JOIN_UNWRITABLE`
+   gets its end date, G4 and G5 extended, the new harness
+   `scripts/check-odds-join-shared.mjs` (19 scenarios, the real writers on
+   node:sqlite) and its mutation harness (21 of 21).
+Each passes every `deploy.yml` and `guards.yml` step but the two
+environment-only ones on a clean clone.
+
+**What blocks it.** The 2026-10-25 11:07Z demand read runs
+`scripts/measure-odds-consumer-demand.mjs`, which commit 2 changes (owner
+ruling: lands after that read).
+
+**What unblocks it.** That read's dispatched `odds-consumer-demand.yml` run
+has finished and its log for closed day 10-24 is on main (Actions API, not the
+clock). Then: set `JOIN_UNWRITABLE.until` to the first full UTC day after the
+deploy (the deploy run's completion day plus one), push in a gap between
+AmbientDO capture windows, and before 2026-11-08 (the CFL judging run checks
+`git log` on `src/index.js` from then).
+
+**Verify after deploy** (done condition 4's queries): per sport, `odds_api`
+opening writes above 0 on that sport's first closed day with rows; none
+captured at or after kickoff; `archive_game_closing` for NFL or CFB above 0 on
+a closed day.
+
+**Decided in the build, from the adversarial review (workflow
+`wf_ffee75ef-5a0`, every finding verified):**
+- **Only as listed, not reversed.** Each row is decided alone, so a reversed
+  match cannot see that another row owns the event. A split squad (the same
+  clubs, the same instant, two cities; three NHL preseason pairs in the
+  archive) had one listing price both rows, one of them from the other city's
+  game. Reversed acceptance gained 1 row in 768 recorded pairs (Virginia v
+  West Virginia, 09-19); the CI backfill's whole-slate matcher fills it.
+- **The 90-minute window refuses an uncontested pair beyond it,** where
+  `matchSlate` allows 720 when nothing contests the pair. The measured class
+  is a CFB kickoff 130 minutes off the vendor's at a noon snapshot (LSU v
+  Clemson). The CI backfill still fills those.
+- **`until` is the first full UTC day after the deploy,** not the landing day
+  as written above under "Design changes".
+
+**Residuals, each with a home:**
+- Comments that still describe the pair join (`src/index.js` about :15884 and
+  :16082, `scripts/identity_ambiguity_conditions.py:91`,
+  `scripts/check-team-identity-collisions.mjs:7`): added to
+  `docs/CC-CMD-2026-10-23-odds-docs-stale.md`.
+- The identity-ambiguity watch's same-slate collision count models rows that
+  share resolved keys. The per-team join can also merge rows whose keys
+  differ, by name tokens; only a payload can show that, and the census reads
+  the archive alone. Recorded there too, as a measurement question.
+- Two copies of the per-team rule (AmbientDO's `pick` and `odds-join.js`)
+  differ on purpose: AmbientDO compares board full names and its rows always
+  have a kickoff. Consolidating them is not needed for correctness.
+
 ## Done condition (Rule 90 artifacts)
 
 1. TASK 0's five outputs committed.
