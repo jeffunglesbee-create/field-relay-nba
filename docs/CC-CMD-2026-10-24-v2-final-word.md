@@ -5,7 +5,7 @@
 **Branch:** main in each repo. Commit directly; no feature branch, no PR.
 **Type:** B (a contract with two values for one state)
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched. **The direction is the owner's call** (below).
+**Status:** PARTIAL. TASK 0 done 2026-10-24 (workflow wf_4d87d314-9a8, each premise re-run by a refuter). **The direction is the owner's call** (below).
 **Filed by:** the map and review of TASK 1 of
 `docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md` (workflows wf_c5379dd3-9f6
 and wf_b338e9b9-f0d), Rule 87.4.
@@ -54,6 +54,41 @@ when this CC-CMD lands.
    Grep both repos for `=== 'post'` and `state === 'post'` against V2 game
    objects (AmbientDO and GameDO already accept both). A reader that requires
    `'post'` refutes option (a) as a one-file change.
+
+## TASK 0 — results (2026-10-24)
+
+**Premise 1 CONFIRMED for all five `'post'` sports.** The real
+`mapV2ToESPN`, extracted and run on real relay finals, and each sport's card
+read path:
+
+| sport | relay finals run | client state | what else writes the card |
+|---|---|---|---|
+| WNBA | 5 (2026-09-20) | `'in'` ×5 | nothing; V2 is the only source |
+| NFL | 12 (2026-10-18) | `'in'` ×12 | ESPN writes `'post'` every 15 min once all games are final; the 30 s V2 poll overwrites it within about 30 s |
+| CFB | 4 visible (2026-10-17) | `'in'` ×4 | ESPN polls CFB once, at bootstrap, then never again |
+| AFL | 1 (the 2026-09-26 Grand Final) | `'in'` | Squiggle's `'post'` goes only to the legacy store, which the card does not read |
+| MLB | 1 (2026-10-23) | `'in'` | `refreshMLBStatus` sets `'post'` every 90 s; the V2 poll overwrites it within about 30 s |
+
+The same objects with `state: 'final'` come out `'post'`. So a finished NFL,
+CFB, WNBA, AFL or MLB game shows as live for most of the time, and `anyLive`
+keeps the poll at 30 s. NFL and CFB are in season now.
+
+**Premise 2 REFUTED for option (a) as a one-file change.**
+- `scripts/score-fill.mjs` keeps only `state === 'post'` games from
+  `/v2/games`. It runs on a live cron, `score-fill.yml` at
+  `50 3,7,11,15,19,23 * * *`, with 5 green runs. Under (a) it would score
+  nothing.
+- `scripts/mlb-failover-verify.mjs` goes red on `'final'` (dispatch only).
+- Four adapters test `state === 'post'` for their `'F'` label: football, ESPN
+  MLB, the MLB statsapi secondary and the WNBA secondary. The table above also
+  lacked two adapters that emit `'post'`: `adaptMlbStatsApi` and the WNBA
+  secondary (`adaptWnbaCDN`).
+- No relay runtime reader requires `'post'`: AmbientDO and GameDO accept
+  both, and the WC writer is gated to soccer.
+
+**Option (b) is two client lines, not one.** `mapV2ToESPN` reads only
+`'final'`, and so does `fetchV2AllScores`' stale-final guard. Changing only the
+first leaves the guard never engaging for `'post'` sports.
 
 ## The decision (owner)
 

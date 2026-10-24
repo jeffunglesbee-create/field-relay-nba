@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a reader that silently gets the wrong day)
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** PARTIAL. TASK 0 done 2026-10-24 (workflow wf_4d87d314-9a8, each premise re-run by a refuter). TASK 1 is narrowed below and is not built: it has to change two lines together and settle the twin rows first
 **Filed by:** the adversarial review of TASK 1 of
 `docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md` (workflow wf_b338e9b9-f0d),
 Rule 87.4. That change made the NBA board honour `?date`, which exposes NBA to
@@ -62,7 +62,57 @@ this defect. It did not create it, and it does not fix it.
    id expression on an NBA card and on a /v2/games game. If they match, that
    refutes "dormant".
 
+## TASK 0 — results (2026-10-24)
+
+1. **CONFIRMED, and wider than written.** The real `_fetchFacts` was run at
+   2026-10-25T00:30Z. It asked for `date=2026-10-25` and returned null. The
+   same game resolves at 23:59Z, and at 00:30Z once the date is the ET date.
+   This covers all 8 of tonight's NBA games, not 5: the 22:00Z and 23:30Z games
+   are still being played at 00:00Z. The archive shows it for WNBA too. GameDO
+   wrote a row for 21 of 31 day games and for 0 of 140 evening games, and every
+   GameDO write lands between 18:24Z and 23:53Z.
+2. **CONFIRMED:** `isoDate` is UTC.
+3. **CONFIRMED, plus an eighth caller.** `GET /test/drama-score-cost` (live
+   mode) calls `handleV2Games` with the UTC `today`. It is test-only. wc26's
+   `todayISO` is UTC, and its cron is gated to the World Cup window.
+4. **Write path CONFIRMED, effect REFUTED.** The final hook stamps the UTC date
+   and `/archive/game` stores it verbatim. No row was ever mis-dated: the hook
+   cannot reach a final after 00:00Z, because `_fetchFacts` returns null first.
+   The defect today is a missing row. The date guard cannot see GameDO's rows:
+   they carry no `start_time`, so they classify `no_start`.
+   **Twin rows:** GameDO's id uses the raw lowercase sport. All 21 of its WNBA
+   rows sit beside an uppercase, ET-dated twin, for example
+   `wnba_2026-10-17_e401918305` beside `WNBA_2026-10-17_e401918305`.
+5. **REFUTED:** the only scheduled path to Phase 9 and 10A is the
+   `0 9 * * *` cron. At 09:00Z the UTC and ET dates agree on every day, so the
+   analytics engine reads the right slate.
+6. **Dormant CONFIRMED, for a different reason.** The client builds no NBA
+   card for today, so no NBA socket ever opens (live page at 14:50Z and 15:11Z,
+   re-read at 15:19Z: no NHL and no NBA cards). Filed in jubilant-bassoon as
+   `docs/CC-CMD-2026-10-24-nhl-nba-today-sections.md`. The id expression would
+   match for a V2-built card.
+
 ## TASK 1 — decided from TASK 0
+
+The original plan (each caller asks for `getFieldDateKey()`) is narrowed by
+premises 4-6:
+
+- **GameDO `_fetchFacts` and its final-hook date change together, in one
+  commit.** Fixing `_fetchFacts` alone would let the hook reach evening finals
+  for the first time and write UTC-dated rows.
+- **The twin rows come first.** Today GameDO's archive write only adds a
+  lowercase twin of a row the cron writes anyway. Deciding whether GameDO
+  should write at all, or write under the canonical id, is part of this CC-CMD
+  and comes before its date fix, so the fix does not multiply twins for every
+  evening game.
+- **The analytics engine needs no change** (premise 5). `/test/drama-score-cost`
+  is test-only and is left as it is.
+- Nothing observable changes for NBA until the client builds today's NBA cards
+  (the jubilant-bassoon CC-CMD above).
+
+Superseded plan, kept for the record: each confirmed caller asks for
+`getFieldDateKey()` from `src/field-date.js`, the fix AmbientDO got in
+`b04f007`, one commit per caller.
 
 Each confirmed caller asks for `getFieldDateKey()` from `src/field-date.js`,
 the fix AmbientDO got in `b04f007`. One commit per caller (single concern).
