@@ -5,10 +5,11 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a designed capture that does not run), and a spend decision
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. TASK 0 and TASK 1 DONE (deployed 2026-10-22 19:15Z, run
-39837727213); done condition 3 STAGED. Live checks of tonight's 12 NHL
-kickoffs at 23:42Z and 02:20Z, then the 10-24 11:07Z demand read for closed
-day 10-23. Resumed by the owner, "resume coverage gaps now".
+**Status:** DONE. TASK 0 and TASK 1 deployed 2026-10-22 19:15Z (run
+39837727213). Done condition 3 passed on closed day 10-23 (run 40088714137,
+0.8x). NBA lines are still not bought: its board is empty in season, owned by
+`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`. Resumed by the owner,
+"resume coverage gaps now".
 **Filed by:** TASK 0 of `docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`,
 Rule 87.4. That CC-CMD fixes the over-capture and changes neither gap below.
 
@@ -300,3 +301,31 @@ query, `c.ts >= '2026-10-22 23:45'`:
 
 Done condition 3 (the demand ratio on a closed day with NHL games) is read on
 2026-10-24 at 11:07Z for closed day 10-23.
+
+### Done condition 3 — closed day 2026-10-23: PASS
+
+From run 40088714137, the same run as done condition 3 of
+`docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`, which carries
+the full table. The odds guard refused nothing on 10-23 (`ceiling_reached_at`
+and `month_limit_reached_at` were both null).
+
+- `ambientCaptureClosingOdds` charged above 0 on 10-23: **yes**, 27 credits
+  in 9 calls.
+- charged/demand: **0.8x** (limit 2x).
+- NHL `closing_odds_capture` rows on 10-23: **5**, all `_kickoff.verified = 1`:
+
+| game_id | ts | kickoff |
+|---|---|---|
+| NHL_2026-10-22_e401892560 | 00:50:13 | 01:00Z |
+| NHL_2026-10-22_e401892561 | 00:50:13 | 01:00Z |
+| NHL_2026-10-22_e401892562 | 01:50:33 | 02:00Z |
+| NHL_2026-10-22_e401892563 | 01:50:33 | 02:00Z |
+| NHL_2026-10-23_e401892564 | 23:50:15 | 10-24 00:00Z |
+
+- **NBA: 0 rows, and 7 NBA games on 10-23 got no closing line.** Gap 1's
+  fix does poll NBA in October. The board it polls is empty in season, though:
+  `/v2/games?sport=nba` answers `nba-cdn-empty` for 10-20 through 10-24. No NBA
+  kickoff ever reaches the capture. This CC-CMD's TASK 0 filed that as
+  `docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`. Once that board lists
+  games, nothing more is needed here: harness S18 already buys a due October
+  NBA game once.

@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (real vendor spend above need), with an open mechanism
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. TASK 0 and TASK 1 done 2026-10-22: fix `6ef722d`, deploy run 39713304241, verified live by runs 39714396288 and 39716768024. Done conditions 1 and 2 met. Done condition 3 is STAGED until two closed game days have been measured (reads scheduled for 10-24 and 10-25, 11:07Z), plus a kickoff-window probe on 10-23 at 18:12Z. Dispatched by the owner 2026-10-21 ("dispatch closing capture"). Session doc: `outbox/cc-session-2026-10-22-closing-capture.md`.
+**Status:** PARTIAL. TASK 0 and TASK 1 done 2026-10-22: fix `6ef722d`, deploy run 39713304241, verified live by runs 39714396288 and 39716768024. Done conditions 1 and 2 met. Done condition 3: run 1 PASS (closed day 10-23, 0.8x, run 40088714137); run 2 reads closed day 10-24 on 10-25 at 11:07Z. Dispatched by the owner 2026-10-21 ("dispatch closing capture"). Session doc: `outbox/cc-session-2026-10-22-closing-capture.md`.
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2), Rule 87.4.
 
@@ -262,3 +262,74 @@ perfectly: 10-15 would read up to 2.18x. So the read reports three numbers:
 3. Two per-consumer demand runs on days with games after the deploy, whose
    `ambientCaptureClosingOdds` charged/demand falls from 17.9x to at most 2x.
    The ceiling of 2x allows for kickoff instants that ESPN reports late.
+
+### Done condition 3, run 1 of 2 — closed day 2026-10-23: PASS, 0.8x
+
+Run 40088714137 (`odds-consumer-demand.yml`, `days=3`, dispatched
+2026-10-24 11:08Z). Log: `outbox/odds-consumer-demand-20261024T110857Z.log`.
+
+**No refusal on the measured day**, checked first. `/budget/odds?date=2026-10-23`
+through the relay self-probe at 11:08:44Z:
+- `ceiling_reached_at` null, `month_limit_reached_at` null, `stamps_unreadable` null;
+- used 636 of the 3,800 ceiling; D1 `odds_budget` for 10-23 also reads 636.
+
+Fix 1 of the prerequisites CC-CMD retries a refused capture. The guard refused
+nothing on 10-23, so the figures below contain no retries.
+
+| 2026-10-23 | value |
+|---|---|
+| charged | 27: 9 calls at 3, each reconciled at 3 kept (5 MISS, 4 EXPIRED) |
+| kept | 27 |
+| demand | 33: 11 kickoff groups at 3 |
+| games | 18 |
+| **charged/demand** | **0.8x** (limit 2x) |
+| 3 x games / demand | 1.6x |
+| 3 x groups | 33. Charged (27) does not exceed it, so there is no finding against the before-kickoff CC-CMD |
+
+For the trend, the same run reads 10-21 at 2.5x (before `e658b09`) and 10-22 at
+0.4x (both deploys landed during that day).
+
+**The 11 groups**, from D1 rows with `start_time` on 10-23 UTC in an ambient
+sport, and the purchase for each:
+
+| kickoff (UTC) | sport | games | bought |
+|---|---|---|---|
+| 00:00 | NHL | 2 | 10-22 23:50Z, so charged on 10-22 |
+| 01:00 | NHL | 2 | 00:50Z |
+| 01:30 | NBA | 1 | no |
+| 02:00 | NHL | 2 | 01:50Z |
+| 18:30 | Bundesliga | 1 | 18:20Z |
+| 18:45 | Serie A | 1 | 18:35Z |
+| 18:45 | Ligue 1 | 1 | 18:35Z |
+| 19:00 | EPL | 1 | 18:50Z |
+| 19:00 | La Liga | 1 | 18:50Z |
+| 20:00 | NBA | 1 | no |
+| 23:00 | NBA | 5 | no |
+
+10-23's charge also holds two calls for 10-24 kickoffs at 00:00Z:
+`NHL_2026-10-23_e401892564` and the World Series game `MLB_2026-10-23_e401908042`.
+Both were bought at 23:50Z, as expected. That makes 7 calls for 10-23 groups and
+2 for 10-24, 9 in all. Each call wrote at least one line, and no group was
+bought twice.
+
+**change_log**, source `closing_odds_capture`, `substr(ts,1,10) = '2026-10-23'`:
+11 rows, all with `_kickoff.verified = 1`.
+
+| sport | rows |
+|---|---|
+| NHL | 5 (4 for the 10-22 slate's 01:00Z and 02:00Z kickoffs, 1 for 10-24 00:00Z) |
+| MLB | 1 |
+| Bundesliga, Serie A, Ligue 1, EPL, La Liga | 1 each |
+| NBA | 0. There are 0 NBA capture rows at all since 10-15 |
+
+**The 0.8x is below 1 because NBA was never bought.** The 3 unbought groups
+are all NBA, 7 games. At 11:11Z, `/v2/games?sport=nba` answered `count 0,
+source nba-cdn-empty` for both 10-23 and 10-24, so AmbientDO never sees an NBA
+kickoff. This is under-capture, not over-capture, and
+`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md` owns it. All 8 groups that
+a board lists were bought, once each.
+
+**`/ambient/state?diag=1`** at 11:08Z: `lastPutError` null, `storedMatchesMem`
+true, `lastAlarmError` null, last restore at 04:43Z.
+
+Run 2 reads closed day 10-24 on 2026-10-25 at 11:07Z.
