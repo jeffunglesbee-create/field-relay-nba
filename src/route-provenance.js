@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-14T18:46:55.535Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-24T12:02:34.625Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -166,15 +166,15 @@ export const ROUTE_PROVENANCE = {
   "/squiggle": { k: "proxy", s: "api.squiggle.com.au", p: 1 },
   "/stat/": { k: "upstream", s: "stat-job-watcher.jeffunglesbee.workers.dev", p: 1 },
   "/test/combined-generate-judge": { k: "upstream", s: "field-claude-proxy.jeffunglesbee.workers.dev" },
-  "/test/drama-score-cost": { k: "upstream", s: "api-web.nhle.com + cdn.nba.com + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com" },
+  "/test/drama-score-cost": { k: "upstream", s: "api-web.nhle.com + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com" },
   "/test/gemini-judge": { k: "upstream", s: "field-claude-proxy.jeffunglesbee.workers.dev" },
   "/test/prefilter": { k: "computed", s: null },
   "/test/workers-ai-judge": { k: "computed", s: null },
   "/unpin/game/": { k: "durable-object", s: "do:GAME_DO", p: 1 },
   "/user/": { k: "durable-object", s: "do:USER_DO", p: 1 },
   "/user/event": { k: "computed", s: "do:USER_DO (inherited from the enclosing block)" },
-  "/v2/": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + cdn.nba.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com", p: 1 },
-  "/v2/games": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + cdn.nba.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com" },
+  "/v2/": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com", p: 1 },
+  "/v2/games": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com" },
   "/v2/golf/competitor-stats": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },
   "/v2/golf/enriched": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },
   "/v2/golf/eventlog": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },

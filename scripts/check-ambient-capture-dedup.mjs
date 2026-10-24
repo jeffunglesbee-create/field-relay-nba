@@ -106,8 +106,9 @@ function installFetch(world) {
     if (how === '502') return new Response('upstream down', { status: 502 });
     if (how === 'throw') throw new TypeError('fetch failed');
     if (how === 'no-array') return new Response(JSON.stringify({ error: 'upstream' }), { status: 200 });
-    // What the relay serves for an NHLE or NBA CDN failure (src/index.js): a 200
-    // whose board is empty.
+    // What the relay serves for an NHLE failure (src/index.js): a 200 whose
+    // board is empty. (The NBA board did the same until 2026-10-24; it is
+    // ESPN's now, where a failure is a 502 or 500.)
     if (how === 'soft-empty') return new Response(JSON.stringify({ sport, games: [], source: 'nhle-error' }), { status: 200 });
     const games = world.boardByDate ? world.boardByDate[`${sport}@${date}`] : world.board[sport];
     return new Response(JSON.stringify({ games: games || [] }), { status: 200 });
@@ -454,10 +455,10 @@ async function selfTest() {
     const w = makeWorld();
     w.clock = Date.parse('2026-10-22T22:52:00Z') - 30_000;
     w.board.nhl = [pre('nhl:2026020141', 'nhl', '2026-10-22T23:00:00Z')];
-    w.board.nba = [pre('nba:0022600011', 'nba', '2026-10-22T23:00:00Z')];
+    w.board.nba = [pre('espn:401909853', 'nba', '2026-10-22T23:00:00Z')];
     await run(C, w, 3);
     eq('S18: an October NHL game and an October NBA game are each bought once',
-      [...w.captures].sort(), ['nba:0022600011', 'nhl:2026020141']);
+      [...w.captures].sort(), ['espn:401909853', 'nhl:2026020141']);
   }
 
   // S19 — one instance, polled across the slate change: the date and the

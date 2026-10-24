@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// AmbientDO's poll does not start the NHL and NBA brief pipelines in /v2/games.
+// AmbientDO's poll does not start the NHL brief pipeline in /v2/games.
 // docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md, review finding G4.
 //
 // WHY. handleV2Games enqueues an LLM `game-brief` for every final on the NHLE
-// and NBA CDN boards whose `brief:game:<id>` KV key is missing, and the queue
+// board whose `brief:game:<id>` KV key is missing, and the queue
 // consumer writes that key with a one-hour TTL. AmbientDO polls /v2/games every
 // 15-60 s around the clock, and once it reads the ET slate it keeps an evening's
 // finals on its board until 4am ET. Measured by the review on 10-14..20: about
@@ -15,10 +15,12 @@
 // queue. src/index.js imports @cloudflare/puppeteer, which this repo's CI does
 // not install, so a resolve hook stubs that one package.
 //
-// Coverage, printed with the result (Rule 91): the two brief enqueue sites
-// inside handleV2Games (NHLE, NBA CDN). The WC result path (writeWCResult) also
-// enqueues from /v2/games, for wc26 only, which AmbientDO polls in June-July of
-// a World Cup year; it is not checked here.
+// Coverage, printed with the result (Rule 91): the one brief enqueue site left
+// inside handleV2Games (NHLE). The NBA CDN board had the other; it was removed
+// on 2026-10-24 when NBA moved to ESPN, whose branch enqueues no brief
+// (docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md). The WC result path
+// (writeWCResult) also enqueues from /v2/games, for wc26 only, which AmbientDO
+// polls in June-July of a World Cup year; it is not checked here.
 //
 //   node scripts/check-v2-games-ambient-no-briefs.mjs            # self-test
 //   node scripts/check-v2-games-ambient-no-briefs.mjs --mutate   # Rule 90
@@ -39,15 +41,12 @@ const INDEX_MODULE = process.env.INDEX_MODULE || INDEX;
 const AMBIENT_MODULE = process.env.AMBIENT_MODULE || AMBIENT;
 const HEADER = 'X-Ambient-Internal';
 
-// One final on each board. Field names are the ones adaptNhle and adaptNbaCDN
-// read: NHLE gameState 'OFF' is final, NBA CDN gameStatus 3 is final.
+// One final on the board. Field names are the ones adaptNhle reads: NHLE
+// gameState 'OFF' is final.
 const BOARDS = {
   nhl: { gamesByDate: [{ date: '2026-10-22', games: [{ id: 2026020141, gameState: 'OFF', startTimeUTC: '2026-10-22T23:00:00Z',
     homeTeam: { name: { default: 'Bruins' }, placeName: { default: 'Boston' }, abbrev: 'BOS', score: 3 },
     awayTeam: { name: { default: 'Rangers' }, placeName: { default: 'New York' }, abbrev: 'NYR', score: 2 } }] }] },
-  nba: { scoreboard: { games: [{ gameId: '0022600011', gameStatus: 3,
-    homeTeam: { teamCity: 'Boston', teamName: 'Celtics', teamTricode: 'BOS', score: 100 },
-    awayTeam: { teamCity: 'New York', teamName: 'Knicks', teamTricode: 'NYK', score: 90 } }] } },
 };
 
 function stubUpstreams(seen) {
@@ -55,7 +54,6 @@ function stubUpstreams(seen) {
     const url = String(input?.url ?? input);
     seen?.push({ url, headers: new Headers(init?.headers ?? input?.headers ?? {}) });
     if (url.includes('/v1/scoreboard/now')) return Response.json(BOARDS.nhl);
-    if (url.includes('todaysScoreboard')) return Response.json(BOARDS.nba);
     if (url.includes('/landing')) return Response.json({ summary: { threeStars: [] } });
     if (url.includes('boxscore')) return Response.json({ game: {} });
     return new Response('{}', { status: 404 });
@@ -88,7 +86,7 @@ async function selfTest() {
 
   // V1/V3 are the controls: without them, "no brief enqueued" could mean the
   // board did not parse or the pipeline is unreachable from this harness.
-  for (const [sport, id] of [['nhl', 'nhl:2026020141'], ['nba', 'nba:0022600011']]) {
+  for (const [sport, id] of [['nhl', 'nhl:2026020141']]) {
     const viewer = await briefsFor(sport, {});
     eq(`${sport}: a viewer's request reads the final and enqueues its brief`, [viewer.finals, viewer.sent], [[id], [id]]);
     const poll = await briefsFor(sport, { [HEADER]: '1' });
@@ -107,7 +105,7 @@ async function selfTest() {
   const call = seen.find(c => c.url.startsWith('http://relay.test/v2/games'));
   eq(`AmbientDO._fetchSport sends ${HEADER}: 1 on its /v2/games call`, call?.headers.get(HEADER) ?? null, '1');
 
-  console.log(`\nchecked 2 of 2 brief enqueue sites in handleV2Games (NHLE, NBA CDN); the wc26 result path is not checked`);
+  console.log(`\nchecked 1 of 1 brief enqueue sites in handleV2Games (NHLE); the wc26 result path is not checked`);
   console.log(failed ? `SELF-TEST FAILED: ${failed}` : 'self-test passed');
   return failed;
 }
@@ -118,9 +116,6 @@ const MUTATIONS = [
   ['the NHL pipeline ignores the poll', INDEX, [[
     "            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM && !ambientPoll) {\n                const nhlFinals",
     "            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {\n                const nhlFinals"]]],
-  ['the NBA pipeline ignores the poll', INDEX, [[
-    "            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM && !ambientPoll) {\n                const nbaFinals",
-    "            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {\n                const nbaFinals"]]],
   ['the handler reads a header the poll does not send', INDEX, [[
     "const ambientPoll = request?.headers.get('X-Ambient-Internal') === '1';",
     "const ambientPoll = request?.headers.get('X-Ambient-Poll') === '1';"]]],

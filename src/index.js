@@ -1417,11 +1417,14 @@ function teamNameMatch(oddsName, fieldName) {
 }
 
 const V2_LEAGUES = {
-    // NBA — migrated June 26 2026: API-Sports v2 → NBA CDN (cdn.nba.com)
-    // NBA CDN is the original source field-relay-nba was built for (May 2026).
-    // Off-season 403 from CDN is expected — scoreboard absent when no games.
-    // nbaGameId field on game objects enables boxscore/PBP relay calls.
-    'nba':          { sport: 'nba', nbaSource: 'cdn', season: '2025-2026' },
+    // NBA — moved 2026-10-24 from cdn.nba.com to ESPN (adaptESPNBasketball).
+    // cdn.nba.com answers the Worker 403 in season while serving a GitHub
+    // runner 200 with the same headers (outbox/nba-cdn-egress-probe-
+    // 20261024T112626Z.log), and the old branch turned that 403 into an empty
+    // slate. docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md. The /nba/*
+    // passthrough and its readers are untouched; they are that CC-CMD's
+    // separate decision.
+    'nba':          { sport: 'nba', espnLeague: 'nba', espnSport: 'basketball', season: '2025-2026' },
     // NHL — migrated June 26 2026: API-Sports → api-web.nhle.com (NHLE)
     // /nhl/* relay route live since May 17 2026. No auth key. Same API as nhl.com.
     // Off-season scoreboard returns historical gamesByDate (no 403).
@@ -1542,65 +1545,6 @@ function adaptNhle(g) {
     };
 }
 
-// ── adaptNbaCDN ───────────────────────────────────────────────────────────────
-// Maps cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json
-// game object → standard V2 FieldGame shape.
-// CDN shape confirmed 2026-05-29 (live OKC@SAS G6) + MCP get_live_scores handler.
-// NOTE: CDN teamCity+teamName = "San Antonio"+"Spurs" → home.name = "San Antonio Spurs"
-// NOTE: CDN player names are "First Last" — no reversal needed (unlike API-Sports)
-// NOTE: g.nbaGameId carries the 10-digit native game ID for boxscore/PBP lookups
-function adaptNbaCDN(g) {
-    // gameStatus: 1=scheduled, 2=in-progress, 3=final
-    const status = g?.gameStatus;
-    const state  = status === 3 ? 'final' : status === 2 ? 'live' : 'pre';
-
-    const periodNum = g?.period || 0;
-    const periodLabel = state === 'final' ? '' :
-        (periodNum >= 1 && periodNum <= 4) ? `Q${periodNum}` :
-        (periodNum > 4) ? `OT${periodNum - 4}` : '';
-
-    // gameClock: "PT05M23.00S" → "05:23"; "" or missing → ""
-    const rawClock = g?.gameClock || '';
-    const cm = rawClock.match(/PT(\d+)M([\d.]+)S/);
-    const clock = cm ? `${cm[1]}:${String(Math.floor(parseFloat(cm[2]))).padStart(2,'0')}` : '';
-
-    // Per-quarter linescores from homeTeam/awayTeam.periods object
-    const ls = (periods) => {
-        if (!periods || typeof periods !== 'object') return [];
-        return ['period1','period2','period3','period4']
-            .map(k => parseInt(periods[k]) || 0)
-            .filter((v, i, a) => a.slice(0, i+1).some(x => x > 0) || v > 0)
-            .slice(0, periodNum || 4);
-    };
-
-    return {
-        id:         `nba:${g.gameId}`,
-        nbaGameId:  g.gameId,   // 10-digit CDN game ID — used for boxscore/PBP relay calls
-        sport:      'nba',
-        league:     'NBA',
-        state,
-        start:      g?.gameTimeUTC || '',
-        home: {
-            name:  `${g?.homeTeam?.teamCity || ''} ${g?.homeTeam?.teamName || ''}`.trim(),
-            abbr:  g?.homeTeam?.teamTricode || '',
-            score: g?.homeTeam?.score ?? null,
-        },
-        away: {
-            name:  `${g?.awayTeam?.teamCity || ''} ${g?.awayTeam?.teamName || ''}`.trim(),
-            abbr:  g?.awayTeam?.teamTricode || '',
-            score: g?.awayTeam?.score ?? null,
-        },
-        periodNum,
-        periodLabel,
-        clock,
-        venue:      g?.arenaName || '',
-        linescores: {
-            home: ls(g?.homeTeam?.periods),
-            away: ls(g?.awayTeam?.periods),
-        },
-    };
-}
-
 // adaptApiNba / adaptHockey / adaptBaseball / adaptAFL / parseFootballStats /
 // deriveManAdvantage / adaptFootball — REMOVED 2026-06-30 (api-sports.io
 // subscription lapsed; these adapters had zero remaining callers after the
@@ -1660,15 +1604,21 @@ function adaptESPNBasketball(ev, sportKey = 'wnba') {
     const stt   = st.type?.name || '';
     const sit   = comp.situation || {};
 
-    // State
-    const state = stt === 'STATUS_FINAL'       ? 'post'
-                : stt === 'STATUS_IN_PROGRESS' ? 'live'
+    // State. NBA's final is 'final', the word its board has carried since
+    // 2026-06-26 and the only one the client's mapV2ToESPN reads as finished;
+    // WNBA and AFL keep 'post' (docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md).
+    // A break (halftime, end of a quarter) is still a game being played: ESPN
+    // marks it type.state 'in' under another status name, the way
+    // adaptESPNWCSoccer reads it. Read as 'pre', AmbientDO stopped counting the
+    // game as live and could send all_final with it still to finish.
+    const state = stt === 'STATUS_FINAL'                              ? (sportKey === 'nba' ? 'final' : 'post')
+                : stt === 'STATUS_IN_PROGRESS' || st.type?.state === 'in' ? 'live'
                 : 'pre';
 
     // Quarter/OT tracking
     const period = st.period || 0;
     const clock  = st.displayClock || '';
-    const periodLabel = state === 'post' ? 'F'
+    const periodLabel = (state === 'post' || state === 'final') ? 'F'
                       : state === 'live'
                             ? (period > 4 ? `OT${period - 4 > 1 ? period - 4 : ''}` : `Q${period}`)
                       : 'NS';
@@ -1875,8 +1825,8 @@ function adaptESPNMLB(ev) {
 //
 // Emits the IDENTICAL V2 shape as adaptESPNMLB above -- every field a client
 // consumer reads. Built as the third instance of a pattern already proven
-// twice in this file (adaptNbaCDN for cdn.nba.com, adaptNhle for
-// api-web.nhle.com), not as a new one.
+// twice in this file (an NBA CDN adapter, removed 2026-10-24, and adaptNhle
+// for api-web.nhle.com), not as a new one.
 //
 // Why this exists: 2026-08-06 site.api.espn.com began 403ing Cloudflare
 // Worker egress. The mitigation re-pointed reads at site.web.api.espn.com --
@@ -2024,10 +1974,10 @@ async function fetchMlbStatsApiGames(date) {
 //   gameClock ("PT04M15.00S"), gameTimeUTC, arenaName,
 //   homeTeam/awayTeam: { teamCity, teamName, teamTricode, score, periods }
 //
-// Target shape is adaptESPNBasketball's output, NOT adaptNbaCDN's. They differ
-// in three ways that would silently break consumers if the NBA one were copied:
-// adaptNbaCDN emits state 'final' where the ESPN adapters emit 'post', it has
-// no `streams` field at all, and it has no `round`.
+// Target shape is adaptESPNBasketball's WNBA output, NOT the NBA CDN adapter's
+// (removed 2026-10-24). They differed in three ways that would silently break
+// consumers if the NBA one were copied: it emitted state 'final' where WNBA's
+// ESPN output is 'post', it had no `streams` field at all, and no `round`.
 export function adaptWnbaCDN(g) {
     const status = g?.gameStatus;
     const state  = status === 3 ? 'post' : status === 2 ? 'live' : 'pre';
@@ -4392,13 +4342,14 @@ async function handleV2Games(url, env, ctx, request = null) {
     const cfg   = V2_LEAGUES[sport];
     // AmbientDO's poll (src/ambient-do.js _fetchSport) sends this header, and
     // it runs every 15-60 s whether or not anyone is watching. It must not
-    // start the NHL and NBA brief pipelines below: their dedup is the brief's
-    // KV key, which lives one hour, so a final the poll keeps reading would get
-    // a new LLM brief every hour (docs/CC-CMD-2026-10-22-ambient-capture-
+    // start the NHL brief pipeline below: its dedup is the brief's KV key,
+    // which lives one hour, so a final the poll keeps reading would get a new
+    // LLM brief every hour (docs/CC-CMD-2026-10-22-ambient-capture-
     // coverage-gaps.md, review finding G4). A viewer's request still enqueues,
     // so a final someone is looking at still gets this brief, keyed by its NHLE
-    // or NBA CDN id (KV, and D1 briefs). The journalism cycle's brief for the
-    // same game is keyed by its ESPN id and is not affected.
+    // id (KV, and D1 briefs). The journalism cycle's brief for the same game is
+    // keyed by its ESPN id and is not affected. (The NBA CDN board had the
+    // other pipeline until 2026-10-24.)
     const ambientPoll = request?.headers.get('X-Ambient-Internal') === '1';
     if (!cfg)
         return new Response(JSON.stringify({ error: `Unknown sport: ${sport}`, supported: Object.keys(V2_LEAGUES) }),
@@ -4495,8 +4446,8 @@ async function handleV2Games(url, env, ctx, request = null) {
         // If a third level ever looks necessary, that means the data contract is
         // wrong -- do not add another `||`.
         //
-        // MLB is the only entry today. NBA and NHL never reach this branch (they
-        // are already native on cdn.nba.com and api-web.nhle.com). The sports
+        // MLB and WNBA have one. NHL never reaches this branch (it is native on
+        // api-web.nhle.com); NBA does since 2026-10-24 and has none. The sports
         // with NO secondary are named in this CC-CMD's outbox as accepted,
         // written-down single-source risk rather than left implied.
         // Same binding the MLB failover introduced -- deliberately NOT a second
@@ -4852,7 +4803,10 @@ async function handleV2Games(url, env, ctx, request = null) {
             }
         }
 
-        if (env.WC2026_DB) {
+        // A World Cup result can only come off a soccer board. Until NBA joined
+        // this branch only the soccer adapter emitted 'final'; NBA's finals now
+        // carry it too and must not reach the WC writer.
+        if (env.WC2026_DB && !V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)) {
             const finals = games.filter(g => g.state === 'final');
             if (finals.length > 0) {
                 if (ctx?.waitUntil) {
@@ -5071,134 +5025,9 @@ async function handleV2Games(url, env, ctx, request = null) {
     }
     // ── end NHL NHLE early-return ──────────────────────────────────────────────
 
-    // ── NBA CDN early-return (migrated June 26 2026) ──────────────────────────
-    // CDN returns 403 in off-season (no scoreboard) — treat as 0 games, not error.
-    // Brief pipeline runs here (CDN boxscore variant) before response is returned.
-    if (cfg.nbaSource === 'cdn') {
-        try {
-            const cdnResp = await fetch(
-                `${NBA_CDN_BASE}/liveData/scoreboard/todaysScoreboard_00.json`,
-                {
-                    headers: NBA_HEADERS,
-                    cf: { cacheTtl: NBA_CACHE_TTL, cacheEverything: true,
-                          cacheKey: `${NBA_CDN_BASE}/liveData/scoreboard/todaysScoreboard_00.json:${date}` },
-                }
-            );
-            // Off-season 403 / no games → return empty slate, not 502
-            if (!cdnResp.ok) {
-                return new Response(
-                    JSON.stringify({ sport, date, games: [], count: 0, source: 'nba-cdn-empty', ts: Date.now() }),
-                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' } }
-                );
-            }
-            const cdnData = await cdnResp.json();
-            const games   = (cdnData.scoreboard?.games || []).map(adaptNbaCDN);
-
-            // ── NBA brief pipeline (CDN boxscore variant) ─────────────────────
-            // Player stats from /nba/liveData/boxscore/boxscore_{nbaGameId}.json
-            // CDN player names are "First Last" — no reversal needed.
-            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM && !ambientPoll) {
-                const nbaFinals = games.filter(g => g.state === 'final');
-                if (nbaFinals.length > 0) {
-                    const enqueueNBABriefs = async () => {
-                        for (const g of nbaFinals) {
-                            const kvKey = `brief:game:${stripKVIdPrefix(g.id)}`;
-                            let existing;
-                            try {
-                                existing = await env.FIELD_JOURNALISM.get(kvKey);
-                            } catch (e) {
-                                console.error("[V2GAMES] NBA brief dedup-check KV read failed:", e.message);
-                                continue; // can't confirm whether a brief already exists -- skip rather than risk a duplicate enqueue
-                            }
-                            if (existing) continue;
-
-                            const home      = g.home?.name || '';
-                            const away      = g.away?.name || '';
-                            const homeScore = g.home?.score ?? 0;
-                            const awayScore = g.away?.score ?? 0;
-
-                            // Fetch CDN boxscore for player stats
-                            let statsContext = '';
-                            try {
-                                const bsRes = await fetch(
-                                    `${NBA_CDN_BASE}/liveData/boxscore/boxscore_${g.nbaGameId}.json`,
-                                    { headers: NBA_HEADERS, cf: { cacheTtl: 300, cacheEverything: true } }
-                                );
-                                if (bsRes.ok) {
-                                    const bs = await bsRes.json();
-                                    const formatTeam = (team) => {
-                                        if (!team?.players?.length) return '';
-                                        const sorted = [...team.players]
-                                            .sort((a, b) => (b.statistics?.points ?? 0) - (a.statistics?.points ?? 0));
-                                        const tName = `${team.teamCity || ''} ${team.teamName || ''}`.trim();
-                                        const lines = sorted.slice(0, 3).map(p => {
-                                            // CDN: p.name = "Devin Vassell" (no reversal needed)
-                                            const pts = p.statistics?.points        ?? 0;
-                                            const reb = p.statistics?.reboundsTotal ?? 0;
-                                            const ast = p.statistics?.assists       ?? 0;
-                                            return `${p.name || '?'}: ${pts}pts/${reb}reb/${ast}ast`;
-                                        }).join(', ');
-                                        return `${tName}: ${lines}`;
-                                    };
-                                    const gameData = bs.game;
-                                    const lines = [formatTeam(gameData?.homeTeam), formatTeam(gameData?.awayTeam)].filter(Boolean);
-                                    if (lines.length) statsContext = '\n\nKEY PERFORMERS:\n' + lines.join('\n');
-                                }
-                            } catch (e) { console.error(`[V2GAMES] NBA CDN boxscore fetch failed (${g.id}):`, e.message); }
-
-                            const prompt = [
-                                voiceRegisterFor('NBA'),  // sport-gated exemplars
-                                `Write a 2-3 sentence post-game brief for this NBA result.`,
-                                `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
-                                `Include: key performers with stats, decisive run or moment, what this means for the standings or series.`,
-                                `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
-                                ``,
-                                `RESULT: ${away} ${awayScore} at ${home} ${homeScore}`,
-                                g.venue ? `Venue: ${g.venue}` : '',
-                                statsContext,
-                                ``,
-                                `SPORT BOUNDARY: This is an NBA basketball game. Write ONLY NBA basketball content.`,
-                                `Write the brief as a single paragraph. No headers, no bullet points.`,
-                            ].filter(Boolean).join('\n');
-
-                            try {
-                                await env.JOURNALISM_QUEUE.send({
-                                    type:        'game-brief',
-                                    prompt,
-                                    eventId:     g.id,
-                                    gameHash:    computeGameHash(prompt),
-                                    max_tokens:  300,
-                                    sport:       'nba',
-                                    home, away, homeScore, awayScore,
-                                    enqueuedAt:  Date.now(),
-                                });
-                            } catch (e) {
-                                console.error('[NBA game-brief enqueue CDN]', e.message);
-                            }
-                        }
-                    };
-                    if (ctx?.waitUntil) ctx.waitUntil(enqueueNBABriefs());
-                    else await enqueueNBABriefs();
-                }
-            }
-            // ── end NBA brief pipeline CDN ─────────────────────────────────────
-
-            return new Response(
-                JSON.stringify({ sport, date, games, count: games.length, source: 'nba-cdn', ts: Date.now() }),
-                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } }
-            );
-        } catch (e) {
-            return new Response(
-                JSON.stringify({ error: 'NBA CDN upstream error', sport, date }),
-                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } }
-            );
-        }
-    }
-    // ── end NBA CDN early-return ───────────────────────────────────────────────
-
     // API-Sports.io removed 2026-06-30 — subscription lapsed to free tier
     // (no current-season access). Every V2_LEAGUES entry now resolves via an
-    // early-return branch above (espnSource/espnLeague/nbaSource/nhleSource).
+    // early-return branch above (espnSource/espnLeague/nhleSource).
     // This is a defensive terminal case only — reached if a future sport is
     // added to V2_LEAGUES without one of those source flags set.
     return new Response(

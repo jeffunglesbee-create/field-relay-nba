@@ -328,13 +328,23 @@ jobs:
           node scripts/check-ambient-capture-write.mjs --mutate
 
       # docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md, review finding
-      # G4. AmbientDO polls /v2/games around the clock, and the NHL and NBA
-      # brief pipelines dedup on a one-hour KV key, so its poll would buy a new
-      # LLM brief for every final it keeps reading, every hour.
-      - name: AmbientDO's poll does not start the NHL and NBA brief pipelines
+      # G4. AmbientDO polls /v2/games around the clock, and the NHL brief
+      # pipeline dedups on a one-hour KV key, so its poll would buy a new LLM
+      # brief for every final it keeps reading, every hour. (The NBA CDN board
+      # had the other pipeline until 2026-10-24.)
+      - name: AmbientDO's poll does not start the NHL brief pipeline
         run: |
           node scripts/check-v2-games-ambient-no-briefs.mjs
           node scripts/check-v2-games-ambient-no-briefs.mjs --mutate
+
+      # docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md. cdn.nba.com refuses the
+      # Worker, and the old branch read that refusal as a day with no games, so
+      # AmbientDO never saw an NBA kickoff. The board is ESPN's now, a refusal is
+      # a 502, and an NBA final keeps the word the client reads.
+      - name: The NBA board is ESPN's, and a failed read is not an empty slate
+        run: |
+          node scripts/check-v2-games-nba-board.mjs
+          node scripts/check-v2-games-nba-board.mjs --mutate
 
       # Same CC-CMD, review finding G2. The slate date steps back one calendar
       # day before 4am ET; 24 hours back on the instant named the wrong day for
