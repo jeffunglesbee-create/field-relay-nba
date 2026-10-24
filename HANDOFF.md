@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-24 — the NBA board moves to ESPN; run 1 passes; coverage gaps DONE
+
+**HEAD:** `36e44f1` → `5919cab` → `0b7c89d` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-24-nba-board.md
+
+- **Closing capture done condition 3, run 1: PASS.** Closed day 10-23 read
+  0.8x (run 40088714137). `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`
+  is **DONE**.
+- **The NBA board is live on ESPN** (`5919cab`, deploy 40102174240):
+  - cdn.nba.com refuses the Worker, measured from a runner;
+  - the old branch read that refusal as an empty day, so no NBA line was ever
+    bought;
+  - `/v2/games?sport=nba` now serves the archive's games by `espnEventId`.
+  
+  `docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md` is **PARTIAL**. Tonight's
+  capture checks are scheduled for 22:03Z, 23:08Z and 02:40Z.
+- **Filed:** `docs/CC-CMD-2026-10-24-v2-final-word.md` (the owner's decision)
+  and `docs/CC-CMD-2026-10-24-v2-games-callers-ask-utc-date.md`.
+- **Held:** the shared join lands at 10-25 12:30Z, after run 2.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-23 (night) — odds refusals become visible; Task 3's prerequisites
 
 **HEAD:** `4bcfc5a` → `e259c39` → this close-out · **Branch:** main
