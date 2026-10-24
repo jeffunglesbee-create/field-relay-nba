@@ -254,8 +254,8 @@ a closed day.
 
 **Residuals, each with a home:**
 - Comments that still describe the pair join (`src/index.js` about :15884 and
-  :16082, `scripts/identity_ambiguity_conditions.py:91`,
-  `scripts/check-team-identity-collisions.mjs:7`): added to
+  :16082, `scripts/identity_ambiguity_conditions.py` ("to byPair.get before any payload is consulted"),
+  `scripts/check-team-identity-collisions.mjs` (its header, "`byPair.get(resolveTeamKey(home) + '|' + resolveTeamKey(away))`")): added to
   `docs/CC-CMD-2026-10-23-odds-docs-stale.md`.
 - The identity-ambiguity watch's same-slate collision count models rows that
   share resolved keys. The per-team join can also merge rows whose keys

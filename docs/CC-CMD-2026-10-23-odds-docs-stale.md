@@ -48,8 +48,8 @@ wrapper comments sit on `consumeOddsCredit` (the CFL experiment's VOID list).
 - **Added 2026-10-24, stale once the shared join lands**
   (`docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`):
   comments that describe the join as `byPair.get(...)` (`src/index.js` about
-  :15884 and :16082, `scripts/identity_ambiguity_conditions.py:91`,
-  `scripts/check-team-identity-collisions.mjs:7`). The one at :16082 also
+  :15884 and :16082, `scripts/identity_ambiguity_conditions.py` ("to byPair.get before any payload is consulted"),
+  `scripts/check-team-identity-collisions.mjs` (its header, "`byPair.get(resolveTeamKey(home) + '|' + resolveTeamKey(away))`")). The one at :16082 also
   explains what the identity-ambiguity watch's same-slate collision count
   measures: rows indistinguishable by resolved keys. After the change the join
   can also merge rows whose keys differ, by name tokens, which a count that
