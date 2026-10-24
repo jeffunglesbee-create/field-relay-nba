@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (spend and lost captures) and B (visibility)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. Fix 1 and fix 3 A-D live; done condition 3 waits on the 2026-10-24 scheduled pairing-watch run. Fix 2 moved to the 10-21 join CC-CMD (ruled (a)). Fix 3 E is the owner's call. Owner ruling 2026-10-23: "Hold it; fix 3 first".
+**Status:** PARTIAL. Done conditions 1 and 3 are MET (3 on 2026-10-24, run 40101398801). Fix 2 (done condition 2) is done condition 4 of the 10-21 join CC-CMD and lands 2026-10-25. Fix 3 E is the owner's call. DONE waits on fix 2 only, because the owner's hold on Task 3 of the 09-16 CC-CMD ("Hold it; fix 3 first") named all three fixes and lifts when this is DONE. Owner ruling 2026-10-23: "Hold it; fix 3 first".
 **Blocks:** Task 3 of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`,
 HELD until this is DONE.
 **Do not land 2026-11-08..11-23** anything that changes `chargeOdds`,
@@ -139,3 +139,16 @@ here:
    null and named in `stamps_unreadable`, and the watch reads it as
    `not-reported`; a stamp that was read is still served when the other
    cannot be.
+
+   **Result 2026-10-24 17:21Z: PASS.** The scheduled watch run is `Odds pairing
+   rate watch` run 40101398801 (event schedule, 2026-10-24T14:11:35Z, success),
+   after the fix 3 A-D deploys. Its committed log
+   `outbox/odds-pairing-rate-20261024T141146Z.log` reads
+   `  refusals, closed day 2026-10-23  : none`. The relay self-probe of
+   `/budget/odds?date=2026-10-23` at 17:21Z serves `ceiling_reached_at` null,
+   `month_limit_reached_at` null and `stamps_unreadable` null, all three keys
+   present, with 636 of 3,800 used. `none` is not the absent-key state: the watch
+   reads a missing key as `not-reported`. **Coverage:** this is the green side,
+   read on one real day with no refusal. The red side is the self-test's 14
+   refusal cases and the executed TTL replay; no refusal has occurred since the
+   fix to read it live.

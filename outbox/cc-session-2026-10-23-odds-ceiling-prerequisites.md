@@ -70,3 +70,18 @@ write can fail) is filed for the owner.
 - Fix 3 E (a failed stamp write reads as no refusal): in the prerequisites
   CC-CMD; a schema and `chargeOdds` change, the owner's call.
 - 09-16 Task 3: HELD by the owner.
+
+## Update 2026-10-24 — done condition 3 read (PASS)
+
+The scheduled pairing watch of 2026-10-24 (run 40101398801, 14:11Z) read
+`refusals, closed day 2026-10-23  : none`, and `/budget/odds?date=2026-10-23`
+served `ceiling_reached_at`, `month_limit_reached_at` and `stamps_unreadable`
+as null, all three present (17:21Z). Done conditions 1 and 3 are met.
+
+**Status stays PARTIAL, on purpose.** The 10-23 scheduled reminder said to set
+DONE once those two were met. DONE is the condition the owner's hold on Task 3 of
+`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` waits on, and that hold named
+all three fixes. Fix 2 (the opening cron stops re-buying) has not landed: it is
+built and staged, and lands 2026-10-25 under the 10-21 join CC-CMD. Marking DONE
+now would lift the hold with fix 2 outstanding. DONE follows that CC-CMD's done
+condition 4.

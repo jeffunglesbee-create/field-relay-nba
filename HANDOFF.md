@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-24 (afternoon) — prerequisites done condition 3 passes
+
+**Session doc:** outbox/cc-session-2026-10-23-odds-ceiling-prerequisites.md (updated)
+
+`docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` stays **PARTIAL**, with done
+conditions 1 and 3 met. The scheduled pairing watch (run 40101398801) read
+`none` for closed day 10-23, and the three stamp keys are served and null. DONE
+waits on fix 2, because the owner's hold on Task 3 of the 09-16 CC-CMD lifts when
+the prerequisites are DONE and names all three fixes. Fix 2 lands 10-25 under the
+10-21 join CC-CMD.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-24 — the NBA board moves to ESPN; run 1 passes; coverage gaps DONE
 
 **HEAD:** `36e44f1` → `5919cab` → `0b7c89d` → this close-out · **Branch:** main
