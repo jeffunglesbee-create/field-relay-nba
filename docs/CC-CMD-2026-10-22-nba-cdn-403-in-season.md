@@ -189,6 +189,34 @@ The CDN refuses the Worker, so the board moved to ESPN. `5919cab`, deploy run
   (the old branch answered both dates with count 0, nba-cdn-empty)
 ```
 
+### Live check 1 — 2026-10-24T22:04Z: the first NBA closing line, bought
+
+D1 `cc49101c`, `change_log` joined to `regular_season_games`:
+
+| game_id | ts | verified | book | start_time | equals the row's `closing_odds` |
+|---|---|---|---|---|---|
+| NBA_2026-10-24_e401909853 | 21:50:12 | 1 | draftkings | 22:00Z | yes |
+
+- Heat at Hornets was matched through its ESPN event id (`espn_event_id`
+  401909853) and bought 9.8 minutes before kickoff, once. Before 2026-10-24
+  there were 0 NBA rows in `closing_odds_capture`.
+- **Spend, accounted to the call.** `/budget/odds?date=2026-10-24`
+  `by_site.ambientCaptureClosingOdds` read 42 at 18:33Z and 63 at 22:04Z: 21
+  credits. `change_log` shows 7 captures between those readings, one per
+  (sport, kickoff time): Ligue 1 and Serie A at 18:35, La Liga at 18:50, MLS and
+  NHL at 19:20, MLS at 21:20, NBA at 21:50. Seven calls at 3 credits is 21, so
+  the NBA call cost its 3 and nothing more.
+- `/ambient/state?diag=1` at 22:04Z: `lastPutError` null, `lastAlarmError`
+  null, `storedMatchesMem` true, `gameStartsSize` 29. The instance had just
+  restarted (`instanceStartedAt` 22:04:35Z) and restored all 99 scores and its
+  purchase record, so a restart did not re-buy the line.
+
+**Premise 1 is not yet read.** At 22:04:36Z and 22:05:01Z the relay's
+`/nba/liveData/scoreboard/todaysScoreboard_00.json` answered 403, and
+`/v2/games?sport=nba` still listed 401909853 as `'pre'`. A 403 while the game is
+`'pre'` does not test "the 403 holds during live play". It is read at 23:08Z, with
+the break check, while the game is live.
+
 ## Done condition (Rule 90 artifacts)
 
 1. TASK 0's three outputs committed.
