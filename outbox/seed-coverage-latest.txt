@@ -2,7 +2,7 @@
   PASS  V2_LEAGUES parsed to real rows
   PASS  the two tables are not the same table
 
-  25 fetchable competition(s): 19 seeded, 2 excluded, 4 undecided
+  26 fetchable competition(s): 20 seeded, 2 excluded, 4 undecided
 
     UNDECIDED  eflchamp (eng.2)
     UNDECIDED  eflone (eng.3)
@@ -19,15 +19,18 @@
 
   PASS  LEAGUES_LOCAL contains nothing the cron does not seed
 
-  Live half, 2026-10-20 (4 day(s) ago)
+  Live half, 2026-10-21 (4 day(s) ago)
 
   PASS  the archive answers for that date
   PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
-  NBA                       3        3
-  NHL                      11       11
+  NBA                      11       11
+  NHL                       2        2
+  WNBA                      1        1
+  MLS                       1        4
+  La Liga                   1        1
   UEFA Champions League     9        9
-  CFB                       3        3
+  CFB                       1        1
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
   PASS  the archive returned rows for that date
