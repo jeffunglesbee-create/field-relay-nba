@@ -798,12 +798,52 @@ entries above are handled.
 
 ---
 
+## GET /v2/games?sport=nba — the NBA board (ESPN, since 2026-10-24)
+
+Producer: `handleV2Games`, ESPN branch, `adaptESPNBasketball(ev, 'nba')`
+(`src/index.js`). From 2026-06-26 the board came from cdn.nba.com, which
+refuses the Worker in season. The old branch answered that refusal with a 200
+empty slate (`source: 'nba-cdn-empty'`). That value no longer exists.
+`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md` (field-relay-nba).
+
+```
+200 { sport: 'nba', date, games: FieldGame[], count, source: 'espn-wc', ts }
+    `date` is honoured: ESPN is asked for dates=YYYYMMDD of the requested
+    YYYY-MM-DD. A day with no games is games: [], count: 0.
+502 { error: 'ESPN upstream <status>', sport, date }   ESPN answered non-OK
+500 { error: <message>, sport, date }                  the fetch threw
+    No NBA secondary source exists, so a failure is never a 200.
+
+FieldGame (NBA):
+  id           'espn:<ESPN event id>'     (was 'nba:<10-digit CDN id>')
+  espnEventId  '<ESPN event id>'          equals the archive's espn_event_id
+  sport 'nba', league 'NBA'
+  state        'pre' | 'live' | 'final'   a break (halftime, end of a
+               quarter) is 'live'. NBA's final is 'final'; WNBA and AFL,
+               on the same adapter, say 'post'
+               (docs/CC-CMD-2026-10-24-v2-final-word.md, field-relay-nba)
+  start        ISO instant
+  home / away  { name: ESPN displayName, abbr, score: number, 0 before tip }
+  periodNum, periodLabel ('NS' | 'Q1'..'Q4' | 'OT', 'OT2', ... | 'F'),
+  clock, venue, situation (live only), linescores, round, streams
+  nbaGameId    REMOVED. No /v2/games reader used it. The client builds its
+               own CDN id map from /nba/*.
+```
+
+Consumers: AmbientDO's closing-line capture (matches `espnEventId` to the
+archive row), jubilant-bassoon `fetchV2Games` / `fetchV2AllScores` /
+`mapV2ToESPN`, GameDO `_fetchFacts`, analytics-engine Phase 9 and 10A. The
+`/nba/*` passthrough to cdn.nba.com is a separate route and is unchanged.
+
+---
+
 ## GET /journalism/game/{eventId} — per-game brief lookup
 
 Producer: `src/index.js` ~L12906 route handler; backing KV key written by
 the `JOURNALISM_QUEUE` consumer's `game-brief` branch (`src/index.js`,
-`async queue()`) and by `enqueueNHLBriefs`/`enqueueNBABriefs`'s own
-pre-enqueue dedup checks (`src/index.js` ~L3758/~L3879).
+`async queue()`) and by `enqueueNHLBriefs`'s own pre-enqueue dedup check in
+`handleV2Games`. The NBA CDN board's `enqueueNBABriefs` was removed on
+2026-10-24 with that board (see the NBA board section below).
 Consumer: jubilant-bassoon `scripts/night-owl-email.js`'s `fetchRelayBrief()`
 — confirmed via direct source read (`mcp__FIELD_Handoff__read_source`,
 2026-07-15), not assumed.

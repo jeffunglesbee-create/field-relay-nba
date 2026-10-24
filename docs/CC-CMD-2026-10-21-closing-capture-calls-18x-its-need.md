@@ -332,4 +332,7 @@ a board lists were bought, once each.
 **`/ambient/state?diag=1`** at 11:08Z: `lastPutError` null, `storedMatchesMem`
 true, `lastAlarmError` null, last restore at 04:43Z.
 
-Run 2 reads closed day 10-24 on 2026-10-25 at 11:07Z.
+Run 2 reads closed day 10-24 on 2026-10-25 at 11:07Z. NBA buying begins
+partway through that day, at the NBA board's deploy
+(`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`, TASK 1). Run 2's write-up
+gives the deploy instant and splits 10-24's NBA groups into before and after it.

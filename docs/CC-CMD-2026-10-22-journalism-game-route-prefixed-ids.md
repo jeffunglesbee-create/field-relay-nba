@@ -33,6 +33,14 @@ predates that fix, which does not change it.
 - So these client fetches have read null since at least 2026-10-22. The
   briefs still reach the client by another path: the D1 copy read through
   `/context/game/{id}` (the review's refuters, three of three).
+- **Added 2026-10-24.** NBA ids on `/v2/games` are `espn:<id>` since the NBA
+  board moved to ESPN (`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`).
+  The client's NBA fetch therefore asks for `espn%3A<id>`, and the route reads
+  `brief:game:espn3A<id>`. The journalism cron writes NBA briefs at
+  `brief:game:<id>`, so the defect is the same as for `nhl:`. Fixing this route
+  would make those briefs readable from the app, which no NBA brief has been
+  (the CDN-keyed ones before 10-24 could not be either). Found by the review of
+  that change (workflow wf_b338e9b9-f0d).
 
 ## TASK 0
 
