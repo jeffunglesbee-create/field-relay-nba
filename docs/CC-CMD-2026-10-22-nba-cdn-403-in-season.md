@@ -7,8 +7,9 @@
 **Confidence gate:** >= 95 before any commit
 **Status:** PARTIAL. TASK 0 premises 2 and 3 done, and TASK 1 deployed
 2026-10-24 (`5919cab`, deploy run 40102174240). Done conditions 2 and 3 are
-met. Premise 1 (the 403 during live play) is read tonight, while
-NBA_2026-10-24_e401909853 is live, together with that game's closing line.
+met. Premise 1 (the 403 during live play) is CONFIRMED (Live check 2, 23:09Z)
+and the break reads `'live'` (23:19Z). Live check 3, all eight NBA closing lines
+bought once, is read 2026-10-25 02:40Z; DONE follows it.
 Built under BUILD-ON-A ("filing is not the work").
 **Filed by:** TASK 0 of `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`,
 Rule 87.4.
@@ -117,8 +118,13 @@ maps and a critic).
   this session rules on. The journalism cron and the archive seed already read
   the same ESPN NBA URL. Flagged for human review; no ruling exists.
 
-**Premise 1: the 403 holds during live play.** Not yet read. It is read
-tonight during NBA_2026-10-24_e401909853 (22:00Z tip).
+**Premise 1: the 403 holds during live play.** CONFIRMED 2026-10-24T23:09:30Z.
+`/v2/games?sport=nba&date=2026-10-24` listed 401909853 as `'live'` (Q2, clock
+1:47, Hornets 61, Heat 54) and, in the same minute, the relay's
+`/nba/liveData/scoreboard/todaysScoreboard_00.json` answered 403, body
+`nba returned 403`. The CDN refuses the Worker while a game is being played, so
+the move to ESPN was needed and not only an off-season workaround. Detail under
+Live check 2.
 
 ## TASK 1 — decided from TASK 0
 
@@ -211,11 +217,32 @@ D1 `cc49101c`, `change_log` joined to `regular_season_games`:
   restarted (`instanceStartedAt` 22:04:35Z) and restored all 99 scores and its
   purchase record, so a restart did not re-buy the line.
 
-**Premise 1 is not yet read.** At 22:04:36Z and 22:05:01Z the relay's
+At 22:04:36Z and 22:05:01Z the relay's
 `/nba/liveData/scoreboard/todaysScoreboard_00.json` answered 403, and
 `/v2/games?sport=nba` still listed 401909853 as `'pre'`. A 403 while the game is
-`'pre'` does not test "the 403 holds during live play". It is read at 23:08Z, with
-the break check, while the game is live.
+`'pre'` does not test "the 403 holds during live play", so premise 1 was left
+open until Live check 2.
+
+### Live check 2 — 2026-10-24T23:09Z and 23:19Z: live play, then the break
+
+| read | `/v2/games?sport=nba&date=2026-10-24`, game 401909853 | `/ambient/state?diag=1` |
+|---|---|---|
+| 23:09:30Z | `state 'live'`, `periodNum 2`, `periodLabel 'Q2'`, clock `1:47`, Hornets 61, Heat 54 | in `liveGames`, `lastPutError` null, `gameStartsSize` 36 |
+| 23:19:58Z | `state 'live'`, `periodNum 2`, `periodLabel 'Q2'`, clock `0.0`, Hornets 66, Heat 58, `linescores` home `[31,35]` away `[31,27]` | in `liveGames` (66–58, period 2), `lastPutError` null, `lastAlarmError` null, `storedMatchesMem` true, `gameStartsSize` 36 |
+
+- **Premise 1.** The CDN route answered 403, `nba returned 403`, in the 23:09Z
+  minute, with the game live on the ESPN board. Confirmed.
+- **The break.** At 23:19:58Z the game sat at the end of Q2: two completed
+  quarters in `linescores`, no Q3 entry, clock `0.0`. This is the state the 10-24
+  review found being read as `'pre'`. The board answered `'live'` with
+  `periodLabel 'Q2'`, and AmbientDO kept the game in `liveGames`, so `all_final`
+  could not have fired while this game was still being played.
+- **What was not observed.** The relay does not carry ESPN's raw status name, so
+  whether this break was `STATUS_HALFTIME` or `STATUS_END_PERIOD` was not read.
+  The live read proves the effect (`'live'` at clock `0.0` with Q3 not started).
+  The two status names are covered by `check-v2-games-nba-board.mjs` N1.
+- The Ambient instance restarted at 23:19:53Z (`clientCount` 0) and restored 99
+  scores, this game among them as live. A restart in the break did not drop it.
 
 ## Done condition (Rule 90 artifacts)
 
