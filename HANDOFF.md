@@ -1,5 +1,25 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-25 (14:40Z) — the shared odds join is live
+
+**HEAD:** `f4bea6a` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-25-shared-join.md
+
+`docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`: **PARTIAL**
+(landed, done conditions 3 and 4 pending).
+
+- **Live:** `d46106b` (no opening line once its game has started) and `f4bea6a` (one
+  per-team join behind the three odds writers), pushed 14:31Z in a capture gap.
+  Deploy run 40202657716 and Repo guards 40202657752 are green. Gates 134 of 136;
+  the two failures are environment-only.
+- **Read next:** 2026-10-27 12:00Z (`trig_01N9VpHitdamufLWMkqWx6un`): NHL and NBA on
+  closed day 10-26, CFB and NFL on their first closed day with rows, and a demand run
+  that should read 0 unwritable credits.
+- **After done condition 4 passes:** `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`
+  goes DONE, which lifts the owner's hold on Task 3 of the 09-16 CC-CMD. Not started.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-25 (11:09Z) — the 18x closing-capture CC-CMD is DONE
 
 **HEAD:** `3c6054d` → this close-out · **Branch:** main

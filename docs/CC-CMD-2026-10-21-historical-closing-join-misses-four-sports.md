@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a fetch that cannot produce its write)
 **Confidence gate:** >= 95 before any commit
-**Status:** RULED 2026-10-23: shape (a), make the join match. Lands after the 2026-10-25 11:07Z read.
+**Status:** PARTIAL. Shape (a) LANDED 2026-10-25: `d46106b` and `f4bea6a`, pushed 14:31Z, deploy run 40202657716 green at 14:38Z. Done condition 2 is met by `scripts/check-odds-join-shared.mjs` (19 of 19, 21 of 21 mutations). Done conditions 3 and 4 wait on the first closed days after the deploy (read from 2026-10-27 12:00Z, `trig_01N9VpHitdamufLWMkqWx6un`). RULED 2026-10-23: shape (a), make the join match. Session doc: `outbox/cc-session-2026-10-25-shared-join.md`.
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2). Rule 87.4: found
 in its adversarial review, outside its scope.
@@ -206,10 +206,33 @@ same removal rule. Model the dead-hour trigger only if premise 5 shows it
 spends. No edit to that script before the 2026-10-25 11:07Z read, which
 runs it.
 
-## Built 2026-10-24, not landed: STAGED (Rule 74)
+## Built 2026-10-24, landed 2026-10-25 (Rule 74)
 
-**What is staged.** Two commits, kept local and saved as
-`outbox/staged-shared-join-2026-10-24.patch` (`git am` applies them):
+**Landed 2026-10-25.**
+- **Unblock check passed.** Run 40187677225 (closing-capture run 2, log
+  `outbox/odds-consumer-demand-20261025T110935Z.log`) had finished and its log
+  for closed day 10-24 was on main.
+- **Commits.** Rebased onto `origin/main` as `d46106b` (no opening line once its
+  game has started) and `f4bea6a` (the per-team join).
+  `JOIN_UNWRITABLE.until` was already `2026-10-26`, the first full UTC day after
+  a deploy on 10-25, so nothing was amended. The demand script's self-test
+  passes and its 21 mutations are caught.
+- **Gates.** 134 of 136 deploy and guards steps on a clean worktree. The two
+  failures are the environment-only ones: the BSD frame list fetch returned
+  HTTP 0, and `RELAY_SHARED_SECRET` is unset in the sandbox.
+  `check-commit-skip-prose` is clean.
+- **Pushed 14:31:38Z**, inside the capture gap 14:30Z to 15:05Z (windows are
+  T-10 minutes). Deploy RELAY Worker run 40202657716 succeeded at 14:38:06Z,
+  Repo guards run 40202657752 and Workflow YAML Gate run 40202657785 too.
+- **The staged patch is removed.**
+- **Early read, 14:42Z:** no `odds_api` opening write since the deploy. The cron
+  runs on the 15-minute journalism cycle, so this is not yet evidence either
+  way; done condition 4 reads closed days.
+
+The three paragraphs below are the state before the landing, kept as history.
+
+**What was staged.** Two commits, kept local and saved as a patch until the
+landing (the patch has since been removed):
 1. `fix: no opening line is written once its game has started`: the cron and
    the worker backfill refuse a line captured at or after the row's kickoff,
    or the vendor's commence for a row without one.
