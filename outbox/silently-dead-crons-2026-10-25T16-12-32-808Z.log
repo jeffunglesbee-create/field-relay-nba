@@ -1,0 +1,70 @@
+=== silently dead crons  repos=4  streak=3  utc=2026-10-25T16:09:32.200Z ===
+    jeffunglesbee-create/field-relay-nba
+    jeffunglesbee-create/jubilant-bassoon
+    jeffunglesbee-create/field-laboratory
+    jeffunglesbee-create/field-playground
+
+  ── jeffunglesbee-create/field-relay-nba ──
+    187 workflow(s), 187 active  (all pages read)
+    scheduled and healthy             : 37
+    no schedule: block, not judged     : 147
+    declared detectors, red on purpose : 3   (not failures)
+      .github/workflows/rule90-staleness-monitor.yml  red at least 2.0 days
+        reports: rule-registry entries marked UNEXERCISED for more than 14 days
+        now:     rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/brief-label-migration.yml  red at least 20.1 days
+        reports: brief rows whose sport is outside the authority label set read from the games table
+        now:     4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/odds-daily-vs-vendor.yml  red at least 2.5 days
+        reports: two conditions in one job: (1) the vendor's billed day minus our daily counter minus known CI spend, against max(50, 5% of the vendor's day); (2) our daily counter summed over days FULLY INSIDE the reading span against the movement of our own monthly counter, which can only be larger
+        now:     (1) 2026-09-21: vendor billed 704, our counter 3799, known CI 200 -> residual -3295 against a tolerance of 50, verdict we-overcharge-ourselves; the prior day read -2477, and our side moved by ONE while the vendor's bill fell 839, so the trend is the vendor's spend falling rather than our overcharge rising. (2) 2026-09-20 and 2026-09-21 sum to 3800+3799=7599 while the monthly counter moved 5037 across a span containing both days plus edge hours -- an excess of 2562 that no window offset can produce, since the monthly delta covers strictly more time than the days it is compared against
+        tracked: docs/CC-CMD-2026-09-19-daily-vs-vendor.md
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/jubilant-bassoon ──
+    136 workflow(s), 136 active  (all pages read)
+    scheduled and healthy             : 30
+    no schedule: block, not judged     : 105
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/nba-clutch-update.yml
+        red since at least 2026-07-25T08:13:11Z, latest 2026-07-31T08:56:19Z
+        https://github.com/jeffunglesbee-create/jubilant-bassoon/actions/runs/30618071472
+
+  ── jeffunglesbee-create/field-laboratory ──
+    39 workflow(s), 39 active  (all pages read)
+    scheduled and healthy             : 7
+    no schedule: block, not judged     : 32
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/field-playground ──
+    83 workflow(s), 83 active  (all pages read)
+    scheduled and healthy             : 22
+    no schedule: block, not judged     : 61
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+    COVERAGE: 4 repos, 445 workflows, 445 active, 100 JUDGED
+    (>= 3 completed scheduled runs each). NOT judged: 345 with no
+    schedule: block — their failures surface on the commit that caused them —
+    and 0 that declare a cron but have never produced a run,
+    named above rather than counted. A workflow is judged on its last 3
+    scheduled runs whenever they happened, so a firing delay cannot skew it.
+    NOT covered: any repo outside the 4 listed at the top.
+
+  ── ratchet (docs/dead-cron-baseline.json) ──
+    carried, already admitted : 1
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/nba-clutch-update.yml
+        kind dead  red since 2026-07-25  admitted 39d ago  review by 2027-05-15
+        unblocked by: read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing
+    NEW, not in the baseline  : 0
+    baseline entries resolved : 1
+      jeffunglesbee-create/field-laboratory:.github/workflows/verify-full.yml   <- fixed or gone; remove it from docs/dead-cron-baseline.json
+    reviews overdue           : 0
