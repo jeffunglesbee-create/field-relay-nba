@@ -336,3 +336,10 @@ Run 2 reads closed day 10-24 on 2026-10-25 at 11:07Z. NBA buying begins
 partway through that day, at the NBA board's deploy
 (`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`, TASK 1). Run 2's write-up
 gives the deploy instant and splits 10-24's NBA groups into before and after it.
+
+Read at 2026-10-25 02:41Z (NBA CC-CMD, Live check 3): closed day 10-24 billed 26
+calls (78 credits) against 25 `change_log` call groups. The one call without a
+row precedes 18:33Z, before any NBA capture; the 18:33Z to 24:00Z windows tie to
+the credit. Run 2 names that call, or says why it cannot, from the budget
+reconcile rows and `change_log` for 00:00Z to 18:33Z. The NBA slate itself was 6
+calls and 18 credits for 6 kickoff groups.
