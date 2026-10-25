@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL — **option 1 LANDED 2026-10-19** (`7ec2d03f`..`c8a45be7`, deploy run 39183315552 green), after two adversarial review rounds. Its done condition is STAGED until the 2026-10-25T06:30Z read, after CFL's 10-23 and 10-24 games; the baseline gap at 2026-10-19T01:06Z is −2,790. It still read −2,790 at 01:58Z, with month and daily each +18. Options 2 and 3 and TASK 0's CFL half are held, with reasons under "Decision". Session doc: `outbox/cc-session-2026-10-19-odds-single-batch.md`.
+**Status:** DONE 2026-10-25. Option 1 landed 2026-10-19 (`7ec2d03f`..`c8a45be7`, deploy run 39183315552 green), after two adversarial review rounds, and its done condition PASSED on the 2026-10-25T06:30Z read: the month-minus-daily gap read −2,790 at the baseline and −2,790 after CFL's 10-23 (54 credits) and 10-24 (588 credits) games; see "Done condition, result". Options 2 and 3 and TASK 0's CFL half stay held by the 2026-10-18 ruling under "Decision" (option 3 until 2026-11-24, when `trig_019aQvU36rYwZ7PqjaMnV5ut` judges the CFL post-window); done condition 3 asks for whichever option lands, so they are not part of it. Session doc: `outbox/cc-session-2026-10-19-odds-single-batch.md`.
 **Filed by:** CC, from TASK 1 of `docs/CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md`, which measures and may not fix.
 
 ---
@@ -155,6 +155,53 @@ The owner delegated the choice. Recorded here, with the reason for each:
    - option 1: month row minus the sum of daily rows does not change that day;
    - option 2: never-reconciled CFL calls fall to near 0;
    - option 3: CFL charges fall by the measured page-load share.
+
+## Done condition, result (2026-10-25)
+
+**Read 2026-10-25T06:30Z (scheduled `trig_01YbnNqGQr72vNhVUHPPpnXq`), verbatim.**
+
+Step 0, no month veto on the measured days (relay self-probe, 06:31Z):
+
+```
+/budget/odds?date=2026-10-23  month_limit_reached_at null, ceiling_reached_at null,
+                              stamps_unreadable null, used 636, unaccounted 0
+/budget/odds?date=2026-10-24  month_limit_reached_at null, ceiling_reached_at null,
+                              stamps_unreadable null, used 2324, unaccounted 0
+monthly (both):               used 43792, limit 85000, remaining 41208
+```
+
+The field is present on both days, so fix 3 B of
+`docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` is live and the veto
+check ran on the field itself, not the monthly fallback.
+
+D1 `cc49101c`, the query from the task:
+
+```
+SELECT (SELECT used FROM odds_budget_month WHERE month='2026-10')
+     - (SELECT SUM(used) FROM odds_budget WHERE day LIKE '2026-10-%') AS gap, ...
+
+gap = -2790   month_used = 43792   daily_sum = 46582
+d23 = 636     d24 = 2324
+handleCFLOddsProbs: 10-23 = 54, 10-24 = 588
+```
+
+| when | month (2026-10) | sum of daily | gap |
+|---|---|---|---|
+| 2026-10-19T01:06Z (baseline) | 35,857 | 38,647 | −2,790 |
+| 2026-10-19T01:58Z | 35,875 | 38,665 | −2,790 |
+| 2026-10-23T18:39Z | | | −2,790 |
+| **2026-10-25T06:30Z** | **43,792** | **46,582** | **−2,790** |
+
+Since the baseline the month row rose 7,935 and the daily rows rose 7,935. The
+window holds CFL charges on both closed game days, 54 and 588 credits.
+
+**PASS.** The gap is unchanged, with CFL charges above 0 on 10-23 and 10-24. The
+gap did not grow, so the "lost between batches" cause is not refuted, and no
+other writer moved the month row against the daily rows in this window.
+
+Coverage (Rule 91): this is one aggregate over one window, 6 days and 7,935
+credits. It would not show a month loss offset by an equal daily loss. It is
+what the done condition asked for.
 
 ## FORBIDDEN
 

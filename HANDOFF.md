@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-25 (06:30Z) — odds option 1's done condition passes
+
+**Session doc:** outbox/cc-session-2026-10-19-odds-single-batch.md (updated)
+
+`docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md`: **DONE**. The
+month-minus-daily gap read −2,790 at the 10-19 baseline and −2,790 again at
+06:30Z, after CFL's 10-23 (54 credits) and 10-24 (588) games; month and daily
+each rose 7,935. No month veto touched either day (`month_limit_reached_at`
+null on both). Options 2 and 3 stay held by the 10-18 ruling; option 3's
+revisit is the 2026-11-24 judge run (`trig_019aQvU36rYwZ7PqjaMnV5ut`).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-25 (early) — the NBA board CC-CMD is DONE
 
 **HEAD:** `0c9e434` → this close-out · **Branch:** main

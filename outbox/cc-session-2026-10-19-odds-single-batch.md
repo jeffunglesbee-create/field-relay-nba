@@ -91,9 +91,54 @@ rewrite.
 | upstream close-out read, before the deploy (`4aacba4e`) | — | — | −2,766 | stable across two reads four hours apart |
 | 2026-10-19T01:06Z, 3 min after the deploy | 35,857 | 38,647 | **−2,790** | baseline. 10-19 day 99 = site 99 |
 | 2026-10-19T01:58Z | 35,875 | 38,665 | **−2,790** | first post-deploy read. Month +18 and daily +18 since 01:06Z, so the gap is unchanged; 10-19 day 117 = site 117. A small sample: 18 credits, no CFL game in it |
-| 2026-10-25T06:30Z | scheduled (`trig_01YbnNqGQr72vNhVUHPPpnXq`) | | | after CFL's 10-23 and 10-24 games: **the done condition** |
+| 2026-10-25T06:30Z | 43,792 | 46,582 | **−2,790** | after CFL's 10-23 (54 credits) and 10-24 (588) games: **the done condition, PASS** (below) |
 
-STAGED, per Rule 74:
+**Read 2026-10-25T06:30Z (scheduled `trig_01YbnNqGQr72vNhVUHPPpnXq`), verbatim.**
+
+Step 0, no month veto on the measured days (relay self-probe, 06:31Z):
+
+```
+/budget/odds?date=2026-10-23  month_limit_reached_at null, ceiling_reached_at null,
+                              stamps_unreadable null, used 636, unaccounted 0
+/budget/odds?date=2026-10-24  month_limit_reached_at null, ceiling_reached_at null,
+                              stamps_unreadable null, used 2324, unaccounted 0
+monthly (both):               used 43792, limit 85000, remaining 41208
+```
+
+The field is present on both days, so fix 3 B of
+`docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` is live and the veto
+check ran on the field itself, not the monthly fallback.
+
+D1 `cc49101c`, the query from the task:
+
+```
+SELECT (SELECT used FROM odds_budget_month WHERE month='2026-10')
+     - (SELECT SUM(used) FROM odds_budget WHERE day LIKE '2026-10-%') AS gap, ...
+
+gap = -2790   month_used = 43792   daily_sum = 46582
+d23 = 636     d24 = 2324
+handleCFLOddsProbs: 10-23 = 54, 10-24 = 588
+```
+
+| when | month (2026-10) | sum of daily | gap |
+|---|---|---|---|
+| 2026-10-19T01:06Z (baseline) | 35,857 | 38,647 | −2,790 |
+| 2026-10-19T01:58Z | 35,875 | 38,665 | −2,790 |
+| 2026-10-23T18:39Z | | | −2,790 |
+| **2026-10-25T06:30Z** | **43,792** | **46,582** | **−2,790** |
+
+Since the baseline the month row rose 7,935 and the daily rows rose 7,935. The
+window holds CFL charges on both closed game days, 54 and 588 credits.
+
+**PASS.** The gap is unchanged, with CFL charges above 0 on 10-23 and 10-24. The
+gap did not grow, so the "lost between batches" cause is not refuted, and no
+other writer moved the month row against the daily rows in this window.
+
+Coverage (Rule 91): this is one aggregate over one window, 6 days and 7,935
+credits. It would not show a month loss offset by an equal daily loss. It is
+what the done condition asked for.
+
+Was STAGED, per Rule 74 (now VERIFIED by the read above):
 
 - **What is staged:** the done condition for option 1.
 - **What blocks it:** no CFL-active day has closed since the deploy.
