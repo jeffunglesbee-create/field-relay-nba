@@ -5,11 +5,12 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a data path that is silently empty)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. TASK 0 premises 2 and 3 done, and TASK 1 deployed
-2026-10-24 (`5919cab`, deploy run 40102174240). Done conditions 2 and 3 are
-met. Premise 1 (the 403 during live play) is CONFIRMED (Live check 2, 23:09Z)
-and the break reads `'live'` (23:19Z). Live check 3, all eight NBA closing lines
-bought once, is read 2026-10-25 02:40Z; DONE follows it.
+**Status:** DONE 2026-10-25, except the client box-score path, which is the
+owner's decision and has its own CC-CMD
+(`docs/CC-CMD-2026-10-25-nba-boxscore-path-cdn-403.md`, FILED). TASK 0 premises
+1, 2 and 3 are done, TASK 1 is deployed (`5919cab`, deploy run 40102174240), and
+Live checks 1, 2 and 3 passed. All three done conditions are met. Also the
+owner's: the Rule 45 human review of ESPN serving the NBA board.
 Built under BUILD-ON-A ("filing is not the work").
 **Filed by:** TASK 0 of `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`,
 Rule 87.4.
@@ -243,6 +244,52 @@ open until Live check 2.
   The two status names are covered by `check-v2-games-nba-board.mjs` N1.
 - The Ambient instance restarted at 23:19:53Z (`clientCount` 0) and restored 99
   scores, this game among them as live. A restart in the break did not drop it.
+
+### Live check 3 — 2026-10-25T02:41Z: the whole slate, bought once
+
+D1 `cc49101c`, `change_log` (`source='closing_odds_capture'`) joined to
+`regular_season_games`, for `NBA_2026-10-24_%`:
+
+| game_id | ts | verified | start_time | minutes before kickoff |
+|---|---|---|---|---|
+| …e401909853 | 10-24 21:50:12 | 1 | 22:00Z | 9:48 |
+| …e401909854 | 10-24 23:20:11 | 1 | 23:30Z | 9:49 |
+| …e401909855 | 10-24 23:20:11 | 1 | 23:30Z | 9:49 |
+| …e401909857 | 10-24 23:50:01 | 1 | 00:00Z | 9:59 |
+| …e401909858 | 10-24 23:50:01 | 1 | 00:00Z | 9:59 |
+| …e401909856 | 10-25 00:20:13 | 1 | 00:30Z | 9:47 |
+| …e401909859 | 10-25 00:50:03 | 1 | 01:00Z | 9:57 |
+| …e401909860 | 10-25 01:50:02 | 1 | 02:00Z | 9:58 |
+
+- **8 rows for 8 games**, one row each, all `_kickoff.verified` 1, all 9:47 to
+  9:59 before the game's own `start_time`.
+- **`closing_odds IS NULL`:** 0 of the 8 NBA rows for 2026-10-24. The check read
+  that the column is non-null; it did not compare each value to its
+  `change_log` line (Live check 1 did that for the first game).
+- **Spend, 6 calls and 18 credits.** NBA has 6 kickoff groups (22:00, 23:30,
+  00:00, 00:30, 01:00, 02:00Z) and `change_log` has 6 NBA call groups, one per
+  group, so no group was bought twice.
+  - **10-25 (UTC day), read 02:41Z:** `by_site.ambientCaptureClosingOdds` 24
+    credits, reconcile `EXPIRED` n 8. `change_log` call groups that day: MLS 3,
+    NBA 3, NHL 2, which is 8. Equal.
+  - **10-24:** 78 credits, reconcile `EXPIRED` n 24 plus `MISS` n 2, which is 26
+    calls. `change_log` call groups: 25 (NBA 3). Split at the two earlier
+    readings, 42 at 18:33Z and 63 at 22:04Z:
+
+    | window | `change_log` call groups | credits read |
+    |---|---|---|
+    | 00:00Z to 18:33Z | 13 (39 credits) | 42 |
+    | 18:33Z to 22:04Z | 7 (21) | 21 (63 − 42) |
+    | 22:04Z to 24:00Z | 5 (15) | 15 (78 − 63) |
+
+    The last two windows tie to the credit and hold all three of NBA's 10-24
+    calls (21:50, 23:20, 23:50). The first window is one call (3 credits) short
+    of a row. That call precedes the first NBA capture, 21:50:12Z, so it is not
+    an NBA purchase. Its sport is unknown from this data. It belongs to the 18x
+    CC-CMD's run 2, which reads closed day 10-24 (note added there).
+- `/budget/odds` for both days: `unaccounted` 0, `stamps_unreadable` null,
+  `ceiling_reached_at` null, `degraded_open.events` 0. 10-24 used 2324 of a
+  3800 ceiling.
 
 ## Done condition (Rule 90 artifacts)
 

@@ -1,5 +1,26 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-25 (early) — the NBA board CC-CMD is DONE
+
+**HEAD:** `0c9e434` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-24-nba-board.md (updated)
+
+`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`: **DONE**, except the client
+box-score path, which is the owner's.
+
+- **Premise 1 confirmed in live play** (23:09:30Z): the CDN route answered 403
+  while the ESPN board had the game live.
+- **The break reads `'live'`** (23:19:58Z, clock `0.0`). The raw ESPN status name
+  was not observed.
+- **All 8 NBA closing lines bought once**, verified, 9:47 to 9:59 before
+  kickoff; 6 calls, 18 credits; 0 of 8 rows with a null `closing_odds`.
+- **Filed:** `docs/CC-CMD-2026-10-25-nba-boxscore-path-cdn-403.md` (the owner's
+  direction). **Added to the 18x CC-CMD:** one unattributed 3-credit call on
+  10-24 before 18:33Z, for run 2.
+- **Next:** 11:07Z run 2 of the closing-capture read, then 12:30Z the held join.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-24 (afternoon) — prerequisites done condition 3 passes
 
 **Session doc:** outbox/cc-session-2026-10-23-odds-ceiling-prerequisites.md (updated)

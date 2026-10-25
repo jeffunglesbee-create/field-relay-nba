@@ -1,7 +1,7 @@
-# CC session 2026-10-24 — the NBA board moves to ESPN; closing capture run 1; coverage gaps DONE
+# CC session 2026-10-24 — the NBA board moves to ESPN; closing capture run 1; coverage gaps DONE; NBA CC-CMD DONE
 
 **Date:** 2026-10-24 · **Repo:** field-relay-nba (+ jubilant-bassoon CONTRACTS.md)
-**HEAD:** `36e44f1` → `9c976bc` → `b85fd31` → `eedb26c` → `5919cab` → `f8560d0` → `0b7c89d` → this doc
+**HEAD:** `36e44f1` → `9c976bc` → `b85fd31` → `eedb26c` → `37f5411` → `5919cab` → `f8560d0` → `0b7c89d` → `a9e56de` → `0c9e434` → the close-out commit
 **Branch:** main. Commit identity `claude@field.dev` / FIELD CI (owner, 2026-10-23).
 
 ## Per commit
@@ -15,6 +15,9 @@
 | `f8560d0` | docs: the NBA CC-CMD's TASK 0 and TASK 1 results; CONTRACTS.md /v2/games NBA contract; notes added to the 18x and brief-route CC-CMDs |
 | `0b7c89d` | docs: two new CC-CMDs filed, v2-final-word (owner's decision) and v2-games-callers-ask-utc-date |
 | jubilant-bassoon `b45a46d1` | docs: CONTRACTS.md synced; identical to the relay copy |
+| `a9e56de` | docs: Live check 1 (the first NBA closing line, 21:50:12Z, exact spend) |
+| `0c9e434` | docs: Live check 2 (premise 1 confirmed in live play; the break reads `'live'`) |
+| close-out commit | docs: Live check 3 (all 8 lines, 6 calls, 18 credits), the NBA CC-CMD DONE, the box-score CC-CMD filed, HANDOFF, this doc |
 
 ## How the NBA change was made
 
@@ -54,14 +57,21 @@
 - **VERIFIED, live at 14:29Z:**
   - 10-24 returns 8 games, every `espnEventId` equal to the archive's;
   - 10-23 returns 12 finals.
-- **STAGED (Rule 74):** NBA closing lines bought tonight.
-  - Blocked by: no NBA kickoff until 22:00Z.
-  - Unblocked by: the 22:00Z tip.
-  - Verify: D1 `change_log` `closing_odds_capture` rows for
-    `NBA_2026-10-24_%`. Expect 8, each verified once, with ≤ 18 credits of NBA
-    capture spend.
-  - Scheduled: 22:03Z (first line, plus premise 1 during live play), 23:08Z
-    (halftime reads `'live'`), 02:40Z (all 8, spend).
+- **VERIFIED, live 2026-10-24 and 10-25 (was STAGED):**
+  - **Premise 1.** At 23:09:30Z game 401909853 was `'live'` (Q2 1:47) while the
+    relay's `/nba/liveData/scoreboard/todaysScoreboard_00.json` answered 403.
+  - **The break.** At 23:19:58Z, clock `0.0` with two quarters in `linescores`,
+    the board answered `'live'`, `periodLabel 'Q2'`, and AmbientDO listed the
+    game in `liveGames`. ESPN's raw status name for the break (halftime or
+    end-of-period) was not observed; `check-v2-games-nba-board.mjs` N1 covers
+    both names.
+  - **The slate.** 8 closing lines for 8 games, each verified and 9:47 to 9:59
+    before its own `start_time`; 0 of 8 rows with `closing_odds IS NULL`; 6
+    calls and 18 credits for 6 kickoff groups. The budget windows from 18:33Z
+    tie to the credit.
+  - **Unattributed:** one 3-credit call on closed day 10-24 before 18:33Z has
+    no `change_log` row. It precedes the first NBA capture. Noted in the 18x
+    CC-CMD for run 2.
 - **KNOWN MISMATCHES:**
   - WNBA and AFL finals say `'post'`, which the client reads as live
     (`docs/CC-CMD-2026-10-24-v2-final-word.md`, the owner's call).
@@ -70,8 +80,9 @@
 
 ## Open, each with a home
 
-- The client box-score path on `/nba/*`, still 403. The NBA CC-CMD names it as
-  its own decision.
+- The client box-score and play-by-play paths on `/nba/*`, still 403:
+  `docs/CC-CMD-2026-10-25-nba-boxscore-path-cdn-403.md` (FILED; the direction is
+  the owner's, and its TASK 0 premises are listed there).
 - **Rule 45:** whether ESPN may serve the NBA board is for human review. The
   journalism cron already reads the same URL.
 - Run 2 of the closing-capture done condition: 2026-10-25 11:07Z. Its prompt now
