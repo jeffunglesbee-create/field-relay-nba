@@ -225,9 +225,11 @@ runs it.
   T-10 minutes). Deploy RELAY Worker run 40202657716 succeeded at 14:38:06Z,
   Repo guards run 40202657752 and Workflow YAML Gate run 40202657785 too.
 - **The staged patch is removed.**
-- **Early read, 14:42Z:** no `odds_api` opening write since the deploy. The cron
-  runs on the 15-minute journalism cycle, so this is not yet evidence either
-  way; done condition 4 reads closed days.
+- **Early read, 14:50Z (first cron cycle after the deploy, 14:45:55Z):** opening
+  lines written for NBA 7 of 7 games, NHL 5 of 5 and NFL 11 of 12, none at or
+  after its kickoff. The 12th NFL game started at 13:30Z, before that pass. Before
+  the deploy these sports had 0 over 10-23 to 10-25. One cycle on one day: done
+  condition 4 still reads a closed day per sport.
 
 The three paragraphs below are the state before the landing, kept as history.
 

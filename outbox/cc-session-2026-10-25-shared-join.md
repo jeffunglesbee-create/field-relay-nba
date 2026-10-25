@@ -58,8 +58,23 @@ shape (a), ruled by the owner on 2026-10-23. Status PARTIAL.
     above 0 per sport; no row with `ts` at or after its kickoff since the deploy;
     `archive_game_closing` for NFL or CFB above 0; `odds-consumer-demand.yml` with
     `days=1` reading 0 unwritable credits.
-- **Early read, 14:42Z:** no `odds_api` opening write since the deploy. The cron runs
-  on the 15-minute journalism cycle, so this is not evidence either way.
+- **Early read, 2026-10-25 14:50Z (VERIFIED on the first cron cycle after the deploy).**
+  The opening cron ran at 14:45:55Z to 14:46:05Z, about 8 minutes after the deploy
+  (14:38:06Z). `change_log`, source `odds_api`, field `opening_odds`, `ts` at or
+  after 14:38Z, joined to `regular_season_games` for the ET day 10-25:
+
+  | sport | games | opening lines written | written at or after kickoff |
+  |---|---|---|---|
+  | NBA | 7 | 7 | 0 |
+  | NHL | 5 | 5 | 0 |
+  | NFL | 12 | 11 | 0 |
+
+  Before the deploy these four sports had 0 opening writes over 10-23 to 10-25
+  (the read at 14:42Z). The one NFL game without a line starts at 13:30Z, before the
+  cron's 14:46Z pass, which is what the kickoff refusal of `d46106b` is for; the
+  match of that game to the vendor's listing was not tested separately. CFB has no
+  row today. This is one cycle on one day: done conditions 3 and 4 still read a full
+  closed day per sport.
 
 ## Integration state (Rule 65)
 
