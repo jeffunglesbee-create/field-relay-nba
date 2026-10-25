@@ -1,5 +1,24 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-25 (11:09Z) — the 18x closing-capture CC-CMD is DONE
+
+**HEAD:** `3c6054d` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-22-closing-capture.md (updated)
+
+`docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md`: **DONE**. Done
+condition 3 passed on both runs: closed day 10-23 at 0.8x (run 40088714137) and
+closed day 10-24 at 0.9x (run 40187677225), against the limit of 2x. No refusal
+touched 10-24 (`ceiling_reached_at` and `month_limit_reached_at` null). All 38
+capture rows that day are kickoff-verified.
+
+- **One billed call is unnamed** (3 of 78 credits): no stored record exists for a
+  capture that writes no line. Filed:
+  `docs/CC-CMD-2026-10-25-capture-call-without-a-line-leaves-no-trace.md`.
+  The La Liga 14:15Z game has no closing line.
+- **Next:** 12:30Z the held join commits.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-25 (06:30Z) — odds option 1's done condition passes
 
 **Session doc:** outbox/cc-session-2026-10-19-odds-single-batch.md (updated)

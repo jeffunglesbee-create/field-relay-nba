@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (real vendor spend above need), with an open mechanism
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. TASK 0 and TASK 1 done 2026-10-22: fix `6ef722d`, deploy run 39713304241, verified live by runs 39714396288 and 39716768024. Done conditions 1 and 2 met. Done condition 3: run 1 PASS (closed day 10-23, 0.8x, run 40088714137); run 2 reads closed day 10-24 on 10-25 at 11:07Z. Dispatched by the owner 2026-10-21 ("dispatch closing capture"). Session doc: `outbox/cc-session-2026-10-22-closing-capture.md`.
+**Status:** DONE 2026-10-25. TASK 0 and TASK 1 done 2026-10-22: fix `6ef722d`, deploy run 39713304241, verified live by runs 39714396288 and 39716768024. Done conditions 1, 2 and 3 met: run 1 PASS (closed day 10-23, 0.8x, run 40088714137) and run 2 PASS (closed day 10-24, 0.9x, run 40187677225). One billed call on 10-24 is unnamed and is filed as `docs/CC-CMD-2026-10-25-capture-call-without-a-line-leaves-no-trace.md`. Dispatched by the owner 2026-10-21 ("dispatch closing capture"). Session doc: `outbox/cc-session-2026-10-22-closing-capture.md`.
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2), Rule 87.4.
 
@@ -343,3 +343,96 @@ row precedes 18:33Z, before any NBA capture; the 18:33Z to 24:00Z windows tie to
 the credit. Run 2 names that call, or says why it cannot, from the budget
 reconcile rows and `change_log` for 00:00Z to 18:33Z. The NBA slate itself was 6
 calls and 18 credits for 6 kickoff groups.
+
+### Done condition 3, run 2 of 2 — closed day 2026-10-24: PASS, 0.9x
+
+Run 40187677225 (`odds-consumer-demand.yml`, `days=3`, dispatched
+2026-10-25 11:09Z). Log: `outbox/odds-consumer-demand-20261025T110935Z.log`.
+
+**No refusal on the measured day**, checked first. `/budget/odds?date=2026-10-24`
+through the relay self-probe at 11:09:23Z:
+- `ceiling_reached_at` null, `month_limit_reached_at` null, `stamps_unreadable` null;
+- used 2,324 of the 3,800 ceiling, `unaccounted` 0, `degraded_open.events` 0.
+
+Fix 1 of the prerequisites CC-CMD retries a refused capture. The guard refused
+nothing on 10-24, so the figures below contain no retries.
+
+| 2026-10-24 | value |
+|---|---|
+| charged | 78: 26 calls at 3 (reconcile `EXPIRED` n 24, `MISS` n 2) |
+| kept | 78 |
+| demand | 87: 29 kickoff groups at 3 |
+| games | 48 |
+| **charged/demand** | **0.9x** (limit 2x) |
+| 3 x games / demand | 1.66x (144 / 87) |
+| 3 x groups | 87. Charged (78) does not exceed it, so there is no finding against the before-kickoff CC-CMD |
+
+The same run reads 10-22 at 0.4x and 10-23 at 0.8x. **Both runs pass:** run 1
+(closed day 10-23, 0.8x, run 40088714137) and run 2 (10-24, 0.9x, run
+40187677225), against the limit of 2x.
+
+**NBA, apart.** The NBA board moved to ESPN in `5919cab`, pushed 14:22Z on
+10-24 (deploy run 40102174240); a relay self-probe at 14:29Z read it serving
+ESPN's games. The 10-24 UTC day holds five NBA kickoff groups, and the prompt's
+premise that all of them follow the deploy is **false for three of them**, found
+by one query on the board rows:
+
+| kickoff (UTC) | games | bought |
+|---|---|---|
+| 00:00 | 1 | no. Before the deploy (the 10-23 ET slate); no board listed it |
+| 01:30 | 2 | no. Same |
+| 02:00 | 3 | no. Same |
+| 22:00 | 1 | 21:50:12Z |
+| 23:30 | 2 | 23:20:11Z |
+
+The prompt's "22:00Z to 02:00Z, all after the deploy" is true of the 10-24 ET
+slate, whose kickoffs run to 02:00Z on 10-25. Demand is counted by UTC day, so
+it also carries the 10-23 ET slate's three groups. They are 9 of the 87 credits
+and could not have been bought; without them demand is 78 and the ratio reads
+1.0x. NBA's charges on 10-24 are 3 calls (21:50, 23:20 and 23:50), 9 credits. The
+23:50:01Z call bought `e401909857` and `e401909858`, a 00:00Z kickoff on 10-25,
+and is demanded on 10-25's day. The whole 10-24 ET slate was 6 calls and 18
+credits (`docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`, Live check 3).
+
+**The 29 groups**, from D1 rows with `start_time` on 10-24 UTC in an ambient
+sport:
+
+| groups | what |
+|---|---|
+| 23 | bought on 10-24: 13 before 18:33Z, 7 from 18:33Z to 22:04Z, 3 after |
+| 2 | bought on 10-23 at 23:50Z (MLB and NHL, 00:00Z), so charged on 10-23 |
+| 3 | the NBA groups before the deploy |
+| 1 | La Liga 14:15Z, `La Liga_2026-10-24_e401882831`: **no line** |
+
+The 26 calls charged on 10-24 are those 23 groups, 2 calls at 23:50Z for 00:00Z
+kickoffs on 10-25 (NBA, and MLB `e401908043`), and **1 call that no `change_log`
+row accounts for**.
+
+**The unnamed call.** It falls before 18:33Z: the windows from 18:33Z tie to
+the credit, and the 13 groups before it are 39 credits against 42 billed. Its
+sport and game cannot be read from stored data, because a billed call that
+writes no line leaves no record (`_writeClosingLine` returns silently). The
+single window-a kickoff with an empty row and no line is the La Liga 14:15Z
+game: `closing_odds` NULL, no `change_log` row of any source. A call for it at
+14:05Z would explain both facts. That is a candidate, not a finding. It is
+3 credits, 3.8% of the day's capture charge, and it does not change the verdict:
+without it, charged/demand reads 0.86x. It is filed as
+`docs/CC-CMD-2026-10-25-capture-call-without-a-line-leaves-no-trace.md`
+(FILED).
+
+**change_log**, source `closing_odds_capture`, `substr(ts,1,10) = '2026-10-24'`:
+38 rows, **all 38** with `_kickoff.verified = 1`.
+
+| sport | rows | verified |
+|---|---|---|
+| NHL | 10 | 10 |
+| MLS | 7 | 7 |
+| NBA | 5 | 5 |
+| EPL, Serie A | 4 each | 4 each |
+| La Liga | 3 | 3 |
+| Bundesliga | 2 | 2 |
+| Ligue 1, MLB, WNBA | 1 each | 1 each |
+
+Coverage (Rule 91): the demand run covers the 3 closed days 10-22 to 10-24, 29
+groups and 48 games on 10-24. The `change_log` split covers all 26 calls except
+the one above.

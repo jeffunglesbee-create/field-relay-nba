@@ -111,9 +111,17 @@ two hours while refusing that write on every poll, so that cause is withdrawn.
 
 ## Open
 
-- **Done condition 3.** Two per-consumer demand runs on closed game days after
-  the deploy. They are scheduled in this session as reminders for 10-24 and
-  10-25, 11:07Z (`trig_01L6Wec…`, `trig_01UcG2c…`).
+- **Done condition 3: PASS twice.** Run 1 (closed day 10-23) 0.8x, run
+  40088714137; run 2 (closed day 10-24) 0.9x, run 40187677225, log
+  `outbox/odds-consumer-demand-20261025T110935Z.log`. The CC-CMD is **DONE**.
+  - Run 2 found one billed call on 10-24 that no `change_log` row accounts for,
+    3 credits of 78. A billed call that writes no line leaves no record, so it
+    cannot be named. Filed as
+    `docs/CC-CMD-2026-10-25-capture-call-without-a-line-leaves-no-trace.md`.
+  - The demand figure for 10-24 carries three NBA groups from the 10-23 ET slate
+    (00:00Z, 01:30Z, 02:00Z) that no board listed, before the NBA deploy. They
+    are 9 of the 87 credits. The run-2 prompt had said every 10-24 NBA kickoff
+    followed the deploy; that holds only for the 10-24 ET slate.
 - **The kickoff-window probe** on 10-23 at 18:12Z (`trig_011xqk7…`) expects
   exactly 5 capture calls across 5 covered kickoffs.
   - The read reports charged/demand and 3 × games / demand side by side,
