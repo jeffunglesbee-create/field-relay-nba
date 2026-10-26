@@ -1,0 +1,407 @@
+{
+  "ran_at": "2026-10-26T13:10:34.053Z",
+  "mode": "verify",
+  "error": null,
+  "slate": {
+    "columns_are_insert_only": true,
+    "evidence": "no ON CONFLICT(id) DO UPDATE on briefs sets sport or brief_type (src/index.js 5975, 8618, 12036, 12492, 18962) — verified 2026-08-23",
+    "rows_written_last_30min": 0,
+    "safe_to_apply": true,
+    "note": "A row inserted between scope and apply is NOT swept — it is absent from the measured id list and will be reported by verify."
+  },
+  "variants": [
+    {
+      "sport": "MLB",
+      "n": 3780,
+      "sample_id": "game_brief_MLB_MLB_2026-06-20_braves_brewers_2026-06-20"
+    },
+    {
+      "sport": "CFB",
+      "n": 1364,
+      "sample_id": "game_live_cfb_401856634"
+    },
+    {
+      "sport": "NHL",
+      "n": 928,
+      "sample_id": "game_brief_NHL_NHL_2026-09-19_e401881922_2026-09-19"
+    },
+    {
+      "sport": "MLS",
+      "n": 751,
+      "sample_id": "debrief_MLS_2026-05-20_stlouiscitysc_houstondynamofc"
+    },
+    {
+      "sport": "FIFA World Cup",
+      "n": 625,
+      "sample_id": "bracket_delta:espn:760458:2026-08-24T03:00:30.822Z"
+    },
+    {
+      "sport": null,
+      "n": 475,
+      "sample_id": "compound_2026-07-04_all"
+    },
+    {
+      "sport": "La Liga",
+      "n": 389,
+      "sample_id": "epl_match_2026-09-12_all"
+    },
+    {
+      "sport": "NFL",
+      "n": 377,
+      "sample_id": "game_brief_NFL_NFL_2026-09-28_e401872963_2026-09-28"
+    },
+    {
+      "sport": "EPL",
+      "n": 358,
+      "sample_id": "epl_match_2026-07-16_espn:761659"
+    },
+    {
+      "sport": "WNBA",
+      "n": 331,
+      "sample_id": "debrief_2026-05-20-wnba-connec-portla"
+    },
+    {
+      "sport": "NBA",
+      "n": 273,
+      "sample_id": "debrief_nba-ecf-2026-g1"
+    },
+    {
+      "sport": "Serie A",
+      "n": 225,
+      "sample_id": "epl_match_2026-10-16_all"
+    },
+    {
+      "sport": "Bundesliga",
+      "n": 198,
+      "sample_id": "epl_match_2026-09-05_all"
+    },
+    {
+      "sport": "Ligue 1",
+      "n": 182,
+      "sample_id": "epl_match_2026-09-21_all"
+    },
+    {
+      "sport": "UEFA Europa League",
+      "n": 172,
+      "sample_id": "debrief_2026-05-20-europa-scfreiburg-astonvilla"
+    },
+    {
+      "sport": "EFL Cup",
+      "n": 152,
+      "sample_id": "game_live_efl cup_401907948"
+    },
+    {
+      "sport": "EFL League One",
+      "n": 143,
+      "sample_id": "night_owl_2026-09-11_espn:401880856"
+    },
+    {
+      "sport": "EFL Trophy",
+      "n": 127,
+      "sample_id": "game_live_efl trophy_401906253"
+    },
+    {
+      "sport": "UEFA Champions League",
+      "n": 114,
+      "sample_id": "epl_match_2026-10-14_all"
+    },
+    {
+      "sport": "EFL Championship",
+      "n": 111,
+      "sample_id": "epl_match_2026-09-20_all"
+    },
+    {
+      "sport": "AFL",
+      "n": 91,
+      "sample_id": "game_brief_AFL_AFL_2026-03-05_sydney_carlton_2026-03-05"
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "n": 76,
+      "sample_id": "game_live_uefa europa conference league qualifying_401909471"
+    },
+    {
+      "sport": "EFL League Two",
+      "n": 76,
+      "sample_id": "night_owl_2026-09-12_espn:401881373"
+    },
+    {
+      "sport": "UEFA Europa Conference League",
+      "n": 72,
+      "sample_id": "game_live_uefa europa conference league_401915743"
+    },
+    {
+      "sport": "PGA Tour",
+      "n": 53,
+      "sample_id": "game_brief_PGA Tour_PGA Tour_2026-06-29_src401811953_2026-06-29"
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "n": 40,
+      "sample_id": "game_live_uefa europa league qualifying_401909221"
+    },
+    {
+      "sport": "wnba",
+      "n": 39,
+      "sample_id": "game_recap_wnba_401857167"
+    },
+    {
+      "sport": "golf",
+      "n": 23,
+      "sample_id": "game_brief_golf_golf_2026-06-19_usopen_r2_2026-06-19"
+    },
+    {
+      "sport": "CFL",
+      "n": 23,
+      "sample_id": "night_owl_2026-07-05_cfl_13419691"
+    },
+    {
+      "sport": "UEFA Conference League",
+      "n": 21,
+      "sample_id": "epl_match_2026-10-22_all"
+    },
+    {
+      "sport": "UEFA Champions League Qualifying",
+      "n": 14,
+      "sample_id": "game_live_uefa champions league qualifying_401903707"
+    },
+    {
+      "sport": "College Football",
+      "n": 7,
+      "sample_id": "night_owl_2026-09-12_espn:401856679"
+    }
+  ],
+  "plan": [],
+  "unclassified": [
+    {
+      "sport": "EFL League One",
+      "n": 143,
+      "sample_id": "night_owl_2026-09-11_espn:401880856",
+      "reason": "no single authority label matches case-insensitively"
+    },
+    {
+      "sport": "EFL Championship",
+      "n": 111,
+      "sample_id": "epl_match_2026-09-20_all",
+      "reason": "no single authority label matches case-insensitively"
+    },
+    {
+      "sport": "EFL League Two",
+      "n": 76,
+      "sample_id": "night_owl_2026-09-12_espn:401881373",
+      "reason": "no single authority label matches case-insensitively"
+    },
+    {
+      "sport": "UEFA Conference League",
+      "n": 21,
+      "sample_id": "epl_match_2026-10-22_all",
+      "reason": "no single authority label matches case-insensitively"
+    },
+    {
+      "sport": "College Football",
+      "n": 7,
+      "sample_id": "night_owl_2026-09-12_espn:401856679",
+      "reason": "no single authority label matches case-insensitively"
+    }
+  ],
+  "mislabelled_recaps": {
+    "n": 0,
+    "ids": [],
+    "by_language_alone": 154,
+    "abstained": 154,
+    "predicate": "live language AND joined game row has finalized_at IS NULL",
+    "note": "The difference between these two counts is rows whose prose reads live but whose game is finished or unjoinable. Those are left alone deliberately."
+  },
+  "applied": null,
+  "verification": {
+    "distribution_after": [
+      {
+        "sport": "MLB",
+        "n": 3780
+      },
+      {
+        "sport": "CFB",
+        "n": 1364
+      },
+      {
+        "sport": "NHL",
+        "n": 928
+      },
+      {
+        "sport": "MLS",
+        "n": 751
+      },
+      {
+        "sport": "FIFA World Cup",
+        "n": 625
+      },
+      {
+        "sport": null,
+        "n": 475
+      },
+      {
+        "sport": "La Liga",
+        "n": 389
+      },
+      {
+        "sport": "NFL",
+        "n": 377
+      },
+      {
+        "sport": "EPL",
+        "n": 358
+      },
+      {
+        "sport": "WNBA",
+        "n": 331
+      },
+      {
+        "sport": "NBA",
+        "n": 273
+      },
+      {
+        "sport": "Serie A",
+        "n": 225
+      },
+      {
+        "sport": "Bundesliga",
+        "n": 198
+      },
+      {
+        "sport": "Ligue 1",
+        "n": 182
+      },
+      {
+        "sport": "UEFA Europa League",
+        "n": 172
+      },
+      {
+        "sport": "EFL Cup",
+        "n": 152
+      },
+      {
+        "sport": "EFL League One",
+        "n": 143
+      },
+      {
+        "sport": "EFL Trophy",
+        "n": 127
+      },
+      {
+        "sport": "UEFA Champions League",
+        "n": 114
+      },
+      {
+        "sport": "EFL Championship",
+        "n": 111
+      },
+      {
+        "sport": "AFL",
+        "n": 91
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "n": 76
+      },
+      {
+        "sport": "EFL League Two",
+        "n": 76
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "n": 72
+      },
+      {
+        "sport": "PGA Tour",
+        "n": 53
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "n": 40
+      },
+      {
+        "sport": "wnba",
+        "n": 39
+      },
+      {
+        "sport": "golf",
+        "n": 23
+      },
+      {
+        "sport": "CFL",
+        "n": 23
+      },
+      {
+        "sport": "UEFA Conference League",
+        "n": 21
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "n": 14
+      },
+      {
+        "sport": "College Football",
+        "n": 7
+      }
+    ],
+    "non_conforming_remaining": [
+      {
+        "sport": "EFL League One",
+        "n": 143
+      },
+      {
+        "sport": "EFL Championship",
+        "n": 111
+      },
+      {
+        "sport": "EFL League Two",
+        "n": 76
+      },
+      {
+        "sport": "UEFA Conference League",
+        "n": 21
+      },
+      {
+        "sport": "College Football",
+        "n": 7
+      }
+    ],
+    "mislabelled_recaps_remaining": 0,
+    "clean": false
+  },
+  "revert_sql": [],
+  "authority": [
+    "AFL",
+    "Bundesliga",
+    "CFB",
+    "CFL",
+    "EFL Cup",
+    "EFL Trophy",
+    "EPL",
+    "FIFA World Cup",
+    "IPL",
+    "La Liga",
+    "Ligue 1",
+    "MLB",
+    "MLS",
+    "NBA",
+    "NFL",
+    "NHL",
+    "PGA Tour",
+    "Serie A",
+    "UEFA Champions League",
+    "UEFA Champions League Qualifying",
+    "UEFA Europa Conference League",
+    "UEFA Europa Conference League Qualifying",
+    "UEFA Europa League",
+    "UEFA Europa League Qualifying",
+    "UFL",
+    "WNBA",
+    "golf",
+    "wnba"
+  ],
+  "plan_summary": [],
+  "not_mutated": {
+    "ordinal_gNN_ids": "left in place — render-order counter, no recoverable identity; new writes blocked by ask 4a/4b; deleting would lose real prose"
+  }
+}
