@@ -1,7 +1,7 @@
 {
-  "ts": "2026-10-19T14:57:39.540Z",
+  "ts": "2026-10-26T14:32:43.725Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
-  "date": "2026-10-19",
+  "date": "2026-10-26",
   "routes": [
     {
       "label": "contract",
@@ -9,7 +9,7 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/contract",
       "expect": 200,
       "status": 200,
-      "ms": 315,
+      "ms": 305,
       "contentType": "application/json",
       "cacheControl": "public, max-age=300",
       "bytes": 9588,
@@ -26,29 +26,29 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/live",
       "expect": 200,
       "status": 200,
-      "ms": 213,
+      "ms": 228,
       "contentType": "application/json",
       "cacheControl": "public, max-age=25",
-      "bytes": 485,
+      "bytes": 23,
       "shape": "object{count,events}",
-      "itemCount": 1,
+      "itemCount": 0,
       "topLevelKeys": 2,
       "arrayFields": {
-        "events": 1
+        "events": 0
       },
-      "payloadCount": 1,
-      "sample": "{\"count\":1,\"events\":[{\"id\":214617,\"league_id\":23,\"league_name\":\"Superliga\",\"home_team_id\":355,\"home_team\":\"FC Universitatea Cluj\",\"away_team_id\":356,\"away_team\":\"FC Argeș Pitești\",\"event_date\":\"2026-10-19T15:00:00Z\",\"status\":\"notstarted\",\"period\":null,\"current_minute\":null,\"home_score\":null,\"away_score\":null,\"penalty_shootout\":null,\"extra_time_score\":null,\"home_score_ht\":null,\"away_score_ht\":null,\"live_websocket\":false,\"websocket_plus\":true,\"last_updated\":\"2026-10-19T13:52:03Z\"}]}"
+      "payloadCount": 0,
+      "sample": "{\"count\":0,\"events\":[]}"
     },
     {
       "label": "events/by-date",
-      "path": "/bsd/events/by-date?date=2026-10-19",
-      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/by-date?date=2026-10-19",
+      "path": "/bsd/events/by-date?date=2026-10-26",
+      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/by-date?date=2026-10-26",
       "expect": 200,
       "status": 200,
-      "ms": 246,
+      "ms": 640,
       "contentType": "application/json",
       "cacheControl": "public, max-age=25",
-      "bytes": 74947,
+      "bytes": 82225,
       "shape": "object{count,next,previous,results}",
       "itemCount": 31,
       "topLevelKeys": 4,
@@ -56,100 +56,103 @@
         "results": 31
       },
       "payloadCount": 31,
-      "sample": "{\"count\":31,\"next\":null,\"previous\":null,\"results\":[{\"id\":606232,\"league_id\":80,\"season_id\":1570,\"home_team_id\":736,\"home_team\":\"Millonarios\",\"away_team_id\":4785,\"away_team\":\"Jaguares de Córdoba\",\"home_coach_id\":3852,\"away_coach_id\":4165,\"referee_id\":null,\"venue_id\":542,\"event_date\":\"2026-10-19T23:30:00+00:00\",\"status\":\"notstarted\",\"replaced_by\":null,\"round_number\":15,\"round_name\":\"\",\"group_name\":null,\"stage\":\"league-phase\",\"stage_name\":\"League phase\",\"round_label\":\"League phase · Matchday 15\",\"period\":\"\",\"current_minute\":null,\"home_score\":null,\"away_score\":null,\"home_score_ht\":null,\"away_score_ht\":null,\"penalty_shootout\":null,\"extra_time_score\":null,\"is_local_derby\":false,\"is_neutral_ground\""
+      "sample": "{\"count\":31,\"next\":null,\"previous\":null,\"results\":[{\"id\":10199,\"league_id\":34,\"season_id\":52,\"home_team_id\":156,\"home_team\":\"Juventude\",\"away_team_id\":928,\"away_team\":\"Náutico\",\"home_coach_id\":118,\"away_coach_id\":4072,\"referee_id\":2375,\"venue_id\":154,\"event_date\":\"2026-10-26T23:30:00+00:00\",\"status\":\"notstarted\",\"replaced_by\":null,\"round_number\":35,\"round_name\":\"\",\"group_name\":null,\"stage\":\"regular-season\",\"stage_name\":\"Regular season\",\"round_label\":\"Regular season · Matchday 35\",\"period\":\"\",\"current_minute\":null,\"home_score\":null,\"away_score\":null,\"home_score_ht\":null,\"away_score_ht\":null,\"penalty_shootout\":null,\"extra_time_score\":null,\"is_local_derby\":false,\"is_neutral_ground\":false,\"trave"
     },
     {
       "label": "shotmap",
-      "path": "/bsd/events/604574/shotmap",
-      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/604574/shotmap",
+      "path": "/bsd/events/211623/shotmap",
+      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/211623/shotmap",
       "expect": 200,
       "status": 200,
-      "ms": 228,
+      "ms": 193,
       "contentType": "application/json",
       "cacheControl": "public, max-age=60",
-      "bytes": 580,
+      "bytes": 18249,
       "shape": "object{event_id,stats,xg_estimated,shotmap,momentum,average_positions,xg_per_minute}",
       "itemCount": 7,
       "topLevelKeys": 7,
       "arrayFields": {
-        "shotmap": 0,
-        "momentum": 0,
-        "xg_per_minute": 0
+        "shotmap": 27,
+        "momentum": 92,
+        "xg_per_minute": 20
       },
-      "payloadCount": 0,
-      "sample": "{\"event_id\":604574,\"stats\":{\"home\":{\"fouls\":13,\"offsides\":0,\"throw_ins\":23,\"free_kicks\":16,\"corner_kicks\":3,\"yellow_cards\":0,\"ball_possession\":60,\"shots_on_target\":1,\"shots_off_target\":4,\"red_cards\":0,\"xg\":{\"actual\":null,\"estimated\":null},\"total_shots\":null},\"away\":{\"fouls\":9,\"offsides\":7,\"throw_ins\":15,\"free_kicks\":13,\"corner_kicks\":2,\"yellow_cards\":1,\"ball_possession\":40,\"shots_on_target\":2,\"shots_off_target\":3,\"red_cards\":0,\"xg\":{\"actual\":null,\"estimated\":null},\"total_shots\":null}},\"xg_estimated\":false,\"shotmap\":[],\"momentum\":[],\"average_positions\":{},\"xg_per_minute\":[]}"
+      "payloadCount": 139,
+      "sample": "{\"event_id\":211623,\"stats\":{\"home\":{\"duels\":58,\"fouls\":15,\"passes\":408,\"crosses\":{\"value\":5,\"total\":13,\"pct\":38},\"tackles\":15,\"dribbles\":{\"value\":9,\"total\":11,\"pct\":82},\"offsides\":5,\"throw_ins\":5,\"clearances\":24,\"free_kicks\":8,\"goal_kicks\":11,\"long_balls\":{\"value\":34,\"total\":57,\"pct\":60},\"recoveries\":50,\"big_chances\":4,\"tackles_won\":100,\"total_saves\":2,\"total_shots\":15,\"aerial_duels\":{\"value\":10,\"total\":19,\"pct\":53},\"corner_kicks\":3,\"dispossessed\":3,\"ground_duels\":{\"value\":32,\"total\":53,\"pct\":60},\"yellow_cards\":2,\"blocked_shots\":4,\"interceptions\":13,\"total_tackles\":15,\"average_rating\":7.08,\"expected_goals\":3.22,\"accurate_passes\":347,\"ball_possession\":42,\"goals_prevented\":-0.5,\"shots_on_targe"
     },
     {
       "label": "momentum",
-      "path": "/bsd/events/604574/momentum",
-      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/604574/momentum",
+      "path": "/bsd/events/211623/momentum",
+      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/211623/momentum",
       "expect": 200,
       "status": 200,
-      "ms": 207,
+      "ms": 224,
       "contentType": "application/json",
       "cacheControl": "public, max-age=30",
-      "bytes": 35,
+      "bytes": 1522,
       "shape": "object{event_id,momentum}",
       "itemCount": 2,
       "topLevelKeys": 2,
       "arrayFields": {
-        "momentum": 0
+        "momentum": 92
       },
-      "payloadCount": 0,
-      "sample": "{\"event_id\":\"604574\",\"momentum\":[]}"
+      "payloadCount": 92,
+      "sample": "{\"event_id\":\"211623\",\"momentum\":[{\"m\":1,\"v\":5},{\"m\":2,\"v\":14},{\"m\":3,\"v\":34},{\"m\":4,\"v\":28},{\"m\":5,\"v\":26},{\"m\":6,\"v\":56},{\"m\":7,\"v\":24},{\"m\":8,\"v\":17},{\"m\":9,\"v\":12},{\"m\":10,\"v\":12},{\"m\":11,\"v\":21},{\"m\":12,\"v\":14},{\"m\":13,\"v\":38},{\"m\":14,\"v\":23},{\"m\":15,\"v\":5},{\"m\":16,\"v\":5},{\"m\":17,\"v\":41},{\"m\":18,\"v\":67},{\"m\":19,\"v\":38},{\"m\":20,\"v\":23},{\"m\":21,\"v\":23},{\"m\":22,\"v\":-20},{\"m\":23,\"v\":-42},{\"m\":24,\"v\":-29},{\"m\":25,\"v\":-27},{\"m\":26,\"v\":-12},{\"m\":27,\"v\":-8},{\"m\":28,\"v\":-8},{\"m\":29,\"v\":-5},{\"m\":30,\"v\":4},{\"m\":31,\"v\":31},{\"m\":32,\"v\":33},{\"m\":33,\"v\":8},{\"m\":34,\"v\":-37},{\"m\":35,\"v\":-36},{\"m\":36,\"v\":-31},{\"m\":37,\"v\":-5},{\"m\":38,\"v\":-9},{\"m\":39,\"v\":-6},{\"m\":40,\"v\":8},{\"m\":41,\"v\":-34},{\"m\":42,\"v\":44},{"
     },
     {
       "label": "incidents",
-      "path": "/bsd/events/604574/incidents",
-      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/604574/incidents",
+      "path": "/bsd/events/211623/incidents",
+      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/211623/incidents",
       "expect": 200,
       "status": 200,
-      "ms": 331,
+      "ms": 172,
       "contentType": "application/json",
       "cacheControl": "public, max-age=60",
-      "bytes": 983,
+      "bytes": 6217,
       "shape": "object{event_id,incidents}",
       "itemCount": 2,
       "topLevelKeys": 2,
       "arrayFields": {
-        "incidents": 7
+        "incidents": 26
       },
-      "payloadCount": 7,
-      "sample": "{\"event_id\":604574,\"incidents\":[{\"text\":\"FT\",\"type\":\"period\",\"minute\":90,\"is_live\":false,\"away_score\":0,\"home_score\":0},{\"type\":\"substitution\",\"minute\":75,\"is_home\":false,\"player_in\":\"C. Azubuike\",\"added_time\":null,\"player_out\":\"J. Atule\",\"player_in_id\":14262,\"player_out_id\":14948},{\"type\":\"substitution\",\"minute\":75,\"is_home\":false,\"player_in\":\"E. Nwokorie\",\"added_time\":null,\"player_out\":\"Bismark Duah\",\"player_in_id\":15296,\"player_out_id\":14776},{\"type\":\"substitution\",\"minute\":46,\"is_home\":false,\"player_in\":\"K. Energy\",\"added_time\":null,\"player_out\":\"K. Suur\",\"player_in_id\":212429,\"player_out_id\":73910},{\"type\":\"substitution\",\"minute\":46,\"is_home\":false,\"player_in\":\"H. Ezeonye\",\"added_time\":"
+      "payloadCount": 26,
+      "sample": "{\"event_id\":211623,\"incidents\":[{\"text\":\"FT\",\"type\":\"period\",\"minute\":90,\"is_live\":false,\"away_score\":1,\"home_score\":4},{\"type\":\"card\",\"minute\":90,\"player\":\"I. Tona\",\"reason\":\"Foul\",\"is_home\":true,\"card_type\":\"yellow\",\"player_id\":10290,\"added_time\":5},{\"type\":\"injuryTime\",\"length\":8,\"minute\":90},{\"type\":\"substitution\",\"minute\":87,\"is_home\":false,\"player_in\":\"\",\"added_time\":null,\"player_out\":\"D. González\",\"player_in_id\":null,\"player_out_id\":10312},{\"type\":\"substitution\",\"minute\":85,\"is_home\":false,\"player_in\":\"E. Echeverría\",\"added_time\":null,\"player_out\":\"M. Cuevas\",\"player_in_id\":10015,\"player_out_id\":9419},{\"type\":\"substitution\",\"minute\":85,\"is_home\":false,\"player_in\":\"J. Abella\",\"added_ti"
     },
     {
       "label": "odds",
-      "path": "/bsd/events/604574/odds",
-      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/604574/odds",
+      "path": "/bsd/events/211623/odds",
+      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/211623/odds",
       "expect": 200,
       "status": 200,
-      "ms": 227,
+      "ms": 298,
       "contentType": "application/json",
       "cacheControl": "public, max-age=30",
-      "bytes": 11296,
+      "bytes": 38682,
       "shape": "object{event_id,event_date,league_id,league_name,home_team_id,home_team,away_team_id,away_team,bookmakers_count,total_odds,markets,main_lines}",
       "itemCount": 12,
       "topLevelKeys": 12,
       "arrayFields": {},
       "payloadCount": null,
-      "sample": "{\"event_id\":604574,\"event_date\":\"2026-10-19T07:00:00Z\",\"league_id\":28,\"league_name\":\"Nigeria Premier Football League\",\"home_team_id\":564,\"home_team\":\"Rivers United\",\"away_team_id\":567,\"away_team\":\"Barau FC\",\"bookmakers_count\":10,\"total_odds\":63,\"markets\":{\"1x2\":{\"HOME\":{\"outcome\":\"HOME\",\"line\":null,\"outcome_name\":\"Rivers United\",\"best_odds\":1.38,\"best_bookmaker_slug\":\"bet365\",\"best_bookmaker_name\":\"Bet365\",\"bookmakers\":{\"bet365\":{\"decimal_odds\":1.38,\"movement\":\"\",\"updated_at\":\"2026-10-17T14:53:59Z\"}}},\"DRAW\":{\"outcome\":\"DRAW\",\"line\":null,\"outcome_name\":\"Draw\",\"best_odds\":3.5,\"best_bookmaker_slug\":\"bet365\",\"best_bookmaker_name\":\"Bet365\",\"bookmakers\":{\"bet365\":{\"decimal_odds\":3.5,\"movement\":\"\""
+      "sample": "{\"event_id\":211623,\"event_date\":\"2026-10-26T03:00:00Z\",\"league_id\":19,\"league_name\":\"Liga MX Apertura\",\"home_team_id\":308,\"home_team\":\"Club Tijuana\",\"away_team_id\":312,\"away_team\":\"Santos Laguna\",\"bookmakers_count\":24,\"total_odds\":430,\"markets\":{\"1x2\":{\"HOME\":{\"outcome\":\"HOME\",\"line\":null,\"outcome_name\":\"Club Tijuana\",\"best_odds\":2.17,\"best_bookmaker_slug\":\"dafabet\",\"best_bookmaker_name\":\"dafabet\",\"bookmakers\":{\"1xbet\":{\"decimal_odds\":2.16,\"movement\":\"DRIFTING\",\"updated_at\":\"2026-10-26T05:05:07Z\"},\"pinnacle\":{\"decimal_odds\":2.16,\"movement\":\"DRIFTING\",\"updated_at\":\"2026-10-26T05:05:07Z\"},\"interwetten\":{\"decimal_odds\":2.05,\"movement\":\"\",\"updated_at\":\"2026-10-26T05:05:07Z\"},\"unibet\":{\"decimal_o"
     },
     {
       "label": "average-positions",
-      "path": "/bsd/events/604574/average-positions",
-      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/604574/average-positions",
+      "path": "/bsd/events/211623/average-positions",
+      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/events/211623/average-positions",
       "expect": 200,
       "status": 200,
-      "ms": 205,
+      "ms": 211,
       "contentType": "application/json",
       "cacheControl": "public, max-age=120",
-      "bytes": 2,
-      "shape": "object{}",
-      "itemCount": 0,
-      "topLevelKeys": 0,
-      "arrayFields": {},
-      "payloadCount": null,
-      "sample": "{}"
+      "bytes": 2403,
+      "shape": "object{away,home}",
+      "itemCount": 2,
+      "topLevelKeys": 2,
+      "arrayFields": {
+        "away": 16,
+        "home": 16
+      },
+      "payloadCount": 32,
+      "sample": "{\"away\":[{\"n\":29,\"x\":64.9,\"y\":27.4,\"pos\":\"M\",\"name\":\"R. Sordo\",\"player_id\":10009},{\"n\":36,\"x\":46.4,\"y\":45.5,\"pos\":\"M\",\"name\":\"A. Lopez Vargas\",\"player_id\":10008},{\"n\":74,\"x\":39.7,\"y\":22.1,\"pos\":\"D\",\"name\":\"J. Pérez\",\"player_id\":10013},{\"n\":107,\"x\":44.5,\"y\":78.3,\"pos\":\"D\",\"name\":\"F. Sánchez\",\"player_id\":27588},{\"n\":106,\"x\":37.1,\"y\":52.8,\"pos\":\"D\",\"name\":\"F. Pardo\",\"player_id\":22728},{\"n\":10,\"x\":64.4,\"y\":33.4,\"pos\":\"F\",\"name\":\"T. Jiménez\",\"player_id\":10020},{\"n\":89,\"x\":51.3,\"y\":44.9,\"pos\":\"M\",\"name\":\"F. Cáseres\",\"player_id\":1888},{\"n\":25,\"x\":10.7,\"y\":46.8,\"pos\":\"G\",\"name\":\"C. Acevedo\",\"player_id\":10000},{\"n\":18,\"x\":56.2,\"y\":72.3,\"pos\":\"M\",\"name\":\"L. Gómez\",\"player_id\":12141},{\"n\":13,\"x\":35.4,\""
     },
     {
       "label": "tennis/live",
@@ -157,32 +160,32 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/tennis/matches/live",
       "expect": 200,
       "status": 200,
-      "ms": 236,
+      "ms": 204,
       "contentType": "application/json",
       "cacheControl": "public, max-age=25",
-      "bytes": 24393,
+      "bytes": 24566,
       "shape": "array[12] of object[62 keys]",
       "itemCount": 12,
-      "sample": "[{\"id\":55773,\"tournament\":{\"id\":184,\"name\":\"Osaka\",\"circuit\":\"WTA\",\"category\":\"wta_250\",\"surface\":\"hard\"},\"player1\":{\"id\":570,\"name\":\"Katie Boulter\",\"short_name\":\"K. Boulter\",\"country_code\":\"GB\",\"country_name\":\"United Kingdom\",\"gender\":\"F\",\"current_ranking\":{\"position\":58,\"points\":1042,\"type\":\"WTA\"}},\"player2\":{\"id\":994,\"name\":\"Himeno Sakatsume\",\"short_name\":\"H. Sakatsume\",\"country_code\":\"JP\",\"country_name\":\"Japan\",\"gender\":\"F\",\"current_ranking\":{\"position\":115,\"points\":665,\"type\":\"WTA\"}},\"is_doubles\":false,\"home_pair\":null,\"away_pair\":null,\"match_date\":\"2026-10-19T07:10:00+00:00\",\"status\":\"interrupted\",\"round_name\":\"Round of 32\",\"player1_sets\":1,\"player2_sets\":0,\"sets_detail\":[{\"p1\":6,\"p2\":"
+      "sample": "[{\"id\":56901,\"tournament\":{\"id\":841,\"name\":\"Courmayeur, Italy\",\"circuit\":\"WTA\",\"category\":\"wta_250\",\"surface\":\"hard\"},\"player1\":{\"id\":4823,\"name\":\"Adrienn Nagy\",\"short_name\":\"A. Nagy\",\"country_code\":\"HU\",\"country_name\":\"Hungary\",\"gender\":\"F\",\"current_ranking\":{\"position\":434,\"points\":131,\"type\":\"WTA\"}},\"player2\":{\"id\":2178,\"name\":\"Daria Yesypchuk\",\"short_name\":\"D. Yesypchuk\",\"country_code\":\"UA\",\"country_name\":\"Ukraine\",\"gender\":\"F\",\"current_ranking\":{\"position\":466,\"points\":120,\"type\":\"WTA\"}},\"is_doubles\":false,\"home_pair\":null,\"away_pair\":null,\"match_date\":\"2026-10-26T12:00:00+00:00\",\"status\":\"live\",\"round_name\":\"Qualification Final\",\"player1_sets\":1,\"player2_sets\":1,\"sets_detail\":[{\"p1\":6,"
     },
     {
       "label": "tennis/by-date",
-      "path": "/bsd/tennis/matches/by-date?date=2026-10-19",
-      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/tennis/matches/by-date?date=2026-10-19",
+      "path": "/bsd/tennis/matches/by-date?date=2026-10-26",
+      "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/tennis/matches/by-date?date=2026-10-26",
       "expect": 200,
       "status": 200,
-      "ms": 2130,
+      "ms": 433,
       "contentType": "application/json",
       "cacheControl": "public, max-age=300",
-      "bytes": 100710,
+      "bytes": 117920,
       "shape": "object{count,declaredCount,truncated,pages,results}",
-      "itemCount": 137,
+      "itemCount": 160,
       "topLevelKeys": 5,
       "arrayFields": {
-        "results": 137
+        "results": 160
       },
-      "payloadCount": 137,
-      "sample": "{\"count\":137,\"declaredCount\":137,\"truncated\":false,\"pages\":2,\"results\":[{\"id\":55726,\"tournament\":{\"id\":826,\"name\":\"UTR PTT Saitama Women 06\",\"circuit\":\"ATP\",\"category\":\"utr\",\"surface\":\"hard\"},\"player1\":{\"id\":2951,\"name\":\"Sara Yoshida\",\"short_name\":\"S. Yoshida\",\"country_code\":\"JP\",\"country_name\":\"Japan\",\"gender\":\"F\",\"current_ranking\":null},\"player2\":{\"id\":3858,\"name\":\"Rei Miyamoto\",\"short_name\":\"R. Miyamoto\",\"country_code\":\"JP\",\"country_name\":\"Japan\",\"gender\":\"F\",\"current_ranking\":null},\"is_doubles\":false,\"home_pair\":null,\"away_pair\":null,\"match_date\":\"2026-10-19T01:00:00+00:00\",\"status\":\"finished\",\"round_name\":\"\",\"player1_sets\":2,\"player2_sets\":0,\"sets_detail\":[{\"p1\":6,\"p2\":3},{\"p1\":6,\"p2\":3"
+      "payloadCount": 160,
+      "sample": "{\"count\":160,\"declaredCount\":160,\"truncated\":false,\"pages\":2,\"results\":[{\"id\":56909,\"tournament\":{\"id\":191,\"name\":\"Tokyo\",\"circuit\":\"WTA\",\"category\":\"wta_500\",\"surface\":\"hard\"},\"player1\":{\"id\":230,\"name\":\"Xinyu Wang\",\"short_name\":\"X. Wang\",\"country_code\":\"CN\",\"country_name\":\"China\",\"gender\":\"F\",\"current_ranking\":{\"position\":39,\"points\":1288,\"type\":\"WTA\"}},\"player2\":{\"id\":23,\"name\":\"Alycia Parks\",\"short_name\":\"A. Parks\",\"country_code\":\"US\",\"country_name\":\"USA\",\"gender\":\"F\",\"current_ranking\":{\"position\":65,\"points\":985,\"type\":\"WTA\"}},\"is_doubles\":false,\"home_pair\":null,\"away_pair\":null,\"match_date\":\"2026-10-26T01:35:00+00:00\",\"status\":\"finished\",\"round_name\":\"Round of 32\",\"player1_sets\":0,\"pla"
     },
     {
       "label": "tennis/by-date (bad date)",
@@ -190,7 +193,7 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/tennis/matches/by-date?date=06-09-2026",
       "expect": 400,
       "status": 400,
-      "ms": 45,
+      "ms": 47,
       "contentType": "application/json",
       "cacheControl": null,
       "bytes": 35,
@@ -208,10 +211,10 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/tennis/draw?tournament=135",
       "expect": 200,
       "status": 200,
-      "ms": 9712,
+      "ms": 1353,
       "contentType": "application/json",
       "cacheControl": "public, max-age=300",
-      "bytes": 58412,
+      "bytes": 58411,
       "shape": "object{tournament,season,seasonsAvailable,rowsRead,declaredCount,truncated,pages,editionMatches,mainDrawMatches,complete,roundsOutsideMainDraw,rounds,…+3}",
       "itemCount": 15,
       "topLevelKeys": 15,
@@ -230,7 +233,7 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/tennis/draw",
       "expect": 400,
       "status": 400,
-      "ms": 257,
+      "ms": 16,
       "contentType": "application/json",
       "cacheControl": null,
       "bytes": 106,
@@ -248,7 +251,7 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/tennis/draw?tournament=135&season=25",
       "expect": 400,
       "status": 400,
-      "ms": 49,
+      "ms": 44,
       "contentType": "application/json",
       "cacheControl": null,
       "bytes": 31,
@@ -266,7 +269,7 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/r2/read?key=notbsd/x.json",
       "expect": 400,
       "status": 400,
-      "ms": 68,
+      "ms": 20,
       "contentType": "application/json",
       "cacheControl": null,
       "bytes": 23,
@@ -284,7 +287,7 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/r2/read?key=bsd/__probe_missing__.json",
       "expect": 404,
       "status": 404,
-      "ms": 92,
+      "ms": 154,
       "contentType": "application/json",
       "cacheControl": null,
       "bytes": 56,
@@ -302,7 +305,7 @@
       "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/__definitely_not_a_route__",
       "expect": 404,
       "status": 404,
-      "ms": 47,
+      "ms": 39,
       "contentType": "application/json",
       "cacheControl": null,
       "bytes": 70,
@@ -315,26 +318,25 @@
       "sample": "{\"error\":\"Unknown BSD route\",\"path\":\"/bsd/__definitely_not_a_route__\"}"
     }
   ],
-  "playedCandidateCount": 3,
+  "playedCandidateCount": 7,
   "statusValuesSeen": [
     "notstarted",
-    "cancelled",
     "finished"
   ],
   "discoveredEventIds": [
-    604574,
-    220247,
-    211605,
-    214617,
-    606232,
-    7298,
-    10188,
-    223826,
-    223824,
-    605585
+    211623,
+    220271,
+    211622,
+    211621,
+    5378,
+    223849,
+    223846,
+    10199,
+    220269,
+    7307
   ],
   "eventIdSource": "played-filter",
-  "probedEventId": 604574,
+  "probedEventId": 211623,
   "probedEventStatus": "finished",
   "probedEventPeriod": "FT",
   "coverage": {
@@ -369,27 +371,11 @@
     "http200": 11,
     "emptyButOk": [
       {
-        "label": "shotmap",
-        "bytes": 580,
+        "label": "events/live",
+        "bytes": 23,
         "arrayFields": {
-          "shotmap": 0,
-          "momentum": 0,
-          "xg_per_minute": 0
+          "events": 0
         },
-        "expectedEmpty": null
-      },
-      {
-        "label": "momentum",
-        "bytes": 35,
-        "arrayFields": {
-          "momentum": 0
-        },
-        "expectedEmpty": null
-      },
-      {
-        "label": "average-positions",
-        "bytes": 2,
-        "arrayFields": {},
         "expectedEmpty": null
       }
     ],
@@ -403,22 +389,21 @@
       "unknown route: expect 404, got 404 MET"
     ],
     "discoveredEventIds": [
-      604574,
-      220247,
-      211605,
-      214617,
-      606232,
-      7298,
-      10188,
-      223826,
-      223824,
-      605585
+      211623,
+      220271,
+      211622,
+      211621,
+      5378,
+      223849,
+      223846,
+      10199,
+      220269,
+      7307
     ],
     "eventIdSource": "played-filter",
-    "playedCandidateCount": 3,
+    "playedCandidateCount": 7,
     "statusValuesSeen": [
       "notstarted",
-      "cancelled",
       "finished"
     ]
   }
