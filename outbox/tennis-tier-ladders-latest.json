@@ -1,5 +1,5 @@
 {
-  "ts": "2026-10-19T10:40:28.211Z",
+  "ts": "2026-10-26T10:58:14.073Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "perTier": 5,
   "tiers": {
@@ -9,8 +9,8 @@
       "checked": 5
     },
     "masters_1000": {
-      "tournamentsInTier": 9,
-      "singles": 9,
+      "tournamentsInTier": 10,
+      "singles": 10,
       "checked": 5
     },
     "atp_1000": {
@@ -19,8 +19,8 @@
       "checked": 0
     },
     "wta_1000": {
-      "tournamentsInTier": 12,
-      "singles": 12,
+      "tournamentsInTier": 11,
+      "singles": 11,
       "checked": 5
     },
     "atp_500": {
@@ -39,8 +39,8 @@
       "checked": 5
     },
     "wta_250": {
-      "tournamentsInTier": 101,
-      "singles": 101,
+      "tournamentsInTier": 103,
+      "singles": 103,
       "checked": 5
     }
   },
@@ -89,7 +89,7 @@
     },
     {
       "tier": "grand_slam",
-      "tid": 77,
+      "tid": 76,
       "name": "Roland Garros",
       "status": 200,
       "season": "2026",
@@ -110,7 +110,7 @@
     },
     {
       "tier": "grand_slam",
-      "tid": 76,
+      "tid": 77,
       "name": "Roland Garros",
       "status": 200,
       "season": "2026",
@@ -194,6 +194,27 @@
     },
     {
       "tier": "masters_1000",
+      "tid": 130,
+      "name": "Cincinnati",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
       "tid": 42,
       "name": "Indian Wells",
       "status": 200,
@@ -233,50 +254,9 @@
       "edgesDeclaredNull": true
     },
     {
-      "tier": "masters_1000",
-      "tid": 56,
-      "name": "Monte Carlo",
-      "status": 200,
-      "season": "2026",
-      "complete": true,
-      "ladder": [
-        "R64=24",
-        "R32=16",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "entry": "Round of 64",
-      "openInnermost": null,
-      "interiorOff": [],
-      "edgesDeclaredNull": true
-    },
-    {
       "tier": "wta_1000",
       "tid": 167,
       "name": "Beijing",
-      "status": 200,
-      "season": "2026",
-      "complete": true,
-      "ladder": [
-        "R128=32",
-        "R64=32",
-        "R32=16",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "entry": "Round of 128",
-      "openInnermost": null,
-      "interiorOff": [],
-      "edgesDeclaredNull": true
-    },
-    {
-      "tier": "wta_1000",
-      "tid": 131,
-      "name": "Cincinnati",
       "status": 200,
       "season": "2026",
       "complete": true,
@@ -356,6 +336,25 @@
       "edgesDeclaredNull": true
     },
     {
+      "tier": "wta_1000",
+      "tid": 41,
+      "name": "Indian Wells",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
       "tier": "atp_500",
       "tid": 37,
       "name": "Acapulco",
@@ -397,20 +396,8 @@
       "tier": "atp_500",
       "tid": 189,
       "name": "Basel",
-      "status": 200,
-      "season": "2025",
-      "complete": true,
-      "ladder": [
-        "R32=16",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "entry": "Round of 32",
-      "openInnermost": null,
-      "interiorOff": [],
-      "edgesDeclaredNull": true
+      "status": 409,
+      "body": "{\"error\":\"a player appears twice in one round\",\"tournament\":189,\"season\":\"2026\",\"duplicates\":[{\"round\":\"Round of 32\",\"playerId\":553,\"matches\":[56972,56729]}],\"matchDateRange\":{\"first\":\"2026-10-26\",\"la"
     },
     {
       "tier": "atp_500",
@@ -571,13 +558,16 @@
       "name": "Almaty",
       "status": 200,
       "season": "2026",
-      "complete": false,
+      "complete": true,
       "ladder": [
         "R32=12",
-        "R16=4"
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
       ],
       "entry": "Round of 32",
-      "openInnermost": "Round of 16",
+      "openInnermost": null,
       "interiorOff": [],
       "edgesDeclaredNull": true
     },
@@ -606,13 +596,16 @@
       "name": "ATP Brussels, Belgium Singles",
       "status": 200,
       "season": "2026",
-      "complete": false,
+      "complete": true,
       "ladder": [
         "R32=12",
-        "R16=4"
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
       ],
       "entry": "Round of 32",
-      "openInnermost": "Round of 16",
+      "openInnermost": null,
       "interiorOff": [],
       "edgesDeclaredNull": true
     },
@@ -843,8 +836,8 @@
   ],
   "census": {
     "status": 200,
-    "read": 707,
-    "declared": 707,
+    "read": 719,
+    "declared": 719,
     "truncated": false,
     "pages": 8
   },
@@ -908,10 +901,11 @@
   "summary": {
     "tiersDeclared": 8,
     "editionsRequested": 42,
-    "editionsRead": 41,
-    "modelHeld": 41,
+    "editionsRead": 40,
+    "modelHeld": 40,
     "interiorHoles": [],
     "unread": [
+      "atp_500 189 Basel HTTP 409",
       "wta_250 53 Antalya 3, Turkiye HTTP 409"
     ],
     "edgeRuleViolations": 0,
