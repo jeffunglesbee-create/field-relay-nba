@@ -1,0 +1,86 @@
+{
+  "probed_at": "2026-10-27T15:02:41.830Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 8,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Enciso (IPS), N.Williams (NFO)\nAssists: Muñoz (NFO)\nYellow cards: Diop (IPS), Murillo (NFO)\nSaves: Walton (IPS) 3, Sels (NFO) 2\nFPL bonus: Enciso (IPS) +3, Muñoz (NFO) +2, McAtee (NFO) +1\nTop BPS: Enciso (IPS) 39, Muñoz (NFO) 28, McAtee (NFO) 23\nLeague table: Ipswich Town 12th on 0 points from 0 | Nott'm Forest 18th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401878764",
+      "game_recap_epl_401879252",
+      "game_recap_epl_401878765",
+      "game_recap_epl_401878766",
+      "game_recap_epl_401879254",
+      "game_recap_epl_401878767",
+      "game_recap_epl_401879255",
+      "game_recap_epl_401878768",
+      "game_recap_epl_401879256",
+      "game_recap_epl_401879253",
+      "game_recap_epl_401879257",
+      "game_recap_epl_401878769",
+      "game_recap_epl_401879260",
+      "game_recap_epl_401879261",
+      "game_recap_epl_401879263",
+      "game_recap_epl_401879258",
+      "game_recap_epl_401879259",
+      "game_recap_epl_401879262",
+      "game_recap_epl_401878771"
+    ],
+    "claim_minute": [
+      "game_recap_epl_401878767"
+    ],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401879255: to overcome",
+      "game_recap_epl_401878768: extended their"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401878764, game_recap_epl_401879252, game_recap_epl_401878765 | archived briefs claim a minute: game_recap_epl_401878767 | archived briefs use a banned phrase: game_recap_epl_401879255: to overcome, game_recap_epl_401878768: extended their"
+}
