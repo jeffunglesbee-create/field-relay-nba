@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a fetch that cannot produce its write)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. Shape (a) LANDED 2026-10-25: `d46106b` and `f4bea6a`, pushed 14:31Z, deploy run 40202657716 green at 14:38Z. Done condition 2 is met by `scripts/check-odds-join-shared.mjs` (19 of 19, 21 of 21 mutations). Done conditions 3 and 4 wait on the first closed days after the deploy (read from 2026-10-27 12:00Z, `trig_01N9VpHitdamufLWMkqWx6un`). RULED 2026-10-23: shape (a), make the join match. Session doc: `outbox/cc-session-2026-10-25-shared-join.md`.
+**Status:** PARTIAL. Shape (a) LANDED 2026-10-25: `d46106b` and `f4bea6a`, pushed 14:31Z, deploy run 40202657716 green at 14:38Z. Done conditions 2 and 3 are met (3 by the letter; see Readings). Done condition 4 passes for NBA, NHL and NFL on 2026-10-27; CFB has no closed day with rows yet and is read 2026-10-28 12:00Z (`trig_01PUmdEL1RdEgBfREYUjtgj4`). RULED 2026-10-23: shape (a), make the join match. Session doc: `outbox/cc-session-2026-10-25-shared-join.md`.
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2). Rule 87.4: found
 in its adversarial review, outside its scope.
@@ -310,3 +310,65 @@ a closed day.
    above 0 on a closed day, and at most that day's four-sport demand units.
    D1, with the ISO `ts` this writer uses:
    `SELECT substr(game_id,1,instr(game_id,'_')-1) lg, count(*) FROM change_log WHERE source='odds_api' AND field='opening_odds' AND substr(ts,1,10)='<D>' GROUP BY 1`.
+
+### Readings, 2026-10-27 12:00Z (closed day 2026-10-26; deploy 2026-10-25 14:38:06Z)
+
+**No refusal on the day**, checked first. `/budget/odds?date=2026-10-26` at 12:04Z:
+`ceiling_reached_at` null, `month_limit_reached_at` null, `stamps_unreadable` null;
+used 210 of the 3,800 ceiling, `unaccounted` 0.
+
+**Done condition 3: met by the letter; the zero is vacuous for the join's write.**
+Run 40500900716 (`odds-consumer-demand.yml`, `days=1`), log
+`outbox/odds-consumer-demand-20261027T120429Z.log`:
+
+```
+fetchSportOddsHistorical   2026-10-26   demand 0   charged 0   kept 0   0 sport-dates
+fetchSportOddsHistorical, unwritable: 0 credits, outside the total above
+```
+
+No historical call was made on 10-26 (0 credits charged), so "unwritable 0" shows
+the fetch was not made, not that the join wrote. The join's closing write is
+evidenced under done condition 4, clause 3.
+
+**Done condition 4, per sport.** D1 `cc49101c`, `change_log` source `odds_api`,
+field `opening_odds`, joined to `regular_season_games`:
+
+| sport | first closed day with rows | games | opening lines written |
+|---|---|---|---|
+| NBA | 10-26 | 9 | 9 |
+| NHL | 10-26 | 3 | 3 |
+| NFL | 10-26 | 1 | 1 |
+| CFB | none yet; first rows 10-27 (2 games) | | read 2026-10-28 12:00Z (`trig_01PUmdEL1RdEgBfREYUjtgj4`) |
+
+The deploy day, 10-25, wrote NBA 7 of 7, NHL 5 of 5 (the sixth NHL row is a twin, below) and NFL 11 of 12.
+Before the deploy these sports had 0 (10-23 to 10-25 read).
+
+- **Clause 2, none captured at or after its kickoff.** From the deploy to 12:04Z
+  on 10-27: NBA 20, NFL 12, NHL 19 and CFB 1 opening lines, **0 at or after
+  kickoff**, all sports.
+- **Clause 3, `archive_game_closing`** (`ts` has a space), by `ts` day: NFL 11 on
+  10-25, 1 on 10-26, 1 on 10-27. The query from 10-23 shows no NFL row on 10-23 or
+  10-24. NFL above 0 on a closed day: met. The clause's second half ("at most that
+  day's four-sport demand units") compares writes, which are per game, with units,
+  which are per sport-date; the CC-CMD does not say how, so it was not evaluated.
+- **Clause 4, `fetchSportOddsLive` billed credits** (`odds_budget_site`):
+
+  | weekday | before | after |
+  |---|---|---|
+  | Sunday | 10-18: 705 | 10-25: 732 (the deploy day) |
+  | Monday | 10-12: 246, 10-19: 204 | 10-26: 105 (35 calls) |
+
+  The range quoted for 10-14..10-23 was 75 to 570 a day (264 to 570 on the full
+  days). 10-26 is the first full day after the deploy and reads below it. The
+  slate was light (NBA 9, NHL 3, NFL 1), so no cause is attributed.
+- **Games with no opening line** among NBA, NHL, NFL and CFB on 10-25 to 10-27:
+  1. `NFL_2026-10-25_e401873011`, kickoff 13:30Z, before the first cron pass of
+     14:46Z, which the kickoff refusal of `d46106b` covers;
+  2. `nhl_2026-10-25_e2026020180`, a lowercase twin row with a NULL `start_time`;
+     it is not a game of its own;
+  3. `CFB_2026-10-27_e401871071`, Western KY v Delaware, 23:00Z, not judged: it is
+     the name the design's 112-pair replay left unmatched, and whether the vendor
+     lists the game was not checked, because that costs credits.
+
+**Verdict.** Done condition 3 is met by the letter. Done condition 4 passes for
+NBA, NHL and NFL. CFB is unread, so the Status stays PARTIAL.

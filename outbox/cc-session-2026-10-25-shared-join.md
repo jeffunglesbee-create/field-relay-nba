@@ -96,3 +96,24 @@ shape (a), ruled by the owner on 2026-10-23. Status PARTIAL.
   Task 3 of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. Task 3 is not started.
 - Comments that still describe the old pair join:
   `docs/CC-CMD-2026-10-23-odds-docs-stale.md`.
+
+## Readings 2026-10-27 12:00Z (closed day 10-26)
+
+Full table and queries: `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`,
+"Readings, 2026-10-27".
+
+- **No refusal** on 10-26 (`ceiling_reached_at`, `month_limit_reached_at`,
+  `stamps_unreadable` all null; 210 of 3,800).
+- **Done condition 3:** met by the letter. Run 40500900716 reads 0 unwritable credits
+  because no historical call was made on 10-26 (0 charged), so the zero does not
+  show the join writing.
+- **Done condition 4:** passes for NBA (9 of 9 games with an opening line on 10-26),
+  NHL (3 of 3) and NFL (1 of 1). From the deploy: NBA 20, NFL 12, NHL 19, CFB 1
+  opening lines, 0 at or after kickoff. `archive_game_closing` for NFL: 11, 1, 1 on
+  10-25, 10-26, 10-27. `fetchSportOddsLive` on 10-26: 105 credits against 204 on
+  the previous Monday; no cause attributed.
+- **Open:** CFB has no closed day with rows until 10-27 closes. Read
+  `trig_01PUmdEL1RdEgBfREYUjtgj4`, 2026-10-28 12:00Z. One of its two games, Western
+  KY v Delaware, has no opening line yet; that name is the design's known residual.
+- **Prerequisites CC-CMD:** `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`
+  stays PARTIAL until CFB passes. Task 3 is not started.

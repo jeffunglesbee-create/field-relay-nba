@@ -1,5 +1,24 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-27 (12:10Z) — the shared join passes for NBA, NHL and NFL
+
+**HEAD:** `71a4591` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-25-shared-join.md (updated)
+
+`docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`: still
+**PARTIAL**. Done condition 4 read on closed day 10-26: opening lines written for
+NBA 9 of 9 games, NHL 3 of 3, NFL 1 of 1, none at or after kickoff (0 of 52 since
+the deploy); NFL `archive_game_closing` above 0. Done condition 3 is met by the
+letter (the demand run reads 0 unwritable credits because no historical call was
+made that day). `fetchSportOddsLive` on 10-26: 105 credits against 204 the previous
+Monday.
+
+- **Open:** CFB. Its first rows are 10-27; read 2026-10-28 12:00Z
+  (`trig_01PUmdEL1RdEgBfREYUjtgj4`). Prerequisites CC-CMD goes DONE after that read,
+  not before; Task 3 is not started.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-25 (14:40Z) — the shared odds join is live
 
 **HEAD:** `f4bea6a` → this close-out · **Branch:** main
