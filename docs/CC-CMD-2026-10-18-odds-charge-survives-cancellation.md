@@ -209,3 +209,23 @@ what the done condition asked for.
 - No change to counter arithmetic, and no change to routing, without the
   owner's choice above.
 - Do not widen `daily-exceeds-monthly` or any watch to make a gap disappear.
+
+---
+
+## Note 2026-10-27: why `Odds daily vs vendor` has run red since at least 10-20, and when it clears
+
+Measured from `outbox/odds-daily-vs-monthly-20261027T045612Z.log` (run 40452449705). The workflow's failing step is
+`watch-odds-daily-vs-monthly.mjs`; it exits 1 only on verdict `daily-exceeds-monthly` (`scripts/watch-odds-daily-vs-monthly.mjs:96-110`).
+`month-boundary`, `no-contained-day` and `consistent` all exit 0.
+
+- The month's segment starts at the 10-01 reset, so the watch sums daily counters over 10-02 to 10-26: 47,455 against a monthly
+  delta of 44,935, EXCESS 2,520 (ratio 1.06x). Across the eight logs since 10-20 the excess sits between 2,127 and 2,538.
+- The diagnostic per-day rows sum to excess 2,877. Rows 10-19 to 10-26 sum to **+66**; rows 10-01 to 10-18 sum to **+2,811**.
+  The single-batch deploy was 10-19 (run 39183315552), and the gap it froze was −2,790. The red is the pre-10-19 days
+  still inside the segment, not a live divergence. Individual rows are offset windows (the log says diagnostic only); the sums
+  over contiguous ranges are exact up to the two edge hours.
+- Prediction, falsifiable: the first run after the 2026-11-01 reset reads `month-boundary` or `no-contained-day` and exits 0, and
+  every later run exits 0 unless the post-10-19 days diverge. A run that reads `daily-exceeds-monthly` with excess above 500 on
+  days that all follow 10-19 would mean the single-batch fix did not hold, and this note is wrong.
+- Not changed: no code. A floor at the deploy instant would clear the red 5 days earlier at the cost of a new constant in a guard;
+  the watch cannot fire on a new divergence until 11-01 either way, which is the whole price of leaving it.
