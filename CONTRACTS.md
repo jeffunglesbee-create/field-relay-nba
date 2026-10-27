@@ -1509,3 +1509,27 @@ Gate: `scripts/check-hockey-wp.mjs` (39 checks) and
 `scripts/mutate-hockey-wp.mjs` (13 mutations, all caught), both in `guards.yml`.
 The calibration that earned the model its place is
 `outbox/hockey-wp-calibration-latest.json`.
+
+## `bsd_event_id` on `/context/date` game rows (relay-owned, additive)
+
+**Added 2026-10-27** (`docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`). A soccer game row now carries
+`bsd_event_id`, the id `/bsd/events/{id}/lineups` takes, so a game can find its own lineup. Before this the only
+game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-match game could not find one.
+
+| field | shape | meaning |
+|---|---|---|
+| `games.regular[].bsd_event_id`, `games.postseason[].bsd_event_id` | string (a BSD event id) or `null` | joined to exactly one BSD event; **`null` or absent means "not joined", never a guess** |
+
+- Only the six soccer `sport` labels (`MLS`, `EPL`, `La Liga`, `Serie A`, `Bundesliga`, `Ligue 1`) are ever joined.
+  Any other sport's row carries `null`.
+- The join is `resolveTeamKey` on both sides, same orientation, one candidate; the kickoff instant may refuse a pair
+  more than 180 minutes apart and never chooses one (owner ruling 2026-10-19). A row with no `start_time` is joined on
+  names alone and counted as unjudged. Two candidates is `null`, not the first. Source: `src/bsd-game-join.js`.
+- Written by `runBsdGameJoinForDate` (`POST /admin/bsd-game-join {"date":"YYYY-MM-DD"}`, and once per UTC day per date
+  from the journalism cycle, one date per tick), only where `bsd_event_id IS NULL`, through `reconcile()` with
+  change_log source `bsd_game_join`. Never overwritten.
+- Two archive rows that are the SAME fixture written under two id schemes both carry the one event id; that is correct
+  and is the archive's duplicate problem, not this field's.
+- **Producer:** field-relay-nba. **Consumer:** field-laboratory reads it as OPTIONAL (`get.Optional.Field`), so its
+  absence on an older cached payload is tolerated. The laboratory's copy of this contract must be synced when the
+  field is first consumed (`field-laboratory` `docs/CC-CMD-2026-10-27-lineups-on-game-cards.md`).

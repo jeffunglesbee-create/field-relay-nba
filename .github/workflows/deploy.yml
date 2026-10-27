@@ -271,6 +271,15 @@ jobs:
           node scripts/check-odds-history-units.mjs
           node scripts/mutate-odds-matcher.mjs
 
+      - name: The BSD game join joins what it should, and each rule can fail
+        run: |
+          # docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md: the join over the captured fixture and a synthetic
+          # corpus, the I/O wiring as source, and 15 mutations (7 of the rule, 8 of the wiring), each of which must
+          # turn one of the two checks red.
+          node scripts/check-bsd-game-join.mjs --offline
+          node scripts/check-bsd-game-join-wiring.mjs
+          node scripts/mutate-bsd-game-join.mjs
+
       - name: No new bare empty catch
         run: |
           # DUPLICATED FROM guards.yml ON PURPOSE. guards.yml carries

@@ -110,6 +110,7 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
+import { joinBatch, eventDaysFor, BSD_SOCCER_SPORTS } from './bsd-game-join.js';
 import { getFieldDateKey } from './field-date.js';
 import { chargeOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_CHARGE_ORDER } from './budget-helpers.js';
 
@@ -6210,6 +6211,125 @@ async function ensureImportanceColumn(env) {
   _importanceColReady = true;
 }
 
+// ── BSD event id on archived soccer rows (CC-CMD-2026-10-27-bsd-event-id-on-game-rows) ──────────────
+// A game row carried espn_event_id and no BSD id, so a game could not find /bsd/events/{id}/lineups. The join rule is
+// src/bsd-game-join.js (pure, resolveTeamKey on both sides, same orientation, the kickoff may only refuse). This is
+// the I/O around it: a column, an IS NULL-scoped backfill for one date, and a once-per-day pass for a window of dates.
+let _bsdEventIdColReady = false;
+async function ensureBsdEventIdColumn(env) {
+  if (_bsdEventIdColReady) return;
+  if (!env.ARCHIVE_DB) return;
+  for (const table of ['regular_season_games', 'postseason_games']) {
+    try {
+      await env.ARCHIVE_DB.prepare(`ALTER TABLE ${table} ADD COLUMN bsd_event_id TEXT DEFAULT NULL`).run();
+    } catch (e) { console.warn(`[BSD-GAME-JOIN] ${table}.bsd_event_id: ${e.message} (expected once the column exists)`); }
+  }
+  _bsdEventIdColReady = true;
+}
+
+// One UTC day of BSD events, every page, through the SAME edge-cache key /bsd/events/by-date uses (the query string is
+// built in that route's order: date_from, date_to, offset, limit), so a cache hit costs no upstream call. Returns
+// null on any page that does not answer 200: a partial event list can turn an ambiguous pair into a unique one, so a
+// caller that did not get every page must not write.
+async function fetchBsdEventsForDay(env, day, budget) {
+  const base = 'https://sports.bzzoiro.com';
+  const headers = { 'Authorization': `Token ${env.BSD_API_TOKEN}`, 'User-Agent': 'FIELD/1.0', 'Accept': 'application/json' };
+  const ttl = day < new Date().toISOString().slice(0, 10) ? 300 : 25;
+  const events = [];
+  for (let page = 0; page < 12; page++) {
+    const qs = `?date_from=${day}&date_to=${day}&offset=${page * 50}&limit=50`;
+    const cacheKey = new Request(`${base}/api/v2/events/${qs}`);
+    let body = null;
+    try {
+      const hit = await caches.default.match(cacheKey);
+      if (hit) { body = await hit.json(); budget.cacheHits++; }
+    } catch (e) { console.warn('[BSD-GAME-JOIN] cache read failed:', e.message); }
+    if (!body) {
+      if (budget.upstreamPages >= budget.maxUpstreamPages) return null;
+      budget.upstreamPages++;
+      const r = await fetch(`${base}/api/v2/events/${qs}`, { headers, signal: AbortSignal.timeout(10_000) });
+      if (!r.ok) return null;
+      const text = await r.text();
+      body = JSON.parse(text);
+      try {
+        await caches.default.put(cacheKey, new Response(text, { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${ttl}` } }));
+      } catch (e) { console.warn('[BSD-GAME-JOIN] cache write failed:', e.message); }
+    }
+    // BSD's paginated events list answers {count, next, previous, results}. Any other shape is not a page: refuse it by
+    // returning null (a caller that did not read every page must not write) rather than reading it as an empty day.
+    const rows = body.results;
+    if (!Array.isArray(rows)) return null;
+    events.push(...rows);
+    if (rows.length < 50) return events;
+    if (typeof body.count === 'number' && events.length >= body.count) return events;
+  }
+  return null; // twelve full pages and still more: truncated, so unsafe to join against
+}
+
+// Fill bsd_event_id for one archive date. Only rows WHERE bsd_event_id IS NULL, soccer only, never overwritten.
+// Writes go through reconcile() like every other archive enrichment: it diffs against the live row, UPDATEs only a
+// changed column, and logs one change_log row. The source 'bsd_game_join' is in none of brief-freshness's source sets,
+// so a lineup id appearing never stales a brief.
+async function runBsdGameJoinForDate(env, isoDate, { maxUpstreamPages = 24 } = {}) {
+  if (!env.ARCHIVE_DB) return { ok: false, reason: 'ARCHIVE_DB not bound', date: isoDate };
+  if (!env.BSD_API_TOKEN) return { ok: false, reason: 'BSD_API_TOKEN not bound', date: isoDate };
+  await ensureBsdEventIdColumn(env);
+  const marks = BSD_SOCCER_SPORTS.map(() => '?').join(',');
+  const pending = [];
+  for (const table of ['regular_season_games', 'postseason_games']) {
+    const r = await env.ARCHIVE_DB.prepare(
+      `SELECT id, sport, home, away, start_time FROM ${table} WHERE date = ? AND bsd_event_id IS NULL AND sport IN (${marks})`
+    ).bind(isoDate, ...BSD_SOCCER_SPORTS).all();
+    for (const row of r.results) pending.push({ ...row, _table: table }); // D1 .all() always carries a results array
+  }
+  const base = { ok: true, date: isoDate, pending: pending.length };
+  if (!pending.length) return { ...base, written: 0, joined: 0, ambiguous: 0, unmatched: [], refusedKickoff: 0, unjudgedKickoff: 0, upstreamPages: 0, cacheHits: 0 };
+  const budget = { upstreamPages: 0, cacheHits: 0, maxUpstreamPages };
+  const events = [];
+  for (const day of eventDaysFor(isoDate)) {
+    const dayEvents = await fetchBsdEventsForDay(env, day, budget);
+    if (!dayEvents) return { ...base, ok: false, reason: `BSD events for ${day} not fully read; nothing written`, upstreamPages: budget.upstreamPages, cacheHits: budget.cacheHits };
+    events.push(...dayEvents);
+  }
+  const { results, counts } = joinBatch(pending, events);
+  let written = 0;
+  for (const table of ['regular_season_games', 'postseason_games']) {
+    const updates = [];
+    results.forEach((r, i) => { if (r.bsd_event_id && pending[i]._table === table) updates.push({ id: pending[i].id, fields: { bsd_event_id: r.bsd_event_id } }); });
+    if (!updates.length) continue;
+    const r = await reconcile(env, { target: table, updates, changelog: { source: 'bsd_game_join', label: 'bsd_event_id' } });
+    written += r.synced || 0;
+  }
+  return {
+    ...base, written, joined: counts.joined, ambiguous: counts.ambiguous, refusedKickoff: counts.refusedKickoff,
+    unjudgedKickoff: counts.unjudgedKickoff, eventsRead: events.length,
+    unmatched: results.map((r, i) => (r.how === 'unmatched' ? `${pending[i].sport}: ${pending[i].home} v ${pending[i].away}` : null)).filter(Boolean),
+    upstreamPages: budget.upstreamPages, cacheHits: budget.cacheHits,
+  };
+}
+
+// The scheduled path: ONE date per call, from the window yesterday..today+3, each at most once per UTC day (a KV marker,
+// 36 h), so a 15-minute tick spends at most 24 upstream pages and the five dates spread over five ticks. The admin route
+// and this call the same function; only the trigger differs.
+async function runBsdGameJoinWindow(env, dateKey) {
+  if (!env.ARCHIVE_DB || !env.BSD_API_TOKEN || !env.FIELD_JOURNALISM) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const shift = n => new Date(Date.parse(`${dateKey}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+  for (const date of [-1, 0, 1, 2, 3].map(shift)) {
+    const doneKey = `bsd-join:${date}:${today}`, failKey = `bsd-join-fail:${date}`;
+    if (await env.FIELD_JOURNALISM.get(doneKey)) continue;
+    // A date that failed (BSD down, a page that did not answer) is skipped for an hour, so one bad date cannot hold
+    // the four behind it, and a BSD outage costs one upstream call an hour per date, not one per tick.
+    if (await env.FIELD_JOURNALISM.get(failKey)) continue;
+    const result = await runBsdGameJoinForDate(env, date);
+    console.log(`[BSD-GAME-JOIN] ${JSON.stringify({ ...result, unmatched: result.unmatched ? result.unmatched.length : undefined })}`);
+    if (result.ok) await env.FIELD_JOURNALISM.put(doneKey, JSON.stringify({ written: result.written, pending: result.pending }), { expirationTtl: 36 * 3600 });
+    else await env.FIELD_JOURNALISM.put(failKey, String(result.reason || 'failed'), { expirationTtl: 3600 });
+    return result;
+  }
+  return null;
+}
+
 // Detect whether a just-archived MLB regular-season game clinches a series.
 // series_record is the CURRENT record AFTER this game ("X-Y" = home wins-away
 // wins in this series). Returns {outcome, winner, loser, wins, losses} when
@@ -8904,6 +9024,11 @@ async function handleJournalismCycle(env, opts = {}) {
     // the Odds API is down or the snapshot throws.
     try { await snapshotCronOdds(env, dateKey); }
     catch (e) { console.error("[ODDS-SNAPSHOT] snapshot failed:", e.message); /* odds snapshot failure cannot break journalism */ }
+
+    // ── BSD event ids on the soccer rows of the next few days (CC-CMD-2026-10-27-bsd-event-id-on-game-rows) ──
+    // One date per tick, once per UTC day each; see runBsdGameJoinWindow. Archive enrichment: failure cannot break journalism.
+    try { await runBsdGameJoinWindow(env, dateKey); }
+    catch (e) { console.error("[BSD-GAME-JOIN] window failed:", e.message); /* a lineup id is an enrichment, not a requirement */ }
 
     // ── Odds annotations for prompt injection ───────────────────────────────
     // Read opening_odds rows from the archive for today's sports, build a
@@ -12322,6 +12447,24 @@ export default {
             });
             return new Response(JSON.stringify(result), {
                 status: result.ok ? 200 : 400,
+                headers: { 'Content-Type': 'application/json', ...CORS },
+            });
+        }
+
+        // POST /admin/bsd-game-join {date: 'YYYY-MM-DD'} — fill bsd_event_id for one archive date
+        // (CC-CMD-2026-10-27-bsd-event-id-on-game-rows). The same function the journalism cycle's window pass calls.
+        // Fail-closed shared secret (relaySecretMatches): an unset binding matches nothing, including an absent header.
+        if (pathname === '/admin/bsd-game-join' && request.method === 'POST') {
+            if (!relaySecretMatches(request.headers.get('X-FIELD-Relay'), env))
+                return new Response('Unauthorized', { status: 401, headers: CORS });
+            const body = await request.json().catch(() => null); // absence-ok: an unparseable body reaches the same date validation below, which names the problem
+            const date = body && typeof body.date === 'string' ? body.date : '';
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
+                return new Response(JSON.stringify({ ok: false, error: 'body must be {"date":"YYYY-MM-DD"}' }),
+                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+            const result = await runBsdGameJoinForDate(env, date);
+            return new Response(JSON.stringify(result), {
+                status: result.ok ? 200 : 502,
                 headers: { 'Content-Type': 'application/json', ...CORS },
             });
         }

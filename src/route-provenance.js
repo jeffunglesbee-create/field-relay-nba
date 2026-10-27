@@ -4,16 +4,17 @@
 //
 // Where each route's data comes from, read out of the handler that answers it.
 // The response wrapper in src/index.js stamps X-FIELD-Source from this, so all
-// 190 routes describe themselves without 190 hand edits.
+// 191 routes describe themselves without 191 hand edits.
 //
 // `k` is the kind of surface, `s` the declared upstreams and storage bindings.
 // s: null means the route answers without reading anything -- a trigger that
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-24T12:02:34.625Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-27T23:24:04.800Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
+  "/admin/bsd-game-join": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
   "/ambient/": { k: "durable-object", s: "do:AMBIENT_DO", p: 1 },
   "/analytics/": { k: "store", s: "d1:ARCHIVE_DB", p: 1 },
@@ -220,7 +221,7 @@ export const ROUTE_PROVENANCE = {
 // `t: 1` marks an entry whose sources are a PARTIAL READ. The scanner walks
 // forward at most 1500 lines looking for brace balance; when a handler block is
 // longer than that the scan gives up, and `s` describes only what fitted inside
-// the window. 1 of 190 entries are in that state.
+// the window. 1 of 191 entries are in that state.
 //
 // It is not cosmetic. /archive/'s window ended nine lines past the /cfl/ routes,
 // so the entry claimed echo.pims.cfl.ca and www.cfl.ca — hosts /archive/* never
