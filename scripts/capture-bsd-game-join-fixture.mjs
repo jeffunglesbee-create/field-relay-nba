@@ -33,7 +33,8 @@ export async function pagedEvents(getJson, day) {
   let pages = 0, count = null
   for (let i = 0; i < MAX_PAGES; i++) {
     const body = await getJson(`${RELAY}/bsd/events/by-date?date=${day}&limit=${PAGE}&offset=${i * PAGE}`)
-    const rows = body.results || body.events || []
+    const rows = body.results
+    if (!Array.isArray(rows)) throw new Error(`${RELAY}/bsd/events/by-date for ${day}: not a page (no results array); refusing to read it as an empty day`)
     pages++
     if (count === null && typeof body.count === 'number') count = body.count
     events.push(...rows)
