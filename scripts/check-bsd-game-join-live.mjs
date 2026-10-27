@@ -130,7 +130,7 @@ async function selfTest() {
       const u = new URL(req.url, 'http://x')
       if (req.method === 'POST') {
         let body = ''; for await (const c of req) body += c
-        const date = JSON.parse(body).date, list = rows.get(date), n = (state.posts.get(date) || 0) + 1
+        const date = JSON.parse(body).date, list = rows.get(date), n = state.posts.has(date) ? state.posts.get(date) + 1 : 1
         state.posts.set(date, n)
         let written = 0
         for (const r of list) if (r._pending && r.bsd_event_id == null) { r.bsd_event_id = r._pending; written++ }
