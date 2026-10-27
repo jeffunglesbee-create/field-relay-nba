@@ -1,0 +1,33 @@
+# The offline corpus for the BSD game join (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, Task 1).
+# Runs on a runner because the authoring sandbox cannot reach *.workers.dev. Triggered by a push to the
+# trigger file, so it needs no dispatch, and by dispatch.
+name: bsd-game-join-fixture
+on:
+  push:
+    paths: ['outbox/.trigger-bsd-game-join-fixture']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: The page loop, with no network
+        run: node scripts/capture-bsd-game-join-fixture.mjs --self-test
+      - name: Capture from the deployed relay
+        run: node scripts/capture-bsd-game-join-fixture.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Commit the fixture
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"; git config user.name "FIELD CI"
+          git add outbox/fixture-bsd-game-join-2026-08-29-09-05.json || true
+          git diff --cached --quiet && exit 0
+          git commit -m "data: the BSD game join fixture, both UTC days of two dates"
+          for i in 1 2 3; do git pull --rebase --autostash origin main && git push origin HEAD:main && break; sleep $((i*5)); done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after retries"; exit 1; }
