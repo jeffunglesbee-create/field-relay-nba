@@ -279,6 +279,7 @@ jobs:
           node scripts/check-bsd-game-join.mjs --offline
           node scripts/check-bsd-game-join-wiring.mjs
           node scripts/mutate-bsd-game-join.mjs
+          node scripts/check-bsd-game-join-live.mjs --self-test
 
       - name: No new bare empty catch
         run: |

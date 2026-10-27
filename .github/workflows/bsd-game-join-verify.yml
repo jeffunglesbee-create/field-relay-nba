@@ -1,0 +1,36 @@
+# The live proof of the BSD game join (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, Task 6): backfill two
+# archive dates through the deployed admin route, read /context/date back, assert, and commit
+# outbox/bsd-game-join-live-latest.json. On a runner because the authoring sandbox cannot reach *.workers.dev.
+# Triggered by a push to the trigger file, and by dispatch.
+name: bsd-game-join-verify
+on:
+  push:
+    paths: ['outbox/.trigger-bsd-game-join-verify']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: The live assertions, each failed on purpose against a stub
+        run: node scripts/check-bsd-game-join-live.mjs --self-test
+      - name: Backfill and read back from the deployed relay
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/check-bsd-game-join-live.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Commit the record
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"; git config user.name "FIELD CI"
+          git add outbox/bsd-game-join-live-latest.json || true
+          git diff --cached --quiet && exit 0
+          git commit -m "data: the BSD game join, live on the deployed relay"
+          for i in 1 2 3; do git pull --rebase --autostash origin main && git push origin HEAD:main && break; sleep $((i*5)); done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after retries"; exit 1; }
