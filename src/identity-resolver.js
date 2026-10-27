@@ -397,6 +397,41 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY, AMBIGUOUS_TEAM } = (() => {
         ['Hull',                   'Hull City'],
         ['the Tigers',             'Hull City'],
         ['Tigers',                 'Hull City'],
+
+        // ── BSD club-league names (CC-CMD-2026-10-27-bsd-event-id-on-game-rows, Task 3) ──
+        // Each pair is a disagreement between two systems, read from outbox/fixture-bsd-game-join-2026-08-29-09-05.json:
+        // the archive's short form (left of the comma in the comment) and BSD's full club name. The CANONICAL is the
+        // archive's form, so resolveTeamKey of every archive name is UNCHANGED and only the BSD form is newly mapped.
+        ['Liverpool FC',               'Liverpool'],                // Liverpool
+        ['New York Red Bulls',         'New York Red Bulls'],       // Red Bull NY (archive) -> existing canonical
+        ['Red Bull NY',                'New York Red Bulls'],
+        ['Levante UD',                 'Levante'],
+        ['1. FC Union Berlin',         'Union Berlin'],
+        ['Eintracht Frankfurt',        'Frankfurt'],
+        ['1. FC Köln',                 'Cologne'],
+        ['TSG Hoffenheim',             'Hoffenheim'],
+        ['1. FSV Mainz 05',            'Mainz'],
+        ['SC Paderborn 07',            'Paderborn'],
+        ['Borussia M\'gladbach',       'Gladbach'],
+        ['SV 07 Elversberg',           'Elversberg'],
+        ['Bayer 04 Leverkusen',        'Leverkusen'],
+        ['Borussia Dortmund',          'Dortmund'],
+        ['Hamburger SV',               'Hamburg'],
+        ['RC Strasbourg',              'Strasbourg'],
+        ['RC Lens',                    'Lens'],
+        ['Stade Brestois',             'Brest'],
+        ['Olympique Lyonnais',         'Lyon'],
+        ['Le Havre',                   'Le Havre AC'],
+        ['Crystal Palace',             'C Palace'],
+        ['Athletic',                   'Athletic Club'],            // existing canonical: Athletic Club is already a key, so the ARCHIVE form maps to it (its key changes, named in the check)
+        ['Real Racing Club',           'Racing'],
+        ['Deportivo de A Coruña',      'Deportivo'],
+        ['Inter',                      'Inter Milan'],
+        ['SSC Napoli',                 'Napoli'],
+        ['SC Freiburg',                'Freiburg'],
+        ['SV Werder Bremen',           'Bremen'],
+        ['FC Schalke 04',              'Schalke'],
+        ['FC Bayern München',          'Bayern'],
     ];
     const strip = {};
     const display = {};
