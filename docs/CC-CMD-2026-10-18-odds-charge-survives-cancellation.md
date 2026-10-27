@@ -203,6 +203,14 @@ Coverage (Rule 91): this is one aggregate over one window, 6 days and 7,935
 credits. It would not show a month loss offset by an equal daily loss. It is
 what the done condition asked for.
 
+**Re-read 2026-10-27T18:35Z** (D1 `cc49101c`, the same query): month 45,196, daily
+rows 47,986, **gap −2,790**. Since the 06:30Z read on 10-25 (month 43,792, daily 46,582)
+the month row and the daily rows have each risen 1,404, through the rest of 10-25, all of
+10-26 and part of 10-27. The note of 2026-10-27 below reads "+66" across 10-19 to 10-26;
+that figure sums the per-day diagnostic rows of the `daily-vs-monthly` log over offset
+windows, which the log marks diagnostic, while the gap above is the exact month-minus-daily
+total, and it has not moved.
+
 ## FORBIDDEN
 
 - No credits.
