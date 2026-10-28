@@ -23,8 +23,9 @@ Three corrections this work produced, recorded so the document is not read as st
 3. **The archive holds two rows of one fixture under two id schemes**, and both carry the one event id (11
    events shared by two rows). That is correct for this field.
 
-Still open, and said where it is read: the once-per-day pass has not been observed live (Task 4's own
-limitation below); the session doc carries its unblock criteria and the query that reads it.
+The once-per-day pass, which "What this does not prove" below says is exercised offline only, was then
+observed live on 2026-10-28: it wrote ids for 10-26 to 10-29 at four consecutive `*/15` ticks with no admin
+call (session doc). Dates before the rolling window are joined only by `POST /admin/bsd-game-join`.
 
 ```bash
 git remote get-url origin | grep -q field-relay-nba || { echo "WRONG REPO"; exit 1; }

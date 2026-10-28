@@ -100,14 +100,27 @@ Deploy: Deploy RELAY Worker run **40607238843**, success, on `04d28bd`.
 - "Every joined row names the teams of its event, in order" uses the join's own resolver, so it is not independent
   of it. The 9 oracle pairs, fixed by the laboratory from the BSD payload by exact name, are the independent check.
 - 13 rows have no `start_time`; their kickoff was not judged.
-- STAGED — the once-per-day pass has not been observed live. It is exercised by the wiring check and the offline
-  mock, and the admin route calls the same function (`runBsdGameJoinForDate`). Blocked by: needs cron ticks after
-  deploy (`*/15`, five dates, one per tick). Unblocked when: soccer rows dated 2026-10-27..10-31 show
-  `bsd_event_id` with no admin call. At 00:25Z, 0 of 41 such rows (3 + 14 + 9 + 15 on 10-27, 10-28, 10-29, 10-31)
-  had one. Verify, on ARCHIVE_DB:
-  `SELECT date, COUNT(*) AS n, SUM(bsd_event_id IS NOT NULL) AS with_id FROM regular_season_games WHERE date BETWEEN '2026-10-27' AND '2026-10-31' AND sport IN ('MLS','EPL','La Liga','Serie A','Bundesliga','Ligue 1') GROUP BY date`.
-  A read is scheduled for 01:35Z and its result is appended below.
+- The once-per-day pass was exercised offline (wiring check, mock `env`) and, below, live. Read 2026-10-28T01:35Z
+  from ARCHIVE_DB with no admin call involved: `change_log` rows with source `bsd_game_join` appear at 00:30:34Z,
+  00:45:53Z, 01:00:55Z and 01:15:34Z, the `*/15` cron minutes, after the 00:23Z admin run (84 rows). One date per
+  tick, ascending, as `runBsdGameJoinWindow` is written (window `dateKey-1 .. +3`, `dateKey` 2026-10-27 at 00:30Z):
+
+  | date | soccer rows | with id | written at |
+  |---|---|---|---|
+  | 2026-10-26 | 3 | 3 | 00:30Z tick |
+  | 2026-10-27 | 3 | 3 | 00:45Z tick |
+  | 2026-10-28 | 14 | 14 | 01:00Z tick |
+  | 2026-10-29 | 9 | 9 | 01:15Z tick |
+  | 2026-10-30 | 0 rows | | (the 01:30Z tick) |
+
+  113 rows now carry an id (84 admin + 29 cron); 0 on `postseason_games`; 0 on any non-soccer sport. My 00:25Z
+  baseline of "0 of 41 rows dated 10-27..10-31" used the wrong window: `dateKey` is the cron's date key, so the
+  window at that hour was 10-26..10-30.
+- A measured boundary, not a defect: dates outside the rolling window are not touched by the cron. 2026-10-25
+  (30 soccer rows), 2026-10-31 (15) and 2026-11-01 (5) carry no id; 10-31 and 11-01 enter the window as `dateKey`
+  advances. Any older date is joined only if someone calls `POST /admin/bsd-game-join` for it (the route takes one
+  date per call). A card for a game on such a date shows `not-joined`.
 
 ## Residual
 
-None deferred. Genuine residual: the live-cron observation above.
+None deferred. The boundary above (dates before the rolling window are joined only on request) is stated, not a gap in this CC-CMD's done condition.

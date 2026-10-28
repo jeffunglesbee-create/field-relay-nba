@@ -11,8 +11,9 @@
 in the archive are all correct (3 of the 12 are absent from it). Deploy run 40607238843, live
 proof run 40608452953. The laboratory's consumer CC-CMD is unblocked.
 
-- **Open:** the once-per-day pass in `handleJournalismCycle` has not been seen writing on its own.
-  Rows dated 10-27..10-31 (41 soccer rows) had no id at 00:25Z. Read 2026-10-28 01:35Z.
+- **Seen live:** the once-per-day pass wrote ids by itself at the 00:30, 00:45, 01:00 and 01:15Z cron ticks
+  (10-26 to 10-29: 29 rows). Dates before the rolling window are joined only by
+  `POST /admin/bsd-game-join`.
 - **Repaired on the way:** the coverage-states deploy gate no longer depends on the vendor's
   state today (dated evidence instead), and Repo guards is back to 112 bare empty catches.
 
