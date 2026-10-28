@@ -1,0 +1,41 @@
+=== Task 0d: what Task 2 cost in latency  utc=2026-10-28T22:15:09.715Z ===
+
+  route POST /debug/odds-budget-latency -> 200
+
+    446 ms   kv_four_ops
+             the OLD guard: four sequential KV ops, every call
+     63 ms   d1_batch_warm
+             the NEW guard, warm: one batch, every call after the first
+    123 ms   d1_first_call_on_isolate
+             the NEW guard, cold: DDL + KV seed read + batch, once per isolate
+
+  verdict: warm-cheaper
+  per-request delta: -383 ms (new warm minus old four-op)
+  once-per-isolate:  123 ms, paid on the first call only
+
+  Task 2 bought atomicity AND took latency off the per-request path. The cold-call cost is paid once per isolate and is reported beside it rather than averaged into it.
+
+  raw samples (ms), in call order:
+    kv_four_ops: [593,521,419,446,691,420,390]
+    d1_batch_warm: [59,67,71,76,54,57,63]
+    d1_first_call_on_isolate: [243,113,121,144,123,117,131]
+
+  NOTE (baseline): kv_four_ops is RECONSTRUCTED. The guard has not done this since Task 2; it is here as the thing Task 2 replaced.
+
+  NOTE (cold): d1_first_call_on_isolate is RECONSTRUCTED too — ensureOddsBudgetTables, _seedFromKv and _seedMonthFromKv are gated by module-level flags this route cannot reset.
+
+  NOTE (kv_cache): The four KV ops reuse one key pair across all 7 iterations, which is the shape the real guard had: one hot daily key all day. A cold-key measurement would be a different number and a different question.
+
+  NOTE (refusal_path): Two REFUSED calls (a ceiling of 0 on the sentinel day), so the refusal statement files its row and then updates it. Expect scopes_returned [["day"],["day"]], one cell {scope day, site latency-probe, n 2}, and day_used_before equal to day_used_after.
+
+  NOTE (coverage): ONE isolate, 7 iterations each, on whichever colo answered. It does NOT measure contention, cold starts, or any other region.
+
+  cleaned up: ["odds_budget","odds_budget_site","odds_budget_gate","odds_budget_refusal","odds_budget_month","odds:latency-probe:daily","odds:latency-probe:site"]
+
+  refusal path on the real D1: ok
+    {"scopes_returned":[["day"],["day"]],"cells":[{"scope":"day","site":"latency-probe","n":2}],"day_used_before":14,"day_used_after":14}
+
+COVERAGE: ONE isolate on whichever colo answered this request, 7 iterations
+per series. It does NOT measure contention, cold starts, other regions, or
+the real guard in situ — two of the three series are reconstructions, which
+the route's own notes above say in its own words.
