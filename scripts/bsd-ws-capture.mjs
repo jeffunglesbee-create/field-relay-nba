@@ -34,6 +34,8 @@ export const LIVE_URL = process.env.RELAY_URL
 export const DURATION_MS = 10 * 60 * 1000   // CC-CMD: "at least 60 frames, or 10 minutes"
 export const MIN_FRAMES = 60
 export const HARD_CAP_MS = 20 * 60 * 1000   // never hold the runner past this once connected
+export const MAX_RECONNECTS = 5
+export const RECONNECT_PAUSE_MS = 5000
 export const RAW_BYTES_CAP = 6 * 1024 * 1024
 
 // CC-CMD done condition 3's identifier list. `ID_KEY_SEEN` below also reports every
@@ -88,6 +90,20 @@ export const analyze = (frames) => {
     bump(byType, typeof o.type === 'string' ? o.type : '<no type>')
   }
 
+  // The subscribe ack is `{type:'subscribed', event, livedata:[...], odds}` (seen
+  // 2026-10-28, run 40619254199): the backlog of livedata frames rides INSIDE it, so
+  // a coordinate analysis of top-level frames alone would call a populated backlog
+  // empty. Each element is analysed as a frame of its own, and counted as such.
+  const subscribedLivedata = {}
+  const units = []
+  for (const { o } of objs) {
+    units.push(o)
+    if (o.type === 'subscribed' && Array.isArray(o.livedata)) {
+      bump(subscribedLivedata, String(o.livedata.length))
+      for (const el of o.livedata) if (isObj(el)) units.push(el)
+    }
+  }
+
   // 2. frame.coordinates: shape and length distribution
   const coord = { absent: 0, array: 0, object: 0, other: 0, lengths: {} }
   // 3. coordinate element keys and identifier keys
@@ -98,7 +114,7 @@ export const analyze = (frames) => {
   const idsByUts = new Map()
   let multiPointFrames = 0
   let maxElements = 0
-  for (const { o } of objs) {
+  for (const o of units) {
     if (!('coordinates' in o)) { coord.absent++; continue }
     const c = o.coordinates
     let elements
@@ -146,7 +162,7 @@ export const analyze = (frames) => {
   }
 
   // 5b. clock grain of frame.uts
-  const utsVals = objs.map((p) => p.o.uts).filter((u) => typeof u === 'number' && Number.isFinite(u))
+  const utsVals = units.map((o) => o.uts).filter((u) => typeof u === 'number' && Number.isFinite(u))
   const sorted = [...new Set(utsVals)].sort((a, b) => a - b)
   let minStep = null
   for (let i = 1; i < sorted.length; i++) {
@@ -157,7 +173,40 @@ export const analyze = (frames) => {
     : sorted[sorted.length - 1] >= 1e12 ? 'epoch milliseconds'
       : sorted[sorted.length - 1] >= 1e9 ? 'epoch seconds'
         : 'smaller than an epoch (a match clock or counter — unit not established by magnitude)'
-  const utsNonNumber = objs.filter((p) => 'uts' in p.o && typeof p.o.uts !== 'number').length
+  const utsNonNumber = units.filter((o) => 'uts' in o && typeof o.uts !== 'number').length
+
+  // 5c. restart COUNTERS. The `event` frames carry cumulative per-team stats whose
+  //     KEYS name restarts (throw_ins, free_kicks, goal_kicks, corner_kicks, fouls):
+  //     a count that moves between frames, not a typed event with a clock. The keys
+  //     matching RESTART_RE are reported with first/last value and when they moved.
+  const restartCounters = {}
+  for (const { t, o } of objs) {
+    const ev = o.type === 'subscribed' && isObj(o.event) ? o.event : o
+    if (!isObj(ev?.stats)) continue
+    for (const side of ['home', 'away']) {
+      const st = ev.stats[side]
+      if (!isObj(st)) continue
+      for (const k of Object.keys(st)) {
+        if (!RESTART_RE.test(k) || typeof st[k] !== 'number') continue
+        const c = restartCounters[`${side}.${k}`] ??= { first: st[k], last: st[k], changes: 0, changedAtMs: [] }
+        if (st[k] !== c.last) { c.changes++; c.changedAtMs.push(t); c.last = st[k] }
+      }
+    }
+  }
+
+  // 5d. what the server says it is ingesting. `ingest_debug` frames carry
+  //     raw_count / sent_count / last_seen_uts: zero throughout a live half is
+  //     evidence that no livedata exists upstream, whatever the tier flag says.
+  const dbg = objs.map((p) => p.o).filter((o) => o.type === 'ingest_debug')
+  const ingestDebug = {
+    frames: dbg.length,
+    rawCountSum: dbg.reduce((a, o) => a + (Number(o.raw_count) || 0), 0),
+    sentCountSum: dbg.reduce((a, o) => a + (Number(o.sent_count) || 0), 0),
+    advancedTrue: dbg.filter((o) => o.advanced_uts === true).length,
+    lastSeenUts: [...new Set(dbg.map((o) => o.last_seen_uts))].slice(0, 5),
+    pulledAtSecondsEpoch: dbg.length && dbg.every((o) => o.pulled_at >= 1e9 && o.pulled_at < 1e11),
+    typeBreakdownNonEmpty: dbg.filter((o) => isObj(o.type_breakdown) && Object.keys(o.type_breakdown).length).length,
+  }
 
   let verdict
   if (frames.length === 0) verdict = 'NO-FRAMES'
@@ -172,12 +221,15 @@ export const analyze = (frames) => {
     unparseable,
     keyUnion,
     byType,
+    subscribedLivedataLengths: subscribedLivedata,
     coordinates: { ...coord, maxElements, multiPointFrames },
     elementKinds,
     elementKeys,
     identifierKeysSeen: idKeySeen,
     distinctIdentifiersPerUts: { distribution: idsPerUts, max: maxIdsAtOneUts, utsGroups: idsByUts.size },
     restartEvents: restarts,
+    restartCounters,
+    ingestDebug,
     utsClock: {
       numericFrames: utsVals.length, nonNumeric: utsNonNumber, distinctValues: sorted.length,
       magnitude, smallestNonzeroStep: minStep, sample: sorted.slice(0, 5),
@@ -194,7 +246,7 @@ export const analyze = (frames) => {
  */
 export const capture = ({ WS, url, eventId, durationMs = DURATION_MS, minFrames = MIN_FRAMES,
   hardCapMs = HARD_CAP_MS, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
-  token = '' }) => new Promise((resolve) => {
+  token = '', maxReconnects = MAX_RECONNECTS, reconnectPauseMs = RECONNECT_PAUSE_MS }) => new Promise((resolve) => {
   const t0 = now()
   const events = []
   const frames = []
@@ -208,14 +260,17 @@ export const capture = ({ WS, url, eventId, durationMs = DURATION_MS, minFrames 
     done = true
     clearTimer(pollRef.t)
     try { ws.close() } catch { /* already closed */ }
-    resolve({ events, frames, ended, rawDropped, seconds: Math.round((now() - t0) / 100) / 10 })
+    resolve({ events, frames, ended, rawDropped, reconnects, seconds: Math.round((now() - t0) / 100) / 10 })
   }
   let ws
+  let reconnects = 0
+  const connect = () => {
+  if (done) return
   try {
     ws = new WS(url)
   } catch (e) {
     log('error', { message: redact(e.message, token) })
-    resolve({ events, frames, ended: 'constructor-threw', rawDropped, seconds: 0 })
+    finish('constructor-threw')
     return
   }
   ws.binaryType = 'arraybuffer'
@@ -236,12 +291,24 @@ export const capture = ({ WS, url, eventId, durationMs = DURATION_MS, minFrames 
     frames.push({ t: now() - t0, raw: rawBytes > RAW_BYTES_CAP ? raw.slice(0, 200) : raw })
   })
   ws.addEventListener('close', (evt) => {
+    if (done) return
     log('close', { code: evt?.code, reason: redact(evt?.reason ?? '', token) })
+    // An abnormal close mid-match (1006 after 109 s, run 40619254199) is recorded and
+    // the recorder subscribes again, as the relay's own handler does; every close and
+    // every reconnect is in the event log, and the count is bounded.
+    if (reconnects < maxReconnects && now() - t0 < hardCapMs) {
+      reconnects++
+      log('reconnect', { attempt: reconnects })
+      setTimer(connect, reconnectPauseMs)
+      return
+    }
     finish('socket-closed')
   })
   ws.addEventListener('error', (evt) => {
     log('error', { message: redact(evt?.message ?? evt?.error?.message ?? 'websocket error', token) })
   })
+  }
+  connect()
   pollRef.t = setTimer(function tick() {
     if (done) return
     const elapsed = now() - t0
@@ -250,6 +317,16 @@ export const capture = ({ WS, url, eventId, durationMs = DURATION_MS, minFrames 
     pollRef.t = setTimer(tick, 1000)
   }, 1000)
 })
+
+/** The CC-CMD's floor is "at least 60 frames, or 10 minutes"; a socket that closed
+ *  early, or a capture the hard cap ended, did not meet it however many frames it
+ *  holds. Only a capture that ran its full duration with the frame floor met is
+ *  `captured`; zero frames is `protocol-failed`; anything else is `incomplete` and
+ *  says why in `ended`. */
+export const stateOf = ({ ended, frames }) => {
+  if (frames.length === 0) return 'protocol-failed'
+  return ended === 'duration-and-frames' ? 'captured' : 'incomplete'
+}
 
 // --- the run -----------------------------------------------------------------
 
@@ -313,9 +390,7 @@ const main = async () => {
     ...res.frames.map((f) => JSON.stringify({ t: f.t, raw: f.raw })),
   ].map((l) => redact(l, token)).join('\n') + '\n')
 
-  let state
-  if (res.frames.length === 0) state = 'protocol-failed'
-  else state = 'captured'
+  const state = stateOf(res)
   const out = {
     ...base, state, verdict: analysis.verdict,
     coverage: `${res.frames.length} frames over ${res.seconds} s from 1 event (${event.id}, ${event.league_name}); ` +
@@ -326,7 +401,7 @@ const main = async () => {
       period: event.period, current_minute: event.current_minute,
       live_websocket: event.live_websocket, websocket_plus: event.websocket_plus,
     },
-    ended: res.ended, rawFile: rawName, rawFramesNotStoredInFull: res.rawDropped,
+    ended: res.ended, reconnects: res.reconnects, rawFile: rawName, rawFramesNotStoredInFull: res.rawDropped,
     socketEvents: res.events.map((e) => JSON.parse(redact(JSON.stringify(e), token))),
     analysis,
   }
@@ -466,13 +541,79 @@ const selfTest = async () => {
 
   // an error and close are recorded, and the token is redacted from them
   const WS3 = makeWS((s) => { s.emit('error', { message: `failed ${TOKEN}` }); s.emit('close', { code: 1006, reason: `bye ${TOKEN}` }) })
-  const r3 = await capture({ WS: WS3, url: 'wss://x/', eventId: 1, now: fakeNow, setTimer: setT, clearTimer: clearT, token: TOKEN })
+  const r3 = await capture({ WS: WS3, url: 'wss://x/', eventId: 1, now: fakeNow, setTimer: setT, clearTimer: clearT, token: TOKEN, maxReconnects: 0 })
   const dump = JSON.stringify(r3.events)
   ok('error and close events are recorded with the token redacted',
     r3.ended === 'socket-closed' && dump.includes('1006') && !dump.includes(TOKEN) && dump.includes('***'), dump)
   ok('a socket error is recorded with its message redacted',
     r3.events.some((e) => e.kind === 'error' && e.message === 'failed ***'), dump)
   ok('redact removes every occurrence', redact(`a ${TOKEN} b ${TOKEN}`, TOKEN) === 'a *** b ***')
+
+  // an abnormal close mid-match: recorded, then subscribed again, frames from both sockets kept
+  sentMessages.length = 0
+  let opened = 0
+  const WS4 = makeWS((s) => {
+    opened++
+    s.emit('open', {})
+    if (opened === 1) s.emit('close', { code: 1006, reason: '' })
+    else for (let i = 0; i < 3; i++) s.emit('message', { data: JSON.stringify({ type: 'event', n: i }) })
+  })
+  const p4 = capture({ WS: WS4, url: 'wss://x/', eventId: 5, durationMs: 4000, minFrames: 2, hardCapMs: 60000,
+    now: fakeNow, setTimer: setT, clearTimer: clearT, token: TOKEN, maxReconnects: 2, reconnectPauseMs: 1000 })
+  await new Promise((r) => setImmediate(r))
+  await pump(12)
+  const r4 = await p4
+  ok('a 1006 close is recorded and the recorder subscribes again',
+    opened === 2 && sentMessages.length === 2 && r4.reconnects === 1 &&
+    r4.events.some((e) => e.kind === 'close' && e.code === 1006) && r4.events.some((e) => e.kind === 'reconnect'),
+    JSON.stringify({ opened, sent: sentMessages.length, ev: r4.events.map((e) => e.kind) }))
+  ok('frames from the socket after the reconnect are kept', r4.frames.length === 3 && r4.ended === 'duration-and-frames',
+    `${r4.frames.length} ${r4.ended}`)
+  const WS5 = makeWS((s) => { s.emit('open', {}); s.emit('close', { code: 1006, reason: '' }) })
+  const p5 = capture({ WS: WS5, url: 'wss://x/', eventId: 5, durationMs: 4000, minFrames: 2, hardCapMs: 60000,
+    now: fakeNow, setTimer: setT, clearTimer: clearT, token: TOKEN, maxReconnects: 1, reconnectPauseMs: 1000 })
+  await new Promise((r) => setImmediate(r))
+  await pump(8)
+  const r5 = await p5
+  ok('reconnects are bounded: a socket that always closes ends as socket-closed',
+    r5.ended === 'socket-closed' && r5.reconnects === 1, `${r5.ended} ${r5.reconnects}`)
+
+  // state: only a full-duration capture with the frame floor met is `captured`
+  ok('stateOf: full duration is captured', stateOf({ ended: 'duration-and-frames', frames: [1] }) === 'captured')
+  ok('stateOf: a socket that closed early is incomplete, not captured',
+    stateOf({ ended: 'socket-closed', frames: [1, 2, 3] }) === 'incomplete')
+  ok('stateOf: the hard cap is incomplete', stateOf({ ended: 'hard-cap', frames: [1] }) === 'incomplete')
+  ok('stateOf: zero frames is protocol-failed', stateOf({ ended: 'hard-cap', frames: [] }) === 'protocol-failed')
+
+  // the shapes seen on the wire 2026-10-28 (run 40619254199)
+  const sub = analyze([
+    fr({ type: 'subscribed', event_id: 1, event: { stats: { home: { throw_ins: 10, corner_kicks: 3, passes: 5 }, away: { throw_ins: 4 } } },
+      livedata: [{ type: 'livedata', uts: 1793152600, coordinates: [{ x: 1, y: 2 }, { x: 3, y: 4 }] }], odds: {} }, 0),
+  ])
+  ok('livedata frames riding inside a subscribed ack are analysed as frames',
+    sub.coordinates.array === 1 && sub.coordinates.maxElements === 2 && sub.verdict === 'IDENTIFIER-LESS' &&
+    sub.subscribedLivedataLengths['1'] === 1 && sub.utsClock.magnitude === 'epoch seconds', JSON.stringify(sub.coordinates))
+  ok('an EMPTY subscribed livedata backlog is not a coordinate frame',
+    analyze([fr({ type: 'subscribed', event_id: 1, livedata: [] })]).verdict === 'NO-COORDINATE-FRAMES')
+  const ctr = analyze([
+    fr({ type: 'event', stats: { home: { throw_ins: 10, passes: 1 }, away: { free_kicks: 5, fouls: 4 } } }, 100),
+    fr({ type: 'event', stats: { home: { throw_ins: 12, passes: 2 }, away: { free_kicks: 5, fouls: 6 } } }, 900),
+  ])
+  ok('restart counters report first, last and when they moved; non-restart keys are left out',
+    ctr.restartCounters['home.throw_ins']?.first === 10 && ctr.restartCounters['home.throw_ins'].last === 12 &&
+    ctr.restartCounters['home.throw_ins'].changedAtMs[0] === 900 && ctr.restartCounters['away.free_kicks'].changes === 0 &&
+    ctr.restartCounters['away.fouls'].changes === 1 && !('home.passes' in ctr.restartCounters), JSON.stringify(ctr.restartCounters))
+  const ing = analyze([
+    fr({ type: 'ingest_debug', raw_count: 0, sent_count: 0, last_seen_uts: 5, pulled_at: 1793153369, type_breakdown: {}, advanced_uts: false }),
+    fr({ type: 'ingest_debug', raw_count: 0, sent_count: 0, last_seen_uts: 5, pulled_at: 1793153371, type_breakdown: {}, advanced_uts: false }),
+  ])
+  ok('ingest_debug is summarised: zero ingested, uts frozen, pulled_at in epoch seconds',
+    ing.ingestDebug.frames === 2 && ing.ingestDebug.rawCountSum === 0 && ing.ingestDebug.lastSeenUts.length === 1 &&
+    ing.ingestDebug.advancedTrue === 0 && ing.ingestDebug.pulledAtSecondsEpoch === true, JSON.stringify(ing.ingestDebug))
+  const ing2 = analyze([fr({ type: 'ingest_debug', raw_count: 3, sent_count: 3, last_seen_uts: 6, pulled_at: 1793153369,
+    type_breakdown: { livedata: 3 }, advanced_uts: true })])
+  ok('ingest_debug with data reads as ingesting', ing2.ingestDebug.rawCountSum === 3 && ing2.ingestDebug.advancedTrue === 1 &&
+    ing2.ingestDebug.typeBreakdownNonEmpty === 1)
 
   console.log(fail === 0 ? '\nALL PASS' : `\n${fail} FAILED`)
   process.exit(fail === 0 ? 0 : 1)

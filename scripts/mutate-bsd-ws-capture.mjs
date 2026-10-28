@@ -34,6 +34,14 @@ const MUTATIONS = [
   ['the hard cap never ends a silent socket', "if (elapsed >= hardCapMs) return finish('hard-cap')", ''],
   ['the frame floor is ignored', 'elapsed >= durationMs && frames.length >= minFrames', 'elapsed >= durationMs'],
   ['the token is not redacted', "token ? String(text).split(token).join('***') : String(text)", 'String(text)'],
+  ['a socket that closed early is called captured', "return ended === 'duration-and-frames' ? 'captured' : 'incomplete'", "return 'captured'"],
+  ['an abnormal close is not followed by a reconnect', 'if (reconnects < maxReconnects && now() - t0 < hardCapMs) {', 'if (false) {'],
+  ['reconnects are unbounded', 'if (reconnects < maxReconnects && now() - t0 < hardCapMs) {', 'if (now() - t0 < hardCapMs) {'],
+  ['livedata inside a subscribed ack is not analysed', 'for (const el of o.livedata) if (isObj(el)) units.push(el)', ''],
+  ['restart counters match every stat key', '!RESTART_RE.test(k) || typeof st[k]', 'typeof st[k]'],
+  ['restart counters never record a change', 'if (st[k] !== c.last) {', 'if (false) {'],
+  ['ingest_debug raw_count is not summed', 'rawCountSum: dbg.reduce((a, o) => a + (Number(o.raw_count) || 0), 0)', 'rawCountSum: 0'],
+  ['ingest_debug advanced_uts is not counted', "advancedTrue: dbg.filter((o) => o.advanced_uts === true).length", 'advancedTrue: 0'],
   ['a socket error is not recorded', "log('error', { message: redact(evt?.message", "void ({ message: redact(evt?.message"],
 ]
 
