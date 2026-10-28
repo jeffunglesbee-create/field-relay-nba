@@ -1,0 +1,1258 @@
+{
+ "file": "/tmp/fx-more.json",
+ "measuredAt": "2026-10-28T03:03:48.842Z",
+ "dates": [
+  {
+   "date": "2026-10-10",
+   "counts": {
+    "rows": 53,
+    "joined": 48,
+    "ambiguous": 0,
+    "unmatched": 5,
+    "refusedKickoff": 0,
+    "notSoccer": 0,
+    "unjudgedKickoff": 15
+   },
+   "byLabel": {
+    "MLS": {
+     "rows": 29,
+     "joined": 29
+    },
+    "EPL": {
+     "rows": 6,
+     "joined": 6
+    },
+    "La Liga": {
+     "rows": 4,
+     "joined": 2
+    },
+    "Serie A": {
+     "rows": 3,
+     "joined": 3
+    },
+    "Bundesliga": {
+     "rows": 6,
+     "joined": 4
+    },
+    "Ligue 1": {
+     "rows": 5,
+     "joined": 4
+    }
+   },
+   "unmatched": [
+    {
+     "rowId": "La Liga_2026-10-10_e401882856",
+     "label": "La Liga",
+     "home": "Alavés",
+     "away": "Atlético",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213590",
+       "home": "Deportivo Alavés",
+       "away": "Atlético Madrid",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      },
+      {
+       "id": "223793",
+       "home": "Racing Club",
+       "away": "Club Atlético Belgrano",
+       "homeLike": false,
+       "awayLike": true,
+       "gapMinutes": 1920
+      }
+     ],
+     "proposal": {
+      "eventId": "213590",
+      "pairs": [
+       {
+        "archive": "Alavés",
+        "bsd": "Deportivo Alavés"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "La Liga_2026-10-10_e401882853",
+     "label": "La Liga",
+     "home": "Barcelona",
+     "away": "Getafe",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213592",
+       "home": "FC Barcelona",
+       "away": "Getafe",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213592",
+      "pairs": [
+       {
+        "archive": "Barcelona",
+        "bsd": "FC Barcelona"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-10-10_e401884777",
+     "label": "Bundesliga",
+     "home": "Augsburg",
+     "away": "Bayern",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213708",
+       "home": "FC Augsburg",
+       "away": "FC Bayern München",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213708",
+      "pairs": [
+       {
+        "archive": "Augsburg",
+        "bsd": "FC Augsburg"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-10-10_e401884773",
+     "label": "Bundesliga",
+     "home": "Paderborn",
+     "away": "Stuttgart",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213711",
+       "home": "SC Paderborn 07",
+       "away": "VfB Stuttgart",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213711",
+      "pairs": [
+       {
+        "archive": "Stuttgart",
+        "bsd": "VfB Stuttgart"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-10-10_e401876444",
+     "label": "Ligue 1",
+     "home": "Monaco",
+     "away": "Toulouse",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210482",
+       "home": "AS Monaco",
+       "away": "Toulouse",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "210482",
+      "pairs": [
+       {
+        "archive": "Monaco",
+        "bsd": "AS Monaco"
+       }
+      ]
+     }
+    }
+   ],
+   "clubs": [
+    "Alavés",
+    "Barcelona",
+    "Augsburg",
+    "Stuttgart",
+    "Monaco"
+   ],
+   "events": 405,
+   "freeEvents": 371
+  },
+  {
+   "date": "2026-09-12",
+   "counts": {
+    "rows": 45,
+    "joined": 39,
+    "ambiguous": 0,
+    "unmatched": 6,
+    "refusedKickoff": 0,
+    "notSoccer": 0,
+    "unjudgedKickoff": 7
+   },
+   "byLabel": {
+    "MLS": {
+     "rows": 20,
+     "joined": 19
+    },
+    "EPL": {
+     "rows": 7,
+     "joined": 7
+    },
+    "La Liga": {
+     "rows": 4,
+     "joined": 3
+    },
+    "Serie A": {
+     "rows": 3,
+     "joined": 2
+    },
+    "Bundesliga": {
+     "rows": 6,
+     "joined": 4
+    },
+    "Ligue 1": {
+     "rows": 5,
+     "joined": 4
+    }
+   },
+   "unmatched": [
+    {
+     "rowId": "2026-09-12-mls-sd-phi",
+     "label": "MLS",
+     "home": "San Diego FC",
+     "away": "Philadelphia Union",
+     "how": "unmatched",
+     "reason": "no-event",
+     "candidates": [],
+     "proposal": null
+    },
+    {
+     "rowId": "La Liga_2026-09-12_e401882881",
+     "label": "La Liga",
+     "home": "Racing",
+     "away": "Alavés",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213566",
+       "home": "Real Racing Club",
+       "away": "Deportivo Alavés",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213566",
+      "pairs": [
+       {
+        "archive": "Alavés",
+        "bsd": "Deportivo Alavés"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Serie A_2026-09-12_e401874941",
+     "label": "Serie A",
+     "home": "Lazio",
+     "away": "Milan",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210091",
+       "home": "Lazio",
+       "away": "AC Milan",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      },
+      {
+       "id": "606295",
+       "home": "Folgore Caratese",
+       "away": "Alcione Milano",
+       "homeLike": false,
+       "awayLike": true,
+       "gapMinutes": 1440
+      }
+     ],
+     "proposal": {
+      "eventId": "210091",
+      "pairs": [
+       {
+        "archive": "Milan",
+        "bsd": "AC Milan"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-09-12_e401884795",
+     "label": "Bundesliga",
+     "home": "Augsburg",
+     "away": "Leverkusen",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213690",
+       "home": "FC Augsburg",
+       "away": "Bayer 04 Leverkusen",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213690",
+      "pairs": [
+       {
+        "archive": "Augsburg",
+        "bsd": "FC Augsburg"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-09-12_e401884797",
+     "label": "Bundesliga",
+     "home": "Hoffenheim",
+     "away": "Stuttgart",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213694",
+       "home": "TSG Hoffenheim",
+       "away": "VfB Stuttgart",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213694",
+      "pairs": [
+       {
+        "archive": "Stuttgart",
+        "bsd": "VfB Stuttgart"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-09-12_e401876458",
+     "label": "Ligue 1",
+     "home": "Strasbourg",
+     "away": "Monaco",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210470",
+       "home": "RC Strasbourg",
+       "away": "AS Monaco",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "210470",
+      "pairs": [
+       {
+        "archive": "Monaco",
+        "bsd": "AS Monaco"
+       }
+      ]
+     }
+    }
+   ],
+   "clubs": [
+    "San Diego FC",
+    "Philadelphia Union",
+    "Alavés",
+    "Milan",
+    "Augsburg",
+    "Stuttgart",
+    "Monaco"
+   ],
+   "events": 430,
+   "freeEvents": 396
+  },
+  {
+   "date": "2026-09-19",
+   "counts": {
+    "rows": 40,
+    "joined": 35,
+    "ambiguous": 0,
+    "unmatched": 5,
+    "refusedKickoff": 0,
+    "notSoccer": 0,
+    "unjudgedKickoff": 4
+   },
+   "byLabel": {
+    "MLS": {
+     "rows": 17,
+     "joined": 17
+    },
+    "EPL": {
+     "rows": 5,
+     "joined": 5
+    },
+    "La Liga": {
+     "rows": 4,
+     "joined": 2
+    },
+    "Serie A": {
+     "rows": 4,
+     "joined": 4
+    },
+    "Bundesliga": {
+     "rows": 5,
+     "joined": 3
+    },
+    "Ligue 1": {
+     "rows": 5,
+     "joined": 4
+    }
+   },
+   "unmatched": [
+    {
+     "rowId": "La Liga_2026-09-19_e401882866",
+     "label": "La Liga",
+     "home": "Athletic",
+     "away": "Alavés",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "10134",
+       "home": "Athletic Club",
+       "away": "Botafogo-SP",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 435
+      },
+      {
+       "id": "213580",
+       "home": "Athletic Club",
+       "away": "Deportivo Alavés",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      },
+      {
+       "id": "602563",
+       "home": "Redcar Athletic",
+       "away": "Macclesfield FC",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 15
+      },
+      {
+       "id": "602485",
+       "home": "Dover Athletic",
+       "away": "Folkestone Invicta",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 15
+      },
+      {
+       "id": "224129",
+       "home": "Wigan Athletic",
+       "away": "Wycombe Wanderers",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 15
+      },
+      {
+       "id": "7264",
+       "home": "Athletico",
+       "away": "Bahia",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 1935
+      }
+     ],
+     "proposal": {
+      "eventId": "213580",
+      "pairs": [
+       {
+        "archive": "Alavés",
+        "bsd": "Deportivo Alavés"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "La Liga_2026-09-19_e401882859",
+     "label": "La Liga",
+     "home": "Sevilla",
+     "away": "Barcelona",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213587",
+       "home": "Sevilla",
+       "away": "FC Barcelona",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213587",
+      "pairs": [
+       {
+        "archive": "Barcelona",
+        "bsd": "FC Barcelona"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-09-19_e401884784",
+     "label": "Bundesliga",
+     "home": "Bremen",
+     "away": "Augsburg",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213702",
+       "home": "SV Werder Bremen",
+       "away": "FC Augsburg",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213702",
+      "pairs": [
+       {
+        "archive": "Augsburg",
+        "bsd": "FC Augsburg"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-09-19_e401884789",
+     "label": "Bundesliga",
+     "home": "Stuttgart",
+     "away": "Dortmund",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213703",
+       "home": "VfB Stuttgart",
+       "away": "Borussia Dortmund",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213703",
+      "pairs": [
+       {
+        "archive": "Stuttgart",
+        "bsd": "VfB Stuttgart"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-09-19_e401876454",
+     "label": "Ligue 1",
+     "home": "Lyon",
+     "away": "Rennes",
+     "how": "unmatched",
+     "reason": "one-side-only",
+     "candidates": [
+      {
+       "id": "210478",
+       "home": "Olympique Lyonnais",
+       "away": "Stade Rennais",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": null
+    }
+   ],
+   "clubs": [
+    "Alavés",
+    "Barcelona",
+    "Augsburg",
+    "Stuttgart",
+    "Rennes"
+   ],
+   "events": 501,
+   "freeEvents": 470
+  },
+  {
+   "date": "2026-10-17",
+   "counts": {
+    "rows": 50,
+    "joined": 47,
+    "ambiguous": 0,
+    "unmatched": 3,
+    "refusedKickoff": 0,
+    "notSoccer": 0,
+    "unjudgedKickoff": 15
+   },
+   "byLabel": {
+    "MLS": {
+     "rows": 29,
+     "joined": 29
+    },
+    "EPL": {
+     "rows": 5,
+     "joined": 5
+    },
+    "La Liga": {
+     "rows": 4,
+     "joined": 3
+    },
+    "Serie A": {
+     "rows": 3,
+     "joined": 3
+    },
+    "Bundesliga": {
+     "rows": 6,
+     "joined": 4
+    },
+    "Ligue 1": {
+     "rows": 3,
+     "joined": 3
+    }
+   },
+   "unmatched": [
+    {
+     "rowId": "La Liga_2026-10-17_e401882846",
+     "label": "La Liga",
+     "home": "Betis",
+     "away": "Barcelona",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "215281",
+       "home": "Real Madrid",
+       "away": "RCD Espanyol de Barcelona",
+       "homeLike": false,
+       "awayLike": true,
+       "gapMinutes": 120
+      },
+      {
+       "id": "213606",
+       "home": "Real Betis",
+       "away": "FC Barcelona",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      },
+      {
+       "id": "215282",
+       "home": "Real Sociedad",
+       "away": "Fútbol Club Barcelona",
+       "homeLike": false,
+       "awayLike": true,
+       "gapMinutes": 1050
+      }
+     ],
+     "proposal": {
+      "eventId": "213606",
+      "pairs": [
+       {
+        "archive": "Barcelona",
+        "bsd": "FC Barcelona"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-10-17_e401884767",
+     "label": "Bundesliga",
+     "home": "Hamburg",
+     "away": "Stuttgart",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213719",
+       "home": "Hamburger SV",
+       "away": "VfB Stuttgart",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213719",
+      "pairs": [
+       {
+        "archive": "Stuttgart",
+        "bsd": "VfB Stuttgart"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Bundesliga_2026-10-17_e401884764",
+     "label": "Bundesliga",
+     "home": "Elversberg",
+     "away": "Augsburg",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213720",
+       "home": "SV 07 Elversberg",
+       "away": "FC Augsburg",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213720",
+      "pairs": [
+       {
+        "archive": "Augsburg",
+        "bsd": "FC Augsburg"
+       }
+      ]
+     }
+    }
+   ],
+   "clubs": [
+    "Barcelona",
+    "Stuttgart",
+    "Augsburg"
+   ],
+   "events": 421,
+   "freeEvents": 388
+  },
+  {
+   "date": "2026-10-18",
+   "counts": {
+    "rows": 28,
+    "joined": 22,
+    "ambiguous": 0,
+    "unmatched": 6,
+    "refusedKickoff": 0,
+    "notSoccer": 0,
+    "unjudgedKickoff": 8
+   },
+   "byLabel": {
+    "MLS": {
+     "rows": 9,
+     "joined": 9
+    },
+    "EPL": {
+     "rows": 4,
+     "joined": 4
+    },
+    "La Liga": {
+     "rows": 4,
+     "joined": 2
+    },
+    "Serie A": {
+     "rows": 4,
+     "joined": 3
+    },
+    "Bundesliga": {
+     "rows": 2,
+     "joined": 2
+    },
+    "Ligue 1": {
+     "rows": 5,
+     "joined": 2
+    }
+   },
+   "unmatched": [
+    {
+     "rowId": "La Liga_2026-10-18_e401882845",
+     "label": "La Liga",
+     "home": "Celta Vigo",
+     "away": "Alavés",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213600",
+       "home": "Celta Vigo",
+       "away": "Deportivo Alavés",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213600",
+      "pairs": [
+       {
+        "archive": "Alavés",
+        "bsd": "Deportivo Alavés"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "La Liga_2026-10-18_e401882841",
+     "label": "La Liga",
+     "home": "Málaga",
+     "away": "Real Sociedad",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213604",
+       "home": "Málaga CF",
+       "away": "Real Sociedad",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213604",
+      "pairs": [
+       {
+        "archive": "Málaga",
+        "bsd": "Málaga CF"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Serie A_2026-10-18_e401874978",
+     "label": "Serie A",
+     "home": "Milan",
+     "away": "Atalanta",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210117",
+       "home": "AC Milan",
+       "away": "Atalanta",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      },
+      {
+       "id": "606356",
+       "home": "Alcione Milano",
+       "away": "Calcio Desenzano",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 30
+      },
+      {
+       "id": "607123",
+       "home": "Gubbio",
+       "away": "Atalanta U23",
+       "homeLike": false,
+       "awayLike": true,
+       "gapMinutes": 210
+      }
+     ],
+     "proposal": {
+      "eventId": "210117",
+      "pairs": [
+       {
+        "archive": "Milan",
+        "bsd": "AC Milan"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-10-18_e401876439",
+     "label": "Ligue 1",
+     "home": "Angers",
+     "away": "Marseille",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "604575",
+       "home": "Enugu Rangers International",
+       "away": "Bendel Insurance FC",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 120
+      },
+      {
+       "id": "603728",
+       "home": "Enugu Rangers International",
+       "away": "MC Alger",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 0
+      },
+      {
+       "id": "210491",
+       "home": "Angers",
+       "away": "Olympique de Marseille",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "210491",
+      "pairs": [
+       {
+        "archive": "Marseille",
+        "bsd": "Olympique de Marseille"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-10-18_e401876435",
+     "label": "Ligue 1",
+     "home": "Lorient",
+     "away": "Monaco",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210495",
+       "home": "Lorient",
+       "away": "AS Monaco",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "210495",
+      "pairs": [
+       {
+        "archive": "Monaco",
+        "bsd": "AS Monaco"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-10-18_e401876433",
+     "label": "Ligue 1",
+     "home": "Paris FC",
+     "away": "Rennes",
+     "how": "unmatched",
+     "reason": "one-side-only",
+     "candidates": [
+      {
+       "id": "210497",
+       "home": "Paris FC",
+       "away": "Stade Rennais",
+       "homeLike": true,
+       "awayLike": false,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": null
+    }
+   ],
+   "clubs": [
+    "Alavés",
+    "Málaga",
+    "Milan",
+    "Marseille",
+    "Monaco",
+    "Rennes"
+   ],
+   "events": 209,
+   "freeEvents": 188
+  },
+  {
+   "date": "2026-10-24",
+   "counts": {
+    "rows": 48,
+    "joined": 46,
+    "ambiguous": 0,
+    "unmatched": 2,
+    "refusedKickoff": 0,
+    "notSoccer": 0,
+    "unjudgedKickoff": 14
+   },
+   "byLabel": {
+    "MLS": {
+     "rows": 29,
+     "joined": 28
+    },
+    "EPL": {
+     "rows": 4,
+     "joined": 4
+    },
+    "La Liga": {
+     "rows": 4,
+     "joined": 4
+    },
+    "Serie A": {
+     "rows": 4,
+     "joined": 4
+    },
+    "Bundesliga": {
+     "rows": 6,
+     "joined": 5
+    },
+    "Ligue 1": {
+     "rows": 1,
+     "joined": 1
+    }
+   },
+   "unmatched": [
+    {
+     "rowId": "2026-10-24-mls-lafc-la",
+     "label": "MLS",
+     "home": "Los Angeles Football Club",
+     "away": "LA Galaxy",
+     "how": "unmatched",
+     "reason": "no-event",
+     "candidates": [],
+     "proposal": null
+    },
+    {
+     "rowId": "Bundesliga_2026-10-24_e401884758",
+     "label": "Bundesliga",
+     "home": "Augsburg",
+     "away": "Union Berlin",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213725",
+       "home": "FC Augsburg",
+       "away": "1. FC Union Berlin",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213725",
+      "pairs": [
+       {
+        "archive": "Augsburg",
+        "bsd": "FC Augsburg"
+       }
+      ]
+     }
+    }
+   ],
+   "clubs": [
+    "Los Angeles Football Club",
+    "LA Galaxy",
+    "Augsburg"
+   ],
+   "events": 427,
+   "freeEvents": 395
+  },
+  {
+   "date": "2026-10-25",
+   "counts": {
+    "rows": 30,
+    "joined": 25,
+    "ambiguous": 0,
+    "unmatched": 5,
+    "refusedKickoff": 0,
+    "notSoccer": 0,
+    "unjudgedKickoff": 7
+   },
+   "byLabel": {
+    "MLS": {
+     "rows": 8,
+     "joined": 8
+    },
+    "EPL": {
+     "rows": 5,
+     "joined": 5
+    },
+    "La Liga": {
+     "rows": 4,
+     "joined": 3
+    },
+    "Serie A": {
+     "rows": 5,
+     "joined": 4
+    },
+    "Bundesliga": {
+     "rows": 2,
+     "joined": 2
+    },
+    "Ligue 1": {
+     "rows": 6,
+     "joined": 3
+    }
+   },
+   "unmatched": [
+    {
+     "rowId": "La Liga_2026-10-25_e401882832",
+     "label": "La Liga",
+     "home": "Barcelona",
+     "away": "Real Madrid",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "213614",
+       "home": "FC Barcelona",
+       "away": "Real Madrid",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "213614",
+      "pairs": [
+       {
+        "archive": "Barcelona",
+        "bsd": "FC Barcelona"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Serie A_2026-10-25_e401874779",
+     "label": "Serie A",
+     "home": "Udinese",
+     "away": "Milan",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210136",
+       "home": "Udinese",
+       "away": "AC Milan",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "210136",
+      "pairs": [
+       {
+        "archive": "Milan",
+        "bsd": "AC Milan"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-10-25_e401876425",
+     "label": "Ligue 1",
+     "home": "Monaco",
+     "away": "Lille",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210500",
+       "home": "AS Monaco",
+       "away": "Lille",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "210500",
+      "pairs": [
+       {
+        "archive": "Monaco",
+        "bsd": "AS Monaco"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-10-25_e401876426",
+     "label": "Ligue 1",
+     "home": "Marseille",
+     "away": "Le Havre AC",
+     "how": "unmatched",
+     "reason": "proposal",
+     "candidates": [
+      {
+       "id": "210503",
+       "home": "Olympique de Marseille",
+       "away": "Le Havre",
+       "homeLike": true,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": {
+      "eventId": "210503",
+      "pairs": [
+       {
+        "archive": "Marseille",
+        "bsd": "Olympique de Marseille"
+       }
+      ]
+     }
+    },
+    {
+     "rowId": "Ligue 1_2026-10-25_e401876424",
+     "label": "Ligue 1",
+     "home": "Rennes",
+     "away": "Strasbourg",
+     "how": "unmatched",
+     "reason": "one-side-only",
+     "candidates": [
+      {
+       "id": "210507",
+       "home": "Stade Rennais",
+       "away": "RC Strasbourg",
+       "homeLike": false,
+       "awayLike": true,
+       "gapMinutes": 0
+      }
+     ],
+     "proposal": null
+    }
+   ],
+   "clubs": [
+    "Barcelona",
+    "Milan",
+    "Monaco",
+    "Marseille",
+    "Rennes"
+   ],
+   "events": 217,
+   "freeEvents": 192
+  }
+ ]
+}
