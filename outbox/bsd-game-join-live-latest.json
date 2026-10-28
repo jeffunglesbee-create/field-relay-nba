@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-10-28T00:23:36.110Z",
+  "measuredAt": "2026-10-28T00:24:19.706Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "dates": {
     "2026-08-29": {
@@ -10,12 +10,12 @@
       "firstRun": {
         "status": 200,
         "ok": true,
-        "pending": 43,
-        "written": 43,
+        "pending": 0,
+        "written": 0,
         "ambiguous": 0,
         "refusedKickoff": 0,
-        "unjudgedKickoff": 8,
-        "upstreamPages": 10,
+        "unjudgedKickoff": 0,
+        "upstreamPages": 0,
         "cacheHits": 0,
         "unmatched": []
       },
@@ -34,12 +34,12 @@
       "firstRun": {
         "status": 200,
         "ok": true,
-        "pending": 41,
-        "written": 41,
+        "pending": 0,
+        "written": 0,
         "ambiguous": 0,
         "refusedKickoff": 0,
-        "unjudgedKickoff": 5,
-        "upstreamPages": 12,
+        "unjudgedKickoff": 0,
+        "upstreamPages": 0,
         "cacheHits": 0,
         "unmatched": []
       },
