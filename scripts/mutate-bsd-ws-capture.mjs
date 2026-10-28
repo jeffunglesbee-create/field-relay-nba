@@ -55,6 +55,11 @@ const MUTATIONS = [
   ['a socket error is not recorded', "log('error', { message: redact(evt?.message", "void ({ message: redact(evt?.message"],
 ]
 
+// BASELINE FIRST: a self-test that is already red "catches" every mutation for the wrong reason.
+const baseline = spawnSync('node', [TARGET, '--self-test'], { encoding: 'utf8', timeout: 60000 })
+if (baseline.status !== 0) { console.log('FAIL: --self-test is not green on clean source; no mutation result would mean anything'); process.exit(1) }
+console.log('baseline: --self-test passes on clean source\n')
+
 const original = readFileSync(TARGET, 'utf8')
 let survivors = 0, unapplied = 0
 try {

@@ -1,0 +1,41 @@
+_bsdOnFrame(rawData) {
+        try {
+            const frame = JSON.parse(rawData);
+            if (!frame?.type) return;
+            if (frame.type !== 'livedata' && frame.type !== 'event') return;
+            const eventId = String(frame.event_id || '');
+            if (!eventId) return;
+            const payload = frame.type === 'livedata'
+                ? { type: 'bsd:ball', id: eventId, uts: frame.uts,
+                    // FIXED 2026-07-03: real, confirmed gap (A6) -- the
+                    // actual BSD raw WS frame shape for coordinates can't
+                    // be verified without a live connection (not testable
+                    // from outside a live match). Rather than guess and
+                    // risk being wrong either way, handles both a real
+                    // array (original assumption) and a single {x,y}
+                    // object defensively -- whichever shape BSD actually
+                    // sends, ball position won't be silently dropped.
+                    coords: Array.isArray(frame.coordinates)
+                        ? (frame.coordinates.slice(-1)[0] || null)
+                        : (frame.coordinates || null),
+                    situation: frame.situation }
+                : { type: 'bsd:stats', id: eventId, minute: frame.minute,
+                    period: frame.period, score: frame.score, stats: frame.stats,
+                    // FIXED 2026-07-03: real, precise bug -- this payload
+                    // never included shotmap/momentum, but the client's
+                    // frame handler explicitly checks `data.shots ||
+                    // data.shotmap`. BSD's REST API (confirmed extensively
+                    // this session, same underlying stats system) returns
+                    // shotmap/momentum as siblings of `stats` at the top
+                    // level -- inferring (not directly observed on a raw
+                    // WS frame, being honest about that) the WebSocket
+                    // "event" frame carries the same real fields, just
+                    // never extracted/forwarded here. Shots/momentum data
+                    // was very likely being silently dropped at this exact
+                    // relay layer for every live game, every frame.
+                    shotmap: frame.shotmap || null,
+                    momentum: frame.momentum || null }
+            // Fan out via existing _broadcast — clients filter frames locally by id
+            this._broadcast(payload.type, payload);
+        } catch (_) {}
+    }

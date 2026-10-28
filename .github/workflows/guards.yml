@@ -349,6 +349,20 @@ jobs:
           node scripts/bsd-ws-capture.mjs --self-test
           node scripts/mutate-bsd-ws-capture.mjs
 
+      # (a copy of deploy.yml's step, so a scripts-only or frames-only change is caught here too)
+      # docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md. AmbientDO's _bsdOnFrame read
+      # frame.minute and frame.period that BSD's event frames do not have (the clock is
+      # frame.time) and dropped side/time/commentary from every livedata frame. This
+      # replays the RECORDED frames (outbox/bsd-ws-frames-*.jsonl, one match) through
+      # the real function and asserts the payload carries what the frame carries. The
+      # mutation half breaks the real source and the check itself, baseline first.
+      - name: the BSD WebSocket fan-out forwards every recorded frame under its own field names
+        if: always()
+        run: |
+          node scripts/check-bsd-ws-fanout.mjs --self-test
+          node scripts/mutate-bsd-ws-fanout.mjs
+          node scripts/check-bsd-ws-fanout.mjs
+
       # Rule 99, the absence-collapse ratchet. deploy.yml carries the same step
       # for src-only pushes; this one covers scripts/ and workers/ changes that
       # reach here. Reaches github.com to clone jubilant-bassoon, whose
