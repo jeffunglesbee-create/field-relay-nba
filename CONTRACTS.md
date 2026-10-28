@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-10-28 (relay copy → client: the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
+Last synced: 2026-10-28 (relay copy → client: the `bsd:stats` and `bsd:ball` SSE events; before that, the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
 
 ---
 
@@ -156,6 +156,62 @@ Consumer: jubilant-bassoon `AmbientEventSource` (~line 26124)
   }]
 }
 ```
+
+### Event: bsd:stats
+Producer: `_bsdOnFrame` in `src/ambient-do.js`, from a BSD WebSocket `event` frame. Fields are the
+vendor's own, forwarded unchanged (Rule 47, Rule 60). Consumer: jubilant-bassoon `_bsdOnSSEFrame`,
+which reads only `data.shots || data.shotmap`.
+```
+{
+  type:     "bsd:stats"
+  id:       string       // String(frame.event_id)
+  time:     object       // frame.time whole: minute, second, display, period, injury_time,
+                         //   period_started_at_uts, status, kickoff_at
+  score:    { home: number, away: number }
+  stats:    { home: {...}, away: {...} }   // 43 per-team keys, nested per side; throw_ins,
+                         //   free_kicks, goal_kicks, corner_kicks, fouls are CUMULATIVE counts
+  shotmap:  null         // null on all 55 recorded frames; none carries the key. Its WebSocket type
+                         //   is unobserved (the REST route serves an array)
+  momentum: null         // as shotmap
+}
+```
+- **No top-level `minute` or `period`.** Until 2026-10-28 the payload read `frame.minute` and
+  `frame.period`, which an event frame does not have; both reached every client absent.
+- `time.period`, over the 55 recorded event frames (3 captures, one match, 2026-10-28): a string on 34
+  (`"2T"` 33, `"HT"` 1) with `second` and `display` null; the number `2` on 20, with a real `second`
+  and `display`; the number `31` on 1, with `second` null. A reader must accept both types.
+- Evidence and limit (as of 2026-10-28): `scripts/check-bsd-ws-fanout.mjs` replays those 55 frames
+  through the real function. They are ONE match (event 602466, Categoría Primera A, league_id 80,
+  `websocket_plus: true`); leagues outside it are unmeasured.
+
+### Event: bsd:ball
+Producer: `_bsdOnFrame`, from a BSD WebSocket `livedata` frame. Same rules as above.
+```
+{
+  type:       "bsd:ball"
+  id:         string       // String(frame.event_id)
+  uts:        number       // epoch SECONDS (1793153961 = 2026-10-28T02:19:21Z)
+  coords:     object | null // LAST element of frame.coordinates[], or null. null on 14 of 14 recorded
+                           //   frames (the array was []). A populated element has NOT been seen:
+                           //   its keys are undeclared here on purpose.
+  situation:  string       // freekick | corner | substitution | shotofftarget seen
+  side:       "home" | "away"
+  time:       object       // the minute the incident is STAMPED with (not the live clock; that is
+                           //   bsd:stats time): minute, second (0 on all 14 recorded frames),
+                           //   display, period, injury_time, period_started_at_uts
+  commentary: string
+}
+```
+- Despite the name, the 14 recorded livedata frames are incident commentary, not ball tracking: 6 and 8
+  in the two full ten-minute windows, in bursts. Situations (14 frames): freekick 6, corner 3,
+  substitution 3, shotofftarget 2. A cadence has not been measured.
+- **Known mismatch (STAGED).** `_bsdOnSSEFrame` stores the whole payload as `_bsdBallPos` and
+  `_bsdRepaint` reads `_bsdBallPos.x` / `.y`; the payload carries `coords` (nested), not `x`/`y`. A
+  ball would not draw even from a populated frame. Unblocked when a non-empty `coordinates` element
+  has been recorded (`docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md`); then declare its keys and
+  align producer and reader in ONE change. Verify then:
+  `node scripts/bsd-ws-capture.mjs --reanalyze outbox/bsd-ws-frame-shape-latest.json` and read
+  `analysis.coordinates.maxElements` (must be above 0).
 
 Client rules:
 - Score/lead_change → write to espnScores + _sseScoreTs buffer
