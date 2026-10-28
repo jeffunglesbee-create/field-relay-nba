@@ -10529,23 +10529,10 @@ export default {
                                        time: { minute: 45, second: 0, display: '45:00', period: 2,
                                                injury_time: 2, period_started_at_uts: 1793153529 },
                                        commentary: 'Junior Barranquilla send another in.' },
-                            note: 'A livedata frame is an INCIDENT (uts epoch seconds, side home|away, situation, ' +
-                                  'time, commentary, coordinates). frame.coordinates is a SLIDING WINDOW of up to four ' +
-                                  '{x, y} points, NEWEST FIRST (92 of 99 consecutive pairs: the next frame is the ' +
-                                  'previous one with new points prepended, 0 appended); coords is its first element, ' +
-                                  'or null when the window is empty. Elements carry x and y and nothing else (422 of ' +
-                                  '422), integers (x 5 to 95, y 0 to 100 observed), and no player or team identifier. They are positions at ' +
-                                  'incidents, not a continuous track (frames came as often as every second and as rarely ' +
-                                  'as six in ten minutes). Frame of reference: ONE shared pitch in the first half of two ' +
-                                  'matches (the home side defends x=0: home goal kick at x=5, away goal kick at x=95); ' +
-                                  'the second half is NOT yet measured. Coverage varies by match, not by flag: event ' +
-                                  '602466 (Categoría Primera A) had both flags true and an empty window on 14 of 14 ' +
-                                  'frames; 602352 and 602347 (DFB Pokal) carried one to four points on 119 of 147. ' +
-                                  'time.second is 0 on all 14 of 602466 and not 0 on 147 of 147 DFB Pokal frames. ' +
-                                  'Situations seen over 161 frames in three matches: attack, safe, dangerous, ' +
-                                  'possession, freekick, shotofftarget, throwin, substitution, corner, goal_kick, ' +
-                                  'card, temporary_interruption, gameon. Evidence: three matches, one evening ' +
-                                  '(2026-10-28); see docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md.',
+                            note: ' +                                    +                                    +                                    + ' +
+                                  '+                                    +                                    +                                    + ' +
+                                  '+                                    +                                    +                                    + ' +
+                                  '+                                    +                                    +                                    +',
                         },
                         stats: {
                             // VERBATIM `time`, `score` and the four stats values shown, from a recorded
@@ -10561,14 +10548,8 @@ export default {
                                        stats: { home: { fouls: 6, throw_ins: 12, xg: 0.3, ball_possession: 43 },
                                                 away: { fouls: 4, throw_ins: 5, xg: 0.2, ball_possession: 57 } },
                                        shotmap: null, momentum: null },
-                            note: 'Of 107 recorded event frames (3 matches, 2026-10-28): time.period is a string on ' +
-                                  '66 ("1T" 32, "2T" 33, "HT" 1) with second and display null; the number 1 or 2 ' +
-                                  'on 40 (20 each), with a real second and display; the number 31 on 1, with second ' +
-                                  'null. A reader must accept both types. shotmap and momentum are null: none of the ' +
-                                  '107 carries either key. stats is nested per side and its key count differs by ' +
-                                  'match: 43 per side on event 602466 (55 frames), 36 to 39 on the two DFB Pokal ' +
-                                  'matches (52 frames). Do not read it as a fixed key set. Every event frame also ' +
-                                  'carries websocket_plus.',
+                            note: ' +                                    +                                    +                                    + ' +
+                                  '+                                    +                                    +',
                         },
                         shot: {
                             // VERBATIM from scripts/fixtures/bsd-223324-coordinates.json, captured
