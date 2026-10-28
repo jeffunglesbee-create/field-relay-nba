@@ -1,0 +1,64 @@
+name: BSD WS capture
+
+# docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md (field-laboratory).
+#
+# Records raw BSD WebSocket frames from one live websocket_plus match and commits
+# outbox/bsd-ws-frame-shape-latest.json plus the verbatim frames.
+#
+# CI because the container cannot reach sports.bzzoiro.com (403 at CONNECT) and
+# because BSD_API_TOKEN lives here as a secret. Read-only: the socket subscribes
+# to one event id and nothing is pushed anywhere but the outbox.
+#
+# wait_minutes: how long to poll /bsd/events/live for a websocket_plus event
+# before giving up (exit 3, state no-qualifying-event, artifact still committed).
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_minutes:
+        description: Minutes to wait for a live websocket_plus event
+        default: '5'
+      duration_minutes:
+        description: Minutes of frames to record
+        default: '10'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-ws-capture
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The recorder and analyzer can still fail
+        run: node scripts/bsd-ws-capture.mjs --self-test
+
+      - name: Record the frames
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: node scripts/bsd-ws-capture.mjs --wait-minutes "${{ inputs.wait_minutes }}" --duration-minutes "${{ inputs.duration_minutes }}"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-ws-frame-shape-latest.json outbox/bsd-ws-frames-*.jsonl
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: BSD WS capture artifact"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
