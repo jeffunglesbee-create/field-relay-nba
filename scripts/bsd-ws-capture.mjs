@@ -361,7 +361,7 @@ export const stateOf = ({ ended, frames }) => {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-const waitForEvent = async (waitMs, leagueIds = [], fetchImpl = fetch) => {
+export const waitForEvent = async (waitMs, leagueIds = [], fetchImpl = fetch) => {
   const deadline = Date.now() + waitMs
   let polls = 0
   let lastRows = []
@@ -370,7 +370,10 @@ const waitForEvent = async (waitMs, leagueIds = [], fetchImpl = fetch) => {
     try {
       const r = await fetchImpl(LIVE_URL)
       if (r.ok) {
-        lastRows = (await r.json()).events ?? []
+        const body = await r.json()
+        // A feed with no `events` array is a failed poll, not an empty slate.
+        if (!Array.isArray(body?.events)) throw new Error('live feed has no events array')
+        lastRows = body.events
         const pick = pickEvent(lastRows, leagueIds)
         if (pick) return { event: pick, polls, liveRows: lastRows.length }
       }
@@ -486,6 +489,18 @@ const selfTest = async () => {
   ok('pickEvent with a league filter takes only a listed league', pickEvent(lg, [7, 8])?.id === 11, `got ${pickEvent(lg, [7, 8])?.id}`)
   ok('pickEvent with a league filter and no listed league in play returns null', pickEvent(lg, [1]) === null)
   ok('pickEvent with no filter takes the first eligible row', pickEvent(lg, [])?.id === 10)
+
+  // the live poll: a feed without an events array is a FAILED poll, said so, not an empty slate
+  const logged = []
+  const realLog = console.log
+  console.log = (...a) => logged.push(a.join(' '))
+  const noEvents = await waitForEvent(1000, [], async () => ({ ok: true, json: async () => ({}) }))
+  const goodFeed = await waitForEvent(1000, [], async () => ({ ok: true, json: async () => ({ events: [
+    { id: 9, league_id: 1, websocket_plus: true, status: 'inprogress', period: '1st_half' }] }) }))
+  console.log = realLog
+  ok('a live feed with no events array is reported as a failed poll', noEvents.event === null &&
+    logged.some((l) => l.includes('no events array')), JSON.stringify(logged))
+  ok('a live feed with a qualifying row returns it', goodFeed.event?.id === 9 && goodFeed.polls === 1, JSON.stringify(goodFeed))
 
   // verdicts
   const trail = analyze([

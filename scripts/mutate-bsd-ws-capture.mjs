@@ -49,6 +49,7 @@ const MUTATIONS = [
   ['reanalysis keeps the stale state', 'art.state = stateOf({ ended: art.ended, frames })', 'art.state = art.state'],
   ['the league filter is ignored', "(leagueIds.length === 0 || leagueIds.includes(Number(r.league_id)))", 'true'],
   ['an empty league filter excludes everything', 'leagueIds.length === 0 ||', 'false ||'],
+  ['a feed with no events array reads as an empty slate', "if (!Array.isArray(body?.events)) throw new Error('live feed has no events array')", ''],
   ['a socket error is not recorded', "log('error', { message: redact(evt?.message", "void ({ message: redact(evt?.message"],
 ]
 
