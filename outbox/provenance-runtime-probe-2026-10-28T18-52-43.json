@@ -1,0 +1,487 @@
+{
+  "base": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "checked_at": "2026-10-28T18:52:48.399Z",
+  "readings": [
+    {
+      "path": "/health",
+      "why": "the cheapest route in the worker",
+      "status": 200,
+      "error": null,
+      "route": "/health",
+      "source": "kv:FIELD_JOURNALISM",
+      "kind": "store",
+      "servedAt": "2026-10-28T18:52:43.664Z",
+      "manifest": "2026-10-27T23:24:04.800Z",
+      "exposed": "X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest, X-FIELD-Data-Written-At, X-FIELD-Data-Age-Seconds",
+      "dataAge": "35542",
+      "dataAt": "2026-10-28T09:00:21.672Z",
+      "body": null
+    },
+    {
+      "path": "/budget/odds",
+      "why": "store-backed, and the route that started all of this",
+      "status": 200,
+      "error": null,
+      "route": "/budget/odds",
+      "source": "d1:ARCHIVE_DB + kv:FIELD_JOURNALISM",
+      "kind": "store",
+      "servedAt": "2026-10-28T18:52:45.937Z",
+      "manifest": "2026-10-27T23:24:04.800Z",
+      "exposed": "X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest, X-FIELD-Data-Written-At, X-FIELD-Data-Age-Seconds",
+      "dataAge": "3334",
+      "dataAt": "2026-10-28T17:57:11.676Z",
+      "body": null
+    },
+    {
+      "path": "/wc/odds-probs",
+      "why": "upstream, cached, no credit spent — and the route the fabricated row lived in",
+      "wc": true,
+      "status": 200,
+      "error": null,
+      "route": "/wc/odds-probs",
+      "source": "api.the-odds-api.com + d1:ARCHIVE_DB + kv:FIELD_JOURNALISM",
+      "kind": "upstream",
+      "servedAt": "2026-10-28T18:52:47.122Z",
+      "manifest": "2026-10-27T23:24:04.800Z",
+      "exposed": "X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest, X-FIELD-Data-Written-At, X-FIELD-Data-Age-Seconds",
+      "dataAge": "103",
+      "dataAt": "2026-10-28T18:51:04.110Z",
+      "body": {
+        "ok": true,
+        "probs": [],
+        "remaining": "65456",
+        "cost": "0",
+        "charged": 4,
+        "reconciled": {
+          "site": "handleWCOddsProbs",
+          "estimated": 4,
+          "actual": 0,
+          "delta": -4,
+          "state": "reconciled"
+        },
+        "cached": "MISS",
+        "ts": 1793213567122
+      }
+    },
+    {
+      "path": "/odds/v4/sports",
+      "why": "proxy: the response comes back FROZEN from fetch(), the rebuild branch",
+      "status": 200,
+      "error": null,
+      "route": "/odds/v4/sports",
+      "source": "api.the-odds-api.com + d1:ARCHIVE_DB + kv:FIELD_JOURNALISM",
+      "kind": "proxy",
+      "servedAt": "2026-10-28T18:52:47.615Z",
+      "manifest": "2026-10-27T23:24:04.800Z",
+      "exposed": "X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest, X-FIELD-Data-Written-At, X-FIELD-Data-Age-Seconds",
+      "dataAge": null,
+      "dataAt": null,
+      "body": null
+    },
+    {
+      "path": "/provenance/kv?prefix=odds",
+      "why": "the write half: KV metadata read back out of the store",
+      "kv": true,
+      "status": 200,
+      "error": null,
+      "route": "/provenance/kv",
+      "source": "kv:FIELD_JOURNALISM",
+      "kind": "store",
+      "servedAt": "2026-10-28T18:52:48.240Z",
+      "manifest": "2026-10-27T23:24:04.800Z",
+      "exposed": "X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest, X-FIELD-Data-Written-At, X-FIELD-Data-Age-Seconds",
+      "dataAge": null,
+      "dataAt": null,
+      "body": {
+        "ok": true,
+        "prefix": "odds",
+        "source": "kv:FIELD_JOURNALISM",
+        "checked_at": "2026-10-28T18:52:48.240Z",
+        "counts": {
+          "stamped": 57,
+          "unstamped": 1,
+          "listed": 58,
+          "complete": true
+        },
+        "writers": {
+          "cron:*/15 * * * *": 10,
+          "do:AmbientDO": 15,
+          "route:/wc/odds-probs": 7,
+          "route:/v2/games": 18,
+          "route:/cfl/odds-probs": 6,
+          "route:/archive/game": 1
+        },
+        "keys": [
+          {
+            "key": "odds:backfill:tried:2026-02-04",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-13T03:16:02.839Z",
+            "age_seconds": 1352205
+          },
+          {
+            "key": "odds:credits:2026-08",
+            "writer": null,
+            "written_at": null,
+            "age_seconds": null
+          },
+          {
+            "key": "odds:credits:2026-09",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-30T23:59:43.797Z",
+            "age_seconds": 2400784
+          },
+          {
+            "key": "odds:credits:2026-10",
+            "writer": "route:/wc/odds-probs",
+            "written_at": "2026-10-28T18:52:46.953Z",
+            "age_seconds": 1
+          },
+          {
+            "key": "odds:credits:2026-10:warned:50",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-24T17:03:33.541Z",
+            "age_seconds": 352155
+          },
+          {
+            "key": "odds:daily:2026-09-05",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-09-05T23:45:44.813Z",
+            "age_seconds": 4561623
+          },
+          {
+            "key": "odds:daily:2026-09-10",
+            "writer": "route:/v2/games",
+            "written_at": "2026-09-10T23:57:21.445Z",
+            "age_seconds": 4128927
+          },
+          {
+            "key": "odds:daily:2026-09-19",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-19T19:30:28.424Z",
+            "age_seconds": 3367340
+          },
+          {
+            "key": "odds:daily:2026-09-20",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-20T20:14:58.443Z",
+            "age_seconds": 3278270
+          },
+          {
+            "key": "odds:daily:2026-09-21",
+            "writer": "route:/v2/games",
+            "written_at": "2026-09-21T22:36:59.665Z",
+            "age_seconds": 3183349
+          },
+          {
+            "key": "odds:daily:2026-09-22",
+            "writer": "route:/cfl/odds-probs",
+            "written_at": "2026-09-22T20:01:24.420Z",
+            "age_seconds": 3106284
+          },
+          {
+            "key": "odds:daily:2026-09-23",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-23T21:00:31.866Z",
+            "age_seconds": 3016336
+          },
+          {
+            "key": "odds:daily:2026-09-24",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-24T22:56:41.421Z",
+            "age_seconds": 2922967
+          },
+          {
+            "key": "odds:daily:2026-09-25",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-25T23:59:35.162Z",
+            "age_seconds": 2832793
+          },
+          {
+            "key": "odds:daily:2026-09-26",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-26T23:59:44.628Z",
+            "age_seconds": 2746384
+          },
+          {
+            "key": "odds:daily:2026-09-27",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-27T19:42:31.160Z",
+            "age_seconds": 2675417
+          },
+          {
+            "key": "odds:daily:2026-09-28",
+            "writer": "route:/v2/games",
+            "written_at": "2026-09-28T23:58:29.021Z",
+            "age_seconds": 2573659
+          },
+          {
+            "key": "odds:daily:2026-09-29",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-29T23:47:37.755Z",
+            "age_seconds": 2487910
+          },
+          {
+            "key": "odds:daily:2026-09-30",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-09-30T23:59:43.564Z",
+            "age_seconds": 2400785
+          },
+          {
+            "key": "odds:daily:2026-10-01",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-01T23:55:27.687Z",
+            "age_seconds": 2314641
+          },
+          {
+            "key": "odds:daily:2026-10-02",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-10-02T23:59:42.040Z",
+            "age_seconds": 2227986
+          },
+          {
+            "key": "odds:daily:2026-10-03",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-10-03T23:59:42.334Z",
+            "age_seconds": 2141586
+          },
+          {
+            "key": "odds:daily:2026-10-04",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-04T23:58:09.863Z",
+            "age_seconds": 2055278
+          },
+          {
+            "key": "odds:daily:2026-10-05",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-05T23:55:45.994Z",
+            "age_seconds": 1969022
+          },
+          {
+            "key": "odds:daily:2026-10-06",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-06T23:57:46.635Z",
+            "age_seconds": 1882502
+          },
+          {
+            "key": "odds:daily:2026-10-07",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-07T09:59:04.527Z",
+            "age_seconds": 1846424
+          },
+          {
+            "key": "odds:daily:2026-10-08",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-10-08T23:49:47.085Z",
+            "age_seconds": 1710181
+          },
+          {
+            "key": "odds:daily:2026-10-09",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-10-09T23:59:49.012Z",
+            "age_seconds": 1623179
+          },
+          {
+            "key": "odds:daily:2026-10-10",
+            "writer": "do:AmbientDO",
+            "written_at": "2026-10-10T19:36:50.554Z",
+            "age_seconds": 1552558
+          },
+          {
+            "key": "odds:daily:2026-10-11",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-11T18:08:12.800Z",
+            "age_seconds": 1471475
+          },
+          {
+            "key": "odds:daily:2026-10-12",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-12T21:31:35.889Z",
+            "age_seconds": 1372872
+          },
+          {
+            "key": "odds:daily:2026-10-13",
+            "writer": "route:/cfl/odds-probs",
+            "written_at": "2026-10-13T21:13:39.895Z",
+            "age_seconds": 1287548
+          },
+          {
+            "key": "odds:daily:2026-10-14",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-14T23:57:37.950Z",
+            "age_seconds": 1191310
+          },
+          {
+            "key": "odds:daily:2026-10-15",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-15T23:31:41.808Z",
+            "age_seconds": 1106466
+          },
+          {
+            "key": "odds:daily:2026-10-16",
+            "writer": "route:/wc/odds-probs",
+            "written_at": "2026-10-16T23:57:30.445Z",
+            "age_seconds": 1018518
+          },
+          {
+            "key": "odds:daily:2026-10-17",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-17T23:56:53.339Z",
+            "age_seconds": 932155
+          },
+          {
+            "key": "odds:daily:2026-10-18",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-18T23:46:19.152Z",
+            "age_seconds": 846389
+          },
+          {
+            "key": "odds:daily:2026-10-19",
+            "writer": "route:/wc/odds-probs",
+            "written_at": "2026-10-19T22:17:47.191Z",
+            "age_seconds": 765301
+          },
+          {
+            "key": "odds:daily:2026-10-20",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-20T21:30:37.154Z",
+            "age_seconds": 681731
+          },
+          {
+            "key": "odds:daily:2026-10-21",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-21T23:58:15.912Z",
+            "age_seconds": 586472
+          },
+          {
+            "key": "odds:daily:2026-10-22",
+            "writer": "route:/archive/game",
+            "written_at": "2026-10-22T23:30:44.948Z",
+            "age_seconds": 501723
+          },
+          {
+            "key": "odds:daily:2026-10-23",
+            "writer": "route:/wc/odds-probs",
+            "written_at": "2026-10-23T23:07:26.966Z",
+            "age_seconds": 416721
+          },
+          {
+            "key": "odds:daily:2026-10-24",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-24T23:57:06.158Z",
+            "age_seconds": 327342
+          },
+          {
+            "key": "odds:daily:2026-10-25",
+            "writer": "route:/cfl/odds-probs",
+            "written_at": "2026-10-25T23:04:46.038Z",
+            "age_seconds": 244082
+          },
+          {
+            "key": "odds:daily:2026-10-26",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-26T21:51:55.256Z",
+            "age_seconds": 162053
+          },
+          {
+            "key": "odds:daily:2026-10-27",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-27T22:15:34.076Z",
+            "age_seconds": 74234
+          },
+          {
+            "key": "odds:daily:2026-10-28",
+            "writer": "route:/wc/odds-probs",
+            "written_at": "2026-10-28T18:52:46.899Z",
+            "age_seconds": 1
+          },
+          {
+            "key": "odds:site:fetchSportOddsLive:2026-10-26",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-26T21:15:44.533Z",
+            "age_seconds": 164224
+          },
+          {
+            "key": "odds:site:fetchSportOddsLive:2026-10-27",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-27T22:15:33.801Z",
+            "age_seconds": 74234
+          },
+          {
+            "key": "odds:site:getWCPregameLambdas:2026-10-26",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-26T21:51:54.946Z",
+            "age_seconds": 162053
+          },
+          {
+            "key": "odds:site:getWCPregameLambdas:2026-10-27",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-27T21:41:35.057Z",
+            "age_seconds": 76273
+          },
+          {
+            "key": "odds:site:getWCPregameLambdas:2026-10-28",
+            "writer": "route:/v2/games",
+            "written_at": "2026-10-28T18:52:16.622Z",
+            "age_seconds": 32
+          },
+          {
+            "key": "odds:site:handleCFLOddsProbs:2026-10-26",
+            "writer": "route:/cfl/odds-probs",
+            "written_at": "2026-10-26T20:31:11.138Z",
+            "age_seconds": 166897
+          },
+          {
+            "key": "odds:site:handleCFLOddsProbs:2026-10-27",
+            "writer": "route:/cfl/odds-probs",
+            "written_at": "2026-10-27T20:41:32.320Z",
+            "age_seconds": 79876
+          },
+          {
+            "key": "odds:site:handleCFLOddsProbs:2026-10-28",
+            "writer": "route:/cfl/odds-probs",
+            "written_at": "2026-10-28T17:57:11.676Z",
+            "age_seconds": 3337
+          },
+          {
+            "key": "odds:site:handleWCOddsProbs:2026-10-27",
+            "writer": "route:/wc/odds-probs",
+            "written_at": "2026-10-27T12:40:09.380Z",
+            "age_seconds": 108759
+          },
+          {
+            "key": "odds:site:handleWCOddsProbs:2026-10-28",
+            "writer": "route:/wc/odds-probs",
+            "written_at": "2026-10-28T18:52:46.850Z",
+            "age_seconds": 1
+          },
+          {
+            "key": "odds_backfill_cursor",
+            "writer": "cron:*/15 * * * *",
+            "written_at": "2026-10-28T09:45:24.363Z",
+            "age_seconds": 32844
+          }
+        ]
+      }
+    },
+    {
+      "path": "/nothing/here",
+      "why": "unmapped: must say so rather than guess",
+      "expectUnmapped": true,
+      "status": 403,
+      "error": null,
+      "route": "/nothing/here",
+      "source": "unmapped",
+      "kind": "unmapped",
+      "servedAt": "2026-10-28T18:52:48.360Z",
+      "manifest": "2026-10-27T23:24:04.800Z",
+      "exposed": "X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest, X-FIELD-Data-Written-At, X-FIELD-Data-Age-Seconds",
+      "dataAge": null,
+      "dataAt": null,
+      "body": null
+    }
+  ],
+  "coverage": {
+    "checked": 6,
+    "of": 191
+  }
+}
