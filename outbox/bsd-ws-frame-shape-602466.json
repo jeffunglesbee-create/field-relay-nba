@@ -1,0 +1,247 @@
+{
+  "startedAt": "2026-10-28T02:36:03.329Z",
+  "polls": 1,
+  "liveRowsOnLastPoll": 1,
+  "state": "captured",
+  "verdict": "COORDINATES-EMPTY",
+  "coverage": "334 frames over 600.6 s from 1 event (602466, Categoría Primera A); the verdict describes this match on this tier, not every match",
+  "event": {
+    "id": 602466,
+    "league_id": 80,
+    "league_name": "Categoría Primera A",
+    "home_team": "Boyacá Chicó FC",
+    "away_team": "Junior Barranquilla",
+    "status": "inprogress",
+    "period": "2nd_half",
+    "current_minute": 70,
+    "live_websocket": true,
+    "websocket_plus": true
+  },
+  "ended": "duration-and-frames",
+  "reconnects": 0,
+  "rawFile": "outbox/bsd-ws-frames-602466-2026-10-28T02-36-03-329Z.jsonl",
+  "rawFramesNotStoredInFull": 0,
+  "socketEvents": [
+    {
+      "t": 717,
+      "kind": "open"
+    },
+    {
+      "t": 718,
+      "kind": "sent",
+      "raw": "{\"action\":\"subscribe\",\"event_id\":602466}"
+    }
+  ],
+  "analysis": {
+    "frames": 334,
+    "parsedObjects": 334,
+    "unparseable": 0,
+    "keyUnion": {
+      "type": 334,
+      "event_id": 334,
+      "event": 1,
+      "livedata": 1,
+      "odds": 1,
+      "pulled_at": 300,
+      "raw_count": 300,
+      "sent_count": 300,
+      "merged_into_existing": 300,
+      "drop_breakdown": 300,
+      "type_breakdown": 300,
+      "last_seen_uts": 300,
+      "new_max_uts": 300,
+      "advanced_uts": 300,
+      "home": 25,
+      "away": 25,
+      "score": 25,
+      "time": 33,
+      "stats": 25,
+      "websocket_plus": 25,
+      "uts": 8,
+      "side": 8,
+      "situation": 8,
+      "coordinates": 8,
+      "commentary": 8
+    },
+    "byType": {
+      "subscribed": 1,
+      "ingest_debug": 300,
+      "event": 25,
+      "livedata": 8
+    },
+    "subscribedLivedataLengths": {
+      "0": 1
+    },
+    "coordinates": {
+      "absent": 326,
+      "array": 8,
+      "object": 0,
+      "other": 0,
+      "lengths": {
+        "0": 8
+      },
+      "maxElements": 0,
+      "multiPointFrames": 0
+    },
+    "elementKinds": {},
+    "elementKeys": {},
+    "identifierKeysSeen": {},
+    "distinctIdentifiersPerUts": {
+      "distribution": {
+        "0": 8
+      },
+      "max": 0,
+      "utsGroups": 8
+    },
+    "restartEvents": {
+      "situation = freekick": 3,
+      "commentary = Boyacá Chicó take a free kick wide.": 1,
+      "situation = corner": 1,
+      "commentary = Whipped corner coming for Boyacá Chicó.": 1
+    },
+    "restartCounters": {
+      "home.fouls": {
+        "first": 8,
+        "last": 9,
+        "changes": 1,
+        "changedAtMs": [
+          187190
+        ]
+      },
+      "home.throw_ins": {
+        "first": 17,
+        "last": 17,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "home.free_kicks": {
+        "first": 7,
+        "last": 7,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "home.goal_kicks": {
+        "first": 2,
+        "last": 6,
+        "changes": 4,
+        "changedAtMs": [
+          127118,
+          187190,
+          426607,
+          548988
+        ]
+      },
+      "home.corner_kicks": {
+        "first": 8,
+        "last": 8,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "home.fouled_in_final_third": {
+        "first": 2,
+        "last": 2,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.fouls": {
+        "first": 7,
+        "last": 7,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.throw_ins": {
+        "first": 9,
+        "last": 11,
+        "changes": 2,
+        "changedAtMs": [
+          127118,
+          308579
+        ]
+      },
+      "away.free_kicks": {
+        "first": 8,
+        "last": 9,
+        "changes": 1,
+        "changedAtMs": [
+          187190
+        ]
+      },
+      "away.goal_kicks": {
+        "first": 3,
+        "last": 4,
+        "changes": 1,
+        "changedAtMs": [
+          308579
+        ]
+      },
+      "away.corner_kicks": {
+        "first": 2,
+        "last": 4,
+        "changes": 2,
+        "changedAtMs": [
+          486998,
+          548988
+        ]
+      },
+      "away.fouled_in_final_third": {
+        "first": 1,
+        "last": 1,
+        "changes": 0,
+        "changedAtMs": []
+      }
+    },
+    "ingestDebug": {
+      "frames": 300,
+      "rawCountSum": 146,
+      "sentCountSum": 8,
+      "advancedTrue": 8,
+      "lastSeenUts": [
+        1793154865,
+        1793155107,
+        1793155296,
+        1793155322,
+        1793155363
+      ],
+      "pulledAtSecondsEpoch": true,
+      "typeBreakdownNonEmpty": 114,
+      "incidentTypesSeenMaxPerPull": {
+        "freekick": 1,
+        "substitution": 2,
+        "shotofftarget": 1,
+        "corner": 1
+      },
+      "dropReasonsSeenMaxPerPull": {
+        "duplicate": 1,
+        "out_of_order": 1
+      }
+    },
+    "livedataSituations": {
+      "freekick": 3,
+      "substitution": 3,
+      "shotofftarget": 1,
+      "corner": 1
+    },
+    "livedataTimeSecondValues": {
+      "0": 8
+    },
+    "eventTimePeriodValues": {
+      "2": 10,
+      "\"2T\"": 15
+    },
+    "utsClock": {
+      "numericFrames": 8,
+      "nonNumeric": 0,
+      "distinctValues": 8,
+      "magnitude": "epoch seconds",
+      "smallestNonzeroStep": 16,
+      "sample": [
+        1793155107,
+        1793155296,
+        1793155322,
+        1793155363,
+        1793155382
+      ]
+    },
+    "verdict": "COORDINATES-EMPTY"
+  }
+}
