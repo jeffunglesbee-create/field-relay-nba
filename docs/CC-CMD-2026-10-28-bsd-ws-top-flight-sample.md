@@ -67,25 +67,16 @@ count and seconds. Then add one dated paragraph to
 `field-laboratory/docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md` under "Second sample":
 verdict, `coordinates` length distribution, identifier keys seen, `situation` values.
 
-## Task 3 — settle the ball field (runs only on the result of Task 2)
+## Task 3 — settle the ball field (RELAY SIDE DONE 2026-10-28; client side moved)
 
-Owner of the client mismatch recorded in `CONTRACTS.md` ("bsd:ball", Known mismatch) and
-in `docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md` Task 3: jubilant-bassoon
-`_bsdOnSSEFrame` stores the whole payload as `_bsdBallPos` and `_bsdRepaint` reads
-`_bsdBallPos.x` / `.y`, while the relay sends `coords` (nested).
-
-Read `analysis.coordinates.maxElements` in the new artifact:
-
-- **above 0:** a coordinate element has been recorded. Declare its keys (copy them
-  verbatim from `analysis.elementKeys`) in `/bsd/contract` `frameShapes.livedata` and in
-  `CONTRACTS.md`, then align producer and reader in ONE change, relay first (Rule 70):
-  the relay carries what the client reads, or the client reads `data.coords`. Edit
-  `src/legacy/field.js` only, never `index.html`'s script block. Verify with
-  `node scripts/check-bsd-ws-fanout.mjs` and a Playwright run per jubilant-bassoon
-  Rule 90.
-- **0:** record "the ball renderer stays dormant: no coordinate element in N livedata
-  frames across M matches" in the artifact's session doc, and leave the mismatch STAGED
-  with this CC-CMD's date. Do not edit the client.
+The branch Task 2's artifact selects was "above 0": a coordinate element was recorded on the evening of
+2026-10-28 in two DFB Pokal matches (events 602352, 602347; `live_websocket` and `websocket_plus` both true).
+Done in the relay the same day: the element keys (`x`, `y`, integers, 422 of 422) are declared in
+`/bsd/contract` `frameShapes.livedata` and `CONTRACTS.md`; the window was found to be newest-first and
+`_bsdOnFrame` now takes element 0 (it took the oldest); the second half is declared NOT yet measured. The client
+read (`_bsdBallPos.x` vs the relay's `coords`) and the shot reader are owned by
+`docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`, which needs a render proof on the deployed page that no
+live match can give today.
 
 ## Done conditions
 
