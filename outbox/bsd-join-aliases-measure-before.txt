@@ -1,0 +1,125 @@
+
+2026-10-10: joined 48 of 53 soccer rows (405 BSD events, 371 unclaimed)
+  MLS 29/29, EPL 6/6, La Liga 2/4, Serie A 3/3, Bundesliga 4/6, Ligue 1 4/5
+  - La Liga: Alavés v Atlético  [unmatched -> proposal]
+      candidate 213590: Deportivo Alavés v Atlético Madrid  (home like, away like, kickoff gap 0 min)
+      candidate 223793: Racing Club v Club Atlético Belgrano  (home -, away like, kickoff gap 1920 min)
+      PROPOSAL event 213590: Alavés = Deportivo Alavés
+  - La Liga: Barcelona v Getafe  [unmatched -> proposal]
+      candidate 213592: FC Barcelona v Getafe  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213592: Barcelona = FC Barcelona
+  - Bundesliga: Augsburg v Bayern  [unmatched -> proposal]
+      candidate 213708: FC Augsburg v FC Bayern München  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213708: Augsburg = FC Augsburg
+  - Bundesliga: Paderborn v Stuttgart  [unmatched -> proposal]
+      candidate 213711: SC Paderborn 07 v VfB Stuttgart  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213711: Stuttgart = VfB Stuttgart
+  - Ligue 1: Monaco v Toulouse  [unmatched -> proposal]
+      candidate 210482: AS Monaco v Toulouse  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 210482: Monaco = AS Monaco
+
+2026-09-12: joined 39 of 45 soccer rows (430 BSD events, 396 unclaimed)
+  MLS 19/20, EPL 7/7, La Liga 3/4, Serie A 2/3, Bundesliga 4/6, Ligue 1 4/5
+  - MLS: San Diego FC v Philadelphia Union  [unmatched -> no-event]
+  - La Liga: Racing v Alavés  [unmatched -> proposal]
+      candidate 213566: Real Racing Club v Deportivo Alavés  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213566: Alavés = Deportivo Alavés
+  - Serie A: Lazio v Milan  [unmatched -> proposal]
+      candidate 210091: Lazio v AC Milan  (home like, away like, kickoff gap 0 min)
+      candidate 606295: Folgore Caratese v Alcione Milano  (home -, away like, kickoff gap 1440 min)
+      PROPOSAL event 210091: Milan = AC Milan
+  - Bundesliga: Augsburg v Leverkusen  [unmatched -> proposal]
+      candidate 213690: FC Augsburg v Bayer 04 Leverkusen  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213690: Augsburg = FC Augsburg
+  - Bundesliga: Hoffenheim v Stuttgart  [unmatched -> proposal]
+      candidate 213694: TSG Hoffenheim v VfB Stuttgart  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213694: Stuttgart = VfB Stuttgart
+  - Ligue 1: Strasbourg v Monaco  [unmatched -> proposal]
+      candidate 210470: RC Strasbourg v AS Monaco  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 210470: Monaco = AS Monaco
+
+2026-09-19: joined 35 of 40 soccer rows (501 BSD events, 470 unclaimed)
+  MLS 17/17, EPL 5/5, La Liga 2/4, Serie A 4/4, Bundesliga 3/5, Ligue 1 4/5
+  - La Liga: Athletic v Alavés  [unmatched -> proposal]
+      candidate 10134: Athletic Club v Botafogo-SP  (home like, away -, kickoff gap 435 min)
+      candidate 213580: Athletic Club v Deportivo Alavés  (home like, away like, kickoff gap 0 min)
+      candidate 602563: Redcar Athletic v Macclesfield FC  (home like, away -, kickoff gap 15 min)
+      candidate 602485: Dover Athletic v Folkestone Invicta  (home like, away -, kickoff gap 15 min)
+      PROPOSAL event 213580: Alavés = Deportivo Alavés
+  - La Liga: Sevilla v Barcelona  [unmatched -> proposal]
+      candidate 213587: Sevilla v FC Barcelona  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213587: Barcelona = FC Barcelona
+  - Bundesliga: Bremen v Augsburg  [unmatched -> proposal]
+      candidate 213702: SV Werder Bremen v FC Augsburg  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213702: Augsburg = FC Augsburg
+  - Bundesliga: Stuttgart v Dortmund  [unmatched -> proposal]
+      candidate 213703: VfB Stuttgart v Borussia Dortmund  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213703: Stuttgart = VfB Stuttgart
+  - Ligue 1: Lyon v Rennes  [unmatched -> one-side-only]
+      candidate 210478: Olympique Lyonnais v Stade Rennais  (home like, away -, kickoff gap 0 min)
+
+2026-10-17: joined 47 of 50 soccer rows (421 BSD events, 388 unclaimed)
+  MLS 29/29, EPL 5/5, La Liga 3/4, Serie A 3/3, Bundesliga 4/6, Ligue 1 3/3
+  - La Liga: Betis v Barcelona  [unmatched -> proposal]
+      candidate 215281: Real Madrid v RCD Espanyol de Barcelona  (home -, away like, kickoff gap 120 min)
+      candidate 213606: Real Betis v FC Barcelona  (home like, away like, kickoff gap 0 min)
+      candidate 215282: Real Sociedad v Fútbol Club Barcelona  (home -, away like, kickoff gap 1050 min)
+      PROPOSAL event 213606: Barcelona = FC Barcelona
+  - Bundesliga: Hamburg v Stuttgart  [unmatched -> proposal]
+      candidate 213719: Hamburger SV v VfB Stuttgart  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213719: Stuttgart = VfB Stuttgart
+  - Bundesliga: Elversberg v Augsburg  [unmatched -> proposal]
+      candidate 213720: SV 07 Elversberg v FC Augsburg  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213720: Augsburg = FC Augsburg
+
+2026-10-18: joined 22 of 28 soccer rows (209 BSD events, 188 unclaimed)
+  MLS 9/9, EPL 4/4, La Liga 2/4, Serie A 3/4, Bundesliga 2/2, Ligue 1 2/5
+  - La Liga: Celta Vigo v Alavés  [unmatched -> proposal]
+      candidate 213600: Celta Vigo v Deportivo Alavés  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213600: Alavés = Deportivo Alavés
+  - La Liga: Málaga v Real Sociedad  [unmatched -> proposal]
+      candidate 213604: Málaga CF v Real Sociedad  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213604: Málaga = Málaga CF
+  - Serie A: Milan v Atalanta  [unmatched -> proposal]
+      candidate 210117: AC Milan v Atalanta  (home like, away like, kickoff gap 0 min)
+      candidate 606356: Alcione Milano v Calcio Desenzano  (home like, away -, kickoff gap 30 min)
+      candidate 607123: Gubbio v Atalanta U23  (home -, away like, kickoff gap 210 min)
+      PROPOSAL event 210117: Milan = AC Milan
+  - Ligue 1: Angers v Marseille  [unmatched -> proposal]
+      candidate 604575: Enugu Rangers International v Bendel Insurance FC  (home like, away -, kickoff gap 120 min)
+      candidate 603728: Enugu Rangers International v MC Alger  (home like, away -, kickoff gap 0 min)
+      candidate 210491: Angers v Olympique de Marseille  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 210491: Marseille = Olympique de Marseille
+  - Ligue 1: Lorient v Monaco  [unmatched -> proposal]
+      candidate 210495: Lorient v AS Monaco  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 210495: Monaco = AS Monaco
+  - Ligue 1: Paris FC v Rennes  [unmatched -> one-side-only]
+      candidate 210497: Paris FC v Stade Rennais  (home like, away -, kickoff gap 0 min)
+
+2026-10-24: joined 46 of 48 soccer rows (427 BSD events, 395 unclaimed)
+  MLS 28/29, EPL 4/4, La Liga 4/4, Serie A 4/4, Bundesliga 5/6, Ligue 1 1/1
+  - MLS: Los Angeles Football Club v LA Galaxy  [unmatched -> no-event]
+  - Bundesliga: Augsburg v Union Berlin  [unmatched -> proposal]
+      candidate 213725: FC Augsburg v 1. FC Union Berlin  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213725: Augsburg = FC Augsburg
+
+2026-10-25: joined 25 of 30 soccer rows (217 BSD events, 192 unclaimed)
+  MLS 8/8, EPL 5/5, La Liga 3/4, Serie A 4/5, Bundesliga 2/2, Ligue 1 3/6
+  - La Liga: Barcelona v Real Madrid  [unmatched -> proposal]
+      candidate 213614: FC Barcelona v Real Madrid  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 213614: Barcelona = FC Barcelona
+  - Serie A: Udinese v Milan  [unmatched -> proposal]
+      candidate 210136: Udinese v AC Milan  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 210136: Milan = AC Milan
+  - Ligue 1: Monaco v Lille  [unmatched -> proposal]
+      candidate 210500: AS Monaco v Lille  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 210500: Monaco = AS Monaco
+  - Ligue 1: Marseille v Le Havre AC  [unmatched -> proposal]
+      candidate 210503: Olympique de Marseille v Le Havre  (home like, away like, kickoff gap 0 min)
+      PROPOSAL event 210503: Marseille = Olympique de Marseille
+  - Ligue 1: Rennes v Strasbourg  [unmatched -> one-side-only]
+      candidate 210507: Stade Rennais v RC Strasbourg  (home -, away like, kickoff gap 0 min)
+
+COVERAGE: 7 dates, 294 soccer rows, 2610 BSD events; joined 262 of 294 (89.1%)
+  per label: MLS 139/141, EPL 36/36, La Liga 19/28, Serie A 23/26, Bundesliga 24/33, Ligue 1 21/30
+  unmatched rows: 32; distinct clubs behind them: 13
