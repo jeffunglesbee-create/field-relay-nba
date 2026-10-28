@@ -1,0 +1,136 @@
+{
+  "measuredAt": "2026-10-28T00:23:36.110Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "dates": {
+    "2026-08-29": {
+      "contextRows": 73,
+      "soccerRows": 43,
+      "joined": 43,
+      "notJoined": [],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 43,
+        "written": 43,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 8,
+        "upstreamPages": 10,
+        "cacheHits": 0,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      }
+    },
+    "2026-09-05": {
+      "contextRows": 124,
+      "soccerRows": 41,
+      "joined": 41,
+      "notJoined": [],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 41,
+        "written": 41,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 5,
+        "upstreamPages": 12,
+        "cacheHits": 0,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      }
+    }
+  },
+  "assertions": [
+    {
+      "name": "2026-08-29: the backfill answered ok",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-08-29: joined 43 of 43 soccer rows is at least 90% (every other row named in the artifact)",
+      "pass": true,
+      "detail": "43/43; not joined: "
+    },
+    {
+      "name": "2026-08-29: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "2026-09-05: the backfill answered ok",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-09-05: joined 41 of 41 soccer rows is at least 90% (every other row named in the artifact)",
+      "pass": true,
+      "detail": "41/41; not joined: "
+    },
+    {
+      "name": "2026-09-05: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "the oracle pairs present in the live archive carry their fixed event id (9 of 12 present)",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "every joined row names the teams of its event, in order (events shared by two rows: 11)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "every joined row with a start_time is within 180 minutes of its event (71 judged, 13 UNJUDGED and counted, not a pass)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no row of another sport carries a bsd_event_id (113 non-soccer rows read)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "every served row's key set is the fixture's key set plus bsd_event_id, compared by name",
+      "pass": true,
+      "detail": "0 rows differ; missing [], extra []"
+    }
+  ],
+  "oracle": {
+    "fixed": 12,
+    "present": 9,
+    "absent": [
+      "2026-08-29-mls-min-orl",
+      "2026-08-29-mls-skc-van",
+      "2026-08-29-mls-hou-sj"
+    ],
+    "wrong": []
+  },
+  "sharedEvents": 11,
+  "kickoff": {
+    "judged": 71,
+    "unjudged": 13,
+    "far": []
+  },
+  "nonSoccerRowsCarryingAnId": 0,
+  "contract": {
+    "fixtureColumns": 25,
+    "servedColumnsUnion": 26,
+    "rowsWithADifferentKeySet": 0,
+    "missing": [],
+    "extra": []
+  },
+  "coverage": "2 dates, 197 context rows read, 84 soccer rows, 84 carrying an id"
+}
