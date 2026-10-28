@@ -1,0 +1,48 @@
+# More dates for the BSD game join's offline corpus (docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-
+# dates.md, Task 1). The two-date fixture the join's checks stand on is NOT touched: this writes
+# outbox/fixture-bsd-game-join-more-dates.json through `--out`.
+# Runs on a runner because the authoring sandbox cannot reach *.workers.dev. Triggered by a push to the trigger file
+# (first line: comma-separated dates) and by dispatch. No schedule.
+name: bsd-game-join-fixture-dates
+on:
+  push:
+    paths: ['outbox/.trigger-bsd-game-join-fixture-dates']
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: 'Comma-separated YYYY-MM-DD dates.'
+        required: true
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Which dates
+        id: d
+        env:
+          DISPATCHED: ${{ inputs.dates }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then D="$DISPATCHED"
+          else D="$(head -n1 outbox/.trigger-bsd-game-join-fixture-dates | tr -d '[:space:]')"; fi
+          echo "$D" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}(,[0-9]{4}-[0-9]{2}-[0-9]{2})*$' || { echo "FAIL: '$D' is not a comma-separated list of dates"; exit 1; }
+          echo "dates=$D" >> "$GITHUB_OUTPUT"
+      - name: The page loop and the output name, with no network
+        run: node scripts/capture-bsd-game-join-fixture.mjs --self-test
+      - name: Capture from the deployed relay
+        run: node scripts/capture-bsd-game-join-fixture.mjs --dates "${{ steps.d.outputs.dates }}" --out outbox/fixture-bsd-game-join-more-dates.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Commit the fixture
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"; git config user.name "FIELD CI"
+          git add outbox/fixture-bsd-game-join-more-dates.json || true
+          git diff --cached --quiet && exit 0
+          git commit -m "data: the BSD game join fixture, more dates"
+          for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*5)); done
+          git fetch -q origin "${GITHUB_REF_NAME}"
+          git merge-base --is-ancestor HEAD "origin/${GITHUB_REF_NAME}" \
+            || { echo "FAIL: push did not land after retries"; exit 1; }

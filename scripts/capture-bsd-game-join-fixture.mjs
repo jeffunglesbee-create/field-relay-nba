@@ -25,6 +25,13 @@ export const PAGE = 50
 export const MAX_PAGES = 12
 export const KEEP = ['id', 'league_id', 'season_id', 'home_team_id', 'home_team', 'away_team_id', 'away_team', 'event_date', 'status', 'stage']
 
+/** Where the fixture is written. The DEFAULT is the file the offline check and the mutation harness read, and it
+ *  must stay the default: a second capture of other dates (docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-
+ *  fixture-dates.md) names its own file with `--out`, or it would replace the two-date fixture the join's
+ *  checks stand on. */
+export const DEFAULT_OUT = 'outbox/fixture-bsd-game-join-2026-08-29-09-05.json'
+export const outPathOf = argv => { const i = argv.indexOf('--out'); return i > 0 && argv[i + 1] ? argv[i + 1] : DEFAULT_OUT }
+
 export const nextDay = date => new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
 
 /** All pages of one UTC day. `getJson` is injected so the loop can be tested with no network. */
@@ -89,7 +96,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     check('with no count in the response, a short page is what stops the loop', d.events.length === 120 && d.pages === 3 && !d.truncated, JSON.stringify([d.events.length, d.pages]))
     check('nextDay crosses a month end', nextDay('2026-08-31') === '2026-09-01', nextDay('2026-08-31'))
     check('slim keeps the ten named fields and drops the rest', Object.keys(slim({ id: 1, head_to_head: { x: 1 } })).length === KEEP.length && !('head_to_head' in slim({ id: 1, head_to_head: 1 })), '')
-    console.log(`\n${6 - bad}/6 checks passed`)
+    check('with no --out the fixture the join checks read is the file written', outPathOf(['node', 'x']) === 'outbox/fixture-bsd-game-join-2026-08-29-09-05.json', outPathOf(['node', 'x']))
+    check('--out names another file, so a second capture cannot replace the first', outPathOf(['node', 'x', '--dates', 'a', '--out', 'outbox/other.json']) === 'outbox/other.json')
+    check('--out with no value falls back to the default, never to undefined', outPathOf(['node', 'x', '--out']) === DEFAULT_OUT)
+    console.log(`\n${9 - bad}/9 checks passed`)
     process.exit(bad ? 1 : 0)
   }
   const i = process.argv.indexOf('--dates')
@@ -103,7 +113,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (Object.values(r.counts).some(c => c.truncated)) { console.error('FAIL: a day was cut at the page cap; the fixture is incomplete'); process.exitCode = 1 }
   }
   mkdirSync('outbox', { recursive: true })
-  const name = 'outbox/fixture-bsd-game-join-2026-08-29-09-05.json'
+  const name = outPathOf(process.argv)
   writeFileSync(name, JSON.stringify(out) + '\n')
   console.log(`COVERAGE: ${dates.length} dates, ${out.dates.reduce((n, r) => n + r.rows.length, 0)} soccer rows, ${out.dates.reduce((n, r) => n + Object.values(r.events).reduce((m, e) => m + e.length, 0), 0)} events -> ${name}`)
 }
