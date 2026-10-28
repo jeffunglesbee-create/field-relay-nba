@@ -1,10 +1,10 @@
 {
-  "startedAt": "2026-10-28T02:09:27.437Z",
+  "startedAt": "2026-10-28T02:12:33.452Z",
   "polls": 1,
   "liveRowsOnLastPoll": 1,
   "state": "captured",
-  "verdict": "NO-COORDINATE-FRAMES",
-  "coverage": "59 frames over 109.1 s from 1 event (602466, Categoría Primera A); the verdict describes this match on this tier, not every match",
+  "verdict": "IDENTIFIER-LESS",
+  "coverage": "335 frames over 600.7 s from 1 event (602466, Categoría Primera A); the verdict describes this match on this tier, not every match",
   "event": {
     "id": 602466,
     "league_id": 80,
@@ -12,68 +12,74 @@
     "home_team": "Boyacá Chicó FC",
     "away_team": "Junior Barranquilla",
     "status": "inprogress",
-    "period": "halftime",
-    "current_minute": 45,
+    "period": "2nd_half",
+    "current_minute": 46,
     "live_websocket": true,
     "websocket_plus": true
   },
-  "ended": "socket-closed",
-  "rawFile": "outbox/bsd-ws-frames-602466-2026-10-28T02-09-27-437Z.jsonl",
+  "ended": "duration-and-frames",
+  "rawFile": "outbox/bsd-ws-frames-602466-2026-10-28T02-12-33-452Z.jsonl",
   "rawFramesNotStoredInFull": 0,
   "socketEvents": [
     {
-      "t": 508,
+      "t": 569,
       "kind": "open"
     },
     {
-      "t": 508,
+      "t": 569,
       "kind": "sent",
       "raw": "{\"action\":\"subscribe\",\"event_id\":602466}"
-    },
-    {
-      "t": 109093,
-      "kind": "close",
-      "code": 1006,
-      "reason": ""
     }
   ],
   "analysis": {
-    "frames": 59,
-    "parsedObjects": 59,
+    "frames": 335,
+    "parsedObjects": 335,
     "unparseable": 0,
     "keyUnion": {
-      "type": 59,
-      "event_id": 59,
+      "type": 335,
+      "event_id": 335,
       "event": 1,
       "livedata": 1,
-      "odds": 1,
-      "pulled_at": 54,
-      "raw_count": 54,
-      "sent_count": 54,
-      "merged_into_existing": 54,
-      "drop_breakdown": 54,
-      "type_breakdown": 54,
-      "last_seen_uts": 54,
-      "new_max_uts": 54,
-      "advanced_uts": 54,
-      "home": 4,
-      "away": 4,
-      "score": 4,
-      "time": 4,
-      "stats": 4,
-      "websocket_plus": 4
+      "odds": 4,
+      "pulled_at": 299,
+      "raw_count": 299,
+      "sent_count": 299,
+      "merged_into_existing": 299,
+      "drop_breakdown": 299,
+      "type_breakdown": 299,
+      "last_seen_uts": 299,
+      "new_max_uts": 299,
+      "advanced_uts": 299,
+      "home": 26,
+      "away": 26,
+      "score": 26,
+      "time": 32,
+      "stats": 26,
+      "websocket_plus": 26,
+      "uts": 6,
+      "side": 6,
+      "situation": 6,
+      "coordinates": 6,
+      "commentary": 6,
+      "updated_at": 3,
+      "next_update_at": 3,
+      "update_reason": 3
     },
     "byType": {
       "subscribed": 1,
-      "ingest_debug": 54,
-      "event": 4
+      "ingest_debug": 299,
+      "event": 26,
+      "livedata": 6,
+      "odds": 3
     },
     "coordinates": {
-      "absent": 59,
-      "array": 0,
+      "absent": 329,
+      "array": 6,
       "object": 0,
       "other": 0,
-      "lengths": {},
+      "lengths": {
+        "0": 6
+      },
       "maxElements": 0,
       "multiPointFrames": 0
     },
@@ -81,19 +87,32 @@
     "elementKeys": {},
     "identifierKeysSeen": {},
     "distinctIdentifiersPerUts": {
-      "distribution": {},
+      "distribution": {
+        "0": 6
+      },
       "max": 0,
-      "utsGroups": 0
+      "utsGroups": 6
     },
-    "restartEvents": {},
+    "restartEvents": {
+      "situation = freekick": 3,
+      "situation = corner": 2,
+      "commentary = Boyacá Chicó take the corner short.": 1,
+      "commentary = Corner for Boyacá Chicó.": 1
+    },
     "utsClock": {
-      "numericFrames": 0,
+      "numericFrames": 6,
       "nonNumeric": 0,
-      "distinctValues": 0,
-      "magnitude": null,
-      "smallestNonzeroStep": null,
-      "sample": []
+      "distinctValues": 6,
+      "magnitude": "epoch seconds",
+      "smallestNonzeroStep": 16,
+      "sample": [
+        1793153961,
+        1793153989,
+        1793154042,
+        1793154059,
+        1793154107
+      ]
     },
-    "verdict": "NO-COORDINATE-FRAMES"
+    "verdict": "IDENTIFIER-LESS"
   }
 }
