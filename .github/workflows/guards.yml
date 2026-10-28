@@ -363,6 +363,14 @@ jobs:
           node scripts/mutate-bsd-ws-fanout.mjs
           node scripts/check-bsd-ws-fanout.mjs
 
+      # The live half of the same CC-CMD (bsd-fanout-live-verify.yml needs a live match).
+      # Its pure part is gated here so it cannot rot between matches.
+      - name: the BSD fan-out live verifier fails when it is broken on purpose
+        if: always()
+        run: |
+          node scripts/bsd-fanout-live-verify.mjs --self-test
+          node scripts/mutate-bsd-fanout-live-verify.mjs
+
       # Rule 99, the absence-collapse ratchet. deploy.yml carries the same step
       # for src-only pushes; this one covers scripts/ and workers/ changes that
       # reach here. Reaches github.com to clone jubilant-bassoon, whose

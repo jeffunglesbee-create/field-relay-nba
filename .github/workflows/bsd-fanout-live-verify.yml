@@ -1,0 +1,53 @@
+name: BSD fan-out live verify
+
+# docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md, done condition 2, end to end.
+#
+# Opens the DEPLOYED relay's SSE stream, subscribes AmbientDO to one live
+# websocket_plus event, and asserts what a client receives as bsd:stats and
+# bsd:ball. It needs a live match; with none in wait_minutes it ends
+# no-qualifying-event (exit 3) and commits that, which is NOT a pass.
+#
+# No secret: the relay's /bsd/events/live, /live/ambient and /ambient/bsd/subscribe
+# are public routes. The BSD token never leaves the Worker.
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_minutes:
+        description: Minutes to wait for a live websocket_plus event
+        default: '5'
+      listen_seconds:
+        description: Seconds to listen on the SSE stream after subscribing
+        default: '150'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-fanout-live-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The verifier can still fail
+        run: |
+          node scripts/bsd-fanout-live-verify.mjs --self-test
+          node scripts/mutate-bsd-fanout-live-verify.mjs
+
+      - name: Subscribe through the deployed relay and assert what arrives
+        run: node scripts/bsd-fanout-live-verify.mjs --wait-minutes "${{ inputs.wait_minutes }}" --listen-seconds "${{ inputs.listen_seconds }}"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-fanout-live-verify-*' \
+          bash scripts/probe-commit-retry.sh "chore: BSD fan-out live verify artifact"
