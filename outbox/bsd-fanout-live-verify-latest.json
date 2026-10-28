@@ -1,7 +1,71 @@
 {
-  "startedAt": "2026-10-28T04:25:18.518Z",
+  "startedAt": "2026-10-28T11:23:32.003Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
-  "polls": 683,
-  "state": "no-qualifying-event",
-  "note": "no live websocket_plus row in 683 polls over 345 min"
+  "polls": 553,
+  "state": "no-frames-through-relay",
+  "coverage": "0 bsd:stats, 0 bsd:ball, 8 other SSE events over 150 s from 1 event (601989, Veikkausliiga) through the deployed relay",
+  "event": {
+    "id": 601989,
+    "league_id": 55,
+    "league_name": "Veikkausliiga",
+    "period": "1st_half",
+    "current_minute": 0,
+    "websocket_plus": true
+  },
+  "subscribeResponse": {
+    "ok": true,
+    "subscribed": "601989"
+  },
+  "checks": [
+    {
+      "name": "the subscribe call answered ok for this event",
+      "pass": true
+    },
+    {
+      "name": "at least one bsd:stats arrived through the relay",
+      "pass": false
+    },
+    {
+      "name": "every bsd:stats is parseable JSON",
+      "pass": true
+    },
+    {
+      "name": "every bsd:stats is for this event",
+      "pass": true
+    },
+    {
+      "name": "every bsd:stats carries exactly the declared keys",
+      "pass": true
+    },
+    {
+      "name": "every bsd:stats carries a time object with a numeric minute",
+      "pass": true
+    },
+    {
+      "name": "no bsd:stats carries a top-level minute or period",
+      "pass": true
+    },
+    {
+      "name": "every bsd:ball is parseable JSON",
+      "pass": true
+    },
+    {
+      "name": "every bsd:ball is for this event",
+      "pass": true
+    },
+    {
+      "name": "every bsd:ball carries exactly the declared keys",
+      "pass": true
+    },
+    {
+      "name": "every bsd:ball names a side and carries a time object and a string commentary",
+      "pass": true
+    }
+  ],
+  "counts": {
+    "stats": 0,
+    "ball": 0,
+    "other": 8
+  },
+  "sample": []
 }
