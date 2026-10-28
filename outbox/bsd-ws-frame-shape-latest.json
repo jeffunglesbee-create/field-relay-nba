@@ -1,48 +1,48 @@
 {
-  "startedAt": "2026-10-28T17:20:26.455Z",
+  "startedAt": "2026-10-28T17:32:13.412Z",
   "polls": 1,
-  "liveRowsOnLastPoll": 9,
+  "liveRowsOnLastPoll": 11,
   "leagueIdFilter": null,
   "state": "captured",
   "verdict": "IDENTIFIER-LESS",
-  "coverage": "409 frames over 600.5 s from 1 event (602352, DFB Pokal); the verdict describes this match on this tier, not every match",
+  "coverage": "393 frames over 600.6 s from 1 event (602347, DFB Pokal); the verdict describes this match on this tier, not every match",
   "event": {
-    "id": 602352,
+    "id": 602347,
     "league_id": 43,
     "league_name": "DFB Pokal",
-    "home_team": "SG Dynamo Dresden",
-    "away_team": "FC Schalke 04",
+    "home_team": "SC Freiburg",
+    "away_team": "VfL Wolfsburg",
     "status": "inprogress",
     "period": "1st_half",
-    "current_minute": 16,
+    "current_minute": 30,
     "live_websocket": true,
     "websocket_plus": true
   },
   "ended": "duration-and-frames",
   "reconnects": 0,
-  "rawFile": "outbox/bsd-ws-frames-602352-2026-10-28T17-20-26-455Z.jsonl",
+  "rawFile": "outbox/bsd-ws-frames-602347-2026-10-28T17-32-13-412Z.jsonl",
   "rawFramesNotStoredInFull": 0,
   "socketEvents": [
     {
-      "t": 648,
+      "t": 522,
       "kind": "open"
     },
     {
-      "t": 649,
+      "t": 523,
       "kind": "sent",
-      "raw": "{\"action\":\"subscribe\",\"event_id\":602352}"
+      "raw": "{\"action\":\"subscribe\",\"event_id\":602347}"
     }
   ],
   "analysis": {
-    "frames": 409,
-    "parsedObjects": 409,
+    "frames": 393,
+    "parsedObjects": 393,
     "unparseable": 0,
     "keyUnion": {
-      "type": 409,
-      "event_id": 409,
+      "type": 393,
+      "event_id": 393,
       "event": 1,
       "livedata": 1,
-      "odds": 2,
+      "odds": 1,
       "pulled_at": 300,
       "raw_count": 300,
       "sent_count": 300,
@@ -52,137 +52,153 @@
       "last_seen_uts": 300,
       "new_max_uts": 300,
       "advanced_uts": 300,
-      "uts": 82,
-      "side": 82,
-      "situation": 82,
-      "time": 107,
-      "coordinates": 82,
-      "commentary": 82,
-      "updated_at": 1,
-      "next_update_at": 1,
-      "update_reason": 1,
-      "home": 25,
-      "away": 25,
-      "score": 25,
-      "stats": 25,
-      "websocket_plus": 25
+      "home": 27,
+      "away": 27,
+      "score": 27,
+      "time": 92,
+      "stats": 27,
+      "websocket_plus": 27,
+      "uts": 65,
+      "side": 65,
+      "situation": 65,
+      "coordinates": 65,
+      "commentary": 65
     },
     "byType": {
       "subscribed": 1,
       "ingest_debug": 300,
-      "livedata": 82,
-      "odds": 1,
-      "event": 25
+      "event": 27,
+      "livedata": 65
     },
     "subscribedLivedataLengths": {
       "0": 1
     },
     "coordinates": {
-      "absent": 327,
-      "array": 82,
+      "absent": 328,
+      "array": 65,
       "object": 0,
       "other": 0,
       "lengths": {
-        "0": 16,
-        "1": 6,
-        "4": 60
+        "0": 12,
+        "1": 12,
+        "4": 41
       },
       "maxElements": 4,
-      "multiPointFrames": 60
+      "multiPointFrames": 41
     },
     "elementKinds": {
-      "object": 246
+      "object": 176
     },
     "elementKeys": {
-      "x": 246,
-      "y": 246
+      "x": 176,
+      "y": 176
     },
     "identifierKeysSeen": {},
     "distinctIdentifiersPerUts": {
       "distribution": {
-        "0": 67
+        "0": 57
       },
       "max": 0,
-      "utsGroups": 67
+      "utsGroups": 57
     },
     "restartEvents": {
-      "situation = freekick": 1,
-      "commentary = Schalke take a free kick wide.": 1,
-      "situation = throwin": 4,
       "situation = goal_kick": 1,
-      "commentary = Schalke clear it long from the goal kick.": 1
+      "commentary = Freiburg restart with a goal kick.": 1,
+      "situation = freekick": 4,
+      "commentary = Freiburg loft it in from the free kick.": 1,
+      "situation = throwin": 2,
+      "commentary = Freiburg restart with a throw-in.": 1,
+      "commentary = Wolfsburg taking a free kick.": 1,
+      "commentary = Freiburg go for goal from the free kick.": 1,
+      "commentary = Wolfsburg win a free kick.": 1
     },
     "restartCounters": {
       "home.fouls": {
-        "first": 1,
-        "last": 4,
+        "first": 4,
+        "last": 7,
         "changes": 3,
         "changedAtMs": [
-          109339,
-          168028,
-          595384
+          61777,
+          363812,
+          544237
         ]
       },
       "home.throw_ins": {
-        "first": 9,
-        "last": 13,
+        "first": 5,
+        "last": 7,
         "changes": 2,
         "changedAtMs": [
-          109339,
-          526667
+          363812,
+          544237
         ]
       },
       "home.free_kicks": {
-        "first": 1,
-        "last": 1,
-        "changes": 0,
-        "changedAtMs": []
+        "first": 3,
+        "last": 4,
+        "changes": 1,
+        "changedAtMs": [
+          123310
+        ]
       },
       "home.goal_kicks": {
-        "first": 0,
-        "last": 0,
-        "changes": 0,
-        "changedAtMs": []
+        "first": 1,
+        "last": 2,
+        "changes": 1,
+        "changedAtMs": [
+          123310
+        ]
       },
       "home.corner_kicks": {
-        "first": 0,
-        "last": 0,
+        "first": 3,
+        "last": 3,
         "changes": 0,
         "changedAtMs": []
       },
       "away.fouls": {
+        "first": 3,
+        "last": 4,
+        "changes": 1,
+        "changedAtMs": [
+          123310
+        ]
+      },
+      "away.throw_ins": {
+        "first": 6,
+        "last": 7,
+        "changes": 1,
+        "changedAtMs": [
+          486227
+        ]
+      },
+      "away.free_kicks": {
+        "first": 4,
+        "last": 7,
+        "changes": 3,
+        "changedAtMs": [
+          61777,
+          363812,
+          544237
+        ]
+      },
+      "away.goal_kicks": {
+        "first": 2,
+        "last": 2,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.corner_kicks": {
         "first": 1,
         "last": 1,
         "changes": 0,
         "changedAtMs": []
       },
-      "away.throw_ins": {
-        "first": 2,
-        "last": 5,
-        "changes": 2,
-        "changedAtMs": [
-          228979,
-          526667
-        ]
+      "home.fouled_in_final_third": {
+        "first": 0,
+        "last": 0,
+        "changes": 0,
+        "changedAtMs": []
       },
-      "away.free_kicks": {
-        "first": 1,
-        "last": 4,
-        "changes": 2,
-        "changedAtMs": [
-          168028,
-          526667
-        ]
-      },
-      "away.goal_kicks": {
-        "first": 2,
-        "last": 3,
-        "changes": 1,
-        "changedAtMs": [
-          526667
-        ]
-      },
-      "away.corner_kicks": {
+      "away.fouled_in_final_third": {
         "first": 1,
         "last": 1,
         "changes": 0,
@@ -191,104 +207,109 @@
     },
     "ingestDebug": {
       "frames": 300,
-      "rawCountSum": 858,
+      "rawCountSum": 859,
       "rawCountFramesWithoutNumber": 0,
-      "sentCountSum": 82,
+      "sentCountSum": 65,
       "sentCountFramesWithoutNumber": 0,
-      "advancedTrue": 60,
+      "advancedTrue": 49,
       "lastSeenUts": [
-        1793207973,
-        1793208032,
-        1793208042,
-        1793208044,
-        1793208053
+        1793208699,
+        1793208759,
+        1793208762,
+        1793208790,
+        1793208804
       ],
       "pulledAtSecondsEpoch": true,
-      "typeBreakdownNonEmpty": 285,
+      "typeBreakdownNonEmpty": 265,
       "incidentTypesSeenMaxPerPull": {
         "matchsituation": 1,
         "ballcoordinates": 1,
+        "shotofftarget": 2,
+        "goal_kick": 1,
         "possession": 1,
         "freekick": 1,
-        "throwin": 2,
-        "goal_kick": 1
+        "throwin": 1,
+        "card": 1,
+        "temporary_interruption": 1,
+        "gameon": 1,
+        "substitution": 1
       },
       "dropReasonsSeenMaxPerPull": {
         "duplicate": 4,
-        "out_of_order": 3
+        "out_of_order": 4
       }
     },
     "livedataSituations": {
-      "attack": 24,
-      "dangerous": 11,
-      "possession": 16,
-      "safe": 25,
-      "freekick": 1,
-      "throwin": 4,
-      "goal_kick": 1
+      "dangerous": 19,
+      "shotofftarget": 5,
+      "safe": 12,
+      "goal_kick": 1,
+      "possession": 8,
+      "freekick": 4,
+      "attack": 10,
+      "throwin": 2,
+      "card": 1,
+      "temporary_interruption": 1,
+      "gameon": 1,
+      "substitution": 1
     },
     "livedataTimeSecondValues": {
-      "1": 3,
       "2": 1,
-      "3": 3,
-      "6": 1,
-      "9": 3,
-      "10": 2,
-      "11": 2,
-      "12": 2,
-      "13": 2,
-      "14": 2,
-      "15": 2,
+      "3": 1,
+      "4": 1,
+      "5": 1,
+      "7": 1,
+      "9": 2,
+      "10": 3,
+      "11": 1,
+      "13": 5,
+      "14": 1,
       "16": 1,
-      "17": 4,
+      "17": 2,
       "18": 1,
-      "20": 1,
-      "21": 1,
-      "22": 4,
-      "23": 1,
+      "21": 2,
+      "22": 1,
       "24": 1,
       "25": 2,
-      "27": 3,
-      "28": 2,
-      "29": 1,
-      "30": 2,
-      "31": 1,
-      "33": 2,
-      "34": 1,
+      "26": 3,
+      "27": 1,
+      "28": 4,
+      "29": 3,
+      "33": 1,
       "35": 1,
-      "36": 1,
+      "37": 2,
       "38": 1,
-      "40": 3,
+      "39": 2,
+      "40": 2,
       "41": 1,
-      "44": 1,
+      "42": 2,
+      "43": 1,
       "45": 1,
-      "47": 3,
-      "49": 2,
-      "50": 1,
-      "52": 2,
-      "53": 6,
-      "54": 1,
+      "47": 1,
+      "48": 4,
+      "51": 1,
+      "53": 2,
       "55": 1,
-      "56": 1,
-      "57": 4,
-      "58": 1
+      "57": 2,
+      "58": 1,
+      "59": 1
     },
     "eventTimePeriodValues": {
       "1": 10,
-      "\"1T\"": 15
+      "\"1T\"": 17
     },
     "utsClock": {
-      "numericFrames": 82,
+      "numericFrames": 65,
       "nonNumeric": 0,
-      "distinctValues": 67,
+      "distinctValues": 57,
       "magnitude": "epoch seconds",
       "smallestNonzeroStep": 1,
       "sample": [
-        1793208032,
-        1793208042,
-        1793208044,
-        1793208053,
-        1793208110
+        1793208759,
+        1793208760,
+        1793208762,
+        1793208790,
+        1793208803
       ]
     },
     "verdict": "IDENTIFIER-LESS"
