@@ -39,8 +39,8 @@ verdict describes this match on this tier, not every match`.
      `periodstart` appears only inside `ingest_debug.type_breakdown`. Throw-ins, goal kicks and fouls are NOT
      typed incidents in what was recorded: they exist as cumulative per-team counters in
      `event.stats.{home,away}` (`throw_ins`, `goal_kicks`, `free_kicks`, `corner_kicks`, `fouls`), which moved
-     only on `event` frames (about every 6 to 60 s).
-   - `uts` is epoch SECONDS (1793155107 = 2026-10-28T02:18Z); smallest nonzero step between consecutive
+     only on `event` frames (consecutive `event` frames 5 to 71 s apart in run 40619557017, one pair 71 ms apart).
+   - `uts` is epoch SECONDS (1793155107 = 2026-10-28T02:38:27Z, inside the 02:36 to 02:46 window it was recorded in); smallest nonzero step between consecutive
      livedata frames, 16 s. The incident match clock `time.second` is `0` on 8 of 8 livedata frames (minute
      grain); `event` frames carry `time.minute` with `second: null`.
 
@@ -53,8 +53,9 @@ is incident-driven, 6 to 8 frames in ten minutes.
 
 - ESTABLISHED, for this match and tier: the socket works with the spec's URL and subscribe message; the ack is
   `{type:'subscribed', event, livedata, odds}`; livedata frames are commentary incidents; `coordinates` is an
-  empty array; `ingest_debug` reports what the server ingests (146 raw items over the final window, 8 sent,
-  `drop_breakdown` `duplicate` and `out_of_order`).
+  empty array; `ingest_debug` reports what the server ingests (`raw_count` summed over its 300 pulls is 146, a figure that
+  counts a still-visible item once per pull; `sent_count` summed is 8, equal to the 8 livedata frames;
+  `drop_breakdown` reasons `duplicate` and `out_of_order`).
 - NOT ESTABLISHED: any other match. One lower-division league, `websocket_plus: true`. A top-flight match may
   carry coordinates. That is `docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md`, with an automated wake at
   2026-10-28T11:20Z (trigger `trig_016L8y35g7iFsA2f4A1qUnBC`).
