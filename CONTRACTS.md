@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-10-20 (relay copy → client: the `_errors` partial-answer marker, and three relay sections the client copy had missed since 2026-09-12)
+Last synced: 2026-10-28 (relay copy → client: the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
 
 ---
 
