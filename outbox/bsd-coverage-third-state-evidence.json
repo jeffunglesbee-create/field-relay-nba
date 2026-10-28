@@ -1,0 +1,80 @@
+{
+  "what": "Rows from the BSD /coverage probe where status is in_season and priced_next_7d is 0: the third state of docs/CC-CMD-2026-10-10-coverage-replaces-season-date-math.md.",
+  "why": "scripts/check-coverage-states.mjs used to assert the vendor reports this state TODAY, so a deploy failed on 2026-10-27 when darts gained prices and CS2 left the season (deploy run 40605092153). The state is proved by these dated readings instead; the live artifact is still read and its count printed.",
+  "method": "Copied unmodified from git history: git show <sourceCommit>:outbox/bsd-coverage-probe-latest.json, rows whose _state is in-season-unpriced.",
+  "conditions": "Vendor state at capturedAt only. Says nothing about any other day.",
+  "readings": [
+    {
+      "capturedAt": "2026-10-12T15:18:32.051Z",
+      "sourceCommit": "6f3b0bd",
+      "sourceFile": "outbox/bsd-coverage-probe-latest.json",
+      "rowsReadOfTotal": "2 of 7",
+      "rows": [
+        {
+          "sport": "darts",
+          "name": "Darts",
+          "status": "in_season",
+          "events_next_7d": 30,
+          "events_next_30d": 30,
+          "events_last_7d": 148,
+          "priced_next_7d": 0,
+          "live_now": 0,
+          "next_event_at": "2026-10-13T08:40:00+00:00",
+          "last_event_at": "2026-10-12T12:33:00+00:00",
+          "docs_url": "/docs/darts/",
+          "_state": "in-season-unpriced"
+        },
+        {
+          "sport": "csgo",
+          "name": "CS2",
+          "status": "in_season",
+          "events_next_7d": 15,
+          "events_next_30d": 15,
+          "events_last_7d": 93,
+          "priced_next_7d": 0,
+          "live_now": 3,
+          "next_event_at": "2026-10-12T18:00:00+00:00",
+          "last_event_at": "2026-10-12T11:12:00+00:00",
+          "docs_url": "/docs/csgo/",
+          "_state": "in-season-unpriced"
+        }
+      ]
+    },
+    {
+      "capturedAt": "2026-10-19T13:08:34.542Z",
+      "sourceCommit": "9cf0010",
+      "sourceFile": "outbox/bsd-coverage-probe-latest.json",
+      "rowsReadOfTotal": "2 of 7",
+      "rows": [
+        {
+          "sport": "darts",
+          "name": "Darts",
+          "status": "in_season",
+          "events_next_7d": 32,
+          "events_next_30d": 32,
+          "events_last_7d": 118,
+          "priced_next_7d": 0,
+          "live_now": 15,
+          "next_event_at": "2026-10-20T08:40:00+00:00",
+          "last_event_at": "2026-10-19T12:50:00+00:00",
+          "docs_url": "/docs/darts/",
+          "_state": "in-season-unpriced"
+        },
+        {
+          "sport": "csgo",
+          "name": "CS2",
+          "status": "in_season",
+          "events_next_7d": 5,
+          "events_next_30d": 5,
+          "events_last_7d": 97,
+          "priced_next_7d": 0,
+          "live_now": 7,
+          "next_event_at": "2026-10-19T14:00:00+00:00",
+          "last_event_at": "2026-10-19T12:00:00+00:00",
+          "docs_url": "/docs/csgo/",
+          "_state": "in-season-unpriced"
+        }
+      ]
+    }
+  ]
+}
