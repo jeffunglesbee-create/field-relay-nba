@@ -101,10 +101,13 @@ export const judge = (frame, broadcasts) => {
       if (!same(p[k], frame[k])) why.push(`${k} ${JSON.stringify(p[k])} != frame.${k} ${JSON.stringify(frame[k])}`)
     }
     if (!same(p.time, frame.time)) why.push(`time ${JSON.stringify(p.time)} != frame.time ${JSON.stringify(frame.time)}`)
-    // `coords` is the LAST element of the array, a bare object as it came, or null; an
-    // empty array must not become an object.
-    const last = Array.isArray(frame.coordinates) ? (frame.coordinates.slice(-1)[0] ?? null) : (frame.coordinates ?? null)
-    if (!same(p.coords, last)) why.push(`coords ${JSON.stringify(p.coords)} != ${JSON.stringify(last)}`)
+    // `coords` is the NEWEST element: the array is a sliding window with the newest
+    // position FIRST (recorded 2026-10-28, events 602352 and 602347: in 92 of 99
+    // consecutive multi-point pairs the next frame is the previous one with new
+    // points prepended, in 0 appended). A bare object is forwarded as it came; an
+    // empty array is null, never an object.
+    const newest = Array.isArray(frame.coordinates) ? (frame.coordinates[0] ?? null) : (frame.coordinates ?? null)
+    if (!same(p.coords, newest)) why.push(`coords ${JSON.stringify(p.coords)} != ${JSON.stringify(newest)}`)
   } else if (broadcasts.length !== 0) {
     // Every other recorded type (ingest_debug, subscribed, odds) is NOT forwarded
     // today: ingest_debug is a server diagnostic, subscribed is the ack, odds are
@@ -138,7 +141,8 @@ const evt = (extra) => ({ type: 'event', event_id: 9, time: { minute: 1 }, score
   stats: { home: {}, away: {} }, ...extra })
 
 export const SYNTHETIC = [
-  ['a populated coordinates array: coords is its LAST element', ld({ coordinates: [{ x: 1, y: 2 }, { x: 3, y: 4 }] }), 'frame'],
+  ['a populated coordinates array: coords is its FIRST (newest) element', ld({ coordinates: [{ x: 1, y: 2 }, { x: 3, y: 4 }] }), 'frame'],
+  ['a four-point window as recorded: coords is the newest, index 0', ld({ coordinates: [{ x: 94, y: 68 }, { x: 85, y: 70 }, { x: 81, y: 69 }, { x: 72, y: 47 }] }), 'frame'],
   ['a one-element coordinates array', ld({ coordinates: [{ x: 5, y: 6 }] }), 'frame'],
   ['a bare coordinates object is forwarded whole', ld({ coordinates: { x: 7, y: 8 } }), 'frame'],
   ['coordinates null', ld({ coordinates: null }), 'frame'],
@@ -234,7 +238,7 @@ const selfTest = () => {
     if (!f?.type || !f.event_id) return;
     if (f.type === 'event') this._broadcast('bsd:stats', { type: 'bsd:stats', id: String(f.event_id), time: f.time, score: f.score, stats: f.stats, shotmap: f.shotmap || null, momentum: f.momentum || null });
     else if (f.type === 'livedata') this._broadcast('bsd:ball', { type: 'bsd:ball', id: String(f.event_id), uts: f.uts, side: f.side,
-      situation: f.situation, time: f.time, commentary: f.commentary, coords: Array.isArray(f.coordinates) ? (f.coordinates.slice(-1)[0] || null) : (f.coordinates || null) });
+      situation: f.situation, time: f.time, commentary: f.commentary, coords: Array.isArray(f.coordinates) ? (f.coordinates[0] || null) : (f.coordinates || null) });
     } catch (_) {}
   }`
   const ev = { type: 'event', event_id: 7, time: { minute: 48, period: '2T', status: '2nd_half' }, score: { home: 1, away: 0 }, stats: { home: { fouls: 3 }, away: { fouls: 4 } } }
@@ -276,10 +280,11 @@ const selfTest = () => {
   ok('a bsd:stats that swaps shotmap and momentum fails (synthetic)',
     synthFails(GOOD.replace('shotmap: f.shotmap || null, momentum: f.momentum || null', 'shotmap: f.momentum || null, momentum: f.shotmap || null'), 'a shotmap on an event'))
   ok('coordinates that always read null fail (synthetic)',
-    synthFails(GOOD.replace('coords: Array.isArray(f.coordinates) ? (f.coordinates.slice(-1)[0] || null) : (f.coordinates || null)', 'coords: null'), 'a populated coordinates'))
-  ok('coordinates that take the FIRST element fail (synthetic)', synthFails(GOOD.replace('f.coordinates.slice(-1)[0]', 'f.coordinates[0]'), 'a populated coordinates'))
+    synthFails(GOOD.replace('coords: Array.isArray(f.coordinates) ? (f.coordinates[0] || null) : (f.coordinates || null)', 'coords: null'), 'a populated coordinates'))
+  ok('coordinates that take the LAST (oldest) element fail (synthetic)', synthFails(GOOD.replace('(f.coordinates[0] || null)', '(f.coordinates.slice(-1)[0] || null)'), 'a populated coordinates'))
+  ok('coordinates that take the last element fail on the four-point window as recorded (synthetic)', synthFails(GOOD.replace('(f.coordinates[0] || null)', '(f.coordinates.slice(-1)[0] || null)'), 'a four-point window'))
   ok('a bare coordinates object that is dropped fails (synthetic)', synthFails(GOOD.replace(': (f.coordinates || null)', ': null'), 'a bare coordinates'))
-  ok('empty coordinates that become an object fail on coords (recorded)', failsOn(GOOD.replace('(f.coordinates.slice(-1)[0] || null)', '(f.coordinates.slice(-1)[0] || {})'), 'livedata', 'coords'))
+  ok('empty coordinates that become an object fail on coords (recorded)', failsOn(GOOD.replace('(f.coordinates[0] || null)', '(f.coordinates[0] || {})'), 'livedata', 'coords'))
   ok('a broadcast for a missing event_id fails (synthetic)', synthFails(GOOD.replace('if (!f?.type || !f.event_id) return;', 'if (!f?.type) return;'), 'a missing event_id'))
   ok('a function that broadcasts on a non-JSON message fails (synthetic)',
     R(GOOD.replace('} catch (_) {}', "} catch (_) { this._broadcast('bsd:ball', {}); }")).synthetic.failures.some((f) => f.name.startsWith('non-JSON')))
