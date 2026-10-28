@@ -1299,14 +1299,18 @@ export class AmbientDO {
                     // array (original assumption) and a single {x,y}
                     // object defensively -- whichever shape BSD actually
                     // sends, ball position won't be silently dropped.
-                    // OBSERVED 2026-10-28 (outbox/bsd-ws-frames-602466-*.jsonl,
-                    // 14 livedata frames, one match in Categoria Primera A): a
+                    // OBSERVED 2026-10-28 (outbox/bsd-ws-frames-*.jsonl): a
                     // livedata frame is an INCIDENT -- uts, side, situation, time,
-                    // commentary -- and `coordinates` was [] on all 14, so
-                    // coords is null there. A populated element has not been
-                    // seen (docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md).
+                    // commentary -- and `coordinates` is a sliding window of up to
+                    // four {x, y} points, NEWEST FIRST: in 92 of 99 consecutive
+                    // multi-point pairs (events 602352, 602347, DFB Pokal) the next
+                    // frame is the previous one with new points prepended, in 0
+                    // appended. This used to take the LAST element, which is the
+                    // OLDEST point (the 2026-06-25 spec assumed otherwise; nothing
+                    // had been seen). It is [] on all 14 frames of event 602466
+                    // (Categoria Primera A), so coords is null there.
                     coords: Array.isArray(frame.coordinates)
-                        ? (frame.coordinates.slice(-1)[0] || null)
+                        ? (frame.coordinates[0] || null)
                         : (frame.coordinates || null),
                     situation: frame.situation,
                     // Vendor fields, forwarded under the vendor's names (Rule
