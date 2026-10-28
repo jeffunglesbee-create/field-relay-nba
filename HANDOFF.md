@@ -1,6 +1,6 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-10-28 (22:30Z) — the owner's three decisions on Task 3: labels split, refusal record, caps ratified
+## SESSION CLOSE-OUT — 2026-10-28 (22:20Z) — the owner's three decisions on Task 3: labels split, refusal record, caps ratified
 
 **HEAD:** `5dfaf6f` → `0e6a894` → this close-out · **Branch:** main
 **Session doc:** outbox/cc-session-2026-10-28-site-caps.md (Part 2)
