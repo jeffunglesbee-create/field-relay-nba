@@ -64,13 +64,19 @@ export const assertions = (c) => [
     c?.frameShapes?.stats?.example?.time?.minute !== undefined
     && c?.frameShapes?.stats?.example?.minute === undefined
     && c?.frameShapes?.stats?.example?.period === undefined],
-  ['the bsd:ball example is an incident (side, time, commentary) with no invented coordinates',
+  ['the bsd:ball example is an incident (side, time, commentary) whose coords are integer x and y and nothing else',
     c?.frameShapes?.livedata?.example?.side !== undefined
     && c?.frameShapes?.livedata?.example?.time?.minute !== undefined
     && typeof c?.frameShapes?.livedata?.example?.commentary === 'string'
-    && c?.frameShapes?.livedata?.example?.coords === null],
-  ['the livedata note says a populated coordinate has not been seen',
-    /NOT yet seen/.test(c?.frameShapes?.livedata?.note ?? '')],
+    && Object.keys(c?.frameShapes?.livedata?.example?.coords ?? {}).sort().join() === 'x,y'
+    && Number.isInteger(c?.frameShapes?.livedata?.example?.coords?.x)
+    && Number.isInteger(c?.frameShapes?.livedata?.example?.coords?.y)],
+  ['the empty-window case is declared separately, with null coords',
+    c?.frameShapes?.livedata?.exampleWithoutCoordinates?.coords === null],
+  ['the livedata note says the window is newest first and that coords is its first element',
+    /NEWEST FIRST/.test(c?.frameShapes?.livedata?.note ?? '') && /first element/.test(c?.frameShapes?.livedata?.note ?? '')],
+  ['the livedata note says the second half is not measured',
+    /second half is NOT yet measured/.test(c?.frameShapes?.livedata?.note ?? '')],
 ]
 
 function selfTest () {
@@ -100,8 +106,9 @@ function selfTest () {
       avgPosition: { example: { n: 46, name: 'Cleiton' }, n: 'A COUNT, exact definition UNCONFIRMED' },
       incidentSequence: { example: { gk: { x: 5.4 } } },
       stats: { example: { type: 'bsd:stats', id: '1', time: { minute: 47, period: 2 }, score: { home: 0, away: 0 } } },
-      livedata: { example: { type: 'bsd:ball', id: '1', coords: null, side: 'away', time: { minute: 45 }, commentary: 'x' },
-                  note: 'coords is the last element or null; a populated element is NOT yet seen' },
+      livedata: { example: { type: 'bsd:ball', id: '1', coords: { x: 72, y: 47 }, side: 'away', time: { minute: 45 }, commentary: 'x' },
+                  exampleWithoutCoordinates: { type: 'bsd:ball', id: '2', coords: null },
+                  note: 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. The second half is NOT yet measured.' },
     },
   }
   check('a correct contract passes every assertion', assertions(good).every(([, ok]) => ok))
@@ -119,14 +126,19 @@ function selfTest () {
     ['the goal build-up declared per-team again', c => { c.frames[SEQ] = { ...c.frames[SEQ], frame: 'target-goal-relative', perTeam: true } }],
     ['the record of the wrong revision dropped', c => { delete c.supersedes }],
     ['the invented stats example put back (top-level minute and period)', c => { c.frameShapes.stats.example = { type: 'bsd:stats', id: '1', minute: 67, period: 2 } }],
-    ['the invented ball coordinates put back', c => { c.frameShapes.livedata.example.coords = { x: 73.2, y: 42.1 } }],
+    ['the invented fractional ball coordinates put back', c => { c.frameShapes.livedata.example.coords = { x: 73.2, y: 42.1 } }],
+    ['the ball example coords lose y', c => { c.frameShapes.livedata.example.coords = { x: 72 } }],
+    ['the ball example coords gain an invented key', c => { c.frameShapes.livedata.example.coords = { x: 72, y: 47, z: 0 } }],
+    ['the ball example reverts to null coordinates', c => { c.frameShapes.livedata.example.coords = null }],
+    ['the empty-window example is dropped', c => { delete c.frameShapes.livedata.exampleWithoutCoordinates }],
     ['the incident fields dropped from the ball example', c => { delete c.frameShapes.livedata.example.commentary }],
     ['a hybrid stats example: time AND a top-level minute', c => { c.frameShapes.stats.example.minute = 67 }],
     ['a hybrid stats example: time AND a top-level period', c => { c.frameShapes.stats.example.period = 2 }],
     ['the ball example loses its side', c => { delete c.frameShapes.livedata.example.side }],
     ['the ball example loses its time', c => { delete c.frameShapes.livedata.example.time }],
     ['the ball commentary is not a string', c => { c.frameShapes.livedata.example.commentary = 5 }],
-    ['the unseen-coordinate note dropped', c => { c.frameShapes.livedata.note = 'coords is the last element' }],
+    ['the newest-first statement dropped from the note', c => { c.frameShapes.livedata.note = 'coords is the first element. The second half is NOT yet measured.' }],
+    ['the second-half caveat dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null.' }],
   ]
   for (const [name, apply] of mutations) {
     const c = JSON.parse(JSON.stringify(good))

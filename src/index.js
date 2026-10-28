@@ -10511,24 +10511,41 @@ export default {
                     },
                     frameShapes: {
                         livedata: {
-                            // VERBATIM: the bsd:ball payload AmbientDO built from a recorded frame
-                            // (outbox/bsd-ws-frames-602466-2026-10-28T02-12-33-452Z.jsonl, the first
-                            // livedata frame, event 602466, Categoría Primera A, websocket_plus true).
+                            // VERBATIM: the bsd:ball payload AmbientDO builds from a recorded frame
+                            // (outbox/bsd-ws-frames-602352-2026-10-28T17-20-26-455Z.jsonl, the 18:38
+                            // frame, event 602352, DFB Pokal, live_websocket true, websocket_plus true).
                             // The previous example read coords {x: 73.2, y: 42.1} and situation
-                            // 'open_play': neither appears in any of the 14 recorded livedata frames.
-                            example: { type: 'bsd:ball', id: '602466', uts: 1793153961, coords: null,
+                            // 'open_play' (fractions and a name no recorded frame carries) and, from a
+                            // different match, coords null.
+                            example: { type: 'bsd:ball', id: '602352', uts: 1793208042, coords: { x: 72, y: 47 },
+                                       situation: 'dangerous', side: 'home',
+                                       time: { minute: 18, second: 38, display: '18:38', period: 1,
+                                               injury_time: 0, period_started_at_uts: 1793206979 },
+                                       commentary: 'Dresden on the edge of something!' },
+                            // The same payload from event 602466 (Categoría Primera A, same flags): the
+                            // coordinates window was [] on all 14 of its frames.
+                            exampleWithoutCoordinates: { type: 'bsd:ball', id: '602466', uts: 1793153961, coords: null,
                                        situation: 'freekick', side: 'away',
                                        time: { minute: 45, second: 0, display: '45:00', period: 2,
                                                injury_time: 2, period_started_at_uts: 1793153529 },
                                        commentary: 'Junior Barranquilla send another in.' },
                             note: 'A livedata frame is an INCIDENT (uts epoch seconds, side home|away, situation, ' +
-                                  'time, commentary). coords is the LAST element of frame.coordinates[] or null; ' +
-                                  'frame.coordinates was [] on 14 of 14 recorded frames, so a populated element is ' +
-                                  'NOT yet seen and its keys are undeclared. time is the minute the incident is ' +
-                                  'stamped with (second is 0 on all 14), not the live clock: that is bsd:stats time. ' +
-                                  'Situations seen (14 frames): freekick 6, corner 3, substitution 3, shotofftarget 2. ' +
-                                  'Evidence: ONE match, in Categoría Primera A (league_id 80, outside this relay\'s ' +
-                                  'tracked leagues); see docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md.',
+                                  'time, commentary, coordinates). frame.coordinates is a SLIDING WINDOW of up to four ' +
+                                  '{x, y} points, NEWEST FIRST (92 of 99 consecutive pairs: the next frame is the ' +
+                                  'previous one with new points prepended, 0 appended); coords is its first element, ' +
+                                  'or null when the window is empty. Elements carry x and y and nothing else (422 of ' +
+                                  '422), integers (x 5 to 95, y 0 to 100 observed), and no player or team identifier. They are positions at ' +
+                                  'incidents, not a continuous track (frames came as often as every second and as rarely ' +
+                                  'as six in ten minutes). Frame of reference: ONE shared pitch in the first half of two ' +
+                                  'matches (the home side defends x=0: home goal kick at x=5, away goal kick at x=95); ' +
+                                  'the second half is NOT yet measured. Coverage varies by match, not by flag: event ' +
+                                  '602466 (Categoría Primera A) had both flags true and an empty window on 14 of 14 ' +
+                                  'frames; 602352 and 602347 (DFB Pokal) carried one to four points on 119 of 147. ' +
+                                  'time.second is 0 on all 14 of 602466 and not 0 on 147 of 147 DFB Pokal frames. ' +
+                                  'Situations seen over 161 frames in three matches: attack, safe, dangerous, ' +
+                                  'possession, freekick, shotofftarget, throwin, substitution, corner, goal_kick, ' +
+                                  'card, temporary_interruption, gameon. Evidence: three matches, one evening ' +
+                                  '(2026-10-28); see docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md.',
                         },
                         stats: {
                             // VERBATIM `time`, `score` and the four stats values shown, from a recorded
@@ -10544,11 +10561,14 @@ export default {
                                        stats: { home: { fouls: 6, throw_ins: 12, xg: 0.3, ball_possession: 43 },
                                                 away: { fouls: 4, throw_ins: 5, xg: 0.2, ball_possession: 57 } },
                                        shotmap: null, momentum: null },
-                            note: 'Of 55 recorded event frames (3 captures, one match, 2026-10-28): time.period is ' +
-                                  'a string on 34 ("2T" 33, "HT" 1) with second and display null; the number 2 on ' +
-                                  '20, with a real second and display; the number 31 on 1, with second null. A ' +
-                                  'reader must accept both types. shotmap and momentum are null: none of the 55 ' +
-                                  'carries either key. stats has 43 keys per side on all 55.',
+                            note: 'Of 107 recorded event frames (3 matches, 2026-10-28): time.period is a string on ' +
+                                  '66 ("1T" 32, "2T" 33, "HT" 1) with second and display null; the number 1 or 2 ' +
+                                  'on 40 (20 each), with a real second and display; the number 31 on 1, with second ' +
+                                  'null. A reader must accept both types. shotmap and momentum are null: none of the ' +
+                                  '107 carries either key. stats is nested per side and its key count differs by ' +
+                                  'match: 43 per side on event 602466 (55 frames), 36 to 39 on the two DFB Pokal ' +
+                                  'matches (52 frames). Do not read it as a fixed key set. Every event frame also ' +
+                                  'carries websocket_plus.',
                         },
                         shot: {
                             // VERBATIM from scripts/fixtures/bsd-223324-coordinates.json, captured
