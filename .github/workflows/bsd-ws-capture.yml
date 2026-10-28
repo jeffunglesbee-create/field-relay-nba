@@ -21,6 +21,9 @@ on:
       duration_minutes:
         description: Minutes of frames to record
         default: '10'
+      league_ids:
+        description: Comma-separated BSD league ids to accept (blank = any). 1 EPL, 3 La Liga, 4 Serie A, 5 Bundesliga, 7 UCL, 8 Europa
+        default: ''
 
 permissions:
   contents: write
@@ -44,7 +47,7 @@ jobs:
       - name: Record the frames
         env:
           BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
-        run: node scripts/bsd-ws-capture.mjs --wait-minutes "${{ inputs.wait_minutes }}" --duration-minutes "${{ inputs.duration_minutes }}"
+        run: node scripts/bsd-ws-capture.mjs --wait-minutes "${{ inputs.wait_minutes }}" --duration-minutes "${{ inputs.duration_minutes }}" --league-ids "${{ inputs.league_ids }}"
 
       # scripts/probe-commit-retry.sh, not the inline loop this file started with:
       # run 40619664790 (2026-10-28) recorded 10 minutes of frames, concluded

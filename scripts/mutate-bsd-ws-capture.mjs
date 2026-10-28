@@ -47,6 +47,8 @@ const MUTATIONS = [
   ['the event period type flip is not recorded', "bump(eventTimePeriodValues, JSON.stringify(o.time.period))", "bump(eventTimePeriodValues, '\"x\"')"],
   ['incident types are summed over repeated pulls', "out[k] = Math.max(out[k] ?? 0, typeof v === 'number' ? v : 1)", "out[k] = (out[k] ?? 0) + (typeof v === 'number' ? v : 1)"],
   ['reanalysis keeps the stale state', 'art.state = stateOf({ ended: art.ended, frames })', 'art.state = art.state'],
+  ['the league filter is ignored', "(leagueIds.length === 0 || leagueIds.includes(Number(r.league_id)))", 'true'],
+  ['an empty league filter excludes everything', 'leagueIds.length === 0 ||', 'false ||'],
   ['a socket error is not recorded', "log('error', { message: redact(evt?.message", "void ({ message: redact(evt?.message"],
 ]
 

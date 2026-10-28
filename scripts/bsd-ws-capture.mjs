@@ -48,9 +48,10 @@ export const RESTART_RE = /throw[\s_-]?in|goal[\s_-]?kick|free[\s_-]?kick|corner
 /** First live row that carries the tracking tier. A row between halves is taken
  *  only when nothing is in play: frames are expected when play resumes, but a
  *  playing match is the better bet. */
-export const pickEvent = (rows) => {
+export const pickEvent = (rows, leagueIds = []) => {
   const eligible = (Array.isArray(rows) ? rows : []).filter(
-    (r) => r && r.websocket_plus === true && r.status === 'inprogress' && r.id != null)
+    (r) => r && r.websocket_plus === true && r.status === 'inprogress' && r.id != null &&
+      (leagueIds.length === 0 || leagueIds.includes(Number(r.league_id))))
   return eligible.find((r) => r.period !== 'halftime') ?? eligible[0] ?? null
 }
 
@@ -360,7 +361,7 @@ export const stateOf = ({ ended, frames }) => {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-const waitForEvent = async (waitMs, fetchImpl = fetch) => {
+const waitForEvent = async (waitMs, leagueIds = [], fetchImpl = fetch) => {
   const deadline = Date.now() + waitMs
   let polls = 0
   let lastRows = []
@@ -370,7 +371,7 @@ const waitForEvent = async (waitMs, fetchImpl = fetch) => {
       const r = await fetchImpl(LIVE_URL)
       if (r.ok) {
         lastRows = (await r.json()).events ?? []
-        const pick = pickEvent(lastRows)
+        const pick = pickEvent(lastRows, leagueIds)
         if (pick) return { event: pick, polls, liveRows: lastRows.length }
       }
     } catch (e) {
@@ -411,8 +412,9 @@ const main = async () => {
 
   mkdirSync('outbox', { recursive: true })
   const startedAt = new Date().toISOString()
-  const { event, polls, liveRows } = await waitForEvent(waitMs)
-  const base = { startedAt, polls, liveRowsOnLastPoll: liveRows }
+  const leagueIds = String(arg('league-ids', '')).split(',').map((x) => Number(x)).filter((x) => Number.isInteger(x) && x > 0)
+  const { event, polls, liveRows } = await waitForEvent(waitMs, leagueIds)
+  const base = { startedAt, polls, liveRowsOnLastPoll: liveRows, leagueIdFilter: leagueIds.length ? leagueIds : null }
   if (!event) {
     const out = { ...base, state: 'no-qualifying-event',
       note: `no live row with websocket_plus === true and status 'inprogress' in ${polls} polls over ${waitMs / 60000} min` }
@@ -479,6 +481,11 @@ const selfTest = async () => {
   ok('pickEvent refuses a feed with no websocket_plus event',
     pickEvent(rows.filter((r) => r.id === 1 || r.id === 4)) === null)
   ok('pickEvent tolerates a non-array', pickEvent(null) === null)
+  const lg = [{ id: 10, league_id: 80, websocket_plus: true, status: 'inprogress', period: '2nd_half' },
+    { id: 11, league_id: 7, websocket_plus: true, status: 'inprogress', period: '2nd_half' }]
+  ok('pickEvent with a league filter takes only a listed league', pickEvent(lg, [7, 8])?.id === 11, `got ${pickEvent(lg, [7, 8])?.id}`)
+  ok('pickEvent with a league filter and no listed league in play returns null', pickEvent(lg, [1]) === null)
+  ok('pickEvent with no filter takes the first eligible row', pickEvent(lg, [])?.id === 10)
 
   // verdicts
   const trail = analyze([
