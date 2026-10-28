@@ -432,6 +432,25 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY, AMBIGUOUS_TEAM } = (() => {
         ['SV Werder Bremen',           'Bremen'],
         ['FC Schalke 04',              'Schalke'],
         ['FC Bayern München',          'Bayern'],
+
+        // ── BSD club names the first two dates never contained (CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-
+        // dates, Task 3). Each pair is read from outbox/fixture-bsd-game-join-more-dates.json by scripts/measure-bsd-
+        // game-join.mjs: an archive row the join left unmatched, and the ONE unclaimed BSD event whose two names look
+        // like its two. The canonical is again the archive's form, so no archive name's key changes. The kickoff gap
+        // was 0 minutes on every one and chose none of them.
+        ['Deportivo Alavés',           'Alavés'],                   // Alavés v Atlético 2026-10-10 (event 213590); 4 rows
+        ['FC Barcelona',               'Barcelona'],                // Barcelona v Getafe 2026-10-10 (event 213592); 4 rows
+        ['FC Augsburg',                'Augsburg'],                 // Augsburg v Bayern 2026-10-10 (event 213708); 5 rows
+        ['VfB Stuttgart',              'Stuttgart'],                // Paderborn v Stuttgart 2026-10-10 (event 213711); 4 rows
+        ['AS Monaco',                  'Monaco'],                   // Monaco v Toulouse 2026-10-10 (event 210482); 4 rows
+        ['AC Milan',                   'Milan'],                    // Lazio v Milan (event 210091); 3 rows
+        ['Málaga CF',                  'Málaga'],                   // Málaga v Real Sociedad (event 213604); 1 row
+        ['Olympique de Marseille',     'Marseille'],                // Angers v Marseille (event 210491); 2 rows
+        // Rennes is the one pair the NAMES alone do not show ("rennes" is not inside "staderennais"). Three rows carry
+        // it, each against a different club whose side is an exact or contained key match, and each has exactly one
+        // unclaimed event with "Stade Rennais" in the same position: Paris FC v Rennes (210497), Lyon v Rennes (210478),
+        // Rennes v Strasbourg (210507).
+        ['Stade Rennais',              'Rennes'],
     ];
     const strip = {};
     const display = {};

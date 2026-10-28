@@ -1,0 +1,32 @@
+# Identity checks and the offline join, before and after the nine alias pairs (CC-CMD-2026-10-28 Task 3). 2026-10-28T02:33:25Z
+
+## before (HEAD 4de1b0c, no new pair)
+check-ambiguous-team-identity exit=0 :: PASS: 43/43 assertions (1 ambiguous key of 269)
+check-identity-table-collisions exit=0 :: PASS: 363 pairs across 5 tables; 1 colliding key(s), 1 recorded, 0 silent
+check-sport-blind-resolution exit=0 :: PASS: 27/27 assertions
+check-team-identity-collisions exit=0 :: PASS: team identity is per-club; no two clubs share a key.
+check-team-key-substitution exit=0 :: PASS: 59/59 assertions (predicate + census route)
+check-bsd-game-join --offline exit=0 :: 20/20 checks passed
+
+## after
+check-ambiguous-team-identity exit=0 :: PASS: 43/43 assertions (1 ambiguous key of 269)
+check-identity-table-collisions exit=0 :: PASS: 372 pairs across 5 tables; 1 colliding key(s), 1 recorded, 0 silent
+check-sport-blind-resolution exit=0 :: PASS: 27/27 assertions
+check-team-identity-collisions exit=0 :: PASS: team identity is per-club; no two clubs share a key.
+check-team-key-substitution exit=0 :: PASS: 59/59 assertions (predicate + census route)
+check-bsd-game-join --offline exit=0 :: 20/20 checks passed
+
+## names probed: 1550 (every name of both fixtures); keys changed: 9, exactly the nine added variants
+  AC Milan                     acmilan                  -> milan
+  AS Monaco                    asmonaco                 -> monaco
+  Deportivo Alavés             deportivoalaves          -> alaves
+  FC Augsburg                  fcaugsburg               -> augsburg
+  FC Barcelona                 fcbarcelona              -> barcelona
+  Málaga CF                    malagacf                 -> malaga
+  Olympique de Marseille       olympiquedemarseille     -> marseille
+  Stade Rennais                staderennais             -> rennes
+  VfB Stuttgart                vfbstuttgart             -> stuttgart
+
+## the two rows still unjoined, and why
+  2026-09-12-mls-sd-phi  San Diego FC v Philadelphia Union: no BSD event with those clubs on 2026-09-12 or 09-13 (fixture search: only San Diego Wave FC and unrelated fixtures)
+  2026-10-24-mls-lafc-la Los Angeles Football Club v LA Galaxy: no BSD event with those clubs on 2026-10-24 or 10-25
