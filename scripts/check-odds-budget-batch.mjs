@@ -18,8 +18,11 @@
  * with the model, where the gate agrees on 2,000 of 2,000.
  *
  * WHAT THIS FILE HOLDS TO:
- *   - eight statements, `snapshot` then `gate` BEFORE every charge, `charge`
+ *   - nine statements, `snapshot` then `gate` BEFORE every charge, `charge`
  *     last (chargedFromBatch reads the last statement as the day's verdict);
+ *   - `refusal` after the gate and before the charges, writing only while the gate
+ *     holds NO token for this call, so a refusal and its record are one transaction
+ *     (fix 3 E: the KV stamps are written after the batch and can fail alone);
  *   - the gate carries all three predicates, with the month's HARD limit and the
  *     site's cap as binds, not literals;
  *   - each charge carries the gate predicate and nothing else decides it;
@@ -126,12 +129,40 @@ export function pickSql(src, k) {
   return m ? (m[1] ?? m[2] ?? '') : '';
 }
 
-export const EXPECTED_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge'];
+/** The record is written after the gate has decided and before any charge. After
+ *  a charge it would still be correct, but a position nobody asserted is a
+ *  position the next edit moves it from; before the gate it would read no token. */
+export function refusalAfterGate(order) {
+  const at = (k) => order.indexOf(k);
+  const charges = ['siteCharge', 'monthCharge', 'charge'].map(at);
+  if (charges.includes(-1) || at('gate') === -1 || at('refusal') === -1) return false;
+  return at('gate') < at('refusal') && at('refusal') < Math.min(...charges);
+}
 
-export function verdict(order, decides, gate3, obey, noLimit, corrections) {
+/** The record is one conditional upsert: it files a row only while the gate holds
+ *  no token for THIS call, counts repeats, reads the scope back, and judges the
+ *  day and the month by the gate's own comparison turned round. A record written
+ *  unconditionally would file every admitted call as a refusal. */
+export function refusalShape(sql) {
+  const r = norm(sql);
+  return /^INSERT INTO odds_budget_refusal \(day, scope, site, first_at, n\) SELECT /.test(r)
+      && r.includes('WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)')
+      && r.includes('ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1')
+      && /RETURNING scope$/.test(r)
+      && r.includes("(SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'")
+      && r.includes("(SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'")
+      && r.indexOf("THEN 'day'") < r.indexOf("THEN 'month'") && r.indexOf("THEN 'month'") < r.indexOf("ELSE 'site'")
+      && !/<=\s*\?/.test(r);
+}
+
+export const EXPECTED_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'monthCharge', 'charge'];
+
+export function verdict(order, decides, gate3, obey, noLimit, corrections, recordAfter, recordShape) {
   if (order.length === 0)  return 'no-batch-found';
   if (order.length !== EXPECTED_ORDER.length) return `batch-has-${order.length}-statements`;
   if (!decides)            return 'a-charge-runs-before-the-gate';
+  if (!recordAfter)        return 'the-refusal-is-not-between-the-gate-and-the-charges';
+  if (!recordShape)        return 'the-refusal-record-is-not-conditional-on-the-gate';
   if (order.at(-1) !== 'charge') return 'charge-is-not-last';
   if (!gate3)              return 'the-gate-misses-a-limit';
   if (!obey)               return 'a-charge-ignores-the-gate';
@@ -152,6 +183,7 @@ if (process.argv.includes('--self-test')) {
       db.prepare(ODDS_BUDGET_SQL.siteSeed).bind(c),
       db.prepare(ODDS_BUDGET_SQL.snapshot).bind(c),
       db.prepare(ODDS_BUDGET_SQL.gate).bind(c),
+      db.prepare(ODDS_BUDGET_SQL.refusal).bind(c),
       db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(c),
       db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(d),
       db.prepare(ODDS_BUDGET_SQL.charge).bind(e),
@@ -167,11 +199,11 @@ if (process.argv.includes('--self-test')) {
       'the snapshot would name the veto from totals the gate had not yet seen change');
   one('a batch with no gate is caught', decidesBeforeCharging(['seed','monthSeed','siteSeed','snapshot','siteCharge','monthCharge','charge']), false,
       'nothing would decide');
-  one('no batch at all is a failure', verdict([], true, true, true, true, true), 'no-batch-found',
+  one('no batch at all is a failure', verdict([], true, true, true, true, true, true, true), 'no-batch-found',
       'a renamed helper must not read as clean (an empty result is a failure)');
-  one('a five-statement batch is caught', verdict(['seed','monthSeed','site','monthCharge','charge'], true, true, true, true, true), 'batch-has-5-statements',
+  one('a five-statement batch is caught', verdict(['seed','monthSeed','site','monthCharge','charge'], true, true, true, true, true, true, true), 'batch-has-5-statements',
       'the pre-gate shape back: a veto by one limit would charge the others');
-  one('a three-statement batch is caught', verdict(['seed','site','charge'], true, true, true, true, true), 'batch-has-3-statements',
+  one('a three-statement batch is caught', verdict(['seed','site','charge'], true, true, true, true, true, true, true), 'batch-has-3-statements',
       'the split shape: the month in a second batch that a stop can separate from the first');
 
   const GATE = `INSERT OR REPLACE INTO odds_budget_gate (id, token)
@@ -188,6 +220,45 @@ if (process.argv.includes('--self-test')) {
       'the 3,800 ceiling would stop binding');
   one('B5 A GATE THAT IGNORES A DUPLICATE TOKEN IS CAUGHT', gateCarriesAllThree(GATE.replace('OR REPLACE', 'OR IGNORE')), false,
       'the first token would stay in the row and every later call would be refused');
+
+  // THE REFUSAL RECORD (fix 3 E).
+  one('the refusal sits after the gate and before every charge', refusalAfterGate(E), true, 'the shipped order');
+  one('R1 A REFUSAL BEFORE THE GATE IS CAUGHT',
+      refusalAfterGate(['seed','monthSeed','siteSeed','snapshot','refusal','gate','siteCharge','monthCharge','charge']), false,
+      'it would read the PREVIOUS call\'s token and file this call as a refusal or not at random');
+  one('R2 A REFUSAL AFTER A CHARGE IS CAUGHT',
+      refusalAfterGate(['seed','monthSeed','siteSeed','snapshot','gate','siteCharge','refusal','monthCharge','charge']), false,
+      'a position nobody asserted is a position the next edit moves it from');
+  one('a batch with no refusal statement is caught',
+      refusalAfterGate(['seed','monthSeed','siteSeed','snapshot','gate','siteCharge','monthCharge','charge']), false,
+      'a refusal would be decided and not recorded: fix 3 E back');
+  const REFUSAL = `INSERT INTO odds_budget_refusal (day, scope, site, first_at, n)
+           SELECT ?, CASE WHEN (SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'
+                          WHEN (SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'
+                          ELSE 'site' END,
+                  ?, ?, 1
+            WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)
+           ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1
+           RETURNING scope`;
+  one('the refusal record is one conditional upsert', refusalShape(REFUSAL), true, 'the shipped form');
+  one('R3 A RECORD WRITTEN ON EVERY CALL IS CAUGHT', refusalShape(REFUSAL.replace('WHERE NOT EXISTS', 'WHERE EXISTS')), false,
+      'every admitted call would be filed as a refusal');
+  one('R4 A RECORD WITH NO CONDITION IS CAUGHT',
+      refusalShape(REFUSAL.replace('WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)', 'WHERE 1 = 1')), false,
+      'the same, and the token bind would be one short');
+  one('R5 A RECORD THAT DOES NOT COUNT REPEATS IS CAUGHT', refusalShape(REFUSAL.replace('n = n + 1', 'n = 1')), false,
+      'a caller retried 40 times would read as refused once');
+  one('R6 A RECORD THAT DOES NOT READ ITS SCOPE BACK IS CAUGHT', refusalShape(REFUSAL.replace(/\s+RETURNING scope/, '')), false,
+      'chargeOdds could not compare the record with the reason, and the second refusal of a day would return nothing');
+  const DAY_WHEN = "WHEN (SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'";
+  const MONTH_WHEN = "WHEN (SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'";
+  one('R7 A MONTH ASKED BEFORE THE DAY IS CAUGHT',
+      refusalShape(REFUSAL.replace(DAY_WHEN, '@@').replace(MONTH_WHEN, DAY_WHEN).replace('@@', MONTH_WHEN)), false,
+      'a day veto would be filed as a month veto');
+  one('...and swapping the labels alone is caught too', refusalShape(REFUSAL.replace("THEN 'day'", "THEN 'TMP'").replace("THEN 'month'", "THEN 'day'").replace("THEN 'TMP'", "THEN 'month'")), false,
+      'the day predicate would file under the month');
+  one('R8 A RECORD THAT USES THE GATE\'S COMPARISON IS CAUGHT', refusalShape(REFUSAL.replace('+ ? > ? THEN \'day\'', '+ ? <= ? THEN \'day\'')), false,
+      'it would file a day veto for a call the day had room for');
 
   const SITE_CHARGE = `UPDATE odds_budget_site SET used = used + ? WHERE day = ? AND site = ? AND ${GATE_PREDICATE}`;
   const MONTH_CHARGE = `UPDATE odds_budget_month SET used = used + ? WHERE month = ? AND ${GATE_PREDICATE} RETURNING used`;
@@ -228,14 +299,16 @@ if (process.argv.includes('--self-test')) {
   // THE LINES ABOVE TEST THE PREDICATES, NOT THE BRANCHES THAT USE THEM.
   // A predicate nobody consults is the same as no predicate, so verdict() is asked
   // what it does with each one.
-  one('verdict ACTS on a charge before the gate', verdict(E, false, true, true, true, true), 'a-charge-runs-before-the-gate', 'the branch, not the predicate');
-  one('verdict ACTS on a charge that is not last', verdict(['seed','monthSeed','siteSeed','snapshot','gate','siteCharge','charge','monthCharge'], true, true, true, true, true),
+  one('verdict ACTS on a charge before the gate', verdict(E, false, true, true, true, true, true, true), 'a-charge-runs-before-the-gate', 'the branch, not the predicate');
+  one('verdict ACTS on a charge that is not last', verdict(['seed','monthSeed','siteSeed','snapshot','gate','refusal','siteCharge','charge','monthCharge'], true, true, true, true, true, true, true),
       'charge-is-not-last', 'chargedFromBatch reads the LAST statement as the verdict');
-  one('verdict ACTS on a gate that misses a limit', verdict(E, true, false, true, true, true), 'the-gate-misses-a-limit', 'the branch, not the predicate');
-  one('verdict ACTS on a charge that ignores the gate', verdict(E, true, true, false, true, true), 'a-charge-ignores-the-gate', 'the branch, not the predicate');
-  one('verdict ACTS on a charge that decides for itself', verdict(E, true, true, true, false, true), 'a-charge-decides-for-itself', 'the branch, not the predicate');
-  one('verdict ACTS on a ceilinged correction', verdict(E, true, true, true, true, false), 'a-correction-carries-the-ceiling', 'the branch, not the predicate');
-  one('all of them together pass', verdict(E, true, true, true, true, true), 'ok', 'the shipped state');
+  one('verdict ACTS on a refusal outside the gate-to-charges window', verdict(E, true, true, true, true, true, false, true), 'the-refusal-is-not-between-the-gate-and-the-charges', 'the branch, not the predicate');
+  one('verdict ACTS on an unconditional refusal record', verdict(E, true, true, true, true, true, true, false), 'the-refusal-record-is-not-conditional-on-the-gate', 'the branch, not the predicate');
+  one('verdict ACTS on a gate that misses a limit', verdict(E, true, false, true, true, true, true, true), 'the-gate-misses-a-limit', 'the branch, not the predicate');
+  one('verdict ACTS on a charge that ignores the gate', verdict(E, true, true, false, true, true, true, true), 'a-charge-ignores-the-gate', 'the branch, not the predicate');
+  one('verdict ACTS on a charge that decides for itself', verdict(E, true, true, true, false, true, true, true), 'a-charge-decides-for-itself', 'the branch, not the predicate');
+  one('verdict ACTS on a ceilinged correction', verdict(E, true, true, true, true, false, true, true), 'a-correction-carries-the-ceiling', 'the branch, not the predicate');
+  one('all of them together pass', verdict(E, true, true, true, true, true, true, true), 'ok', 'the shipped state');
 
   // COUNTED, not written down: a literal here is a denominator that goes
   // quietly wrong the first time an assertion is added (Rule 91).
@@ -279,12 +352,16 @@ const gate3 = gateCarriesAllThree(pick('SQL_GATE'));
 const obey = chargesObeyGate(pick('SQL_SITE_CHARGE'), pick('SQL_MONTH_CHARGE'), pick('SQL_CHARGE'));
 const noLimit = chargesCarryNoLimit(pick('SQL_SITE_CHARGE'), pick('SQL_MONTH_CHARGE'), pick('SQL_CHARGE'));
 const corrections = correctionsUnguarded(pick('SQL_FIX_DAY'), pick('SQL_FIX_SITE'), pick('SQL_FIX_MONTH'));
-const v = verdict(order, decides, gate3, obey, noLimit, corrections);
+const recordAfter = refusalAfterGate(order);
+const recordShape = refusalShape(pick('SQL_REFUSAL'));
+const v = verdict(order, decides, gate3, obey, noLimit, corrections, recordAfter, recordShape);
 
 console.log('=== the odds budget batch ===\n');
 console.log(`  batch order              : ${order.join(' -> ') || '(no batch found)'}`);
 console.log(`  decides before charging  : ${decides}`);
 console.log(`  charge is last           : ${order.at(-1) === 'charge'}`);
+console.log(`  refusal after the gate   : ${recordAfter}`);
+console.log(`  refusal is conditional   : ${recordShape}`);
 console.log(`  the gate holds 3 limits  : ${gate3}`);
 console.log(`  charges obey the gate    : ${obey}`);
 console.log(`  charges decide nothing   : ${noLimit}`);
@@ -300,4 +377,4 @@ if (v !== 'ok') {
     console.log('      The gate decides over the PRE-charge totals. A charge that runs first\n      changes what the gate reads, and a refused call would still move a counter.');
   process.exit(1);
 }
-console.log('\nOK: seed -> monthSeed -> siteSeed -> snapshot -> gate -> siteCharge -> monthCharge -> charge; the gate holds the day, the month and the site, the charges obey it, corrections do not.');
+console.log('\nOK: seed -> monthSeed -> siteSeed -> snapshot -> gate -> refusal -> siteCharge -> monthCharge -> charge; the gate holds the day, the month and the site, the refusal is filed only without the gate\'s token, the charges obey it, corrections do not.');

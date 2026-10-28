@@ -7,6 +7,9 @@ deployed the same day (commit `5b92e04`, Deploy RELAY Worker run 40731128552), a
 Task 3 done conditions met (see "Task 3 — DONE" under "Results"). It landed ten days
 before the CFL experiment's VOID window (2026-11-08..11-23). A real site refusal has not
 been seen live; that is staged, not owed (Rule 74), and is recorded there.
+The owner's three decisions on Task 3 (cap numbers ratified, the shared labels split, a refusal record
+that cannot fail apart from the decision) were approved and built on 2026-10-28; see "Owner's decisions
+of 2026-10-28" at the end of "Results".
 Session doc: `outbox/cc-session-2026-10-28-site-caps.md` (Task 3);
 `outbox/cc-session-2026-10-21-per-consumer-demand.md` (Tasks 1 and 2).
 Supersedes the demand-derived-ceiling proposal made earlier the same day, which
@@ -442,7 +445,122 @@ relay) rejects: it turned the check red on `main` from the close-out commit unti
 It was found by the BSD WebSocket session, not by this one: the close-out was a docs-only commit, so
 `deploy.yml` did not run, and `guards.yml` does not carry that step.
 
-**Owner's decisions still open, none of them blocking this CC-CMD:** fix 3 E (a failed stamp write
-reads as no refusal; it now also covers site stamps); whether to split the two capped labels shared
-with unauthenticated routes (`docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`); the
-cap numbers themselves, which are policy.
+### Owner's decisions of 2026-10-28 — all three approved ("decisions 1, 2, 3 approved"), built the same day
+
+The three were the open items above. Each is recorded with what was decided, what was built, and
+the executed artifact that shows it. The ledger's accounting did not change: the day, the site
+split and the month still move together or not at all.
+
+**Decision 3 — the cap numbers are ratified as they stand.** `ambientCaptureClosingOdds` 400,
+`fetchSportOddsLive` 2,000, `fetchSportOddsHistorical` 1,800 and `getWCPregameLambdas` 300 are the
+owner's numbers as of 2026-10-28; they were sized from the 10-13..10-27 spend (probe block above) and
+are policy, so they change only by an owner order or a dated `siteExtra` grant. The three caps added by
+decision 2 (below) were NOT among the numbers put to the owner; they were chosen with the split, are
+sized in the comment above `SITE_CEILINGS`, and are the owner's to tune.
+
+**Decision 2 — the two capped labels shared with unauthenticated routes are split.** Before: an
+anonymous caller of `/identity/mismatches` spent `fetchSportOddsLive`'s 2,000 and could starve the
+cron that shares the label (`snapshotCronOdds`, the opening-odds snapshot), and one of
+`/archive/odds-backfill` spent `fetchSportOddsHistorical`'s 1,800 and could starve the dead-hour
+backfill. Now each route charges its
+own label, and `/archive/game`'s closing fetch (the third user of `fetchSportOddsHistorical`, and
+unauthenticated too) is split with them:
+
+| route | label | cap | how the cap was sized |
+|---|---|---|---|
+| `GET /identity/mismatches` | `identityMismatches` | 150 | the Saturday join probe is 4 sports x 3 credits = 12 a week; 150 is twelve weeks of it in one day |
+| `GET/POST /archive/odds-backfill` | `archiveOddsBackfill` | 300 | ten sport-dates at 30; no workflow or script calls the route |
+| `POST /archive/game` (closing fetch) | `archiveGameClosing` | 900 | its share cannot be separated from the cron's in history; the whole label's busiest day since 10-13 is 900 (10-22) |
+
+How: `fetchSportOddsLive` and `fetchSportOddsHistorical` take a selector (`site`), and the guard and
+the reconcile each name their label as a closed ternary of literals, because
+`check-odds-attribution` refuses a variable site name and `check-odds-calls-guarded` credits only one
+guard at the top level of the block holding the fetch (a branchy form with a guard per branch broke
+it). `check-odds-attribution` now reads that form (`siteLabels`, 31 self-tests, 24 of 24 mutants).
+Executed, not read: `scripts/check-odds-label-split.mjs` runs the real worker's three routes against
+a node:sqlite D1 and a vendor stub and asserts, per route, that the credits land on its own row and on
+no cron's, that the reconcile ledger names it, that its cron's cap and its siblings' caps do not stop
+it, and that at its own cap the vendor is not called and nothing moves; the cron paths are run too, in
+the other direction (the dead-hour backfill through the real scheduled handler, the opening-odds snapshot
+and the live fetch from their source), so a default moved onto a route's label turns it red (61
+checks); `scripts/mutate-odds-label-split.mjs`: 20 of 20 caught.
+
+What the split does NOT do, stated plainly because the first wording of this overreached ("no cron's"):
+- It isolates LABELS, not the day. The day's 3,800 and the month's 85,000 are still shared, so an
+  anonymous caller who fills the day starves every cron at the day's limit. Through the three capped
+  routes that is at most 150 + 300 + 900 = 1,350 credits a day.
+- **The `/odds/*` proxy route is a fourth unauthenticated spender, uncapped (`oddsProxyRoute`)**, found by
+  the review of this build. It is recorded in
+  `docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`; a cap on it is policy and the owner's.
+- `archiveGameClosing` is shared with the relay's own legitimate callers (the cron and GameDO closing
+  fetches for sports AmbientDO does not cover), so its 900 isolates `/archive/game` from the OTHER
+  labels, not from them; and 900 is 1.0x the busiest day seen (10-22), against the 2x margin the four
+  ratified caps were sized with. The owner's number to tune.
+Gating the routes stays `docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md` TASK 1, still the
+owner's to release. Two consequences of the split were fixed in the same build: `GET /identity/mismatches`
+reported a refusal by our own guard as `Odds-API fetch failed` (the Saturday probe classifies that as the
+vendor, `C1_VENDOR`), so it now reports `guarded: true` and `scripts/probe-odds-join.mjs` classifies it
+`C0_GUARDED`; and `scripts/measure-odds-consumer-demand.mjs` compared `/archive/game`'s closing demand
+with a `fetchSportOddsHistorical` column that no longer holds that spend, so its charged column is now
+the sum of the two labels (`mergeLabelSpend`, self-tested and mutated).
+
+**Decision 1 — fix 3 E: the refusal record cannot fail independently of the decision.** The three
+KV stamps a veto writes (the day's, the month's, a site's) are puts made after the batch, in a
+`try`/`catch` that logged "veto held; stamp not recorded" and went on, so a failed write left a refusal
+that had happened and a day that read `none` (`docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`,
+fix 3 E). Now `chargeOdds` sends nine statements, and the new one, `refusal`, sits between the gate and
+the charges:
+
+    INSERT INTO odds_budget_refusal (day, scope, site, first_at, n)
+    SELECT ?, CASE <day over> THEN 'day' <month over> THEN 'month' ELSE 'site' END, ?, ?, 1
+     WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)
+    ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1
+    RETURNING scope
+
+It writes only while the gate holds NO token for this call, so a refusal and its record are one
+transaction. `RETURNING scope` lets `chargeOdds` compare the record with the reason it derives from the
+snapshot, and a disagreement (a record that is missing, filed under another limit, or filed for a call
+that charged) degrades open and is counted, as a verdict that disagrees with its reason already did.
+The reader (`peekDailyOdds`) takes the EARLIEST time of the record and the stamp, for the day, the
+month and every capped site: a stamp retried after a failed write carries the later hour, and the
+record carries the first. A store that cannot be read matters only when the other has nothing to say;
+a time from either is a refusal that happened, and a null with an unreadable store behind it is
+unknown and named in `stamps_unreadable` (Rule 99). `/budget/odds` also serves `refusals`: the cells
+for the date asked about, `[]` when the table was read and holds none, `null` when it could not be
+read or the date is before `REFUSAL_RECORD_FROM` (2026-10-28, the day the table was created: an empty
+table for an earlier date is empty because it did not exist, which the review showed reading as "no
+refusals" beside a stamp that said otherwise). The KV stamps are still written, and are the only record
+of a refusal made before the table existed, so the reader needs both. `odds_budget_refusal` is readable through `/d1/execute`
+(`ALLOWED_TABLES`). No consumer reads `refusals` yet beyond the live proof; it is served so a refusal
+can be counted by caller without a D1 query.
+
+Executed artifacts: `check-odds-site-caps.mjs` (229 checks; the record is compared with the model
+after every call of 2,000 sequences of 25, and survives a stamp whose put, get or print fails, for the
+day, the month and a site; 50 of 50 mutants), `check-ceiling-reached.mjs` (73 checks: the stamp's write
+failing, its read failing, the record unreadable, both unreadable, the earliest of the two in both
+directions, and the reader's SQL on hand-written rows; 63 of 63 mutants), `check-odds-budget-batch.mjs`
+(50 self-tests; the record's order and shape; with its executed half, 37 of 37),
+`check-monthly-atomic.mjs` (122) and its 33 of 33 mutants, and the probe's refusal-path verdict
+(`probe-odds-budget-latency.mjs` 19 self-tests, 10 of 10).
+The debug route `POST /debug/odds-budget-latency` prepares the charge's statements itself and now also
+runs a REFUSED pair on its sentinel day, so the real D1 executes the refusal path (insert, then
+`ON CONFLICT ... DO UPDATE ... RETURNING`) with no vendor credit; `check-odds-label-split.mjs` runs
+that route too, and returns the statements it actually prepared beside the order the charger declares.
+Landing: it changes `chargeOdds`, so it had to land before the CFL experiment's VOID window
+(2026-11-08..11-23); the live proof is named in the session doc once it exists.
+
+**Review of this build, 2026-10-28 (workflow `wf_0826d07d-53b`: four lenses, 15 agents, 76 minutes).**
+Ten findings confirmed by an independent skeptic that ran something (one refuted: that the refusal SQL
+had never run on D1's engine, which it ran against wrangler's local D1). None was a defect in the
+spend path; the gates and the replays could not fail for what they claimed.
+
+| finding (severity after verification) | disposition |
+|---|---|
+| the reader's SQL (month scope filter, MIN, day filter) could be broken three ways with every check green (high); five more survivors in the record path (medium, two findings) | `check-ceiling-reached` E11a-i on hand-written rows, mutants R12-R17 |
+| no check observed which label the cron paths charge, so a default moved onto a route's label starved the cron with every check green (high to medium; medium) | cron scenarios in `check-odds-label-split` (dead-hour backfill executed; the snapshot and the live fetch from source), mutants L15, L17-L19; `fetchSportOddsHistorical` lost its unreachable default (both callers name the label) |
+| the debug-route assertion read the exported constant, not what the route sent (medium) | the route returns `statement_order_sent`; asserted equal to the declared order; mutant L21 |
+| "no cron's" was false: `/odds/*` is uncapped and the day is shared (medium) | stated above; recorded in the unauthenticated-routes CC-CMD |
+| `archiveGameClosing` shared with its legitimate callers, and 900 is 1.0x the busiest day (medium) | stated above; the number is the owner's |
+| `/identity/mismatches` reported our guard's refusal as a vendor fault (medium) | `guarded: true`; `C0_GUARDED` in the probe; asserted in the label-split check, mutant L20 |
+| `measure-odds-consumer-demand` compared closing demand with a column that lost its spend (medium) | `mergeLabelSpend`, self-test and 2 mutants (23 of 23) |
+| low: `refusals: []` for dates before the table; the month query could not seek; the latency route's warm sample ran before the DDL; mutant names that did not match what they mutate (M46, E12, M15); stale counts; an "eight statements" comment; comment naming E14 | all fixed (`REFUSAL_RECORD_FROM`; a key-prefix range; the DDL first; M46 faithful plus M46b; renames; counts; comments). Not changed, said here: the CASE's `ELSE 'site'` would absorb a NULL total, unreachable because the seeds run first in the same transaction (commented at the statement); `odds_budget_refusal` has no pruning, about 30 rows a day on a refusing day, only on those days |

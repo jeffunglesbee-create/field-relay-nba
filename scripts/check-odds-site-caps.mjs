@@ -28,7 +28,7 @@
  * Rule 90: scripts/mutate-odds-site-caps.mjs breaks the source in each way that
  * matters and requires this file to go red.
  */
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -68,6 +68,10 @@ const EXPECT_CAPS = {
   fetchSportOddsLive: 2000,
   fetchSportOddsHistorical: 1800,
   getWCPregameLambdas: 300,
+  // The split labels, 2026-10-28 (owner's decision 2 of that day).
+  identityMismatches: 150,
+  archiveOddsBackfill: 300,
+  archiveGameClosing: 900,
 };
 const UNCAPPED = ['handleCFLOddsProbs', 'handleWCOddsProbs', 'ambientFetchLiveOdds', 'oddsProxyRoute', 'wpResolver', 'unattributed'];
 const SITES = [...Object.keys(EXPECT_CAPS), ...UNCAPPED.slice(0, 2)];
@@ -85,6 +89,7 @@ function stmt(sql, args = []) {
 }
 let throwOnBatch = null;
 let tamperSnapshot = null;               // a function that rewrites the snapshot's row
+let tamperRefusal = null;                // a function that rewrites the refusal statement's results
 const d1 = {
   prepare: (sql) => stmt(sql),
   batch: async (stmts) => {
@@ -96,6 +101,10 @@ const d1 = {
       if (tamperSnapshot && stmts.length > 3) {
         const i = stmts.findIndex((s) => /AS day_used/.test(s.sql));
         if (i >= 0) out[i] = { results: [tamperSnapshot(out[i].results[0])], success: true };
+      }
+      if (tamperRefusal && stmts.length > 3) {
+        const i = stmts.findIndex((s) => /^\s*INSERT INTO odds_budget_refusal/.test(s.sql));
+        if (i >= 0) out[i] = { results: tamperRefusal(out[i].results), success: true };
       }
       return out;
     } catch (e) { db.exec('ROLLBACK'); throw e; }
@@ -136,10 +145,10 @@ async function attempt(fn) { try { return await quietly(fn); } catch (e) { retur
 // the resets below have tables to reset.
 await quietly(() => chargeOdds(env, 1, 'unattributed'));
 function reset() {
-  for (const t of ['odds_budget', 'odds_budget_site', 'odds_budget_month', 'odds_budget_gate']) {
+  for (const t of ['odds_budget', 'odds_budget_site', 'odds_budget_month', 'odds_budget_gate', 'odds_budget_refusal']) {
     try { db.exec(`DELETE FROM ${t}`); } catch { /* the gate table does not exist before this change */ }
   }
-  kvMap.clear(); kvPuts.length = 0; throwOnBatch = null; tamperSnapshot = null; failKv = null;
+  kvMap.clear(); kvPuts.length = 0; throwOnBatch = null; tamperSnapshot = null; tamperRefusal = null; failKv = null;
 }
 function seed({ day = 0, month = 0, sites = {} } = {}) {
   db.prepare('INSERT OR REPLACE INTO odds_budget (day, used) VALUES (?, ?)').run(D, day);
@@ -152,6 +161,9 @@ const totals = () => ({
   site: Object.fromEntries(db.prepare('SELECT site, used FROM odds_budget_site WHERE day = ?').all(D).map((r) => [r.site, r.used])),
 });
 const stamps = () => new Set(kvPuts.filter(isVetoStamp));
+// The refusal record, as the batch left it for the day under test: one row per
+// (limit, caller), its first time and its count of refused calls.
+const recordRows = () => db.prepare('SELECT scope, site, first_at, n FROM odds_budget_refusal WHERE day = ? ORDER BY scope, site').all(D).map((r) => ({ ...r }));
 
 // ── The model ──────────────────────────────────────────────────────────────
 function modelCall(st, site, units) {
@@ -165,7 +177,8 @@ function modelCall(st, site, units) {
     return { charged: true, stamp: null };
   }
   // The day is asked first, then the month, then the site.
-  return { charged: false, stamp: !room.day ? DAY_STAMP : !room.month ? MONTH_STAMP : SITE_STAMP(site) };
+  return { charged: false, stamp: !room.day ? DAY_STAMP : !room.month ? MONTH_STAMP : SITE_STAMP(site),
+           scope: !room.day ? 'day' : !room.month ? 'month' : 'site' };
 }
 
 // ── The caps are what the CC-CMD says they are ────────────────────────────
@@ -195,17 +208,19 @@ function modelCall(st, site, units) {
 // uncapped with every check green. So: every capped key must be a declared site
 // and must be passed as a charge label by a real call site.
 {
-  const text = ['INDEX_SRC', 'AMBIENT_DO_SRC', 'WP_RESOLVER_SRC']
-    .map((e, i) => readFileSync(process.env[e] || ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'][i], 'utf8')).join('\n');
-  const labels = (re) => new Set([...text.matchAll(re)].map((m) => m[1]));
-  const charged = labels(/(?:_consumeAmbientOddsCredit|consumeOddsCredit)\(.*,\s*'([A-Za-z0-9_]+)'\)/g);
-  const reconciled = labels(/reconcileOddsCredit\(.*,\s*'([A-Za-z0-9_]+)'\)/g);
+  // ONE READER OF LABELS: check-odds-attribution's own, in its data mode, so that a call
+  // site written as a literal or as a closed ternary of literals is read the same way by
+  // both gates (a regex here saw only the literal form and lost the split labels).
+  const files = ['INDEX_SRC', 'AMBIENT_DO_SRC', 'WP_RESOLVER_SRC']
+    .map((e, i) => process.env[e] || ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'][i]);
+  const read = JSON.parse(execFileSync(process.execPath, ['scripts/check-odds-attribution.mjs', '--labels', ...files], { encoding: 'utf8' }));
+  const charged = new Set(read.charged), reconciled = new Set(read.reconciled);
   const declared = new Set(mod.ODDS_SITES);
   for (const k of Object.keys(mod.SITE_CEILINGS)) {
     ok(`${k} is a declared site`, declared.has(k), 'a cap on a name ODDS_SITES does not list is never read by /budget/odds');
     ok(`${k} is passed to the charger by a call site`, charged.has(k), `no consumeOddsCredit(..., '${k}') in src/index.js, src/ambient-do.js or src/wp-resolver.js: the cap is dead and the consumer is uncapped`);
   }
-  ok('the sweep found the call sites at all', charged.size >= 8 && reconciled.size >= 6,
+  ok('the sweep found the call sites at all', charged.size >= 11 && reconciled.size >= 9,
     `${charged.size} charge labels and ${reconciled.size} reconcile labels found: the pattern no longer matches how the call sites are written`);
   console.log(`        ${charged.size} charge labels, ${reconciled.size} reconcile labels read from the three files`);
 }
@@ -279,8 +294,12 @@ for (const [site, cap] of Object.entries(EXPECT_CAPS)) {
 {
   reset(); seed();
   tamperSnapshot = (row) => ({ ...row, day_used: 1e9 });
+  // The record is tampered WITH the snapshot, so the two readings of the reason
+  // agree and only the comparison of the verdict with the reason can see this
+  // (the record's own comparison is exercised by the T cases below).
+  tamperRefusal = () => [{ scope: 'day' }];
   const r = await quietly(() => chargeOdds(env, 3, 'ambientCaptureClosingOdds'));
-  tamperSnapshot = null;
+  tamperSnapshot = null; tamperRefusal = null;
   eq('V  a charge whose snapshot says the day was full degrades open', r, true);
   const deg = [...kvMap.entries()].find(([k]) => /^odds:degraded:/.test(k));
   const v = deg ? JSON.parse(deg[1]) : null;
@@ -295,8 +314,9 @@ for (const [site, cap] of Object.entries(EXPECT_CAPS)) {
 {
   reset(); seed({ day: CEIL });
   tamperSnapshot = () => ({ day_used: 0, month_used: 0, site_used: 0 });
+  tamperRefusal = () => [];                                 // consistent with the snapshot: no refusal
   const r = await quietly(() => chargeOdds(env, 3, 'ambientCaptureClosingOdds'));
-  tamperSnapshot = null;
+  tamperSnapshot = null; tamperRefusal = null;
   eq('V  a refusal whose snapshot says there was room degrades open', r, true);
   const deg = [...kvMap.entries()].find(([k]) => /^odds:degraded:/.test(k));
   const v = deg ? JSON.parse(deg[1]) : null;
@@ -332,6 +352,69 @@ for (const op of ['get', 'put', 'unprintable']) {
   eq(`K  a site veto with the stamp ${op} throwing: chargeOdds returns false`, r, false);
   ok(`K  ...is not counted as a degrade-open`, ![...kvMap.keys()].some((k) => /^odds:degraded:/.test(k)), JSON.stringify([...kvMap.keys()]));
   eq(`K  ...and charges nothing`, [totals().day, totals().month, totals().site.ambientCaptureClosingOdds], [0, 0, 400]);
+}
+
+// ── THE REFUSAL RECORD (fix 3 E of docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md) ─
+// The three KV stamps are written AFTER the batch, in a catch that says a veto whose
+// stamp cannot be recorded is still a veto. It was, and the day then read `none`. The
+// batch now files the refusal itself, in the same transaction as the decision, so no
+// failure of the stamp can lose it. Each limit, with the stamp's put, its get and an
+// unprintable rejection failing, and with KV working: the record is the same.
+for (const [what, seedArg, site, scope] of [
+  ['the day', { day: CEIL }, 'handleCFLOddsProbs', 'day'],
+  ['the month', { month: ODDS_HARD_LIMIT }, 'handleCFLOddsProbs', 'month'],
+  ['the site', { sites: { getWCPregameLambdas: 300 } }, 'getWCPregameLambdas', 'site'],
+]) {
+  for (const op of ['put', 'get', 'unprintable', null]) {
+    reset(); seed(seedArg);
+    failKv = op ? { op, re: /:warned/ } : null;
+    const r = await attempt(() => chargeOdds(env, 3, site));
+    failKv = null;
+    eq(`E  ${what} refusal, stamp ${op ?? 'working'}: chargeOdds returns false`, r, false);
+    eq('E  ...and the record holds exactly that refusal, once',
+      recordRows().map(({ scope: sc, site: si, n: c }) => ({ scope: sc, site: si, n: c })), [{ scope, site, n: 1 }]);
+    if (op === 'put') eq('E  ...with the stamp not written at all, so the record is the ONLY evidence', [...stamps()], []);
+  }
+}
+{
+  // First, not latest; repeats counted; one row per caller; an admitted call files nothing.
+  reset(); seed({ day: CEIL });
+  const t0 = clock;
+  for (let i = 0; i < 3; i++) { clock = t0 + i * 1000; await quietly(() => chargeOdds(env, 3, 'handleCFLOddsProbs')); }
+  await quietly(() => chargeOdds(env, 3, 'wpResolver'));
+  clock = t0;
+  eq('E  three refused calls by one caller: one row, n = 3, first_at the first call\'s',
+    recordRows().filter((r) => r.site === 'handleCFLOddsProbs'), [{ scope: 'day', site: 'handleCFLOddsProbs', first_at: new RealDate(t0).toISOString(), n: 3 }]);
+  eq('E  ...and another caller turned away by the same limit has its own row', recordRows().map((r) => r.site), ['handleCFLOddsProbs', 'wpResolver']);
+  reset(); seed();
+  await quietly(() => chargeOdds(env, 3, 'handleCFLOddsProbs'));
+  eq('E  a call that charged files no refusal', recordRows(), []);
+  seed({ day: CEIL - 3 });
+  await quietly(() => chargeOdds(env, 3, 'handleCFLOddsProbs'));
+  await quietly(() => chargeOdds(env, 3, 'handleCFLOddsProbs'));
+  eq('E  ...and the first refusal after charges is the only row, n = 1', recordRows().map((r) => [r.scope, r.n]), [['day', 1]]);
+}
+
+// A record that disagrees with the reason is not guessed at, in any of its three
+// directions. The record in D1 stays as the batch left it; what is asserted is that
+// the CALL is counted as a degrade-open and files no stamp, as a verdict that
+// disagrees with its reason does.
+for (const [label, seedArg, tamper] of [
+  ['says month where the day refused', { day: CEIL }, () => [{ scope: 'month' }]],
+  ['says nothing where the day refused', { day: CEIL }, () => []],
+  ['says day where the call charged', {}, () => [{ scope: 'day' }]],
+  ['files a scope that is no limit', { day: CEIL }, () => [{ scope: 'galaxy' }]],
+  ['files a row that names no scope where the call charged', {}, () => [{}]],
+  ['returns no results array where the call charged', {}, () => undefined],
+]) {
+  reset(); seed(seedArg);
+  tamperRefusal = tamper;
+  const r = await quietly(() => chargeOdds(env, 3, 'ambientCaptureClosingOdds'));
+  tamperRefusal = null;
+  const deg = [...kvMap.entries()].find(([k]) => /^odds:degraded:/.test(k));
+  const v = deg ? JSON.parse(deg[1]) : null;
+  eq(`T  a record that ${label}: degrades open`, r, true);
+  ok('T  ...counted once under charge:, with no stamp', !!v && v.events === 1 && Object.keys(v.reasons || {})[0]?.startsWith('charge: odds budget batch: the refusal'), JSON.stringify(v));
 }
 
 // ── THE GRANTED DAY, RUN THROUGH chargeOdds ───────────────────────────────────
@@ -406,11 +489,18 @@ for (const op of ['get', 'put', 'unprintable']) {
     const st = totals();
     for (const s of SITES) st.site[s] = st.site[s] ?? 0;
     const want = new Set();
+    const rec = new Map();                   // the refusal record the model expects: scope|site -> {first_at, n}
+    const t0 = clock;
     let bad2 = false;
     for (let i = 0; i < CALLS && !bad2; i++) {
       const site = pick(SITES), units = pick(UNITS);
+      clock = t0 + i * 1000;                 // distinct instants, so first-not-latest is a fact the record can get wrong
       const m = modelCall(st, site, units);
-      if (m.stamp) { want.add(m.stamp); vetoes[m.stamp === DAY_STAMP ? 'day' : m.stamp === MONTH_STAMP ? 'month' : 'site']++; }
+      if (m.stamp) {
+        want.add(m.stamp); vetoes[m.stamp === DAY_STAMP ? 'day' : m.stamp === MONTH_STAMP ? 'month' : 'site']++;
+        const k = `${m.scope}|${site}`;
+        rec.set(k, rec.has(k) ? { ...rec.get(k), n: rec.get(k).n + 1 } : { first_at: new RealDate(clock).toISOString(), n: 1 });
+      }
       const got = await quietly(() => chargeOdds(env, units, site));
       calls++;
       const t = totals();
@@ -420,16 +510,21 @@ for (const op of ['get', 'put', 'unprintable']) {
       // and the call went through unrecorded, which can leave the totals and the
       // verdict looking right.
       const degraded = [...kvMap.keys()].some((k) => /^odds:degraded:/.test(k));
+      const wantRec = [...rec.entries()].map(([k, v]) => ({ scope: k.split('|')[0], site: k.split('|')[1], ...v }))
+        .sort((a, b) => (a.scope < b.scope ? -1 : a.scope > b.scope ? 1 : a.site < b.site ? -1 : a.site > b.site ? 1 : 0))
+        .map((r) => ({ scope: r.scope, site: r.site, first_at: r.first_at, n: r.n }));
+      const gotRec = recordRows();
       if (got !== m.charged || t.day !== st.day || t.month !== st.month || !sameSites || degraded
-          || JSON.stringify(gotStamps) !== JSON.stringify(wantStamps)) {
+          || JSON.stringify(gotStamps) !== JSON.stringify(wantStamps) || JSON.stringify(gotRec) !== JSON.stringify(wantRec)) {
         bad2 = true;
         if (!first) first = { sequence: q, call: i, site, units, model: { charged: m.charged, day: st.day, month: st.month, site: st.site[site] },
-                              got: { charged: got, day: t.day, month: t.month, site: t.site[site] ?? 0 }, wantStamps, gotStamps };
+                              got: { charged: got, day: t.day, month: t.month, site: t.site[site] ?? 0 }, wantStamps, gotStamps, wantRec, gotRec };
       }
     }
+    clock = t0;
     if (bad2) disagree++;
   }
-  eq(`the real chargeOdds agrees with the reference model on ${SEQUENCES} random sequences`, disagree, 0);
+  eq(`the real chargeOdds agrees with the reference model, the refusal record included, on ${SEQUENCES} random sequences`, disagree, 0);
   if (first) console.log(`        first disagreement: ${JSON.stringify(first)}`);
   ok('the sequences cross every kind of limit, so agreement is not vacuous',
     vetoes.day >= SEQUENCES / 10 && vetoes.month >= SEQUENCES / 10 && vetoes.site >= SEQUENCES / 10, `vetoes by kind: ${JSON.stringify(vetoes)} over ${calls} calls`);
@@ -440,7 +535,7 @@ console.log(`\n${n - bad} of ${n} passed.`);
 console.log(`COVERAGE: chargeOdds itself, ${SEQUENCES} sequences of ${CALLS} calls against a four-line model, on node:sqlite as D1`);
 console.log('and a Map as KV, with the clock pinned to 2026-10-28; the boundary of every capped site at units 1, 3 and 30; the granted day');
 console.log('2026-09-13; the site veto with its stamp read, written and printed failing; units and sites no caller can produce; the two');
-console.log('directions of a verdict that disagrees with its reason; corrections at a cap; and the cap names against the three call sites');
+console.log('directions of a verdict that disagrees with its reason; the refusal record, exact in every sequence and surviving a stamp that fails to write or read; corrections at a cap; and the cap names against the three call sites');
 console.log('by source text. It does NOT run in a Worker, says nothing about concurrent isolates (that D1 serialises a batch is the premise');
 console.log('the daily batch has always rested on), and cannot exercise a siteExtra grant through chargeOdds because none exists yet.');
 process.exit(bad ? 1 : 0);

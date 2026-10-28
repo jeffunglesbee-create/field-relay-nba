@@ -44,8 +44,8 @@ const MUTATIONS = [
     catches: 'a live consumer drops into the unattributed bucket' },
 
   { file: INDEX, check: [CHECK], name: 'A3  a site is passed that nothing declares',
-    anchor: "oddsCreditCost(_liveUrl), 'fetchSportOddsLive')",
-    replace: "oddsCreditCost(_liveUrl), 'somethingElse')",
+    anchor: "site === 'identityMismatches' ? 'identityMismatches' : 'fetchSportOddsLive'))) {",
+    replace: "site === 'identityMismatches' ? 'identityMismatches' : 'somethingElse'))) {",
     catches: 'by_site grows a key /budget/odds never reports and the sum stops matching' },
 
   { file: HELPER, check: [CHECK], name: 'A4  a declared site is removed from ODDS_SITES',
@@ -59,7 +59,7 @@ const MUTATIONS = [
     catches: 'prose mentions count as call sites again — three false defects last time' },
 
   { file: CHECK, check: SELF, name: 'A6  a variable site passes as a name',
-    anchor: "const isSiteLiteral = (a) => /^'[a-zA-Z][a-zA-Z0-9_]*'$/.test(a || '');",
+    anchor: "const isSiteLiteral = (a) => siteLabels(a) !== null;",
     replace: 'const isSiteLiteral = (a) => !!(a || \'\');',
     catches: 'a variable writes an unpredictable KV key — absence in a different costume' },
 
@@ -80,8 +80,8 @@ const MUTATIONS = [
     catches: 'the fourth divergence, and the one that looked most like a deliberate name' },
 
   { file: INDEX, check: [CHECK], name: 'A10 a reconcile names a DIFFERENT declared site',
-    anchor: "reconcileOddsCredit(env, oddsCreditCost(url), r, 'fetchSportOddsHistorical')",
-    replace: "reconcileOddsCredit(env, oddsCreditCost(url), r, 'fetchSportOddsLive')",
+    anchor: "  : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical');",
+    replace: "  : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsLive');",
     catches: 'both names are valid and declared — only the guard/reconcile SET equality catches this' },
 
   { file: HELPER, check: [CHECK], name: 'A11 reconcile stops correcting the site counter',
@@ -130,6 +130,28 @@ const MUTATIONS = [
     replace: 'String(cur + units)',
     catches: 'a lost race drives a site counter negative and hands back spend that happened' },
 
+
+  // ── 2026-10-28: the closed ternary of literals, and the labels split by it ──
+  { file: CHECK, check: SELF, name: 'A20 a ternary may select a literal its condition does not test',
+    anchor: "    if (t[1] !== t[2]) return null;",
+    replace: "    /* t[1] and t[2] are not compared */",
+    catches: 'the selector could name one site and charge another, and both names are valid' },
+  { file: CHECK, check: SELF, name: 'A21 a ternary may end in something that is not a literal',
+    anchor: "  return labels.length && m ? [...labels, m[1]] : null;",
+    replace: "  return labels.length ? [...labels, ...(m ? [m[1]] : [])] : null;",
+    catches: 'the last branch would write an unpredictable key' },
+  { file: CHECK, check: SELF, name: 'A22 a ternary may test any variable, not only the selector',
+    anchor: String.raw`new RegExp(` + "`^site\\\\s*===",
+    replace: String.raw`new RegExp(` + "`^[a-z]+\\\\s*===",
+    catches: 'a condition on something the gate cannot read is not a closed set' },
+  { file: INDEX, check: [CHECK], name: 'A23 the live reconcile loses the route\'s label',
+    anchor: "    site === 'identityMismatches' ? 'identityMismatches' : 'fetchSportOddsLive');",
+    replace: "    'fetchSportOddsLive');",
+    catches: 'the route is charged under its own name and its correction lands on the cron\'s: the split drifts in both directions' },
+  { file: INDEX, check: [CHECK], name: 'A24 a guard\'s ternary tests a variable that is not the selector',
+    anchor: "      : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical'))) {",
+    replace: "      : kind === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical'))) {",
+    catches: 'the historical fetcher would charge a label chosen by something this gate cannot read' },
 ];
 
 let caught = 0;

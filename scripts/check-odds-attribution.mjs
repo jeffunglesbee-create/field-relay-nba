@@ -86,9 +86,41 @@ export function callsOf(src, names) {
 export const guardCalls     = (src) => callsOf(src, GUARDS);
 export const reconcileCalls = (src) => callsOf(src, RECONCILE);
 
-const isSiteLiteral = (a) => /^'[a-zA-Z][a-zA-Z0-9_]*'$/.test(a || '');
+// THE NAMES A SITE ARGUMENT CAN TAKE. A literal, or (since 2026-10-28) a CLOSED
+// TERNARY OF LITERALS in which every condition tests the selector `site` against
+// the very literal it then selects, with a literal last:
+//
+//     site === 'a' ? 'a' : site === 'b' ? 'b' : 'c'
+//
+// Why this shape and nothing looser. The gate refuses a variable because a variable
+// writes an unpredictable key. A closed ternary writes one of a fixed, readable set,
+// and requiring each condition to test the literal it selects means the selector
+// cannot name one site and charge another. It exists because two fetchers are shared
+// by a cron and an unauthenticated route, and giving the route its own label needed
+// one guard call (check-odds-calls-guarded credits only a guard that sits at the top
+// level of the block holding the fetch, so a branch per label does not pass it).
+// Returns the labels in order, or null when the argument is not one of the two shapes.
+const NAME_RE = '[a-zA-Z][a-zA-Z0-9_]*';
+export function siteLabels(arg) {
+  const a = String(arg ?? '').trim();
+  const lit = new RegExp(`^'(${NAME_RE})'$`);
+  let m = a.match(lit);
+  if (m) return [m[1]];
+  const labels = [];
+  let rest = a;
+  for (;;) {
+    const t = rest.match(new RegExp(`^site\\s*===\\s*'(${NAME_RE})'\\s*\\?\\s*'(${NAME_RE})'\\s*:\\s*([\\s\\S]*)$`));
+    if (!t) break;
+    if (t[1] !== t[2]) return null;
+    labels.push(t[1]);
+    rest = t[3].trim();
+  }
+  m = rest.match(lit);
+  return labels.length && m ? [...labels, m[1]] : null;
+}
+const isSiteLiteral = (a) => siteLabels(a) !== null;
 const siteNames = (calls, idx) => [...new Set(
-  calls.map(c => (c.args[idx] || '').match(/^'([a-zA-Z][a-zA-Z0-9_]*)'$/)?.[1]).filter(Boolean))];
+  calls.flatMap(c => siteLabels(c.args[idx]) ?? []))];
 
 export function unnamedCalls(name, src) {
   const i = SITE_ARG.guard;
@@ -163,16 +195,37 @@ export function siteCounterUnclamped(helperSrc) {
 }
 
 if (SELF) {
-  let bad = 0;
-  const one = (label, got, want, why) => got === want
+  let bad = 0, n = 0;
+  const one = (label, got, want, why) => { n++; return got === want
     ? console.log(`  PASS  ${label} = ${got}  (${why})`)
-    : (bad++, console.log(`  FAIL  ${label}: got ${got} want ${want}  (${why})`));
+    : (bad++, console.log(`  FAIL  ${label}: got ${got} want ${want}  (${why})`)); };
 
   one('a named call', unnamedCalls('t', "await consumeOddsCredit(env, oddsCreditCost(u), 'siteA')").length, 0, 'has a literal');
   one('an unnamed call', unnamedCalls('t', "await consumeOddsCredit(env, oddsCreditCost(u))").length, 1, 'the shape before 2026-09-16');
   one('a this.env call', unnamedCalls('t', "await _consumeAmbientOddsCredit(this.env, oddsCreditCost(u))").length, 1, 'AmbientDO uses this.env');
   one('a VARIABLE site', unnamedCalls('t', "await consumeOddsCredit(env, cost, siteVar)").length, 1,
       'a variable writes an unpredictable key — absence in a different costume');
+  // THE CLOSED TERNARY (2026-10-28): the one non-literal shape accepted.
+  const T2 = "site === 'siteB' ? 'siteB' : 'siteA'";
+  const T3 = "site === 'siteB' ? 'siteB' : site === 'siteC' ? 'siteC' : 'siteA'";
+  one('a closed ternary of literals', unnamedCalls('t', `await consumeOddsCredit(env, c, ${T2})`).length, 0, 'a fixed, readable set of keys');
+  one('a three-way closed ternary, on several lines', unnamedCalls('t', `await consumeOddsCredit(env, c,\n   ${T3.replace(' : site', '\n : site')})`).length, 0, 'the shape the historical fetcher uses');
+  one('a ternary whose condition selects a DIFFERENT literal', unnamedCalls('t', "await consumeOddsCredit(env, c, site === 'siteB' ? 'siteC' : 'siteA')").length, 1,
+      'the selector could name one site and charge another');
+  one('a ternary with a VARIABLE leaf', unnamedCalls('t', "await consumeOddsCredit(env, c, site === 'siteB' ? 'siteB' : fallback)").length, 1,
+      'the last branch would write an unpredictable key');
+  one('a ternary on some OTHER variable', unnamedCalls('t', "await consumeOddsCredit(env, c, kind === 'siteB' ? 'siteB' : 'siteA')").length, 1,
+      'only the selector named site is the shape this gate knows');
+  one('a ternary with no final literal', unnamedCalls('t', "await consumeOddsCredit(env, c, site === 'siteB' ? 'siteB' :)").length, 1,
+      'a truncated expression is not a name');
+  one('a ternary RECONCILE', unnamedReconciles('t', `await reconcileOddsCredit(env, c, r, ${T2})`).length, 0, 'the correction names the same closed set');
+  one('a ternary reconcile with a variable leaf', unnamedReconciles('t', "await reconcileOddsCredit(env, c, r, site === 'siteB' ? 'siteB' : other)").length, 1, 'unpredictable key');
+  one('a ternary pair that matches', vocabularyMismatch('t', `await consumeOddsCredit(env, c, ${T2}); await reconcileOddsCredit(env, c, r, ${T2})`).length, 0,
+      'the guard and the correction name both labels');
+  one('a ternary guard whose reconcile misses a label', vocabularyMismatch('t', `await consumeOddsCredit(env, c, ${T2}); await reconcileOddsCredit(env, c, r, 'siteA')`).length, 1,
+      'siteB would be charged and its correction land on siteA');
+  one('an undeclared leaf of a ternary', undeclaredSites(`await consumeOddsCredit(env, c, ${T2})`, "export const ODDS_SITES = ['siteA']").length, 1,
+      'siteB is passed but not in ODDS_SITES: by_site would grow a key nothing reports');
   one('a prose mention', unnamedCalls('t', "// consumeOddsCredit() shares the KV key").length, 0,
       'a comment is not a call — three of these were reported as defects');
   one('an un-awaited call', unnamedCalls('t', "consumeOddsCredit(env, cost, 'siteA')").length, 0,
@@ -216,9 +269,25 @@ if (SELF) {
       "async function _bumpSite(env, site, units) {\n  await env.FIELD_JOURNALISM.put(key, String(cur + units), {});\n}").length, 1,
       'a negative delta could drive the counter below zero and erase real spend');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 20/20`);
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${n}/${n}`);
   console.log(`COVERAGE: 6 predicates on synthetic sources. Does not read the repo.`);
   process.exit(bad ? 1 : 0);
+}
+
+// A DATA MODE, for scripts/check-odds-site-caps.mjs: the charge and reconcile labels
+// the given files (default: the three) name, one implementation of "what label does
+// this call site carry" for both gates. Prints JSON and exits; it checks nothing.
+//   node scripts/check-odds-attribution.mjs --labels [file ...]
+if (process.argv.includes('--labels')) {
+  const given = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  const charged = new Set(), reconciled = new Set();
+  for (const f of (given.length ? given : FILES)) {
+    const src = readFileSync(f, 'utf8');
+    siteNames(guardCalls(src), SITE_ARG.guard).forEach((x) => charged.add(x));
+    siteNames(reconcileCalls(src), SITE_ARG.reconcile).forEach((x) => reconciled.add(x));
+  }
+  console.log(JSON.stringify({ charged: [...charged].sort(), reconciled: [...reconciled].sort() }));
+  process.exit(0);
 }
 
 const helper = readFileSync('src/budget-helpers.js', 'utf8');

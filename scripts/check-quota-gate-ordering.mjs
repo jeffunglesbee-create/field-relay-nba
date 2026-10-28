@@ -26,7 +26,7 @@ const LOOPS = [
     // that matches twice made every mutation "caught" by a uniqueness error
     // rather than by the property it was testing (2026-09-11).
     { name: 'snapshotCronOdds',    anchor: 'const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey);' },
-    { name: 'historical backfill', anchor: 'const { games, quotaRemaining, ok, snapshotAt } = await fetchSportOddsHistorical(env, sportKey, isoDate);' },
+    { name: 'historical backfill', anchor: 'const { games, quotaRemaining, ok, snapshotAt } = await fetchSportOddsHistorical(env, sportKey, isoDate, site);' },
 ];
 
 export function checkSource(src) {

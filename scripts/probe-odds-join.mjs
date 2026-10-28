@@ -65,6 +65,9 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(DATE)) {
 // would have reported every sport as a shape failure.
 export function classify(e, date) {
     if (!e) return 'ABSENT_FROM_REPORT';
+    // Our own guard declining the call (the route's cap, the day or the month) is not the
+    // vendor failing to serve, and C1 would send the reader after a cause that is ours.
+    if (e.guarded === true) return `C0_GUARDED: ${e.error}`;
     if (e.error) return `C1_VENDOR: ${e.error}`;
     const mt = typeof e.matched === 'number' ? e.matched : null;
     const un = Array.isArray(e.unmatched) ? e.unmatched.length : null;
@@ -84,6 +87,7 @@ export function classify(e, date) {
 // Runs every invocation -- no network, no cost.
 const FIXTURES = [
     [{ error: 'Odds-API fetch failed', sport_key: 'americanfootball_ncaaf' },                 'C1_VENDOR'],
+    [{ error: 'odds credit guard declined this call', guarded: true, sport_key: 'x' },       'C0_GUARDED'],
     [{ sport_key: 'x', odds_events: 0,  d1_missing: 5, matched: 0, unmatched: [] },           'C1_VENDOR'],
     [{ sport_key: 'x', odds_events: 12, d1_missing: 5, matched: 0, unmatched: [1,2,3,4,5] },  'C2_JOIN'],
     [{ sport_key: 'x', odds_events: 12, d1_missing: 5, matched: 4, unmatched: [1] },          'COVERED'],

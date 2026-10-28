@@ -53,6 +53,24 @@ const MUTATIONS = [
    "    default:\n      return 'unknown state';",
    "    default:\n      return 'Task 2 bought atomicity AND took latency off the per-request path.';",
    'a state nobody enumerated reports the answer the author hoped for'],
+
+  // THE REFUSAL PATH VERDICT (fix 3 E).
+  ['L7 a refusal path that admitted its calls reads ok',
+   "  if (JSON.stringify(rp.scopes_returned) !== '[[\"day\"],[\"day\"]]') return 'wrong-scopes';",
+   "  if (false) return 'wrong-scopes';",
+   'the route would report a refusal path that nothing refused'],
+  ['L8 repeats are not counted by the verdict',
+   "c[0].site !== 'latency-probe' || c[0].n !== 2) return 'wrong-cell';",
+   "c[0].site !== 'latency-probe') return 'wrong-cell';",
+   'the ON CONFLICT half, the one a first insert never reaches, would go unchecked'],
+  ['L9 a refusal that moved a counter reads ok',
+   "  if (typeof rp.day_used_before !== 'number' || rp.day_used_before !== rp.day_used_after) return 'counter-moved';",
+   "  if (false) return 'counter-moved';",
+   'a refusal that charged the day would pass'],
+  ['L10 a missing refusal path reads ok',
+   "  if (!rp || typeof rp !== 'object') return 'absent';",
+   "  if (!rp || typeof rp !== 'object') return 'ok';",
+   'a relay without the record would pass the probe'],
 ];
 
 const original = readFileSync(F, 'utf8');

@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (spend and lost captures) and B (visibility)
 **Confidence gate:** >= 95 before any commit
-**Status:** DONE 2026-10-28. Done conditions 1 and 3 were met on 2026-10-24 (3: run 40101398801). Done condition 2 (fix 2) is done condition 4 of the 10-21 join CC-CMD, met for NBA, NHL and NFL on 2026-10-27 and for CFB on 2026-10-28. Fix 3 E (a failed stamp WRITE still reads as no refusal) is not a done condition and stays the owner's call. DONE lifts the owner's hold on Task 3 of the 09-16 CC-CMD ("Hold it; fix 3 first"); Task 3 is not started.
+**Status:** DONE 2026-10-28. Done conditions 1 and 3 were met on 2026-10-24 (3: run 40101398801). Done condition 2 (fix 2) is done condition 4 of the 10-21 join CC-CMD, met for NBA, NHL and NFL on 2026-10-27 and for CFB on 2026-10-28. Fix 3 E (a failed stamp WRITE read as no refusal) was not a done condition; the owner approved it on 2026-10-28 and it was built that day (see the bullet under fix 3). DONE lifts the owner's hold on Task 3 of the 09-16 CC-CMD ("Hold it; fix 3 first"); Task 3 is not started.
 **Blocks:** Task 3 of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`,
 HELD until this is DONE (it is, 2026-10-28; Task 3 itself is the owner's to start).
 **Do not land 2026-11-08..11-23** anything that changes `chargeOdds`,
@@ -120,6 +120,18 @@ here:
     `chargeOdds` change: not before the 10-25 reads, not in 11-08..11-23.
     Filed here (BUILD-ON-A) as fix 3 E; the owner decides whether it is
     worth a schema change.
+  - **Fix 3 E BUILT 2026-10-28 on the owner's approval ("decisions 1, 2, 3
+    approved"), and it covers the site stamps as well.** `chargeOdds` files every
+    refusal in `odds_budget_refusal` inside the same D1 batch that made it (a ninth
+    statement, `refusal`, written only while the gate holds no token for the call),
+    so a stamp whose put fails can no longer lose it; `peekDailyOdds` serves the
+    EARLIEST of the record and the stamp for the day, the month and each capped site,
+    and a null with an unreadable store behind it stays unknown and named. The
+    "retry writes the stamp with a later hour" gap is closed by the record carrying
+    the first. Design, statement and artifacts: "Owner's decisions of 2026-10-28" in
+    `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. It changes `chargeOdds`, so
+    it is to land before the 11-08..11-23 window; the landing and its live proof are
+    recorded in `outbox/cc-session-2026-10-28-site-caps.md`.
 
 ## Done condition (Rule 90 artifacts)
 

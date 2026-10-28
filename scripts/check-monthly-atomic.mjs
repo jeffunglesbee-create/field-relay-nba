@@ -21,7 +21,7 @@
 // a D1 made of node:sqlite, because which veto key a refusal writes is decided
 // by branch order, and SQL cannot see it.
 //
-// AND THEN, 2026-10-28: ONE GATE. The batch is eight statements and one of them
+// AND THEN, 2026-10-28: ONE GATE. The batch is nine statements and one of them
 // decides: `gate` writes this call's token only if the day, the month AND the
 // site all have room over the PRE-charge totals, and the three charges each
 // apply only while that token is in the gate. So the month no longer carries a
@@ -50,20 +50,21 @@ const grab = (name) => {
   return m ? m[1].slice(1, -1) : null;
 };
 const SQL = { seed: grab('SQL_SEED'), monthSeed: grab('SQL_MONTH_SEED'), siteSeed: grab('SQL_SITE_SEED'),
-              snapshot: grab('SQL_SNAPSHOT'), gate: grab('SQL_GATE'), siteCharge: grab('SQL_SITE_CHARGE'),
+              snapshot: grab('SQL_SNAPSHOT'), gate: grab('SQL_GATE'), refusal: grab('SQL_REFUSAL'), siteCharge: grab('SQL_SITE_CHARGE'),
               monthCharge: grab('SQL_MONTH_CHARGE'), charge: grab('SQL_CHARGE') };
 const FIX = grab('SQL_FIX_MONTH');
 const om = /export const ODDS_CHARGE_ORDER\s*=\s*\[([^\]]*)\]/.exec(src);
 const ORDER = om ? [...om[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : [];
 ok('the charge SQL and its order are in the source',
-  Object.values(SQL).every(Boolean) && !!FIX && ORDER.length === 8 && ORDER.every((k) => k in SQL),
+  Object.values(SQL).every(Boolean) && !!FIX && ORDER.length === 9 && ORDER.every((k) => k in SQL),
   `the statements or ODDS_CHARGE_ORDER could not be read (order ${JSON.stringify(ORDER)}), so nothing below was executed against them`);
 if (bad) { console.log(`\n${n - bad} of ${n} passed.`); process.exit(1); }
 
 const SCHEMA = `CREATE TABLE odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
   CREATE TABLE odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site));
   CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
-  CREATE TABLE odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL);`;
+  CREATE TABLE odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL);
+  CREATE TABLE odds_budget_refusal (day TEXT NOT NULL, scope TEXT NOT NULL, site TEXT NOT NULL, first_at TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, scope, site));`;
 const fresh = () => { const d = new DatabaseSync(':memory:'); d.exec(SCHEMA); return d; };
 
 // Mirrors chargeOdds's binds, BY NAME. node:sqlite binds a missing parameter as
@@ -78,6 +79,7 @@ function batch(db, { units = 30, carried = 0, carriedMonth = 0, ceiling = BIG, l
     seed: [D, carried], monthSeed: [M, carriedMonth], siteSeed: [D, site],
     snapshot: [D, M, D, site],
     gate: [token, D, units, ceiling, M, units, limit, D, site, units, siteCeiling],
+    refusal: [D, D, units, ceiling, M, units, limit, site, '2026-10-18T00:00:00.000Z', token],
     siteCharge: [units, D, site, token],
     monthCharge: [units, M, token],
     charge: [units, D, token],
@@ -448,7 +450,7 @@ ok('the hard limit has ONE definition',
   'it was written out four times, each with a comment asking the next person to sync it by hand');
 
 console.log(`\n${n - bad} of ${n} passed.`);
-console.log('COVERAGE: the eight charge statements executed in their source order against');
+console.log('COVERAGE: the nine charge statements executed in their source order against');
 console.log('real node:sqlite, chargeOdds itself run against a node:sqlite D1 and a fake KV,');
 console.log('and the wiring of three call sites. It does NOT run in a Worker and says nothing');
 console.log('about whether D1 supplies a transaction under concurrent isolates — that is');

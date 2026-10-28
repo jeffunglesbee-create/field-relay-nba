@@ -328,6 +328,21 @@ export function liveOddsDemandIfServed(games, days, cost, liveMinutes, cooldownO
   return out;
 }
 
+/** Spend that the historical DEMAND model covers, from the two labels that serve it.
+ *  Until 2026-10-28 /archive/game's closing fetch was charged to fetchSportOddsHistorical
+ *  with the dead-hour backfill; it is charged to archiveGameClosing now, while the
+ *  historical demand model (hist) still counts the closing demand of BOTH callers. Leaving
+ *  the columns apart reads charged/demand as falling toward zero on the first post-split
+ *  day, as if demand were going unserved. `into` and `from` are label -> { day: credits }.
+ *  Returns a new map; neither input is changed. */
+export function mergeLabelSpend(spend, into, from) {
+  const out = { ...spend, [into]: { ...(spend[into] ?? {}) } };
+  for (const [day, v] of Object.entries(spend[from] ?? {})) {
+    out[into][day] = (typeof out[into][day] === 'number' ? out[into][day] : 0) + v;
+  }
+  return out;
+}
+
 export function ratio(spend, demand) {
   if (demand == null) return 'UNKNOWN';
   if (demand === 0) return spend > 0 ? 'spend, no need' : 'both 0';
@@ -409,6 +424,15 @@ function selfTest() {
   eq('ratio: no need and some spend is said, not divided', ratio(36, 0), 'spend, no need');
   eq('ratio: unknown stays unknown', ratio(5, null), 'UNKNOWN');
   eq('ratio: spend over demand', ratio(2058, 6), '343.0x');
+  eq('merge: the closing label joins the historical column, per day, and the inputs are untouched',
+    (() => { const a = { fetchSportOddsHistorical: { d1: 30, d2: 60 }, archiveGameClosing: { d1: 90, d3: 120 }, other: { d1: 1 } };
+             const m = mergeLabelSpend(a, 'fetchSportOddsHistorical', 'archiveGameClosing');
+             return [m.fetchSportOddsHistorical, a.fetchSportOddsHistorical, m.other]; })(),
+    [{ d1: 120, d2: 60, d3: 120 }, { d1: 30, d2: 60 }, { d1: 1 }]);
+  eq('merge: a missing target column is created, a missing source adds nothing',
+    [mergeLabelSpend({ archiveGameClosing: { d1: 5 } }, 'fetchSportOddsHistorical', 'archiveGameClosing').fetchSportOddsHistorical,
+     mergeLabelSpend({}, 'fetchSportOddsHistorical', 'archiveGameClosing').fetchSportOddsHistorical],
+    [{ d1: 5 }, {}]);
   eq('closed days: before 10:15Z yesterday is not closed yet', closedDays(Date.parse('2026-10-21T05:00:00Z'), 2),
     { days: ['2026-10-18', '2026-10-19'], note: '2026-10-20 excluded: before 10:15Z its late finals are not yet archived' });
   eq('closed days: after 10:15Z yesterday is', closedDays(Date.parse('2026-10-21T11:00:00Z'), 2).days, ['2026-10-19', '2026-10-20']);
@@ -453,6 +477,8 @@ const MUTATIONS = [
   ['cooldown read from the clock', 'else super(at); } }', 'else super(); } }'],
   ['a duplicate anchor is accepted', "if (text.indexOf(anchor, first + 1) >= 0) throw new Error(`anchor not unique: ${anchor}`);", ''],
   ['yesterday counted closed before it settles', 'const settled = nowMs >= today + settleMinutes * 60000;', 'const settled = true;'],
+  ['the closing label is not merged into the historical column', 'out[into][day] = (typeof out[into][day] === \'number\' ? out[into][day] : 0) + v;', 'out[into][day] = out[into][day];'],
+  ['the merge changes its input', 'const out = { ...spend, [into]: { ...(spend[into] ?? {}) } };', 'const out = spend; out[into] = out[into] ?? {};'],
 ];
 
 function mutate() {
@@ -547,7 +573,10 @@ async function measure() {
     for (const r of rows) (m[r.site] ||= {})[r.day] = Number(r[col]) || 0;
     return m;
   };
-  const C = spendOf(charged, 'used'), K = spendOf(kept, 'kept');
+  // The historical demand model covers /archive/game's closing demand as well as the dead-hour
+  // backfill's, and since 2026-10-28 the first is charged to archiveGameClosing: compare like with like.
+  const C = mergeLabelSpend(spendOf(charged, 'used'), 'fetchSportOddsHistorical', 'archiveGameClosing');
+  const K = mergeLabelSpend(spendOf(kept, 'kept'), 'fetchSportOddsHistorical', 'archiveGameClosing');
   const liveMin = liveMinutesByKey(durSample);
   const hist = historicalClosingDemand(games, closingWrites, days, costs.fetchSportOddsHistorical.cost);
 
@@ -575,6 +604,8 @@ async function measure() {
     console.log('');
   }
   const unwritableTot = days.reduce((s, d) => s + hist[d].unwritable, 0);
+  console.log(`  fetchSportOddsHistorical charged = the dead-hour backfill + archiveGameClosing (/archive/game's closing fetch,`);
+  console.log(`  charged to its own label since 2026-10-28; the demand model counts both).`);
   console.log(`  fetchSportOddsHistorical: ${unwritableTot} credits of units in ${[...JOIN_UNWRITABLE.keys].join(', ')} are`);
   console.log(`  printed as "unwritable" and kept out of demand on days before ${JOIN_UNWRITABLE.until}, when the join`);
   console.log(`  could not write their closing line (${JOIN_UNWRITABLE.doc}). Their fetches are inside "charged".\n`);

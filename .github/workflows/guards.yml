@@ -230,6 +230,14 @@ jobs:
           node scripts/check-odds-site-caps.mjs
           node scripts/mutate-odds-site-caps.mjs
 
+      # The three routes that spent under a cron's label are executed, not read
+      # (2026-10-28): the real worker, a sqlite D1, a vendor stub. The static gates
+      # prove the guard maps each selector; only a run proves a route passes it.
+      - name: the unauthenticated odds routes spend under their own labels
+        run: |
+          node scripts/check-odds-label-split.mjs
+          node scripts/mutate-odds-label-split.mjs
+
       # Review of Task 3: POST /debug/odds-budget-latency still prepared a statement
       # the change had removed and answered 500, and no gate noticed. Every
       # ODDS_BUDGET_SQL reference must name a statement that exists and bind as many

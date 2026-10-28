@@ -28,8 +28,8 @@ const MUTATIONS = [
     expect: 'snapshotCronOdds selects only rows of the sport it just fetched' },
 
   { name: 'M2  the backfill hardcodes one sport instead of dispatching per bucket',
-    anchor: "await fetchSportOddsHistorical(env, sportKey, isoDate)",
-    replace: "await fetchSportOddsHistorical(env, 'soccer_usa_mls', isoDate)",
+    anchor: "await fetchSportOddsHistorical(env, sportKey, isoDate",
+    replace: "await fetchSportOddsHistorical(env, 'soccer_usa_mls', isoDate",
     expect: 'fetches by variable, not a hardcoded sport' },
 
   { name: 'M3  /archive/game derives its sport key from something other than the game',

@@ -61,9 +61,25 @@ export function consequence(state) {
   }
 }
 
+/**
+ * The REFUSAL PATH the route runs on the real D1 (fix 3 E, 2026-10-28): two refused
+ * calls on the sentinel day, the second through ON CONFLICT ... DO UPDATE ... RETURNING.
+ * `ok` needs the scope back both times, one cell counted twice under the probe
+ * caller, and no counter moved. Pure; every branch is self-tested.
+ */
+export function refusalPathVerdict(rp) {
+  if (!rp || typeof rp !== 'object') return 'absent';
+  if (JSON.stringify(rp.scopes_returned) !== '[["day"],["day"]]') return 'wrong-scopes';
+  const c = rp.cells;
+  if (!Array.isArray(c) || c.length !== 1 || c[0].scope !== 'day' || c[0].site !== 'latency-probe' || c[0].n !== 2) return 'wrong-cell';
+  if (typeof rp.day_used_before !== 'number' || rp.day_used_before !== rp.day_used_after) return 'counter-moved';
+  return 'ok';
+}
+
 if (process.argv.includes('--self-test')) {
-  let bad = 0;
+  let bad = 0, ran = 0;
   const one = (label, got, want, why) => {
+    ran++;
     if (got === want) console.log(`  PASS  ${label} -> ${JSON.stringify(got)}  (${why})`);
     else { bad++; console.log(`  FAIL  ${label}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}  (${why})`); }
   };
@@ -101,7 +117,16 @@ if (process.argv.includes('--self-test')) {
       STATES.length, 5,
       'a state added without a row here is a state nothing checks');
 
-  console.log(bad ? `\n${bad} FAILED` : '\nself-test: 12/12');
+  // THE REFUSAL PATH VERDICT.
+  const rp = (o) => ({ scopes_returned: [['day'], ['day']], cells: [{ scope: 'day', site: 'latency-probe', n: 2 }], day_used_before: 14, day_used_after: 14, ...o });
+  one('a refused pair filed once and updated once', refusalPathVerdict(rp()), 'ok', 'the shipped state');
+  one('no refusal_path at all', refusalPathVerdict(undefined), 'absent', 'a relay before the record, or a failed call, is not a pass');
+  one('the calls were ADMITTED, not refused', refusalPathVerdict(rp({ scopes_returned: [[], []], cells: [] })), 'wrong-scopes', 'nothing exercised the refusal path');
+  one('the second call did not go through the conflict update', refusalPathVerdict(rp({ cells: [{ scope: 'day', site: 'latency-probe', n: 1 }] })), 'wrong-cell', 'repeats are not counted');
+  one('the cell is filed under another caller', refusalPathVerdict(rp({ cells: [{ scope: 'day', site: 'unattributed', n: 2 }] })), 'wrong-cell', 'the record names the wrong caller');
+  one('a counter moved across the refused calls', refusalPathVerdict(rp({ day_used_after: 15 })), 'counter-moved', 'a refusal charged the day');
+  one('the counter could not be read', refusalPathVerdict(rp({ day_used_before: null, day_used_after: null })), 'counter-moved', 'null equals null, and is not evidence that nothing moved');
+  console.log(bad ? `\n${bad} FAILED of ${ran}` : `\nself-test: ${ran}/${ran}`);
   console.log('COVERAGE: the verdict function only. It makes NO network call and');
   console.log('cannot tell whether the route is deployed or what it measures.');
   process.exit(bad ? 1 : 0);
@@ -156,6 +181,9 @@ if (body && body.samples) {
 }
 if (body && body.note) for (const k of Object.keys(body.note)) say(`\n  NOTE (${k}): ${body.note[k]}`);
 if (body && body.cleaned) say(`\n  cleaned up: ${JSON.stringify(body.cleaned)}`);
+const refusalState = refusalPathVerdict(body && body.refusal_path);
+say(`\n  refusal path on the real D1: ${refusalState}`);
+say(`    ${JSON.stringify(body && body.refusal_path)}`);
 
 say(`\nCOVERAGE: ONE isolate on whichever colo answered this request, 7 iterations`);
 say(`per series. It does NOT measure contention, cold starts, other regions, or`);
@@ -165,4 +193,4 @@ say(`the route's own notes above say in its own words.`);
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, 'Z');
 writeFileSync(`outbox/odds-budget-latency-${stamp}.log`, out.join('\n') + '\n');
 console.log(`\nwrote outbox/odds-budget-latency-${stamp}.log`);
-process.exit(['warm-cheaper', 'warm-dearer', 'warm-equal'].includes(state) ? 0 : 1);
+process.exit(['warm-cheaper', 'warm-dearer', 'warm-equal'].includes(state) && refusalState === 'ok' ? 0 : 1);

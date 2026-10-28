@@ -6708,7 +6708,15 @@ async function consumeOddsCredit(env, units, site = 'unattributed') {
 }
 
 // Fetch current odds for one sport. Returns { games, quotaRemaining, ok }.
-async function fetchSportOddsLive(env, sportKey) {
+//
+// `site` says WHO is spending, and it is a SELECTOR, never the label itself:
+// check-odds-attribution refuses a variable site name (a variable writes an
+// unpredictable key), so each possible label is written out as a literal in a
+// closed ternary, `site === 'x' ? 'x' : 'y'`, the one non-literal shape that gate
+// accepts, and `site` only chooses between them. The default is the cron's. The
+// unauthenticated /identity/mismatches route passes 'identityMismatches' so that an
+// anonymous caller spends toward its own cap and not the cron's (2026-10-28).
+async function fetchSportOddsLive(env, sportKey, site = 'fetchSportOddsLive') {
   const key = _oddsPrimaryKey(env);
   if (!key) return { games: [], quotaRemaining: null, ok: false };
   // 3 markets (h2h,spreads,totals) → 3 credits/call. The literal 3 is gone, not
@@ -6716,7 +6724,8 @@ async function fetchSportOddsLive(env, sportKey) {
   // is one of the two self-tests -- but so the model lives in one place and a
   // future markets= edit cannot silently keep charging the old number.
   const _liveUrl = `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
-  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'fetchSportOddsLive'))) {
+  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl),
+        site === 'identityMismatches' ? 'identityMismatches' : 'fetchSportOddsLive'))) {
     return { games: [], quotaRemaining: null, ok: false, guarded: true };
   }
   const _est = oddsCreditCost(_liveUrl);
@@ -6729,7 +6738,8 @@ async function fetchSportOddsLive(env, sportKey) {
   );
   // "hit cache for free" was true of the provider and false of our ledger: the
   // guard charged the estimate whether or not the request left the edge.
-  await reconcileOddsCredit(env, _est, r, 'fetchSportOddsLive');
+  await reconcileOddsCredit(env, _est, r,
+    site === 'identityMismatches' ? 'identityMismatches' : 'fetchSportOddsLive');
   // Rule 99: null means the vendor did not tell us (a cache hit strips the
   // header). A real 0 stays 0. See readQuotaHeader in budget-helpers.js.
   const quotaRemaining = readQuotaHeader(r);
@@ -6852,7 +6862,11 @@ async function snapshotCronOdds(env, dateKey) {
 // Historical odds fetch — /v4/historical/sports/{sport}/odds at a snapshot ISO.
 // The Odds API charges 10 quota units per historical call (vs 1 for current),
 // so callers MUST check the quota_remaining return field before iterating.
-async function fetchSportOddsHistorical(env, sportKey, isoDate) {
+//
+// `site` is a selector between literals, for the reason given at fetchSportOddsLive.
+// The default is the dead-hour cron's; /archive/odds-backfill passes
+// 'archiveOddsBackfill' and /archive/game passes 'archiveGameClosing' (2026-10-28).
+async function fetchSportOddsHistorical(env, sportKey, isoDate, site) {
   const key = _oddsPrimaryKey(env);
   if (!key) return { games: [], quotaRemaining: null, ok: false };
   // Historical = 10× live cost; 3 markets → 30 credits per call. Same reason as
@@ -6865,7 +6879,9 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   const url = `${ODDS_BASE}/v4/historical/sports/${sportKey}/odds`
             + `?apiKey=${key}&date=${snapshot}`
             + `&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
-  if (!(await consumeOddsCredit(env, oddsCreditCost(url), 'fetchSportOddsHistorical'))) {
+  if (!(await consumeOddsCredit(env, oddsCreditCost(url),
+        site === 'archiveOddsBackfill' ? 'archiveOddsBackfill'
+      : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical'))) {
     return { games: [], quotaRemaining: null, ok: false, guarded: true };
   }
   // cacheEverything: true is required — Odds API returns Cache-Control: private.
@@ -6873,7 +6889,9 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   // 24h cache is safe — re-runs of the dead-hour cron walking the same date
   // hit cache for free.
   const r = await fetch(url, { cf: { cacheTtl: 86400, cacheEverything: true } });
-  await reconcileOddsCredit(env, oddsCreditCost(url), r, 'fetchSportOddsHistorical');
+  await reconcileOddsCredit(env, oddsCreditCost(url), r,
+    site === 'archiveOddsBackfill' ? 'archiveOddsBackfill'
+  : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical');
   // Rule 99: null means the vendor did not tell us (a cache hit strips the
   // header). A real 0 stays 0. See readQuotaHeader in budget-helpers.js.
   const quotaRemaining = readQuotaHeader(r);
@@ -6902,7 +6920,7 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
 // One-shot historical odds backfill for a single archive date. Per-sport
 // dispatch; cross-table (regular_season_games + postseason_games); only
 // touches rows where opening_odds IS NULL.
-async function runOddsBackfillForDate(env, isoDate) {
+async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistorical') {
   if (!env.ARCHIVE_DB) return { ok: false, reason: 'ARCHIVE_DB not bound', date: isoDate };
   const apiKey = _oddsPrimaryKey(env);
   if (!apiKey) return { ok: false, reason: 'ODDS_API_KEY not configured', date: isoDate };
@@ -6947,7 +6965,7 @@ async function runOddsBackfillForDate(env, isoDate) {
     if (typeof lastQuota === 'number' && lastQuota < ODDS_QUOTA_FLOOR) {
       stopped = true; stopReason = 'quota_low'; break;
     }
-    const { games, quotaRemaining, ok, snapshotAt } = await fetchSportOddsHistorical(env, sportKey, isoDate);
+    const { games, quotaRemaining, ok, snapshotAt } = await fetchSportOddsHistorical(env, sportKey, isoDate, site);
     if (!ok) { oddsSkipped += group.rs.length + group.ps.length; continue; }
     lastQuota = quotaRemaining;   // only after ok, same reason as snapshotCronOdds
     if (typeof quotaRemaining === 'number' && quotaRemaining < ODDS_QUOTA_FLOOR) {
@@ -12719,7 +12737,7 @@ export default {
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
                 try {
-                    const result = await runOddsBackfillForDate(env, date);
+                    const result = await runOddsBackfillForDate(env, date, 'archiveOddsBackfill');
                     return new Response(JSON.stringify(result),
                         { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 } catch (e) {
@@ -13724,7 +13742,7 @@ export default {
                             // window never closes.
                             const _relabelled = rowCheck?.inplay_odds != null;
                             if (rowCheckOk && !rowCheck?.closing_odds && _rowIsFinal && !_relabelled) {
-                                const { games, ok: oddsOk, snapshotAt } = await fetchSportOddsHistorical(env, oddsSportKey, date);
+                                const { games, ok: oddsOk, snapshotAt } = await fetchSportOddsHistorical(env, oddsSportKey, date, 'archiveGameClosing');
                                 if (oddsOk && games.length) {
                                     const matched = findOddsForRow(
                                         indexOddsByPair(games), home, away, start_time);
@@ -15801,10 +15819,15 @@ export default {
                     report.sports[sport] = { error: 'no Odds-API sport key for this sport' };
                     continue;
                 }
-                const { games: oddsGames, ok } = await fetchSportOddsLive(env, sportKey);
+                const { games: oddsGames, ok, guarded } = await fetchSportOddsLive(env, sportKey, 'identityMismatches');
                 report.probed++;
                 if (!ok) {
-                    report.sports[sport] = { error: 'Odds-API fetch failed', sport_key: sportKey };
+                    // A refusal by our own credit guard (the route's cap of 150, the day or the
+                    // month) is not a vendor fault, and reporting it as one sends the reader of
+                    // the Saturday probe looking for a cause that is ours (Rule 99).
+                    report.sports[sport] = guarded
+                        ? { error: 'odds credit guard declined this call', guarded: true, sport_key: sportKey }
+                        : { error: 'Odds-API fetch failed', sport_key: sportKey };
                     continue;
                 }
                 const oddsByKey = new Map();
@@ -16780,22 +16803,36 @@ export default {
             const MONTH_LIMIT = 1000000000;  // the same, for the month's hard limit
             const PROBE_SITE = 'latency-probe';
             const TOKEN_PREFIX = 'latency-probe-';
-            // The eight statements in ODDS_CHARGE_ORDER, with the binds chargeOdds
+            // The nine statements in ODDS_CHARGE_ORDER, with the binds chargeOdds
             // gives them. A token per iteration, as chargeOdds mints one per call;
             // every probe token starts with TOKEN_PREFIX so the cleanup below can
-            // delete them without touching a real call's token.
-            const eightStatements = (token) => {
+            // delete them without touching a real call's token. The refusal
+            // statement is in the batch because every real call pays for it: it
+            // evaluates its condition and writes nothing while the gate holds the
+            // call's token, which is what this probe's high ceilings guarantee.
+            let sent = null;                 // the keys of the statements the LAST call built, in order
+            const DDL = [
+                'CREATE TABLE IF NOT EXISTS odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)',
+                'CREATE TABLE IF NOT EXISTS odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site))',
+                'CREATE TABLE IF NOT EXISTS odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)',
+                'CREATE TABLE IF NOT EXISTS odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL)',
+                'CREATE TABLE IF NOT EXISTS odds_budget_refusal (day TEXT NOT NULL, scope TEXT NOT NULL, site TEXT NOT NULL, first_at TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, scope, site))',
+            ];
+            const chargeStatements = (token, ceiling = CEILING) => {
                 const db = env.ARCHIVE_DB;
-                return [
-                    db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
-                    db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(MON, 0),
-                    db.prepare(ODDS_BUDGET_SQL.siteSeed).bind(DAY, PROBE_SITE),
-                    db.prepare(ODDS_BUDGET_SQL.snapshot).bind(DAY, MON, DAY, PROBE_SITE),
-                    db.prepare(ODDS_BUDGET_SQL.gate).bind(token, DAY, 1, CEILING, MON, 1, MONTH_LIMIT, DAY, PROBE_SITE, 1, CEILING),
-                    db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(1, DAY, PROBE_SITE, token),
-                    db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(1, MON, token),
-                    db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, token),
+                const list = [
+                    ['seed', db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0)],
+                    ['monthSeed', db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(MON, 0)],
+                    ['siteSeed', db.prepare(ODDS_BUDGET_SQL.siteSeed).bind(DAY, PROBE_SITE)],
+                    ['snapshot', db.prepare(ODDS_BUDGET_SQL.snapshot).bind(DAY, MON, DAY, PROBE_SITE)],
+                    ['gate', db.prepare(ODDS_BUDGET_SQL.gate).bind(token, DAY, 1, ceiling, MON, 1, MONTH_LIMIT, DAY, PROBE_SITE, 1, ceiling)],
+                    ['refusal', db.prepare(ODDS_BUDGET_SQL.refusal).bind(DAY, DAY, 1, ceiling, MON, 1, MONTH_LIMIT, PROBE_SITE, new Date().toISOString(), token)],
+                    ['siteCharge', db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(1, DAY, PROBE_SITE, token)],
+                    ['monthCharge', db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(1, MON, token)],
+                    ['charge', db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, token)],
                 ];
+                sent = list.map(([key]) => key);
+                return list.map(([, st]) => st);
             };
             const med = (a) => { const t = [...a].sort((x, y) => x - y); return t[(t.length - 1) >> 1]; };
             const time = async (fn) => { const t0 = Date.now(); await fn(); return Date.now() - t0; };
@@ -16816,10 +16853,14 @@ export default {
                 }));
                 out.samples.kv_four_ops = a;
 
+                // The tables first, untimed: the warm sample below sends the real statements, and the
+                // refusal one would throw on a database no charge has touched since the deploy.
+                await db.batch(DDL.map((sql) => db.prepare(sql)));
+
                 // (b) WARM — what every call after the first on an isolate costs.
                 const b = [];
                 for (let i = 0; i < N; i++) b.push(await time(async () => {
-                    await db.batch(eightStatements(TOKEN_PREFIX + crypto.randomUUID()));
+                    await db.batch(chargeStatements(TOKEN_PREFIX + crypto.randomUUID()));
                 }));
                 out.samples.d1_batch_warm = b;
 
@@ -16829,23 +16870,42 @@ export default {
                 // performs the same work rather than observing it happen.
                 const c = [];
                 for (let i = 0; i < N; i++) c.push(await time(async () => {
-                    await db.batch([
-                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)'),
-                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site))'),
-                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)'),
-                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL)'),
-                    ]);
+                    await db.batch(DDL.map((sql) => db.prepare(sql)));
                     await env.FIELD_JOURNALISM.get(KV_A);
                     await env.FIELD_JOURNALISM.get(KV_M);
-                    await db.batch(eightStatements(TOKEN_PREFIX + crypto.randomUUID()));
+                    await db.batch(chargeStatements(TOKEN_PREFIX + crypto.randomUUID()));
                 }));
                 out.samples.d1_first_call_on_isolate = c;
 
+                // (d) THE REFUSAL PATH, on the real D1 (fix 3 E). Samples (b) and (c)
+                // are admitted calls, where the refusal statement evaluates its
+                // condition and writes nothing. This one is REFUSED, by a ceiling of
+                // 0 on the sentinel day: the gate writes no token, so the refusal
+                // statement files (day, 'day', probe) and reads its scope back. It is
+                // run twice, so the second goes through ON CONFLICT ... DO UPDATE ...
+                // RETURNING, the half of the statement a first insert never reaches.
+                // No vendor credit is spent and only sentinel rows are touched; the
+                // cleanup below removes them.
+                const refusalAt = ODDS_CHARGE_ORDER.indexOf('refusal');
+                const usedBefore = (await db.prepare('SELECT used FROM odds_budget WHERE day = ?').bind(DAY).first())?.used ?? null;
+                const returned = [];
+                for (let i = 0; i < 2; i++) {
+                    const res = await db.batch(chargeStatements(TOKEN_PREFIX + crypto.randomUUID(), 0));
+                    returned.push(res[refusalAt]?.results?.map((r) => r.scope) ?? null);
+                }
+                const cells = await db.prepare('SELECT scope, site, n FROM odds_budget_refusal WHERE day = ?').bind(DAY).all();
+                const usedAfter = (await db.prepare('SELECT used FROM odds_budget WHERE day = ?').bind(DAY).first())?.used ?? null;
+                out.refusal_path = { scopes_returned: returned, cells: cells?.results ?? null, day_used_before: usedBefore, day_used_after: usedAfter };
+
                 for (const k in out.samples) out.median_ms[k] = med(out.samples[k]);
                 out.statement_order = ODDS_CHARGE_ORDER;
+                // What the route PREPARED, read back from the builder, beside what the charger declares: a
+                // route that sends a different set than the charge measures a different batch.
+                out.statement_order_sent = sent;
                 out.note.baseline = 'kv_four_ops is RECONSTRUCTED. The guard has not done this since Task 2; it is here as the thing Task 2 replaced.';
                 out.note.cold = 'd1_first_call_on_isolate is RECONSTRUCTED too — ensureOddsBudgetTables, _seedFromKv and _seedMonthFromKv are gated by module-level flags this route cannot reset.';
                 out.note.kv_cache = 'The four KV ops reuse one key pair across all ' + N + ' iterations, which is the shape the real guard had: one hot daily key all day. A cold-key measurement would be a different number and a different question.';
+                out.note.refusal_path = 'Two REFUSED calls (a ceiling of 0 on the sentinel day), so the refusal statement files its row and then updates it. Expect scopes_returned [["day"],["day"]], one cell {scope day, site latency-probe, n 2}, and day_used_before equal to day_used_after.';
                 out.note.coverage = 'ONE isolate, ' + N + ' iterations each, on whichever colo answered. It does NOT measure contention, cold starts, or any other region.';
             } catch (e) {
                 out.error = String(e && e.message || e);
@@ -16863,8 +16923,9 @@ export default {
                     await env.ARCHIVE_DB.batch([
                         env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_site WHERE day = ?').bind(DAY),
                         env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_gate WHERE token LIKE ?').bind(TOKEN_PREFIX + '%'),
+                        env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_refusal WHERE day = ?').bind(DAY),
                     ]);
-                    out.cleaned.push('odds_budget_site', 'odds_budget_gate');
+                    out.cleaned.push('odds_budget_site', 'odds_budget_gate', 'odds_budget_refusal');
                 } catch (_) {}
                 try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_month WHERE month = ?').bind(MON).run(); out.cleaned.push('odds_budget_month'); } catch (_) {} // catch-ok: a cleanup that failed is reported by its absence from out.cleaned
                 try { await env.FIELD_JOURNALISM.delete(KV_A); out.cleaned.push(KV_A); } catch (_) {}
@@ -16929,7 +16990,14 @@ export default {
                 // site all had room. Readable so the post-deploy proof can show the
                 // row exists and changes per charge; nothing here reads it as a
                 // budget, and a token written from outside matches no call.
-                'odds_budget_gate'];
+                'odds_budget_gate',
+                // odds_budget_refusal added 2026-10-28 (fix 3 E): one row per (day,
+                // limit, caller) written by the batch that refused a call, so a
+                // refusal is on record whether or not its KV stamp was written.
+                // Listed so the post-deploy proof can show the rows. /d1/execute runs
+                // writes on every listed table, as it does on the others here: the
+                // listing is not read-only, and the worker is the only intended writer.
+                'odds_budget_refusal'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),

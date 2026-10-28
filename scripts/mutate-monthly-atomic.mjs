@@ -50,7 +50,7 @@ const H = 'helpers';
 // not of the month's own statement, which only holds the token.
 const GATE_MONTH = '              AND (SELECT used FROM odds_budget_month WHERE month = ?) + ? <= ?\n';
 const GATE_DAY = "            WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?\n              AND (SELECT used FROM odds_budget_month";
-const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge'];";
+const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'monthCharge', 'charge'];";
 const order = (keys) => `export const ODDS_CHARGE_ORDER = [${keys.map((k) => `'${k}'`).join(', ')}];`;
 
 // THE WRAPPER IS REPLACED WHOLE, NOT EDITED AT A LINE. These mutants first
@@ -130,19 +130,19 @@ const MUTATIONS = [
    'a day-vetoed call charges the month and the site: the split runs AHEAD of the day, the mirror of the gap this change closes'],
 
   [H, 'M10 monthCharge runs after charge',
-   ORDER, order(['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'charge', 'monthCharge']),
+   ORDER, order(['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'charge', 'monthCharge']),
    'the month is read from the wrong result, and the day verdict is read from the month statement'],
 
   [H, 'M11 the day seed runs after the gate',
-   ORDER, order(['monthSeed', 'siteSeed', 'snapshot', 'gate', 'seed', 'siteCharge', 'monthCharge', 'charge']),
+   ORDER, order(['monthSeed', 'siteSeed', 'snapshot', 'gate', 'seed', 'refusal', 'siteCharge', 'monthCharge', 'charge']),
    'on a fresh day the gate compares the day against NULL and holds no token while the seeds run on — every first call of a day lost from all three counters'],
 
   [H, 'M12 siteSeed runs after the gate',
-   ORDER, order(['seed', 'monthSeed', 'snapshot', 'gate', 'siteSeed', 'siteCharge', 'monthCharge', 'charge']),
+   ORDER, order(['seed', 'monthSeed', 'snapshot', 'gate', 'siteSeed', 'refusal', 'siteCharge', 'monthCharge', 'charge']),
    'the first call of a site on a day finds no site row, the gate compares against NULL, and the site is refused with room to spare'],
 
   [H, 'M12b the gate runs after the charges',
-   ORDER, order(['seed', 'monthSeed', 'siteSeed', 'snapshot', 'siteCharge', 'monthCharge', 'charge', 'gate']),
+   ORDER, order(['seed', 'monthSeed', 'siteSeed', 'snapshot', 'refusal', 'siteCharge', 'monthCharge', 'charge', 'gate']),
    'the charges look for a token that is not there yet: nothing is ever charged, and every call is read as refused'],
 
   [H, 'M13 the month is read from the last result',
@@ -290,7 +290,7 @@ for (const [target, name, anchor, repl, why] of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log('COVERAGE: the eight charge statements, their order and the single charger in');
+console.log('COVERAGE: the nine charge statements, their order and the single charger in');
 console.log('src/budget-helpers.js, and the three wrappers that delegate to it. It does NOT');
 console.log('cover whether D1 supplies a transaction under concurrent isolates.');
 console.log(`${EQUIVALENTS.length - equivalentFails} of ${EQUIVALENTS.length} equivalent rewrites stayed green.`);

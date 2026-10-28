@@ -25,17 +25,33 @@
   shared 3,800. Attributing calls by caller is premise 5 of
   `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md` (one
   worker tail for both labels); splitting the labels is Task 3 of
-  `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. **Task 3 was built
-  2026-10-28 and did NOT split them**: it caps the shared labels
-  (`fetchSportOddsLive` 2,000, `fetchSportOddsHistorical` 1,800). An anonymous caller
-  therefore can no longer spend the whole day's 3,800 through them, but can exhaust
-  a label's cap and starve the cron that shares it. A reviewer reached the live cap
-  in 134 requests to `/identity/mismatches` on a fetch with no edge cache; the real
-  rate, with `cacheEverything` and refunds, is UNVERIFIED. The route gates here are
-  what closes it.
+  `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. **Task 3 (built
+  2026-10-28) capped the shared labels but did not split them; the owner approved the
+  split the same day and it was built then.** Each route now spends under its OWN
+  label: `/identity/mismatches` as `identityMismatches` (cap 150) and
+  `/archive/odds-backfill` as `archiveOddsBackfill` (cap 300), and `/archive/game`'s
+  closing fetch as `archiveGameClosing` (cap 900), so an anonymous caller can spend
+  at most its route's own cap and can no longer starve `fetchSportOddsLive` or
+  `fetchSportOddsHistorical`. Before the split a reviewer reached the live cap in 134
+  requests to `/identity/mismatches` on a fetch with no edge cache; the real rate,
+  with `cacheEverything` and refunds, was UNVERIFIED and still is. What the split does
+  NOT do is close the exposure: the routes still answer anyone. Through the three
+  capped routes that is up to 150 + 300 + 900 = 1,350 credits a day, and the isolation
+  is per label only: the day's 3,800 and the month's 85,000 are still shared, so an
+  anonymous caller who fills the day starves every cron at the day's limit.
+  **A third unauthenticated spender, found by the 2026-10-28 review of that build
+  (BUILD-ON-A: added here, not filed anew): the `/odds/*` proxy route.** It charges
+  `oddsProxyRoute`, which has NO cap, to the same shared day ceiling; each distinct
+  `markets=` / `regions=` query string is a distinct edge-cache key, so a caller can vary
+  it. Capping it is a policy number and the owner's; nothing here caps it. The split is
+  executed, not read, by `scripts/check-odds-label-split.mjs` (the real worker, three routes
+  and the cron paths) and `scripts/mutate-odds-label-split.mjs`.
 - Related, not covering these: `/archive/game` is
   `docs/CC-CMD-2026-10-14-archive-game-unauthenticated-write.md` (RULED,
-  blocked on rotation). It spends `fetchSportOddsHistorical` too.
+  blocked on rotation). Its closing fetch spends `archiveGameClosing` since 2026-10-28
+  (it spent `fetchSportOddsHistorical` before), and that label is shared with the relay's own
+  legitimate callers (the cron and GameDO closing fetches for sports AmbientDO does not cover),
+  so its cap of 900 isolates it from the other labels, not from them.
 
 **Narrowed 2026-10-23 (BUILD-ON-A).** A content audit against every existing
 CC-CMD (workflow `wf_dd67792d-4ca`) kept the two route gates and the caller

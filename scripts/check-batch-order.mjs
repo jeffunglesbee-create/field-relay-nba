@@ -27,9 +27,10 @@
 //     charge. The month's 50/75/90% ladder would then compare a day's total
 //     against cutoffs from 42,500 up and never fire.
 //
-// EIGHT STATEMENTS SINCE 2026-10-28 (Task 3 of
-// docs/CC-CMD-2026-09-16-odds-spend-attribution.md): seed, monthSeed, siteSeed,
-// snapshot, GATE, siteCharge, monthCharge, charge. The gate decides over the
+// NINE STATEMENTS SINCE 2026-10-28 (Task 3 of
+// docs/CC-CMD-2026-09-16-odds-spend-attribution.md, then its refusal record): seed,
+// monthSeed, siteSeed, snapshot, GATE, refusal, siteCharge, monthCharge, charge. The
+// refusal's own position is asserted in check-odds-budget-batch.mjs. The gate decides over the
 // PRE-charge totals and the three charges obey it, so the one thing no single
 // statement shows is that the snapshot and the gate run BEFORE every charge. A
 // charge moved ahead of the gate changes the totals the gate reads, and the batch
@@ -201,7 +202,7 @@ if (process.argv.includes('--self-test')) {
     }
     return findings(text);
   };
-  const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge'];";
+  const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'monthCharge', 'charge'];";
   const order = (...keys) => `export const ODDS_CHARGE_ORDER = [${keys.map((k) => `'${k}'`).join(', ')}];`;
   const MONTH_LINE = '            db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, token),\n';
   const CHARGE_LINE = '            db.prepare(ODDS_BUDGET_SQL.charge).bind(units, date, token),\n';
@@ -219,12 +220,12 @@ if (process.argv.includes('--self-test')) {
 
   // The order grows, the batch does not.
   ok('M3 a key added to the declared order',
-     M([ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge', 'fixMonth')])
+     M([ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'monthCharge', 'charge', 'fixMonth')])
        .some((x) => x.includes('throw on every call')));
 
   // Same length, wrong statements — the charge would not be last.
   ok('M4 the order reshuffled so the charge is not last',
-     M([ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'charge', 'monthCharge')])
+     M([ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'charge', 'monthCharge')])
        .some((x) => x.includes('do not match')));
 
   // A second charge path must make this refuse, not quietly check one of two.
@@ -240,19 +241,20 @@ if (process.argv.includes('--self-test')) {
   // The one M4 cannot see: batch and order reshuffled TOGETHER, so they agree.
   ok('M7 the batch and the order reordered together, charge no longer last',
      M([MONTH_LINE + CHARGE_LINE, CHARGE_LINE + MONTH_LINE],
-       [ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'charge', 'monthCharge')])
+       [ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'charge', 'monthCharge')])
        .some((x) => x.includes('charge must be last')));
 
   // THE GATE AFTER A CHARGE, the batch and the order moved together so they
   // agree and the charge is still last. Only the ordering rule sees it.
   const GATE_LINE = /            db\.prepare\(ODDS_BUDGET_SQL\.gate\)[^\n]*\n/.exec(live)?.[0];
+  const REFUSAL_LINE = /            db\.prepare\(ODDS_BUDGET_SQL\.refusal\)[^\n]*\n/.exec(live)?.[0];
   const SITE_CHARGE_LINE = '            db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(units, date, site, token),\n';
   ok('M18 the gate runs after the site charge (batch and order moved together)',
-     !!GATE_LINE && M([GATE_LINE + SITE_CHARGE_LINE, SITE_CHARGE_LINE + GATE_LINE],
-                      [ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'siteCharge', 'gate', 'monthCharge', 'charge')])
+     !!GATE_LINE && !!REFUSAL_LINE && M([GATE_LINE + REFUSAL_LINE + SITE_CHARGE_LINE, REFUSAL_LINE + SITE_CHARGE_LINE + GATE_LINE],
+                      [ORDER, order('seed', 'monthSeed', 'siteSeed', 'snapshot', 'refusal', 'siteCharge', 'gate', 'monthCharge', 'charge')])
        .some((x) => x.includes('must run snapshot, then gate')));
   ok('M19 the snapshot runs after the gate (the convention: reads before the first write)',
-     M([ORDER, order('seed', 'monthSeed', 'siteSeed', 'gate', 'snapshot', 'siteCharge', 'monthCharge', 'charge')])
+     M([ORDER, order('seed', 'monthSeed', 'siteSeed', 'gate', 'snapshot', 'refusal', 'siteCharge', 'monthCharge', 'charge')])
        .some((x) => x.includes('do not match') || x.includes('must run snapshot, then gate')));
 
   // A statement dropped from the batch: the month seed, the one that stops a

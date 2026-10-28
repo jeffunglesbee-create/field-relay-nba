@@ -11,7 +11,7 @@
  *          order is the one that keeps daily, by-site and monthly equal.
  *
  * THE BEHAVIOURAL HALF WAS FIRST DELETED AND IS BACK. When the batch became eight
- * statements with one that decides (Task 3 of
+ * (nine since the refusal record of 2026-10-28; E10-E13 are that record's) statements with one that decides (Task 3 of
  * docs/CC-CMD-2026-09-16-odds-spend-attribution.md) this half was dropped on the
  * grounds that scripts/mutate-odds-site-caps.mjs breaks the real source in more
  * ways. That harness is stronger on the gate, but it did not carry what this half
@@ -113,6 +113,35 @@ const MUTATIONS = [
    "  return m ? (m[1] ?? m[2] ?? '') : '';",
    "  return m ? (m[1] ?? '') : '';",
    "the day's fix is single-quoted: read as '' it carries no ceiling, so the vacuous check passes"],
+  // THE REFUSAL RECORD (fix 3 E, 2026-10-28).
+  ['B18 a refusal outside the gate-to-charges window passes',
+   "  return at('gate') < at('refusal') && at('refusal') < Math.min(...charges);",
+   "  return true;",
+   'a record before the gate reads the previous call\'s token'],
+  ['B19 a refusal record that is not conditional passes',
+   "      && r.includes('WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)')",
+   "      && true",
+   'every admitted call would be filed as a refusal'],
+  ['B20 a refusal record that does not count repeats passes',
+   "      && r.includes('ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1')",
+   "      && true",
+   'a caller retried 40 times would read as refused once'],
+  ['B21 a refusal record that does not read its scope back passes',
+   "      && /RETURNING scope$/.test(r)",
+   "      && true",
+   'chargeOdds could not compare the record with the reason'],
+  ['B22 a refusal record that asks the month before the day passes',
+   "      && r.indexOf(\"THEN 'day'\") < r.indexOf(\"THEN 'month'\") && r.indexOf(\"THEN 'month'\") < r.indexOf(\"ELSE 'site'\")",
+   "      && true",
+   'a day veto would be filed as a month veto, the defect the reason order was written against'],
+  ['B23 a refusal outside its window is not acted on',
+   "  if (!recordAfter)        return 'the-refusal-is-not-between-the-gate-and-the-charges';",
+   "  if (false)        return 'the-refusal-is-not-between-the-gate-and-the-charges';",
+   'the predicate computed and ignored — the branch, not the predicate'],
+  ['B24 an unconditional refusal record is not acted on',
+   "  if (!recordShape)        return 'the-refusal-record-is-not-conditional-on-the-gate';",
+   "  if (false)        return 'the-refusal-record-is-not-conditional-on-the-gate';",
+   'the predicate computed and ignored — the branch, not the predicate'],
 ];
 
 let caught = 0;
@@ -134,10 +163,10 @@ const grab = (name) => {
   return m ? m[1].slice(1, -1) : null;
 };
 const SQL = { seed: grab('SQL_SEED'), monthSeed: grab('SQL_MONTH_SEED'), siteSeed: grab('SQL_SITE_SEED'), snapshot: grab('SQL_SNAPSHOT'),
-              gate: grab('SQL_GATE'), siteCharge: grab('SQL_SITE_CHARGE'), monthCharge: grab('SQL_MONTH_CHARGE'), charge: grab('SQL_CHARGE') };
+              gate: grab('SQL_GATE'), refusal: grab('SQL_REFUSAL'), siteCharge: grab('SQL_SITE_CHARGE'), monthCharge: grab('SQL_MONTH_CHARGE'), charge: grab('SQL_CHARGE') };
 const om = /export const ODDS_CHARGE_ORDER\s*=\s*\[([^\]]*)\]/.exec(src);
 const ORDER = om ? [...om[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : [];
-if (Object.values(SQL).some((v) => !v) || ORDER.length !== 8 || ORDER.some((k) => !(k in SQL))) {
+if (Object.values(SQL).some((v) => !v) || ORDER.length !== 9 || ORDER.some((k) => !(k in SQL))) {
   console.log(`\nFAIL — the statements or ODDS_CHARGE_ORDER could not be read from ${HELPERS}; nothing below would be about the source.`);
   console.log(`       read: ${JSON.stringify(Object.fromEntries(Object.entries(SQL).map(([k, v]) => [k, !!v])))} order=${JSON.stringify(ORDER)}`);
   process.exit(1);
@@ -173,7 +202,9 @@ function run({ order = ORDER, sql = {}, ceiling = 100, limit = 1000, siteCap = 1
   db.exec(`CREATE TABLE odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
            CREATE TABLE odds_budget_site (day TEXT, site TEXT, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site));
            CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
-           CREATE TABLE odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL);`);
+           CREATE TABLE odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL);
+           CREATE TABLE odds_budget_refusal (day TEXT NOT NULL, scope TEXT NOT NULL, site TEXT NOT NULL, first_at TEXT NOT NULL,
+                                             n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, scope, site));`);
   const verdicts = [];
   for (let i = 0; i < calls; i++) {
     const tok = `call-${i}`;
@@ -183,6 +214,7 @@ function run({ order = ORDER, sql = {}, ceiling = 100, limit = 1000, siteCap = 1
       siteSeed:    () => db.prepare(S.siteSeed).run('D', 'a'),
       snapshot:    () => db.prepare(S.snapshot).all('D', 'M', 'D', 'a'),
       gate:        () => db.prepare(S.gate).run(tok, 'D', units, ceiling, 'M', units, limit, 'D', 'a', units, siteCap),
+      refusal:     () => db.prepare(S.refusal).all('D', 'D', units, ceiling, 'M', units, limit, 'a', `2026-11-05T00:00:0${i}.000Z`, tok),
       siteCharge:  () => db.prepare(S.siteCharge).run(units, 'D', 'a', tok),
       monthCharge: () => db.prepare(S.monthCharge).all(units, 'M', tok),
       charge:      () => db.prepare(S.charge).all(units, 'D', tok),
@@ -211,9 +243,15 @@ function run({ order = ORDER, sql = {}, ceiling = 100, limit = 1000, siteCap = 1
   const daily = g("SELECT used v FROM odds_budget WHERE day='D'");
   const sum   = g("SELECT SUM(used) v FROM odds_budget_site WHERE day='D'");
   const month = g("SELECT used v FROM odds_budget_month WHERE month='M'");
-  return { daily, sum, month, verdicts, charged: verdicts.filter(Boolean).length, diverged: daily !== sum || month !== daily, limit };
+  // The refusal record: its rows by scope, with the call counts they hold. A call
+  // that charged files nothing, a call that was refused files exactly one count.
+  const recorded = {};
+  for (const r of db.prepare('SELECT scope, SUM(n) AS n FROM odds_budget_refusal GROUP BY scope').all()) recorded[r.scope] = Number(r.n);
+  const recordedN = Object.values(recorded).reduce((a, v) => a + v, 0);
+  return { daily, sum, month, verdicts, charged: verdicts.filter(Boolean).length, diverged: daily !== sum || month !== daily, limit,
+           recorded, recordedOk: recordedN === verdicts.filter((v) => !v).length };
 }
-const fmt = (r) => `daily=${r.daily} sum=${r.sum} month=${r.month} charged=${r.charged}/${r.verdicts.length}`;
+const fmt = (r) => `daily=${r.daily} sum=${r.sum} month=${r.month} charged=${r.charged}/${r.verdicts.length} refused-on-record=${JSON.stringify(r.recorded)}`;
 
 console.log('\n── executed against real SQLite, on the statements read from the source ──');
 // Three metrics, because no one of them sees every defect: (A) the three counters
@@ -226,6 +264,7 @@ const control   = run();
 const ctlMonth  = run({ limit: 60, ceiling: 1000 });
 const ctlSite   = run({ siteCap: 60, ceiling: 1000 });
 const ctlStop   = run({ stopAt: 1 });
+const ctlBoth   = run({ ceiling: 60, limit: 60 });
 const levelAt = (r, n, total) => !r.diverged && r.charged === n && r.daily === total;
 const controls = [
   ['the source order ' + ORDER.join(' -> '), control, levelAt(control, 3, 90)],
@@ -233,6 +272,11 @@ const controls = [
   ['the month limit binds, and a month veto charges neither the day nor the site (limit 60)', ctlMonth, levelAt(ctlMonth, 2, 60)],
   ['the site cap binds, and a site veto charges neither the day nor the month (cap 60)', ctlSite, levelAt(ctlSite, 2, 60)],
   ['a stop inside the one batch rolls back', ctlStop, !ctlStop.diverged],
+  // The record: one count per refused call, under the limit that refused, day first.
+  ['a day refusal is filed once per refused call, under the day', control, control.recordedOk && JSON.stringify(control.recorded) === '{"day":2}'],
+  ['a month refusal is filed under the month', ctlMonth, ctlMonth.recordedOk && JSON.stringify(ctlMonth.recorded) === '{"month":3}'],
+  ['a site refusal is filed under the site', ctlSite, ctlSite.recordedOk && JSON.stringify(ctlSite.recorded) === '{"site":3}'],
+  ['the day is asked before the month when both are over', ctlBoth, ctlBoth.recordedOk && JSON.stringify(ctlBoth.recorded) === '{"day":3}'],
 ];
 let controlsOk = true;
 for (const [name, r, ok] of controls) {
@@ -272,6 +316,21 @@ try {
     ['E9 the month charged in a SECOND transaction, stopped between them',
      run({ split: true, stopAt: 1 }), (r) => r.diverged,
      'THE CHANGE OF 2026-10-18, reverted: day and site commit, the month never runs — the "month short" its 2,766-credit measurement found'],
+    // THE REFUSAL RECORD. Counters and charges are untouched by each of these, so
+    // only the record metric (one count per refused call, under its limit) sees them.
+    ['E10 the refusal is recorded on every call',
+     run({ sql: { refusal: mutate(SQL.refusal, 'WHERE NOT EXISTS', 'WHERE EXISTS') } }), (r) => !r.recordedOk,
+     'every admitted call files a refusal, and a day that refused nothing reads as one that did'],
+    ['E11 the refusal is never recorded',
+     run({ sql: { refusal: mutate(SQL.refusal, 'WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)', 'WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ? OR 1 = 1)') } }), (r) => !r.recordedOk,
+     'a refusal is decided and not recorded: fix 3 E back, with the record that was meant to close it'],
+    ['E12 the refusal\'s day and month LABELS are swapped (a day veto is filed as a month veto when both are over)',
+     run({ ceiling: 60, limit: 60, sql: { refusal: mutate(mutate(mutate(SQL.refusal, "THEN 'day'", "THEN 'TMP'"), "THEN 'month'", "THEN 'day'"), "THEN 'TMP'", "THEN 'month'") } }),
+     (r) => JSON.stringify(r.recorded) !== '{"day":3}',
+     'the record and the reason (_vetoFromBatch asks the day first) would disagree, and chargeOdds would degrade open on every such call'],
+    ['E13 repeats are not counted',
+     run({ sql: { refusal: mutate(SQL.refusal, 'n = n + 1', 'n = 1') } }), (r) => !r.recordedOk,
+     'a caller retried against a refusal reads as refused once'],
   ];
 } catch (e) {
   console.log(`FAIL — ${e.message}`);
@@ -286,7 +345,7 @@ for (const [name, r, isCaught, why] of E) {
 const total = MUTATIONS.length + E.length;
 console.log(`\n${caught} of ${total} mutations caught.`);
 console.log("COVERAGE: the check's predicates via --self-test, and the SQL's real behaviour via");
-console.log('node:sqlite over a single-threaded sequence of 5 calls, using the eight statements and the order read');
+console.log('node:sqlite over a single-threaded sequence of 5 calls, using the nine statements and the order read');
 console.log(`from ${HELPERS}. It does NOT exercise D1, concurrency between isolates, or batch() atomicity — the`);
 console.log("transaction is Cloudflare's guarantee. The real chargeOdds against a reference model is");
 console.log('scripts/check-odds-site-caps.mjs, with its own mutants in scripts/mutate-odds-site-caps.mjs.');

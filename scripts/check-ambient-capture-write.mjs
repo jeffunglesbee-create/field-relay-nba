@@ -95,6 +95,13 @@ function makeDb(world) {
     if (world.ledger && /^SELECT \(SELECT used FROM odds_budget WHERE day = \?\) AS day_used/.test(s)) {
       return { rows: [{ day_used: world.ledger.full ? 1e9 : 0, month_used: 0, site_used: 0 }], changes: 0 };
     }
+    // The refusal record (fix 3 E): filed in the batch, only for a call the gate
+    // refused, and read back as its scope. A full ledger is a full DAY, as above;
+    // a record that said anything else would disagree with the snapshot and the
+    // call would degrade open instead of being refused.
+    if (world.ledger && /^INSERT INTO odds_budget_refusal /.test(s)) {
+      return { rows: world.ledger.full ? [{ scope: 'day' }] : [], changes: world.ledger.full ? 1 : 0 };
+    }
     return { rows: [], changes: 0 };   // the odds-budget tally's DDL and writes: not under test
   };
   const stmt = (sql, params = []) => ({
@@ -522,6 +529,7 @@ async function selfTest() {
       CREATE TABLE odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site));
       CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL);
+      CREATE TABLE odds_budget_refusal (day TEXT NOT NULL, scope TEXT NOT NULL, site TEXT NOT NULL, first_at TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, scope, site));
       CREATE TABLE odds_reconcile_state (day TEXT NOT NULL, site TEXT NOT NULL, state TEXT NOT NULL, cache TEXT NOT NULL,
         n INTEGER NOT NULL DEFAULT 0, credits_kept INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site, state, cache));
       INSERT INTO odds_budget VALUES ('2026-11-14', 100);

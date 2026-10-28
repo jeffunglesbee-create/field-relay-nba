@@ -71,6 +71,22 @@ export const SITE_CEILINGS = {
     fetchSportOddsLive: 2000,
     fetchSportOddsHistorical: 1800,
     getWCPregameLambdas: 300,
+    // The split labels (2026-10-28). Policy numbers, and new ones: the four above
+    // were ratified by the owner the same day, these were chosen with the split.
+    //   identityMismatches   150: the Saturday join probe is 4 sports x 3 credits =
+    //                        12 a week; 150 is twelve weeks of it in one day.
+    //   archiveOddsBackfill  300: ten sport-dates at 30. No workflow or script calls
+    //                        the route; a manual backfill larger than that needs a
+    //                        `siteExtra` grant, which is the point of the cap.
+    //   archiveGameClosing   900: /archive/game's share of fetchSportOddsHistorical
+    //                        cannot be separated from the cron's in history; the whole
+    //                        label's busiest day since 10-13 is 900 (10-22), so this
+    //                        is "no worse than the busiest day seen", not a derivation.
+    // charged follows kept for all three: they go through fetchSportOddsLive and
+    // fetchSportOddsHistorical, whose charged/kept are 3,618/3,621 and 3,060/3,060.
+    identityMismatches: 150,
+    archiveOddsBackfill: 300,
+    archiveGameClosing: 900,
 };
 export const NO_SITE_CEILING = Number.MAX_SAFE_INTEGER;
 
@@ -127,6 +143,16 @@ export const ODDS_SITES = [
     // I named eight from a grep and check-odds-attribution.mjs found this one on
     // its first live run.
     'oddsProxyRoute',
+    // THE THREE UNAUTHENTICATED ROUTES THAT SHARED A CRON LABEL, split out on
+    // 2026-10-28 (the owner decided it that day; see
+    // docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md). The identity
+    // route charged the live-odds cron label, and the two archive routes charged
+    // the historical-odds cron label, so an anonymous caller could spend toward a
+    // cap that the cron needs and the ledger could not tell the two apart. Each
+    // now names itself, and is capped on its own. NO APOSTROPHES IN THIS COMMENT:
+    // check-odds-attribution reads the quoted names of this array with a regex,
+    // and one apostrophe shifts every pair after it.
+    'identityMismatches', 'archiveOddsBackfill', 'archiveGameClosing',
     'unattributed',
 ];
 
@@ -370,6 +396,28 @@ function _vetoFromBatch(results, units, dayCeiling, siteCeiling) {
     return null;
 }
 
+/** WHAT THE BATCH RECORDED, read from `refusal`'s own RETURNING row: the scope the
+ *  statement filed the refusal under, or null when it wrote nothing (the call was
+ *  admitted). It is the SECOND reading of why a call was refused: _vetoFromBatch
+ *  derives the same answer in JS from the snapshot, and chargeOdds throws when the
+ *  two disagree, as it does when the verdict and the reason disagree.
+ *
+ *  BY NAME, NEVER BY POSITION, for the reason _monthFromBatch gives. A missing
+ *  results array is a shape this code has never seen, and a scope that is not one
+ *  of the three is a record nobody can read; both throw to the degrade path. */
+function _refusalFromBatch(results) {
+    const r = results?.[ODDS_CHARGE_ORDER.indexOf('refusal')];
+    if (!r || !Array.isArray(r.results)) {
+        throw new Error('odds budget batch: the refusal statement returned no results array');
+    }
+    if (r.results.length === 0) return null;
+    const scope = r.results[0].scope;
+    if (scope !== 'day' && scope !== 'month' && scope !== 'site') {
+        throw new Error(`odds budget batch: the refusal statement filed scope ${JSON.stringify(scope)}`);
+    }
+    return scope;
+}
+
 /** The stamp a site veto writes, and /budget/odds reads. Code-supplied site names
  *  only (a cap exists for named sites), sanitised the way _siteKey does it. */
 function _siteVetoKey(site, date) {
@@ -457,6 +505,7 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
             db.prepare(ODDS_BUDGET_SQL.siteSeed).bind(date, site),
             db.prepare(ODDS_BUDGET_SQL.snapshot).bind(date, month, date, site),
             db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT, date, site, units, siteCeiling),
+            db.prepare(ODDS_BUDGET_SQL.refusal).bind(date, date, units, ceiling, month, units, ODDS_HARD_LIMIT, site, new Date().toISOString(), token),
             db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(units, date, site, token),
             db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, token),
             db.prepare(ODDS_BUDGET_SQL.charge).bind(units, date, token),
@@ -470,6 +519,15 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
         // through that did not. It throws to the degrade path, where it is counted.
         if (dayCharged !== (veto === null)) {
             throw new Error(`odds budget batch: the gate ${dayCharged ? 'charged' : 'refused'} but the pre-charge totals say ${veto ? `${veto} veto` : 'room'}`);
+        }
+        // AND THE RECORD IS A THIRD READING. `refusal` filed the refusal in the same
+        // transaction under the scope the gate's own predicates gave it; the JS
+        // reading above came from the snapshot. They are the same fact twice, so a
+        // refusal filed under another limit, or filed for a call that charged, or not
+        // filed for one that was refused, is something this code has never seen.
+        const recorded = _refusalFromBatch(results);
+        if (recorded !== veto) {
+            throw new Error(`odds budget batch: the refusal record says ${recorded === null ? 'no refusal' : `${recorded} veto`} but the pre-charge totals say ${veto === null ? 'room' : `${veto} veto`}`);
         }
 
         // Vetoed by the DAY. Nothing was charged -- the gate wrote no token, so
@@ -638,6 +696,12 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
 // SITE_TTL_DAYS is the honest limit and the route refuses past it.
 export const SITE_TTL_DAYS = 2;
 
+/** The first date the refusal record can hold: odds_budget_refusal was created by the deploy
+ *  of 2026-10-28. For an earlier date the table is empty because it did not exist, not
+ *  because nothing was refused, so `refusals` is served as null there (Rule 99) and only the
+ *  KV stamps speak for the day. */
+export const REFUSAL_RECORD_FROM = '2026-10-28';
+
 async function peekDailyOdds(env, forDate = null) {
     if (!env || !env.FIELD_JOURNALISM) return null;
     try {
@@ -729,6 +793,56 @@ async function peekDailyOdds(env, forDate = null) {
         } catch (_) {
             reconcile = null;
         }
+        // THE REFUSAL RECORD, READ FIRST (fix 3 E, 2026-10-28). chargeOdds files every
+        // refusal in odds_budget_refusal INSIDE the batch that made it, so the record
+        // cannot be missing for a refusal that happened. The KV stamps below are the
+        // older record, written after the batch and able to fail alone; they are still
+        // written, and still the only record of a refusal made before the table
+        // existed. Each answer below takes the EARLIEST time either store gives. A
+        // store that cannot be read matters only when the other has nothing: a time
+        // from either is a refusal that happened, and a null with an unreadable store
+        // behind it is unknown, not "none" (Rule 99). No ARCHIVE_DB binding means the
+        // table was never consulted, as `source` says above, and is not unreadable.
+        let refusalState = 'absent', refusalRows = null, refusalMonthAt = null;
+        const refusalDayAt = { day: null, sites: {} };
+        try {
+            if (env.ARCHIVE_DB && await ensureOddsBudgetTables(env)) {
+                const rr = await env.ARCHIVE_DB.prepare(
+                    `SELECT scope, site, first_at, n FROM odds_budget_refusal
+                      WHERE day = ? ORDER BY first_at, scope, site`).bind(date).all();
+                // A range over the key's first column (every day of the month sorts between the
+                // 1st and the 31st), not substr(day, 1, 7), which no index can seek.
+                const mm = await env.ARCHIVE_DB.prepare(
+                    `SELECT MIN(first_at) AS first_at FROM odds_budget_refusal
+                      WHERE scope = 'month' AND day >= ? AND day <= ?`).bind(`${date.slice(0, 7)}-01`, `${date.slice(0, 7)}-31`).first();
+                if (!Array.isArray(rr && rr.results)) throw new Error('refusal rows: no results array');
+                // A count that is not a number is a row this code has never seen and
+                // makes the whole record unreadable (the catch below), not a zero.
+                refusalRows = rr.results.map(r => {
+                    if (typeof r.n !== 'number' || !Number.isFinite(r.n)) throw new Error('refusal rows: n is not a number');
+                    return { scope: r.scope, site: r.site, first_at: r.first_at, n: r.n };
+                });
+                for (const r of refusalRows) {
+                    if (r.scope === 'day' && (refusalDayAt.day === null || r.first_at < refusalDayAt.day)) refusalDayAt.day = r.first_at;
+                    if (r.scope === 'site') refusalDayAt.sites[r.site] = r.first_at;
+                }
+                refusalMonthAt = mm && typeof mm.first_at === 'string' ? mm.first_at : null;
+                refusalState = 'ok';
+            }
+        } catch (_) { refusalState = 'unreadable'; refusalRows = null; }
+        // A stamp's KV value in the three states (a time, `true`, null) and whether the
+        // read worked, combined with the record's time for the same fact.
+        const stampOf = async (kvKey, recordedAt) => {
+            let kv = null, kvOk = true;
+            try {
+                const raw = await env.FIELD_JOURNALISM.get(kvKey);
+                if (raw) kv = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
+            } catch (_) { kvOk = false; }
+            const times = [kv, recordedAt].filter(v => typeof v === 'string').sort();
+            if (times.length) return { value: times[0], unreadable: false };
+            if (kv === true) return { value: true, unreadable: false };
+            return { value: null, unreadable: !kvOk || refusalState === 'unreadable' };
+        };
         // WAS THE CEILING ACTUALLY HIT, AND WHEN. `used === ceiling` says the
         // budget is exhausted; it does not say a fetch was ever refused. The
         // guard writes this key only when it vetoes, so its presence is the
@@ -736,27 +850,24 @@ async function peekDailyOdds(env, forDate = null) {
         //
         // Three states, never two (Rule 99): a timestamp, `true` with no time
         // (a legacy '1', or an unparseable value — reached, hour unknown), and
-        // null for not reached. An unreadable KV read is also `null` here, and
+        // null for not reached. An unreadable read is also `null` here, and
         // it is NAMED in stamps_unreadable below. It used to be said that the
         // response's other fields already carried that failure; on a failure of
         // this one key they read normally, so a refusing day and a clean one
         // answered alike (fix 3 D).
         const stampsUnreadable = [];
-        let ceilingHit = null;
-        try {
-            const raw = await env.FIELD_JOURNALISM.get(`odds:daily:${date}:warned`);
-            if (raw) ceilingHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
-        } catch (_) { ceilingHit = null; stampsUnreadable.push('ceiling_reached_at'); }
+        const dayStamp = await stampOf(`odds:daily:${date}:warned`, refusalDayAt.day);
+        const ceilingHit = dayStamp.value;
+        if (dayStamp.unreadable) stampsUnreadable.push('ceiling_reached_at');
         // THE MONTH'S LIMIT, FOR THE MONTH OF THE DAY ASKED ABOUT. chargeOdds
         // stamps odds:credits:<month>:warned:limit the first time the 85,000
-        // limit refuses a call (60-day TTL). The monthly block of this route is
-        // the CURRENT month, so a watch reading 10-31 on 11-01 saw November's
-        // headroom and no refusal (fix 3 B). Same three states as above.
-        let monthLimitHit = null;
-        try {
-            const raw = await env.FIELD_JOURNALISM.get(`odds:credits:${date.slice(0, 7)}:warned:limit`);
-            if (raw) monthLimitHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
-        } catch (_) { monthLimitHit = null; stampsUnreadable.push('month_limit_reached_at'); }
+        // limit refuses a call (60-day TTL), and files the refusal under every day
+        // it happens. The monthly block of this route is the CURRENT month, so a
+        // watch reading 10-31 on 11-01 saw November's headroom and no refusal (fix
+        // 3 B). Same three states as above.
+        const monthStamp = await stampOf(`odds:credits:${date.slice(0, 7)}:warned:limit`, refusalMonthAt);
+        const monthLimitHit = monthStamp.value;
+        if (monthStamp.unreadable) stampsUnreadable.push('month_limit_reached_at');
         // EACH SITE'S CAP, AND WHETHER IT HAS REFUSED (2026-10-28). `site_ceilings`
         // lists every declared site: its cap for THIS date, grants included, or
         // null for a site that has none, so an uncapped site reads as uncapped
@@ -773,11 +884,10 @@ async function peekDailyOdds(env, forDate = null) {
         }
         for (const s of Object.keys(siteCeilings)) {
             if (siteCeilings[s] === null) continue;
-            try {
-                const raw = await env.FIELD_JOURNALISM.get(_siteVetoKey(s, date));
-                siteHit[s] = raw ? (/^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true) : null;
-            } catch (_) {
-                siteHit[s] = null; siteUnreadable.push(s);
+            const st = await stampOf(_siteVetoKey(s, date), refusalDayAt.sites[s] ?? null);
+            siteHit[s] = st.value;
+            if (st.unreadable) {
+                siteUnreadable.push(s);
                 if (!stampsUnreadable.includes('site_ceiling_reached_at')) stampsUnreadable.push('site_ceiling_reached_at');
             }
         }
@@ -815,6 +925,14 @@ async function peekDailyOdds(env, forDate = null) {
             // unknown) or null (not reached, or unreadable -- see below).
             site_ceilings: siteCeilings,
             site_ceiling_reached_at: siteHit,
+            // The refusals filed for THIS date, one cell per (limit, caller): `scope`
+            // is 'day', 'month' or 'site', `site` the caller turned away, `first_at`
+            // the first such refusal and `n` how many calls were refused. [] = the
+            // table was read and holds none for this date. null = it could not be
+            // read, there is no ARCHIVE_DB, or the date is before REFUSAL_RECORD_FROM
+            // (the table did not exist, so nothing could be filed): in every case NOT
+            // "no refusals" (Rule 99). The stamps above cover those dates.
+            refusals: date < REFUSAL_RECORD_FROM ? null : refusalRows,
             // null = every site's stamp was read. Otherwise the sites whose read
             // failed: their null in site_ceiling_reached_at means unknown.
             site_stamps_unreadable: siteUnreadable.length ? siteUnreadable : null,
@@ -1024,6 +1142,37 @@ const SQL_GATE = `INSERT OR REPLACE INTO odds_budget_gate (id, token)
             WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
               AND (SELECT used FROM odds_budget_month WHERE month = ?) + ? <= ?
               AND (SELECT used FROM odds_budget_site WHERE day = ? AND site = ?) + ? <= ?`;
+// THE REFUSAL RECORD, 2026-10-28 (fix 3 E of docs/CC-CMD-2026-10-23-odds-ceiling-
+// prerequisites.md). The three stamps a veto writes (odds:daily:<d>:warned, the
+// month's :warned:limit, the site's :warned:site:<s>) are KV puts made AFTER the
+// batch, in a try/catch whose catch says "a veto whose stamp cannot be recorded is
+// still a veto". It is still a veto, and the day then reads `none`: a refusal the
+// decision made and the record lost, because the two were separate writes that
+// could fail apart. This statement is in the SAME batch, and it writes only when the
+// gate does NOT hold this call's token, so a refusal and its record are one
+// transaction: both happen or neither does, and there is no failure that keeps one.
+//
+// WHICH LIMIT is computed here by the gate's own predicates, day first, then month,
+// then the site. (The ELSE 'site' would also absorb a NULL total, but the three seed
+// statements run first in the same transaction, so no total is ever NULL here; if one were,
+// _vetoFromBatch would throw on it and the call would degrade, counted.) -- the order _vetoFromBatch reads the snapshot in, and the two are
+// compared (_refusalFromBatch) so a disagreement degrades loudly rather than filing
+// a refusal under the wrong limit. It runs after the gate and before the charges; a
+// refused call moved no counter, so the totals it reads are the ones the gate saw.
+// RETURNING is what lets the JS read the scope back on EVERY refusal: with
+// INSERT OR IGNORE the second refusal of the day would return nothing.
+//
+// (day, scope, site) is the key. `site` is the caller that was turned away, whatever
+// the limit: the day's and the month's refusals name who hit them. `n` counts the
+// refused CALLS, which is what a retrying caller needs measured.
+const SQL_REFUSAL = `INSERT INTO odds_budget_refusal (day, scope, site, first_at, n)
+           SELECT ?, CASE WHEN (SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'
+                          WHEN (SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'
+                          ELSE 'site' END,
+                  ?, ?, 1
+            WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)
+           ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1
+           RETURNING scope`;
 const SQL_SITE_CHARGE = `UPDATE odds_budget_site SET used = used + ?
              WHERE day = ? AND site = ?
                AND EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)`;
@@ -1084,7 +1233,8 @@ const SQL_RECONCILE_TALLY = `INSERT INTO odds_reconcile_state (day, site, state,
                                                                credits_kept = credits_kept + ?`;
 
 export const ODDS_BUDGET_SQL = { seed: SQL_SEED, siteSeed: SQL_SITE_SEED, snapshot: SQL_SNAPSHOT,
-                                 gate: SQL_GATE, siteCharge: SQL_SITE_CHARGE, charge: SQL_CHARGE,
+                                 gate: SQL_GATE, refusal: SQL_REFUSAL,
+                                 siteCharge: SQL_SITE_CHARGE, charge: SQL_CHARGE,
                                  fixDay: SQL_FIX_DAY, fixSite: SQL_FIX_SITE,
                                  monthSeed: SQL_MONTH_SEED, monthCharge: SQL_MONTH_CHARGE,
                                  fixMonth: SQL_FIX_MONTH,
@@ -1096,7 +1246,8 @@ export const ODDS_BUDGET_SQL = { seed: SQL_SEED, siteSeed: SQL_SITE_SEED, snapsh
 export const ODDS_BUDGET_ORDER = ['seed', 'siteCharge', 'charge'];
 // THE CHARGE, ONE BATCH, since 2026-10-18: day, site and month together, so no
 // stop can land between the day's write and the month's. Since 2026-10-28 it is
-// eight statements and ONE of them decides (`gate`); see the block above.
+// nine statements and ONE of them decides (`gate`); `refusal` records a refusal in
+// the same transaction. See the block above.
 // `charge` is LAST because chargedFromBatch reads the last statement as the
 // verdict; the month's total is read by name, in _monthFromBatch, and the
 // pre-charge totals by name, in _vetoFromBatch.
@@ -1112,14 +1263,14 @@ export const ODDS_BUDGET_ORDER = ['seed', 'siteCharge', 'charge'];
 // no warning could fire. The expected length comes from the statement list
 // itself rather than a number written beside it, because a number beside it is
 // what drifted.
-export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge'];
+export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'monthCharge', 'charge'];
 
 /** Did the batch charge? The UPDATE returns its row only when the ceiling
  *  allowed it, so zero rows is a veto and not an error. Absent results (a shape
  *  this code has never seen) are NOT read as a veto: that would silently stop
  *  every odds call, so it throws to the degrade path where it is counted.
  *
- *  `order` is the batch these results came from — ODDS_CHARGE_ORDER, eight
+ *  `order` is the batch these results came from — ODDS_CHARGE_ORDER, nine
  *  statements. The day's charge is the LAST of them; the month's verdict is not
  *  read here but by name, in _monthFromBatch. */
 export function chargedFromBatch(results, order = ODDS_BUDGET_ORDER) {
@@ -1190,6 +1341,22 @@ async function ensureOddsBudgetTables(env) {
             CREATE TABLE IF NOT EXISTS odds_budget_gate (
               id    INTEGER PRIMARY KEY,
               token TEXT NOT NULL
+            )`),
+        // THE REFUSAL RECORD, 2026-10-28. See SQL_REFUSAL. One row per (day, limit,
+        // caller), written by the batch that refused: first_at is the first refusal
+        // and n the number of refused calls. Absent is not zero: a day with no row
+        // had no refusal ONLY IF this table existed and was readable, which is why
+        // peekDailyOdds reports an unreadable read as unknown. No CHECK on scope
+        // (the gate table's DDL has none either, for the same reason: a constraint
+        // that rejects inside the batch would roll back the decision with it).
+        env.ARCHIVE_DB.prepare(`
+            CREATE TABLE IF NOT EXISTS odds_budget_refusal (
+              day      TEXT NOT NULL,
+              scope    TEXT NOT NULL,
+              site     TEXT NOT NULL,
+              first_at TEXT NOT NULL,
+              n        INTEGER NOT NULL DEFAULT 0,
+              PRIMARY KEY (day, scope, site)
             )`),
     ]);
     _oddsBudgetReady = true;

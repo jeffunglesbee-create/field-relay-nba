@@ -85,9 +85,9 @@ const MUTANTS = [
   ['M12 a grant raises the site cap on every date', ".filter(g => g.date === date && g.siteExtra", '.filter(g => g.siteExtra'],
   ['M13 an uncapped site is capped at 0', 'if (base === null) return NO_SITE_CEILING;', 'if (base === null) return 0;'],
   ['M14 the site statement is dropped from the batch', "'monthSeed', 'siteSeed', 'snapshot'", "'monthSeed', 'snapshot'"],
-  ['M15 the snapshot runs AFTER the charges (post-charge totals)',
-    "['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge']",
-    "['seed', 'monthSeed', 'siteSeed', 'gate', 'siteCharge', 'monthCharge', 'snapshot', 'charge']"],
+  ['M15 the DECLARED order puts the snapshot after the charges (the prepared order is untouched, so the two disagree)',
+    "['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'refusal', 'siteCharge', 'monthCharge', 'charge']",
+    "['seed', 'monthSeed', 'siteSeed', 'gate', 'refusal', 'siteCharge', 'monthCharge', 'snapshot', 'charge']"],
   ['M16 a site veto writes the DAY stamp', 'return `odds:daily:${date}:warned:site:${safe}`;', 'return `odds:daily:${date}:warned`;'],
   ['M17 a site veto lets the call through', "            return false;\n        }\n\n        // Both charged.", "            return true;\n        }\n\n        // Both charged."],
   ['M18 the gate checks the site against 1 credit, not the call\'s units', 'ODDS_HARD_LIMIT, date, site, units, siteCeiling),', 'ODDS_HARD_LIMIT, date, site, 1, siteCeiling),'],
@@ -95,8 +95,8 @@ const MUTANTS = [
   ['M20 a verdict and a reason that disagree are believed (no throw)', "if (dayCharged !== (veto === null)) {", "if (false) {"],
   ['M21 the site charge loses its gate predicate AND its placeholder (a bind-count mismatch)', `WHERE day = ? AND site = ?\n               ${EXISTS}\`;`, "WHERE day = ? AND site = ?`;"],
   ['M22 the site charge runs ahead of the gate in the batch (the order array unchanged)',
-    "            db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT, date, site, units, siteCeiling),\n            db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(units, date, site, token),",
-    "            db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(units, date, site, token),\n            db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT, date, site, units, siteCeiling),"],
+    "            db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT, date, site, units, siteCeiling),\n            db.prepare(ODDS_BUDGET_SQL.refusal).bind(date, date, units, ceiling, month, units, ODDS_HARD_LIMIT, site, new Date().toISOString(), token),\n            db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(units, date, site, token),",
+    "            db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(units, date, site, token),\n            db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT, date, site, units, siteCeiling),\n            db.prepare(ODDS_BUDGET_SQL.refusal).bind(date, date, units, ceiling, month, units, ODDS_HARD_LIMIT, site, new Date().toISOString(), token),"],
   ['M23 units that are not a number are passed to the gate', "if (typeof units !== 'number' || !Number.isFinite(units) || units < 0) {", 'if (false) {'],
   ['M24 a site that is not a string is passed to the gate', "if (typeof site !== 'string' || site === '') {", 'if (false) {'],
   ['M25 a site veto whose stamp cannot be recorded degrades open', "console.warn(`[odds-site-guard] veto held; stamp not recorded: ${_vetoErrText(e)}`);", 'throw e;'],
@@ -112,22 +112,48 @@ const MUTANTS = [
   // THE CALL SITES. A capped consumer whose charge label is renamed to another
   // declared site is uncapped; check-odds-attribution catches one side renamed, not
   // the label this check reads.
-  ['M35 fetchSportOddsHistorical is charged under another declared site', "consumeOddsCredit(env, oddsCreditCost(url), 'fetchSportOddsHistorical')", "consumeOddsCredit(env, oddsCreditCost(url), 'oddsProxyRoute')", 'index'],
+  ['M35 fetchSportOddsHistorical is charged under another declared site', "      : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical'))) {", "      : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'oddsProxyRoute'))) {", 'index'],
   ['M36 the closing capture is charged under another declared site', "_consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds')", "_consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientFetchLiveOdds')", 'ambient'],
   ['M37 the WC lambdas are charged under another declared site', "consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas')", "consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'handleWCOddsProbs')", 'index'],
-  ['M38 the live odds are charged under another declared site', "consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'fetchSportOddsLive')", "consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'oddsProxyRoute')", 'index'],
+  ['M38 the live odds are charged under another declared site', "site === 'identityMismatches' ? 'identityMismatches' : 'fetchSportOddsLive'))) {", "site === 'identityMismatches' ? 'identityMismatches' : 'oddsProxyRoute'))) {", 'index'],
+  // The split labels (2026-10-28): a leaf of the closed ternary renamed so it no longer
+  // matches its own condition is an unnamed site to the gate, and the cap is then dead.
+  ['M39 the identity route is no longer charged under its own label', "site === 'identityMismatches' ? 'identityMismatches' : 'fetchSportOddsLive'))) {", "site === 'identityMismatches' ? 'oddsProxyRoute' : 'fetchSportOddsLive'))) {", 'index'],
+  ['M40 the odds-backfill route is no longer charged under its own label', "        site === 'archiveOddsBackfill' ? 'archiveOddsBackfill'\n      : site === 'archiveGameClosing'", "        site === 'archiveOddsBackfill' ? 'oddsProxyRoute'\n      : site === 'archiveGameClosing'", 'index'],
+  ['M41 the archive-game closing is no longer charged under its own label', "      : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical'))) {", "      : site === 'archiveGameClosing' ? 'oddsProxyRoute' : 'fetchSportOddsHistorical'))) {", 'index'],
+  // THE REFUSAL RECORD (fix 3 E, 2026-10-28). The counters and the verdict are
+  // untouched by each of these; only the record, or the comparison that reads it,
+  // is wrong.
+  ['M42 the refusal is recorded on every call', "            WHERE NOT EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)", "            WHERE EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)"],
+  ['M43 repeats are not counted', "ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1", "ON CONFLICT(day, scope, site) DO UPDATE SET n = 1"],
+  ['M44 the latest refusal overwrites the first', "ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1", "ON CONFLICT(day, scope, site) DO UPDATE SET n = n + 1, first_at = excluded.first_at"],
+  ['M45 the refusal is filed under the caller that was not turned away', "ODDS_HARD_LIMIT, site, new Date().toISOString(), token)", "ODDS_HARD_LIMIT, 'unattributed', new Date().toISOString(), token)"],
+  ['M46 the refusal asks the month before the day (predicates AND binds reordered together)',
+   [["CASE WHEN (SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'\n                          WHEN (SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'", "CASE WHEN (SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'\n                          WHEN (SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'"], ["ODDS_BUDGET_SQL.refusal).bind(date, date, units, ceiling, month, units, ODDS_HARD_LIMIT, site, new Date().toISOString(), token)", "ODDS_BUDGET_SQL.refusal).bind(date, month, units, ODDS_HARD_LIMIT, date, units, ceiling, site, new Date().toISOString(), token)"]]],
+  ['M46b the refusal\'s two predicates are swapped and the binds left (wrong totals, so every refusal is filed under the site)',
+   "CASE WHEN (SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'\n                          WHEN (SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'", "CASE WHEN (SELECT used FROM odds_budget_month WHERE month = ?) + ? > ? THEN 'month'\n                          WHEN (SELECT used FROM odds_budget WHERE day = ?) + ? > ? THEN 'day'"],
+  ['M47 the record is never compared with the reason', "        if (recorded !== veto) {", "        if (false) {"],
+  ['M48 the record is read from the wrong statement', "const r = results?.[ODDS_CHARGE_ORDER.indexOf('refusal')];", "const r = results?.[ODDS_CHARGE_ORDER.indexOf('gate')];"],
+  ['M49 a refusal the record does not name is read as no refusal', "    if (r.results.length === 0) return null;\n    const scope = r.results[0].scope;", "    const scope = r.results[0]?.scope ?? null;\n    if (scope === null) return null;"],
 ];
 
 let missed = 0, nothing = 0, errored = 0;
 for (const [name, anchor, repl, target = 'helpers'] of MUTANTS) {
   const original = originals[target];
-  const count = original.split(anchor).length - 1;
-  if (count !== 1) {
+  // One anchor and one replacement, or an array of [anchor, replacement] pairs applied in turn when a
+  // faithful mutation has to change two places (a statement and the binds that feed it).
+  const pairs = Array.isArray(anchor) ? anchor : [[anchor, repl]];
+  let text = original, bad = null;
+  for (const [a, r] of pairs) {
+    const count = text.split(a).length - 1;
+    if (count !== 1) { bad = `the anchor occurs ${count} times in ${TARGETS[target].path}, not once`; break; }
+    text = text.replace(a, () => r);
+  }
+  if (bad) {
     nothing++;
-    console.log(`NOTHING MUTATED  ${name}\n        the anchor occurs ${count} times in ${TARGETS[target].path}, not once`);
+    console.log(`NOTHING MUTATED  ${name}\n        ${bad}`);
     continue;
   }
-  const text = original.replace(anchor, () => repl);
   if (text === original) { nothing++; console.log(`NOTHING MUTATED  ${name}`); continue; }
   // M21 removes a placeholder: the SQL then fails or misbehaves inside chargeOdds,
   // which is a failed assertion in the check like any other.
