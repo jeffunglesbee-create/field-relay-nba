@@ -69,9 +69,10 @@ const WIRING = [
   { id: 'W3 log the change under a source brief-freshness treats as material', find: "changelog: { source: 'bsd_game_join', label: 'bsd_event_id' }", replace: "changelog: { source: 'lineup', label: 'bsd_event_id' }" },
   { id: 'W4 read a non-page as an empty day', find: "if (!Array.isArray(rows)) return null;", replace: "if (!Array.isArray(rows)) return [];" },
   { id: 'W5 remove the upstream page cap', find: "if (budget.upstreamPages >= budget.maxUpstreamPages) return null;", replace: "" },
-  { id: 'W6 an unauthenticated admin route', find: "if (!relaySecretMatches(request.headers.get('X-FIELD-Relay'), env))\n                return new Response('Unauthorized', { status: 401, headers: CORS });\n            const body = await request.json().catch(() => null);", replace: "const body = await request.json().catch(() => null);" },
+  { id: 'W6 an unauthenticated admin route', find: "if (!relaySecretMatches(request.headers.get('X-FIELD-Relay'), env))\n                return new Response('Unauthorized', { status: 401, headers: CORS });\n            let body;\n            try { body = await request.json(); }", replace: "let body;\n            try { body = await request.json(); }" },
   { id: 'W7 the cycle hook outside its try/catch', find: "try { await runBsdGameJoinWindow(env, dateKey); }\n    catch (e) { console.error(\"[BSD-GAME-JOIN] window failed:\", e.message); /* a lineup id is an enrichment, not a requirement */ }", replace: "await runBsdGameJoinWindow(env, dateKey);" },
   { id: 'W8 a failed date retried every tick (no failure marker)', find: "else await env.FIELD_JOURNALISM.put(failKey, String(result.reason || 'failed'), { expirationTtl: 3600 });", replace: "" },
+  { id: 'W9 an unparseable body swallowed as null (a bare catch)', find: "try { body = await request.json(); }\n            catch (e) {\n                return new Response(JSON.stringify({ ok: false, error: `body is not JSON: ${e.message}` }),\n                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });\n            }", replace: "body = await request.json().catch(() => null);" },
 ]
 const runWiring = srcPath => spawnSync('node', ['scripts/check-bsd-game-join-wiring.mjs', ...(srcPath ? ['--source', srcPath] : [])], { encoding: 'utf8' })
 let wiringCaught = 0

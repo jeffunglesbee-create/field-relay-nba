@@ -12457,7 +12457,12 @@ export default {
         if (pathname === '/admin/bsd-game-join' && request.method === 'POST') {
             if (!relaySecretMatches(request.headers.get('X-FIELD-Relay'), env))
                 return new Response('Unauthorized', { status: 401, headers: CORS });
-            const body = await request.json().catch(() => null); // absence-ok: an unparseable body reaches the same date validation below, which names the problem
+            let body;
+            try { body = await request.json(); }
+            catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: `body is not JSON: ${e.message}` }),
+                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
             const date = body && typeof body.date === 'string' ? body.date : '';
             if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
                 return new Response(JSON.stringify({ ok: false, error: 'body must be {"date":"YYYY-MM-DD"}' }),

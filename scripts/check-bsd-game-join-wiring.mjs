@@ -42,6 +42,7 @@ check('the page budget binds: an upstream page past maxUpstreamPages returns nul
 check('the admin route is fail-closed on the shared secret and runs the same function', /relaySecretMatches\(request\.headers\.get\('X-FIELD-Relay'\), env\)/.test(route) && route.includes('runBsdGameJoinForDate('), 'unauthenticated or a different function')
 check('the cycle hook is in its own try/catch, after the odds snapshot', /try \{ await runBsdGameJoinWindow\(env, dateKey\); \}\s*\n\s*catch \(e\)/.test(hookRegion) && src.indexOf('ODDS-SNAPSHOT] snapshot failed') < src.lastIndexOf('await runBsdGameJoinWindow(env, dateKey)'), 'a BSD failure could break the journalism cycle')
 check('one date per tick and a done marker per UTC day, and a failure marker so a bad date does not hold the rest', /return result;/.test(window_) && /bsd-join:\$\{date\}:\$\{today\}/.test(window_) && /bsd-join-fail:/.test(window_) && /put\(failKey, [^;]*expirationTtl: 3600/.test(window_) && /expirationTtl: 36 \* 3600/.test(window_), 'the window pass can spend more than one date per tick, or retries a failure every tick')
+check('an unparseable body is a 400 naming the parse error, not a swallowed null', /try \{ body = await request\.json\(\); \}\s*\n\s*catch \(e\) \{[\s\S]{0,200}?body is not JSON[\s\S]{0,200}?status: 400/.test(route) && !/request\.json\(\)\.catch/.test(route), 'a body that is not JSON is read as null (a bare catch)')
 check('no absence collapse is introduced by this code', ![runDate, window_, fetcher, route].some(x => /\|\|\s*\[\]|\?\?\s*\[\]|catch\s*\([^)]*\)\s*\{\s*\}/.test(x)), 'a `|| []` or an empty catch in the new code')
-console.log(`\n${12 - fail}/12 checks passed`)
+console.log(`\n${13 - fail}/13 checks passed`)
 process.exit(fail ? 1 : 0)
