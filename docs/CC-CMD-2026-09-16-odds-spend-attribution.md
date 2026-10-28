@@ -424,13 +424,23 @@ it does not land before 11-24, and this section says so.
 finding open (the three it rated high were test gaps, rated medium or low on re-run, and were
 fixed), and the push was 16:58Z on 10-28.
 
-**STAGED: a real refusal.** What is staged: the live behaviour of a site cap refusing a
-call (the stamp, `site_ceiling_reached_at`, the pairing watch's refusal line). Blocked by: no
-site has come near its cap since the deploy; the check executes the path, nothing has refused it
-live. Unblocked by: a site reaching its cap, or the first closed full day (2026-10-29, read
-2026-10-30 12:00Z by a scheduled wake). Verify: `/budget/odds?date=<D>` with
-`site_ceiling_reached_at` non-null for the capped site, `by_site` at or below its cap,
-`degraded_open.events` 0, `by_site_sum == used`.
+**Not observed live: a real refusal.** This is not a staged item. Nothing is waiting for an
+unblock: a site cap refusing a call is an event that may never happen, and on a healthy day it does
+not. What the live evidence does not show is the stamp, `site_ceiling_reached_at` and the pairing
+watch's refusal line on a real refusal; the check executes that path (135 checks, 38 mutants), the
+live route has not seen one. No site has come near its cap since the deploy (the closing capture's
+charge since 10-22 is at most 90 against 400). It is read mechanically, not by memory: the daily
+pairing watch (`scripts/watch-odds-pairing-rate.mjs`, `Odds watches: daily read`) prints
+`refusals, closed day <D>` and goes red on a site refusal, naming the site and the hour; a wake on
+2026-10-30 12:00Z reads the first closed full day (2026-10-29) beside it. What to read on any day:
+`/budget/odds?date=<D>` with `site_ceiling_reached_at` non-null for the capped site, `by_site` at or
+below its cap, `degraded_open.events` 0, `by_site_sum == used`.
+
+*Correction, 2026-10-28 18:20Z.* This paragraph was first written as a bold staged-item heading with
+no verifier named, which `scripts/staged-verifier-check.mjs` (deploy.yml, every push that touches the
+relay) rejects: it turned the check red on `main` from the close-out commit until it was reworded.
+It was found by the BSD WebSocket session, not by this one: the close-out was a docs-only commit, so
+`deploy.yml` did not run, and `guards.yml` does not carry that step.
 
 **Owner's decisions still open, none of them blocking this CC-CMD:** fix 3 E (a failed stamp write
 reads as no refusal; it now also covers site stamps); whether to split the two capped labels shared

@@ -99,3 +99,14 @@ table in the CC-CMD of where each piece lives. A reference to a statement that n
   restarted; the third is the one that preceded the push. Nothing was pushed from the first two.
 - The adversarial review took 107 minutes and the capture gap it was meant to fit (14:30Z to 17:15Z)
   almost closed; the push was at 16:58Z.
+- **A gate I did not run turned `main` red for 40 minutes.** The close-out commit (docs only) put a
+  bold staged-item heading in the CC-CMD with no verifier named. `scripts/staged-verifier-check.mjs`
+  (deploy.yml, every relay push that touches `src/`) exits 1 on that, so the next `src/` push would
+  have failed at it. It did not fire at the push: docs-only commits do not run `deploy.yml`, and
+  `guards.yml` does not carry the step. The BSD WebSocket session found it at 18:11Z running
+  `deploy.yml`'s pre-deploy steps locally for its own push, and told this session instead of editing a
+  claim that was not its own. Fixed in the commit after this doc: the paragraph is now a "not observed
+  live" note that names the mechanical reader (the daily pairing watch, which goes red on a site
+  refusal) instead of a staged claim that no verifier could ever pass on a healthy day. The lesson for
+  the next close-out: run the doc-reading steps of `deploy.yml` (staged-verifier-check, cc-cmd-status,
+  doc-citations, the HANDOFF checks) AFTER writing the docs, not before.
