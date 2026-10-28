@@ -1,6 +1,6 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-10-28 (00:35Z) — the BSD event id is on archived soccer rows, live
+## SESSION CLOSE-OUT — 2026-10-28 (00:28Z) — the BSD event id is on archived soccer rows, live
 
 **HEAD:** `b8d83b4` → this close-out · **Branch:** main
 **Session doc:** outbox/cc-session-2026-10-27-bsd-event-id-on-game-rows.md
