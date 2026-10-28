@@ -42,6 +42,11 @@ const MUTATIONS = [
   ['restart counters never record a change', 'if (st[k] !== c.last) {', 'if (false) {'],
   ['ingest_debug raw_count is not summed', 'rawCountSum: dbg.reduce((a, o) => a + (Number(o.raw_count) || 0), 0)', 'rawCountSum: 0'],
   ['ingest_debug advanced_uts is not counted', "advancedTrue: dbg.filter((o) => o.advanced_uts === true).length", 'advancedTrue: 0'],
+  ['empty coordinate arrays read as a ball trail', "else if (maxElements === 0) verdict = 'COORDINATES-EMPTY'", 'else if (false) verdict = \'COORDINATES-EMPTY\''],
+  ['livedata situations are not counted', "if (o.type === 'livedata') bump(situations,", "if (false) bump(situations,"],
+  ['the event period type flip is not recorded', "bump(eventTimePeriodValues, JSON.stringify(o.time.period))", "bump(eventTimePeriodValues, '\"x\"')"],
+  ['incident types are summed over repeated pulls', "out[k] = Math.max(out[k] ?? 0, typeof v === 'number' ? v : 1)", "out[k] = (out[k] ?? 0) + (typeof v === 'number' ? v : 1)"],
+  ['reanalysis keeps the stale state', 'art.state = stateOf({ ended: art.ended, frames })', 'art.state = art.state'],
   ['a socket error is not recorded', "log('error', { message: redact(evt?.message", "void ({ message: redact(evt?.message"],
 ]
 
