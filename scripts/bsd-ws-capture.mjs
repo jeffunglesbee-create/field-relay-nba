@@ -14,10 +14,15 @@
 // error) and filters afterwards. A recorder that kept only `livedata` would, if
 // that name is wrong, record zero frames and read as "no data".
 //
-// WHICH EVENT: a live row of /bsd/events/live with `websocket_plus === true`.
-// The tier is the whole question — `websocket_plus: false` events carry no
-// tracking (scripts/bsd-contract-verify.mjs, 588245) — so a match without the
-// flag could only prove nothing.
+// WHICH EVENT: a live row of /bsd/events/live with BOTH `live_websocket === true`
+// and `websocket_plus === true`. They are two flags, and the first run of
+// bsd-fanout-live-verify.yml (2026-10-28, event 601989) showed that the second
+// alone is not enough: that row had websocket_plus true and live_websocket FALSE,
+// the relay subscribed to it and received no frame in 150 s, while every match that
+// delivered frames had live_websocket true. `live_websocket` is whether BSD streams
+// the match at all; `websocket_plus` is the tracking tier. Without the tier a match
+// carries no tracking (scripts/bsd-contract-verify.mjs, 588245), so a match without
+// either flag could only prove nothing.
 //
 // SAMPLE-COVERAGE-A (field-relay-nba/CLAUDE.md Rule 91): the output states how
 // many frames, over how many seconds, from how many events. This is ONE match;
@@ -51,7 +56,7 @@ export const RESTART_RE = /throw[\s_-]?in|goal[\s_-]?kick|free[\s_-]?kick|corner
  *  playing match is the better bet. */
 export const pickEvent = (rows, leagueIds = []) => {
   const eligible = (Array.isArray(rows) ? rows : []).filter(
-    (r) => r && r.websocket_plus === true && r.status === 'inprogress' && r.id != null &&
+    (r) => r && r.live_websocket === true && r.websocket_plus === true && r.status === 'inprogress' && r.id != null &&
       (leagueIds.length === 0 || leagueIds.includes(Number(r.league_id))))
   return eligible.find((r) => r.period !== 'halftime') ?? eligible[0] ?? null
 }
@@ -479,11 +484,14 @@ const selfTest = async () => {
 
   // pickEvent
   const rows = [
-    { id: 1, websocket_plus: false, status: 'inprogress', period: '1st_half' },
-    { id: 2, websocket_plus: true, status: 'inprogress', period: 'halftime' },
-    { id: 3, websocket_plus: true, status: 'inprogress', period: '2nd_half' },
-    { id: 4, websocket_plus: true, status: 'finished', period: 'ended' },
+    { id: 1, live_websocket: true, websocket_plus: false, status: 'inprogress', period: '1st_half' },
+    { id: 2, live_websocket: true, websocket_plus: true, status: 'inprogress', period: 'halftime' },
+    { id: 3, live_websocket: true, websocket_plus: true, status: 'inprogress', period: '2nd_half' },
+    { id: 4, live_websocket: true, websocket_plus: true, status: 'finished', period: 'ended' },
+    { id: 5, live_websocket: false, websocket_plus: true, status: 'inprogress', period: '2nd_half' },
   ]
+  ok('pickEvent skips a row with websocket_plus true and live_websocket FALSE (601989: the relay got no frame)',
+    pickEvent([rows[4]]) === null && pickEvent([rows[4], rows[2]])?.id === 3, `got ${pickEvent([rows[4]])?.id}`)
   ok('pickEvent skips websocket_plus:false and finished, prefers a match in play',
     pickEvent(rows)?.id === 3, `got ${pickEvent(rows)?.id}`)
   ok('pickEvent takes a halftime row when nothing is in play',
@@ -491,8 +499,8 @@ const selfTest = async () => {
   ok('pickEvent refuses a feed with no websocket_plus event',
     pickEvent(rows.filter((r) => r.id === 1 || r.id === 4)) === null)
   ok('pickEvent tolerates a non-array', pickEvent(null) === null)
-  const lg = [{ id: 10, league_id: 80, websocket_plus: true, status: 'inprogress', period: '2nd_half' },
-    { id: 11, league_id: 7, websocket_plus: true, status: 'inprogress', period: '2nd_half' }]
+  const lg = [{ id: 10, league_id: 80, live_websocket: true, websocket_plus: true, status: 'inprogress', period: '2nd_half' },
+    { id: 11, league_id: 7, live_websocket: true, websocket_plus: true, status: 'inprogress', period: '2nd_half' }]
   ok('pickEvent with a league filter takes only a listed league', pickEvent(lg, [7, 8])?.id === 11, `got ${pickEvent(lg, [7, 8])?.id}`)
   ok('pickEvent with a league filter and no listed league in play returns null', pickEvent(lg, [1]) === null)
   ok('pickEvent with no filter takes the first eligible row', pickEvent(lg, [])?.id === 10)
@@ -503,7 +511,7 @@ const selfTest = async () => {
   console.log = (...a) => logged.push(a.join(' '))
   const noEvents = await waitForEvent(1000, [], async () => ({ ok: true, json: async () => ({}) }))
   const goodFeed = await waitForEvent(1000, [], async () => ({ ok: true, json: async () => ({ events: [
-    { id: 9, league_id: 1, websocket_plus: true, status: 'inprogress', period: '1st_half' }] }) }))
+    { id: 9, league_id: 1, live_websocket: true, websocket_plus: true, status: 'inprogress', period: '1st_half' }] }) }))
   console.log = realLog
   ok('a live feed with no events array is reported as a failed poll', noEvents.event === null &&
     logged.some((l) => l.includes('no events array')), JSON.stringify(logged))

@@ -147,7 +147,7 @@ const main = async () => {
   const art = {
     ...base, state,
     coverage: `${assessed.counts.stats} bsd:stats, ${assessed.counts.ball} bsd:ball, ${assessed.counts.other} other SSE events over ${listenMs / 1000} s from 1 event (${event.id}, ${event.league_name}) through the deployed relay`,
-    event: { id: event.id, league_id: event.league_id, league_name: event.league_name, period: event.period, current_minute: event.current_minute, websocket_plus: event.websocket_plus },
+    event: { id: event.id, league_id: event.league_id, league_name: event.league_name, period: event.period, current_minute: event.current_minute, live_websocket: event.live_websocket, websocket_plus: event.websocket_plus },
     subscribeResponse, checks: assessed.checks, counts: assessed.counts,
     sample: events.filter((e) => e.event === 'bsd:stats' || e.event === 'bsd:ball').slice(0, 3),
   }

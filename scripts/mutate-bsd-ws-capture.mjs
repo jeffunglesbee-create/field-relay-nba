@@ -17,6 +17,7 @@ import { spawnSync } from 'node:child_process'
 
 const TARGET = 'scripts/bsd-ws-capture.mjs'
 const MUTATIONS = [
+  ['a row with live_websocket false is eligible', 'r.live_websocket === true && r.websocket_plus === true', 'r.websocket_plus === true'],
   ['a row without the tracking tier is eligible', 'r.websocket_plus === true && r.status', 'r.status'],
   ['a finished match is eligible', "r.status === 'inprogress' && r.id != null", 'r.id != null'],
   ['a halftime row is preferred over a match in play', "r.period !== 'halftime'", "r.period === 'halftime'"],
