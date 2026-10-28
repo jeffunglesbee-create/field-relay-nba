@@ -1299,12 +1299,29 @@ export class AmbientDO {
                     // array (original assumption) and a single {x,y}
                     // object defensively -- whichever shape BSD actually
                     // sends, ball position won't be silently dropped.
+                    // OBSERVED 2026-10-28 (outbox/bsd-ws-frames-602466-*.jsonl,
+                    // 14 livedata frames, one match in Categoria Primera A): a
+                    // livedata frame is an INCIDENT -- uts, side, situation, time,
+                    // commentary -- and `coordinates` was [] on all 14, so
+                    // coords is null there. A populated element has not been
+                    // seen (docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md).
                     coords: Array.isArray(frame.coordinates)
                         ? (frame.coordinates.slice(-1)[0] || null)
                         : (frame.coordinates || null),
-                    situation: frame.situation }
-                : { type: 'bsd:stats', id: eventId, minute: frame.minute,
-                    period: frame.period, score: frame.score, stats: frame.stats,
+                    situation: frame.situation,
+                    // Vendor fields, forwarded under the vendor's names (Rule
+                    // 60) and unchanged (Rule 47): which side the incident
+                    // belongs to, the minute it is stamped with, and its words.
+                    side: frame.side, time: frame.time, commentary: frame.commentary }
+                : { type: 'bsd:stats', id: eventId,
+                    // CORRECTED 2026-10-28: this read frame.minute and
+                    // frame.period, which an event frame does not have --
+                    // the clock is the nested `time` object (minute, second,
+                    // display, period, injury_time, period_started_at_uts,
+                    // status, kickoff_at),
+                    // and both fields reached every client as absent.
+                    // Forwarded whole, under the vendor's name.
+                    time: frame.time, score: frame.score, stats: frame.stats,
                     // FIXED 2026-07-03: real, precise bug -- this payload
                     // never included shotmap/momentum, but the client's
                     // frame handler explicitly checks `data.shots ||
@@ -1317,6 +1334,10 @@ export class AmbientDO {
                     // never extracted/forwarded here. Shots/momentum data
                     // was very likely being silently dropped at this exact
                     // relay layer for every live game, every frame.
+                    // OBSERVED 2026-10-28: the inference above did not hold. 55
+                    // recorded event frames carry no shotmap or momentum key
+                    // (keys: type, event_id, home, away, score, time, stats,
+                    // websocket_plus); these stay null until a frame has one.
                     shotmap: frame.shotmap || null,
                     momentum: frame.momentum || null }
             // Fan out via existing _broadcast — clients filter frames locally by id
