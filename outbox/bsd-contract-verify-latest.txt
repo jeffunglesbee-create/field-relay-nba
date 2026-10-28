@@ -22,19 +22,23 @@ PASS  n is documented as a count of unconfirmed definition, not renamed touches
 PASS  the incidents sequence shape is documented
 PASS  the open item names the availability state, not the axes
 PASS  the bsd:stats example carries the nested time object, not a top-level minute/period
-PASS  the bsd:ball example is an incident (side, time, commentary) with no invented coordinates
-PASS  the livedata note says a populated coordinate has not been seen
+PASS  the bsd:ball example is an incident (side, time, commentary) whose coords are integer x and y and nothing else
+PASS  the empty-window case is declared separately, with null coords
+PASS  the livedata note says the window is newest first and that coords is its first element
+PASS  the livedata note states the half-time frame of reference and the limit of that evidence
+PASS  the stats note tells a reader to accept both period types
 
   588245 (finished, websocket_plus false): HTTP 200 empty=false X-AvgPos-State=null
-  (no event is live right now — the in-play case is UNCHECKED, not passed)
+  604465 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
 PASS  an empty finished event names a state, not a bare {}
 PASS  ...and that state is NOT in-play
-  state coverage: 1 of 2 states exercised (no live event available)
+PASS  a live event that is empty reads in-play
+  state coverage: 2 of 2 states exercised
 
-COVERAGE: 25 assertions over the live /bsd/contract response,
+COVERAGE: 28 assertions over the live /bsd/contract response,
 revision 2026-10-16-1. Source is not consulted — this is the served object.
 
-PASS: 25/25
+PASS: 28/28
 === bsd coordinate frames  fixture=scripts/fixtures/bsd-223324-coordinates.json  event=223324
   shots in capture        : 32
   discriminating (l/r)    : 21   skipped (centre/unlabelled): 11
