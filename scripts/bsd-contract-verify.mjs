@@ -58,11 +58,25 @@ export const assertions = (c) => [
     c?.frameShapes?.incidentSequence?.example?.gk !== undefined],
   ['the open item names the availability state, not the axes',
     /X-AvgPos-State/.test(c?.status ?? '')],
+  // The WebSocket fan-out payloads, declared from recorded frames (2026-10-28,
+  // event 602466) instead of the spec's invented example. docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md.
+  ['the bsd:stats example carries the nested time object, not a top-level minute/period',
+    c?.frameShapes?.stats?.example?.time?.minute !== undefined
+    && c?.frameShapes?.stats?.example?.minute === undefined
+    && c?.frameShapes?.stats?.example?.period === undefined],
+  ['the bsd:ball example is an incident (side, time, commentary) with no invented coordinates',
+    c?.frameShapes?.livedata?.example?.side !== undefined
+    && c?.frameShapes?.livedata?.example?.time?.minute !== undefined
+    && typeof c?.frameShapes?.livedata?.example?.commentary === 'string'
+    && c?.frameShapes?.livedata?.example?.coords === null],
+  ['the livedata note says a populated coordinate has not been seen',
+    /NOT yet seen/.test(c?.frameShapes?.livedata?.note ?? '')],
 ]
 
 function selfTest () {
   let failed = 0
-  const check = (n, c) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); if (!c) failed++ }
+  let total = 0
+  const check = (n, c) => { total++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}`); if (!c) failed++ }
   const good = {
     revision: WANT_REVISION, status: 'settled. OPEN: see X-AvgPos-State',
     coordinateSystem: {
@@ -85,6 +99,9 @@ function selfTest () {
       shot: { example: { gm: { x: 0 } } },
       avgPosition: { example: { n: 46, name: 'Cleiton' }, n: 'A COUNT, exact definition UNCONFIRMED' },
       incidentSequence: { example: { gk: { x: 5.4 } } },
+      stats: { example: { type: 'bsd:stats', id: '1', time: { minute: 47, period: 2 }, score: { home: 0, away: 0 } } },
+      livedata: { example: { type: 'bsd:ball', id: '1', coords: null, side: 'away', time: { minute: 45 }, commentary: 'x' },
+                  note: 'coords is the last element or null; a populated element is NOT yet seen' },
     },
   }
   check('a correct contract passes every assertion', assertions(good).every(([, ok]) => ok))
@@ -101,6 +118,15 @@ function selfTest () {
     ['n renamed touches on the strength of the old example', c => { c.frameShapes.avgPosition.example = { player: 'x', touches: 71 } }],
     ['the goal build-up declared per-team again', c => { c.frames[SEQ] = { ...c.frames[SEQ], frame: 'target-goal-relative', perTeam: true } }],
     ['the record of the wrong revision dropped', c => { delete c.supersedes }],
+    ['the invented stats example put back (top-level minute and period)', c => { c.frameShapes.stats.example = { type: 'bsd:stats', id: '1', minute: 67, period: 2 } }],
+    ['the invented ball coordinates put back', c => { c.frameShapes.livedata.example.coords = { x: 73.2, y: 42.1 } }],
+    ['the incident fields dropped from the ball example', c => { delete c.frameShapes.livedata.example.commentary }],
+    ['a hybrid stats example: time AND a top-level minute', c => { c.frameShapes.stats.example.minute = 67 }],
+    ['a hybrid stats example: time AND a top-level period', c => { c.frameShapes.stats.example.period = 2 }],
+    ['the ball example loses its side', c => { delete c.frameShapes.livedata.example.side }],
+    ['the ball example loses its time', c => { delete c.frameShapes.livedata.example.time }],
+    ['the ball commentary is not a string', c => { c.frameShapes.livedata.example.commentary = 5 }],
+    ['the unseen-coordinate note dropped', c => { c.frameShapes.livedata.note = 'coords is the last element' }],
   ]
   for (const [name, apply] of mutations) {
     const c = JSON.parse(JSON.stringify(good))
@@ -110,7 +136,7 @@ function selfTest () {
     const caught = !assertions(c).every(([, ok]) => ok)
     check(`MUTATION applied and caught: ${name}`, applied && caught)
   }
-  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${11 - failed}/11 self-tests`)
+  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${total - failed}/${total} self-tests`)
   return failed
 }
 

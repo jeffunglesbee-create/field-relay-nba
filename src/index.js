@@ -10511,14 +10511,44 @@ export default {
                     },
                     frameShapes: {
                         livedata: {
-                            example: { type: 'bsd:ball', id: '12345', uts: 1735000000,
-                                       coords: { x: 73.2, y: 42.1 }, situation: 'open_play' },
-                            note: 'coords is the LAST coordinate in BSD frame.coordinates[]; AmbientDO distills.',
+                            // VERBATIM: the bsd:ball payload AmbientDO built from a recorded frame
+                            // (outbox/bsd-ws-frames-602466-2026-10-28T02-12-33-452Z.jsonl, the first
+                            // livedata frame, event 602466, Categoría Primera A, websocket_plus true).
+                            // The previous example read coords {x: 73.2, y: 42.1} and situation
+                            // 'open_play': neither appears in any of the 14 recorded livedata frames.
+                            example: { type: 'bsd:ball', id: '602466', uts: 1793153961, coords: null,
+                                       situation: 'freekick', side: 'away',
+                                       time: { minute: 45, second: 0, display: '45:00', period: 2,
+                                               injury_time: 2, period_started_at_uts: 1793153529 },
+                                       commentary: 'Junior Barranquilla send another in.' },
+                            note: 'A livedata frame is an INCIDENT (uts epoch seconds, side home|away, situation, ' +
+                                  'time, commentary). coords is the LAST element of frame.coordinates[] or null; ' +
+                                  'frame.coordinates was [] on 14 of 14 recorded frames, so a populated element is ' +
+                                  'NOT yet seen and its keys are undeclared. time is the minute the incident is ' +
+                                  'stamped with (second is 0 on all 14), not the live clock: that is bsd:stats time. ' +
+                                  'Situations seen (14 frames): freekick 6, corner 3, substitution 3, shotofftarget 2. ' +
+                                  'Evidence: ONE match, in Categoría Primera A (league_id 80, outside this relay\'s ' +
+                                  'tracked leagues); see docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md.',
                         },
                         stats: {
-                            example: { type: 'bsd:stats', id: '12345', minute: 67, period: 2,
-                                       score: { home: 1, away: 1 },
-                                       stats: { home_xg: 1.2, away_xg: 0.9, possession_home: 0.58 } },
+                            // VERBATIM `time`, `score` and the four stats values shown, from a recorded
+                            // event frame (same file, event 602466, the 47:11 frame); `stats` is cut to
+                            // the same 4 of its 43 per-team keys on each side. The previous example read
+                            // minute 67, period 2 and flat keys home_xg / possession_home: the frame has
+                            // neither top-level minute nor period, and its stats are nested per side.
+                            example: { type: 'bsd:stats', id: '602466',
+                                       time: { minute: 47, second: 11, display: '47:11', period: 2,
+                                               injury_time: null, period_started_at_uts: 1793153529,
+                                               status: '2nd_half', kickoff_at: '2026-10-28T01:05:00+00:00' },
+                                       score: { home: 0, away: 0 },
+                                       stats: { home: { fouls: 6, throw_ins: 12, xg: 0.3, ball_possession: 43 },
+                                                away: { fouls: 4, throw_ins: 5, xg: 0.2, ball_possession: 57 } },
+                                       shotmap: null, momentum: null },
+                            note: 'Of 55 recorded event frames (3 captures, one match, 2026-10-28): time.period is ' +
+                                  'a string on 34 ("2T" 33, "HT" 1) with second and display null; the number 2 on ' +
+                                  '20, with a real second and display; the number 31 on 1, with second null. A ' +
+                                  'reader must accept both types. shotmap and momentum are null: none of the 55 ' +
+                                  'carries either key. stats has 43 keys per side on all 55.',
                         },
                         shot: {
                             // VERBATIM from scripts/fixtures/bsd-223324-coordinates.json, captured
