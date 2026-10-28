@@ -51,9 +51,10 @@ Then MEASURE, from `field-relay-nba/outbox/bsd-ws-frames-6023*-*.jsonl` (read-on
 
 - the gap in seconds between consecutive frames that carry a point (median and 90th percentile), so a
   "how old may the dot be" threshold is a measured number, not a guess;
-- the second-half frame of reference: a `goal_kick` by each side in the same half, `x` near 5 or near 95. The
-  first half is measured (home defends x=0); if a capture of the second half is not in the outbox, run
-  `bsd-ws-capture.yml` during a live `live_websocket` second half first.
+- the second-half frame of reference. MEASURED for one match on 2026-10-28 (event 602352, capture
+  `bsd-ws-frames-602352-2026-10-28T18-12-43-371Z.jsonl`): the frame does not flip at half time (home goal at
+  x=93, away shots at x=11 to 19, home goal kick at x=5). Re-measure on a second match if one is in the outbox
+  or live before building; do not generalise one second half.
 
 ## Task 1 — the ball
 
@@ -61,9 +62,10 @@ In `_bsdOnSSEFrame` and `_bsdRepaint` only:
 
 1. Read the position from `data.coords` (`{x, y}`), and keep the previous position when a frame carries none.
 2. Drop a position older than the Task 0 threshold; do not invent one.
-3. Use the frame of reference Task 0 established. If the second half differs from the first, say so in the code
-   comment and handle it from the frame's own `time.period`; if it could not be measured, leave the dot off in
-   the second half rather than draw it mirrored. Nothing here is computed from the feed: it is only placed.
+3. Use the frame of reference Task 0 established (one shared pitch, home defends x=0, the same in both halves of
+   the one second half measured). If a second match shows the frame flipping at half time, handle it from the
+   frame's own `time.period`; if a second half could not be checked, say so in the code comment. Nothing here is
+   computed from the feed: it is only placed.
 
 ## Task 2 — the shots (separate commit)
 

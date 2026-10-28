@@ -202,25 +202,31 @@ Producer: `_bsdOnFrame`, from a BSD WebSocket `livedata` frame. Same rules as ab
   commentary: string
 }
 ```
-- **`frame.coordinates` is a sliding window, newest first.** Up to four `{x, y}` points. In 92 of 99
-  consecutive multi-point pairs the next frame is the previous one with new points PREPENDED; in 0 it is
-  appended. Until 2026-10-28 the relay took the LAST element, which is the OLDEST point. Elements carry `x`
-  and `y` and nothing else (422 of 422): no player or team identifier. They are positions at incidents, not a
-  continuous track.
+- **`frame.coordinates` is a sliding window, newest first.** Up to four `{x, y}` points. In 216 of 233
+  consecutive multi-point pairs (four matches) the next frame is the previous one with new points PREPENDED; in 0
+  it is appended, 17 are gaps. Until 2026-10-28 the relay took the LAST element, which is the OLDEST point.
+  Elements carry `x` and `y` and nothing else (1014 of 1014): no player or team identifier. They are positions at
+  incidents, not a continuous track.
 - **Coverage varies by match, not by flag.** Event 602466 (Categoría Primera A) had both `live_websocket` and
   `websocket_plus` true and an empty window on 14 of 14 frames; its `time.second` was 0 on all 14. Events 602352
-  and 602347 (DFB Pokal) carried one to four points on 119 of 147 frames, with a real `time.second`. Window
-  lengths over 161 frames of three matches: 4 on 101, 1 on 18, 0 on 42.
-- **Frame of reference (first half only).** One shared pitch: the home side defends x=0 (home goal kick at x=5,
-  away goal kick at x=95; away `dangerous` frames average x=31, in two matches). **The second half is NOT yet
-  measured.**
+  and 602347 (DFB Pokal) and 210143 (Serie A) carried one to four points on 306 of 378 frames, with a real
+  `time.second`. Window lengths over 392 frames of four matches: 4 on 236, 1 on 70, 0 on 86.
+- **Frame of reference.** One shared pitch: the home side defends x=0 and attacks toward x=100 (home goal kicks at
+  x=5, away goal kicks at x=95, away shots at x=10 to 20; first half, four matches). **Second half: measured in ONE
+  match** (event 602352): a home goal at x=93, away shots at x=11 to 19, a home goal kick at x=5, so BSD does not
+  flip the frame at half time there. One second half is thin evidence; a reader should not assume it for another.
 - **Which matches stream.** `/bsd/events/live` rows carry `live_websocket` AND `websocket_plus`. A row with
   `live_websocket: false` delivered no frame to the relay in 150 s (event 601989, Veikkausliiga).
 - **Known mismatch (STAGED).** `_bsdOnSSEFrame` stores the whole payload as `_bsdBallPos` and `_bsdRepaint` reads
   `_bsdBallPos.x` / `.y`; the payload carries `coords` (nested). A ball would not draw. Owned by
   `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`. Unblocked by a render proof on the deployed page.
-- Evidence and limit (as of 2026-10-28): `scripts/check-bsd-ws-fanout.mjs` replays 161 recorded livedata frames
-  of three matches, plus 18 synthetic cases, through the real function.
+- **Incident types seen** (`situation`, 392 frames): safe, attack, dangerous, possession, freekick, shotontarget,
+  throwin, shotofftarget, goal_kick, goalkeeper_saved, substitution, goal, card, corner, temporary_interruption,
+  gameon, possible_event. Restarts (`freekick`, `throwin`, `goal_kick`, `corner`) and the dead-time markers
+  (`temporary_interruption`, `gameon`) are typed events with a second-grain clock where `time.second` is real.
+- Evidence and limit (as of 2026-10-28): `scripts/check-bsd-ws-fanout.mjs` replays the 392 recorded livedata frames
+  of four matches (and 170 event frames), plus 18 synthetic cases, through the real function.
+  `scripts/bsd-contract-verify.mjs --source-notes` reads the served notes where they are written.
 
 Client rules:
 - Score/lead_change → write to espnScores + _sseScoreTs buffer
