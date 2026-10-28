@@ -1,5 +1,35 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (22:30Z) — the owner's three decisions on Task 3: labels split, refusal record, caps ratified
+
+**HEAD:** `5dfaf6f` → `0e6a894` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-28-site-caps.md (Part 2)
+
+"decisions 1, 2, 3 approved": all three built and pushed in one commit (`0e6a894`, Deploy RELAY Worker run 40777339113,
+Repo guards 40777339101). `chargeOdds` now sends NINE statements; the new `refusal` files every refusal in
+`odds_budget_refusal` inside the same D1 batch (fix 3 E: a failed KV stamp write can no longer lose a refusal), and
+`peekDailyOdds` serves the earliest of the record and the stamp, plus `refusals` (null before 2026-10-28). Seven sites are
+capped: closing capture 400, live odds 2,000, historical 1,800, WC lambdas 300 (ratified as they stand), and the new
+`identityMismatches` 150, `archiveOddsBackfill` 300, `archiveGameClosing` 900 (chosen with the split; the owner's to tune).
+
+- **Live proof:** `outbox/odds-refusal-live-proof-20261028T2217Z.md`: after the deploy a worker charge moved the day, the site split and the month by +6 each, `degraded_open` 0; the table exists in production D1; the debug route ran a refused pair on the real D1 (scopes `[["day"],["day"]]`, one cell n = 2, no counter moved). Not observed: a real refusal, which the daily pairing watch reads.
+- **Checks:** `check-odds-site-caps` 229 / 50 mutants, `check-ceiling-reached` 73 / 63, `check-odds-label-split` (the
+  real worker: three routes, the cron paths, the debug route) 61 / 20, `check-odds-budget-batch` 50 / 37,
+  `check-monthly-atomic` 122 / 33. `gates.py` on the rebased commit: 145 of 147, the two environment-only failures.
+- **Review:** four lenses, 15 agents, 76 minutes (`wf_0826d07d-53b`): ten findings confirmed, none in the spend path,
+  all in the checks and the claims; disposition table in the 09-16 CC-CMD. Most important: the reader's SQL could be
+  broken three ways with every check green.
+- **What the split does NOT do** (said in the CC-CMDs): the day's 3,800 and the month's 85,000 are still shared; the
+  `/odds/*` proxy (`oddsProxyRoute`) is an uncapped anonymous spender, now recorded in the unauthenticated-routes CC-CMD;
+  `archiveGameClosing` is shared with the relay's own closing fetches and 900 is 1.0x the busiest day seen.
+- **Wake still armed:** 2026-10-30T12:00Z reads the first closed full day (2026-10-29) for Task 3 and for the new record.
+- **Owner decisions that remain, none blocking:** gate the unauthenticated routes (TASK 1 of the unauthenticated-routes
+  CC-CMD, Route B waits on the CFB Saturday CC-CMD's B1); cap `oddsProxyRoute`; the number for `archiveGameClosing`.
+- **Process:** run `gates.py` on a COMMITTED tree (two mutation steps refuse a dirty one); run the doc-reading steps AFTER
+  writing the docs; the first run of a harness on a changed fake finds the fake, not the code.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-28 (19:05Z) — the BSD WebSocket fan-out is proven live, and its coordinates are decoded
 
 **HEAD:** `1835de1f` → this close-out · **Branch:** main
@@ -45,8 +75,10 @@ live odds 2,000, historical 1,800, WC lambdas 300; CFL and `ambientFetchLiveOdds
   small errors and deletions") is why the replaced statements, mutants and header history were restored.
 - **Open, with an automated wake (2026-10-30T12:00Z):** no site cap has refused a call yet, so the refusal is
   executed by the check and not seen live; the first closed full day after the deploy is 2026-10-29.
-- **Left as the owner's call:** fix 3 E (now also covers site stamps); the label split for the two capped labels shared
-  with unauthenticated routes (`docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`).
+- **Left as the owner's call, then decided the same evening (see the entry above):** fix 3 E (now also covers site
+  stamps) and the label split for the two capped labels shared with unauthenticated routes
+  (`docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`) were both approved and built. The statement count and
+  the cap list in this entry are the 17:30Z state: nine statements and seven caps since 22:06Z.
 
 ---
 

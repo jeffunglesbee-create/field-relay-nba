@@ -130,8 +130,9 @@ here:
     "retry writes the stamp with a later hour" gap is closed by the record carrying
     the first. Design, statement and artifacts: "Owner's decisions of 2026-10-28" in
     `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. It changes `chargeOdds`, so
-    it is to land before the 11-08..11-23 window; the landing and its live proof are
-    recorded in `outbox/cc-session-2026-10-28-site-caps.md`.
+    it landed 2026-10-28 22:06Z (`0e6a894`, Deploy RELAY Worker run 40777339113), ten
+    days before the 11-08..11-23 window; the live proof, including the refusal path
+    executed on the real D1, is `outbox/odds-refusal-live-proof-20261028T2217Z.md`.
 
 ## Done condition (Rule 90 artifacts)
 

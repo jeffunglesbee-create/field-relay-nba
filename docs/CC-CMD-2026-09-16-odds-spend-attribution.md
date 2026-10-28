@@ -547,7 +547,8 @@ runs a REFUSED pair on its sentinel day, so the real D1 executes the refusal pat
 `ON CONFLICT ... DO UPDATE ... RETURNING`) with no vendor credit; `check-odds-label-split.mjs` runs
 that route too, and returns the statements it actually prepared beside the order the charger declares.
 Landing: it changes `chargeOdds`, so it had to land before the CFL experiment's VOID window
-(2026-11-08..11-23); the live proof is named in the session doc once it exists.
+(2026-11-08..11-23); it landed 2026-10-28 22:06Z (`0e6a894`, Deploy RELAY Worker run 40777339113, Repo guards
+40777339101) and the live proof is `outbox/odds-refusal-live-proof-20261028T2217Z.md`.
 
 **Review of this build, 2026-10-28 (workflow `wf_0826d07d-53b`: four lenses, 15 agents, 76 minutes).**
 Ten findings confirmed by an independent skeptic that ran something (one refuted: that the refusal SQL

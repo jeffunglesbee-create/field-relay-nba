@@ -110,3 +110,81 @@ table in the CC-CMD of where each piece lives. A reference to a statement that n
   refusal) instead of a staged claim that no verifier could ever pass on a healthy day. The lesson for
   the next close-out: run the doc-reading steps of `deploy.yml` (staged-verifier-check, cc-cmd-status,
   doc-citations, the HANDOFF checks) AFTER writing the docs, not before.
+
+---
+
+# Part 2 — the owner's three decisions on Task 3, built the same day
+
+**Owner's order (2026-10-28):** "decisions 1, 2, 3 approved". Decision 1: fix 3 E, a refusal record that cannot
+fail independently of the decision. Decision 2: split the two capped labels shared with unauthenticated routes.
+Decision 3: the cap numbers 400/2000/1800/300 stand.
+
+## Per commit
+
+| commit | what | verified |
+|---|---|---|
+| `0e6a894` | `feat: odds guard - route labels split, refusal record in the charge batch` (one commit: the two changes share files and fakes, and one gates run covers both; it changes `chargeOdds`, so it had to land before 2026-11-08) | `gates.py` 145 of 147 on the rebased commit (the two environment-only failures: the BSD frame list HTTP 0, `RELAY_SHARED_SECRET` unset); Deploy RELAY Worker `40777339113`, Repo guards `40777339101`; live proof `<PROOF_ARTIFACT>` |
+
+HEAD progression: `5dfaf6f` (start) -> `0e6a894` -> this close-out. Smoke does not apply (relay repo).
+
+## What was built
+
+- **Decision 3** recorded, dated, in `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`.
+- **Decision 2.** `identityMismatches` 150, `archiveOddsBackfill` 300, `archiveGameClosing` 900, each charged and
+  reconciled by its own route; `siteLabels` in `check-odds-attribution` reads the closed-ternary form; the executed
+  check `check-odds-label-split.mjs` and its mutants. Two consequences fixed in the same build: `/identity/mismatches`
+  now says `guarded: true` for our own refusal (`C0_GUARDED` in the Saturday probe), and
+  `measure-odds-consumer-demand` sums the two historical labels.
+- **Decision 1.** `odds_budget_refusal` and the `refusal` statement in the charge batch; the reader serves the earliest
+  of the record and the stamp, names a null with an unreadable store behind it, and serves `refusals` (null before
+  `REFUSAL_RECORD_FROM`, 2026-10-28). The debug latency route runs a refused pair on its sentinel day.
+
+## How it was checked
+
+Counted from the runs, not written down: `check-odds-site-caps` 229 checks, 50 of 50 mutants;
+`check-ceiling-reached` 73, 63 of 63; `check-odds-label-split` 61, 20 of 20; `check-odds-budget-batch` 50
+self-tests, 37 of 37; `check-monthly-atomic` 122, 33 of 33; `probe-odds-budget-latency` 19, 10 of 10;
+`check-odds-attribution` 31, 24 of 24. Five `gates.py` runs on a tree named `field-relay-nba` (147 steps each): (1) the STAGED tree, 139 of 147 (my three
+real failures below, and two mutation steps that refuse a dirty tree); (2) the first commit, 145 of 147; (3) the
+review-fix commit, 137 of 147 (my fixes had moved four things: two mutant anchors of `mutate-odds-sql-binds`, one bare
+`.catch(() => {})` in the new check, and one scope-claims entry; each fails in both `deploy.yml` and `guards.yml`);
+(4) the same commit repaired, 145 of 147, rebased onto the bots' two outbox commits and pushed.
+
+A four-lens adversarial review of the first commit (workflow `wf_0826d07d-53b`: sql, reader, harness, callers; 15
+agents, 76 minutes) confirmed ten findings, none in the spend path and all in the checks or the claims; every one is
+in the disposition table of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. The finding that mattered most: the
+reader's SQL could be broken three ways with every check green (Rule 90). The one that changed the wording: "no cron's"
+was false, because the day is shared and `/odds/*` is an uncapped anonymous spender.
+
+## Verified live and not
+
+The proof is `outbox/odds-refusal-live-proof-20261028T2217Z.md` (route fields, a worker charge after the deploy that moved
+the day, the site split and the month by +6 each with `degraded_open` 0, the table's DDL in production D1, and the
+refusal path executed on the real D1 by the debug route: two refused calls, scopes `[["day"],["day"]]`, one cell with
+n = 2, no counter moved). The probe run is `40778483417`.
+
+**Not observed live: a real refusal.** Nothing is waiting for an unblock: no cap, day or month limit has refused a
+real call since the deploy, and on a healthy day none does. What the live evidence does not show is the stamp, the
+record and the pairing watch's refusal line on a real one; the checks execute that path and the probe runs the
+statement on the real D1. It is read mechanically: the daily pairing watch goes red on a refusal, and the wake at
+2026-10-30T12:00Z reads the first closed full day (2026-10-29).
+
+## Errors and what they cost
+
+- The first gates run was on a STAGED tree: two mutation steps refuse a dirty tree, so they failed for that reason and
+  not for a defect. Commit first, then run the gates.
+- Three real gate failures, all mine: a `|| 0` in the new reader (the absence-collapse ratchet; the fix made a
+  non-numeric count an unreadable record instead of a zero), and two anchors that still named the old
+  `fetchSportOddsHistorical(env, sportKey, isoDate)` call (`check-quota-gate-ordering`, mutant M2 of
+  `mutate-odds-writers-sport-scoped`).
+- An accidental run of `scripts/probe-odds-join.mjs --help` made the probe run (it has no help flag) and wrote an
+  artifact; it was deleted before the commit.
+- The review took 76 minutes of a capture gap that ended at 22:50Z; the push still fitted.
+- A first mutation harness placed `refusals` anchors on text the amended reader no longer carried; the harness
+  reported them as NOT MUTATED rather than caught, which is the behaviour it exists for.
+
+## Carry-forwards
+
+None owed by this session. Owner decisions that remain, none blocking: gating the unauthenticated routes
+(`docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md` TASK 1, now with `/odds/*` named), a cap on
+`oddsProxyRoute`, whether 900 is the right number for `archiveGameClosing`.
