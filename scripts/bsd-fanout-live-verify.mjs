@@ -69,6 +69,9 @@ export const assess = ({ events, eventId, subscribeResponse }) => {
     ['every bsd:ball is parseable JSON', balls.every((e) => isObj(e.data))],
     ['every bsd:ball is for this event', balls.every((e) => e.data?.id === id)],
     ['every bsd:ball carries exactly the declared keys', balls.every((e) => isObj(e.data) && keyset(e.data) === KEYS['bsd:ball'].join(','))],
+    ['every bsd:ball coords is null or exactly an integer x and an integer y',
+      balls.every((e) => e.data?.coords === null || (isObj(e.data?.coords) && Object.keys(e.data.coords).sort().join() === 'x,y' &&
+        Number.isInteger(e.data.coords.x) && Number.isInteger(e.data.coords.y)))],
     ['every bsd:ball names a side and carries a time object and a string commentary',
       balls.every((e) => ['home', 'away'].includes(e.data?.side) && isObj(e.data?.time) && typeof e.data?.commentary === 'string')],
   ]
@@ -181,6 +184,10 @@ const selfTest = () => {
   ok('a computed extra key fails the key-set assertion', failing(A([stats({ drama: 1 })])).some((n) => n.includes('exactly the declared keys')))
   ok('a bsd:stats for another event fails', failing(A([stats({ id: '9' })])).some((n) => n.includes('for this event')))
   ok('a bsd:ball for another event fails', failing(A([stats(), ball({ id: '9' })])).includes('every bsd:ball is for this event'))
+  ok('a bsd:ball whose coords are a fraction fails', failing(A([stats(), ball({ coords: { x: 72.5, y: 47 } })])).some((n) => n.includes('integer x')))
+  ok('a bsd:ball whose coords are an array fails', failing(A([stats(), ball({ coords: [{ x: 1, y: 2 }] })])).some((n) => n.includes('integer x')))
+  ok('a bsd:ball whose coords carry an extra key fails', failing(A([stats(), ball({ coords: { x: 1, y: 2, z: 3 } })])).some((n) => n.includes('integer x')))
+  ok('a bsd:ball with integer coords passes', failing(A([stats(), ball({ coords: { x: 72, y: 47 } })])).length === 0)
   ok('a bsd:ball without side fails', failing(A([stats(), ball({ side: undefined })])).some((n) => n.includes('names a side')))
   ok('a bsd:ball with a non-string commentary fails', failing(A([stats(), ball({ commentary: 5 })])).some((n) => n.includes('string commentary')))
   ok('a bsd:ball with an extra key fails the key-set assertion', failing(A([stats(), ball({ watch: 1 })])).some((n) => n.includes('exactly the declared keys')))
