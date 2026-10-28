@@ -6,7 +6,10 @@
 every row this leaves unjoined. Rule 70: nothing here changes a response shape; it only joins more rows.
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (correctness) — a measured miss in a rule that was proven on two dates
-**Status:** FILED. Resolved against HEAD `29c76cd`; Task 0 re-probes every line.
+**Status:** **DONE 2026-10-28.** Seven more dates measured (32 unmatched rows, 9 clubs), nine pairs added (`35146db`), deploy run
+40624401500 success, live run 40625311405: 29 of 29 assertions, 292 of 294 soccer rows joined (27 of 27 proposals, 3 of 3
+one-side-only), the five 2026-10-10 rows joined, 2 MLS rows unresolved because BSD has no event for them. Read independently from
+D1: the same per-date counts. Session doc `outbox/cc-session-2026-10-28-bsd-join-aliases.md`. Seven dates, not a season.
 
 ```bash
 git remote get-url origin | grep -q field-relay-nba || { echo "WRONG REPO"; exit 1; }

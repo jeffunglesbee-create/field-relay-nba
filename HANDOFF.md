@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (03:30Z) — nine more BSD club names, live on seven more dates
+
+**HEAD:** `dca3f5b` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-28-bsd-join-aliases.md
+
+`docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`: **DONE**. 292 of 294 soccer rows over 2026-10-10, 09-12, 09-19,
+10-17, 10-18, 10-24 and 10-25 carry `bsd_event_id` (262 before the pairs, by the offline rule). The 2 left are MLS games BSD has no
+event for. Deploy run 40624401500, live proof run 40625311405 (29 of 29, read back from D1 too). The laboratory's card consumer
+can show a lineup for 292 of those 294 games. Seven dates, not a season: a promoted club's first appearance is still a miss until
+it is measured (`scripts/measure-bsd-game-join.mjs --fixture FILE`).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-28 (02:50Z) — the BSD WebSocket frame shape is recorded
 
 **HEAD:** `f4c4855b` → this close-out · **Branch:** main
