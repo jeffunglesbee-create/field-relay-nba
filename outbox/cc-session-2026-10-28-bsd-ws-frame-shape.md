@@ -121,7 +121,11 @@ Run in the same session after "next". HEAD progression: `e89004df` → `9f7b61c5
   match when this was written. Unblocked when one is live. Verify:
   `node -e "const a=require('./outbox/bsd-fanout-live-verify-latest.json');console.assert(a.state==='verified')"`.
   Run dispatched ~04:30Z (345 min wait); the 11:20Z wake re-dispatches until verified or 2026-10-29T00:00Z.
-- **Environment note:** `scripts/check-empty-catches.mjs --control` exits 1 in this sandbox on a CLEAN checkout too
-  (tree-sitter absent); the bare count is 112, equal to the baseline.
+- **Defect found by CI, not by me (twice the same lesson):** Repo guards 'No new bare empty catch' went red on `8a95a202`
+  and `196e0004`: `await fetch(...).catch(() => null)` in the new live verifier made the bare count 113 against 112. I had
+  seen `check-empty-catches.mjs --control` exit 1 locally and attributed it to the sandbox (it did exit 1 on a clean
+  checkout), which is the rationalisation Rule 77 names: the real cause was tree-sitter absent, so the gate could not run
+  and could not have told me. `pip install tree-sitter tree-sitter-javascript` made it runnable; it then reproduced the
+  failure and the fix (a try/catch that logs) took it to 112. Before gating locally, install the control's dependency.
 - **Client:** no code change. `_bsdOnSSEFrame`/`_bsdRepaint` read `_bsdBallPos.x`, the relay sends `coords`; both
   inert while `coords` is null on 14 of 14 frames. Owned by the top-flight CC-CMD Task 3.

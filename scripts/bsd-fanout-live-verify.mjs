@@ -135,7 +135,9 @@ const main = async () => {
   const subscribeResponse = await subRes.json().catch(() => ({ ok: false, error: `HTTP ${subRes.status}, body not JSON` }))
   console.log(`subscribe: HTTP ${subRes.status} ${JSON.stringify(subscribeResponse)}`)
   await sleep(listenMs)
-  await fetch(`${RELAY}/ambient/bsd/unsubscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: event.id }) }).catch(() => null)
+  try {
+    await fetch(`${RELAY}/ambient/bsd/unsubscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: event.id }) })
+  } catch (e) { console.log(`  unsubscribe failed (the verdict is unaffected): ${e.message}`) }
   ac.abort()
   await pump
 
