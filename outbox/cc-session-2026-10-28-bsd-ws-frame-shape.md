@@ -129,3 +129,17 @@ Run in the same session after "next". HEAD progression: `e89004df` → `9f7b61c5
   failure and the fix (a try/catch that logs) took it to 112. Before gating locally, install the control's dependency.
 - **Client:** no code change. `_bsdOnSSEFrame`/`_bsdRepaint` read `_bsdBallPos.x`, the relay sends `coords`; both
   inert while `coords` is null on 14 of 14 frames. Owned by the top-flight CC-CMD Task 3.
+
+## Part 3 — the 11:20Z wake (2026-10-28)
+
+- **Live verifier, first dispatch (run 40632211489, 04:25Z to 10:09Z):** state `no-qualifying-event`, 683 polls over 345
+  minutes, committed as `1bb12a6b`. Not a pass and not a finding about the relay: `/bsd/coverage` at 11:22Z shows
+  football `live_now: 0` and `last_event_at` 2026-10-28T01:05Z, so BSD listed no football event in play between about
+  02:00Z and 11:30Z. The step exits 3 and the workflow concludes `failure` by design; the artifact says why.
+- **Re-dispatched 11:24Z, both with a 340-minute wait:** `bsd-ws-capture.yml` (league_ids 1,3,4,5,7,8, 10-minute
+  window) and `bsd-fanout-live-verify.yml` (150 s listen). They poll until about 17:05Z.
+- **Tool note:** `gh workflow run` fails in this sandbox (it needs GraphQL, which Claude Code sessions are denied); the
+  GitHub MCP `actions_run_trigger` does the same dispatch. `gh run list/view` work.
+- **Next wake:** 17:10Z, to collect both artifacts and re-dispatch for the evening kickoffs (last dispatch before
+  2026-10-29T00:00Z).
+
