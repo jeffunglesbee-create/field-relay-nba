@@ -338,6 +338,17 @@ jobs:
           node scripts/mutate-bsd-frame-contract.mjs
           node scripts/check-bsd-frame-contract.mjs
 
+      # The BSD WebSocket recorder/analyzer behind bsd-ws-capture.yml. The recorder
+      # keeps every frame whatever its type, and the analyzer's verdict decides
+      # whether the tracking tier is off-ball; a check that cannot fail on a
+      # mutated copy would let either rot unseen. Rule 90.
+      # docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md (field-laboratory).
+      - name: the BSD WS recorder fails when it is broken on purpose
+        if: always()
+        run: |
+          node scripts/bsd-ws-capture.mjs --self-test
+          node scripts/mutate-bsd-ws-capture.mjs
+
       # Rule 99, the absence-collapse ratchet. deploy.yml carries the same step
       # for src-only pushes; this one covers scripts/ and workers/ changes that
       # reach here. Reaches github.com to clone jubilant-bassoon, whose

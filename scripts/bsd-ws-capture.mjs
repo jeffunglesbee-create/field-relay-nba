@@ -151,7 +151,7 @@ export const analyze = (frames) => {
   let minStep = null
   for (let i = 1; i < sorted.length; i++) {
     const d = sorted[i] - sorted[i - 1]
-    if (d > 0 && (minStep === null || d < minStep)) minStep = d
+    if (minStep === null || d < minStep) minStep = d
   }
   const magnitude = sorted.length === 0 ? null
     : sorted[sorted.length - 1] >= 1e12 ? 'epoch milliseconds'
@@ -470,6 +470,8 @@ const selfTest = async () => {
   const dump = JSON.stringify(r3.events)
   ok('error and close events are recorded with the token redacted',
     r3.ended === 'socket-closed' && dump.includes('1006') && !dump.includes(TOKEN) && dump.includes('***'), dump)
+  ok('a socket error is recorded with its message redacted',
+    r3.events.some((e) => e.kind === 'error' && e.message === 'failed ***'), dump)
   ok('redact removes every occurrence', redact(`a ${TOKEN} b ${TOKEN}`, TOKEN) === 'a *** b ***')
 
   console.log(fail === 0 ? '\nALL PASS' : `\n${fail} FAILED`)
