@@ -27,6 +27,14 @@ if (spawnSync('node', SELF, { stdio: 'ignore' }).status !== 0) {
 }
 console.log(`baseline: ${WATCH} --self-test passes on clean source\n`);
 
+// THE FILE IS MUTATED IN PLACE, so it is restored on every way out: a normal
+// exit, an exception, and Ctrl-C / SIGTERM (which skip 'exit' handlers unless
+// they call process.exit themselves). The dirty-file refusal above is the net
+// under this one, not the mechanism.
+const PRISTINE = fs.readFileSync(WATCH, 'utf8');
+process.on('exit', () => { if (fs.readFileSync(WATCH, 'utf8') !== PRISTINE) fs.writeFileSync(WATCH, PRISTINE); });
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));
+
 const MUTATIONS = [
   { name: 'R1 a stamped day reads as no refusal',
     anchor: "  if (day.ceiling_reached_at) return { state: 'day-ceiling', at: day.ceiling_reached_at };",
@@ -61,6 +69,36 @@ const MUTATIONS = [
   { name: 'R11 the unread check runs before the month limit',
     anchor: "  // `true` is a stamp without an hour: reached, when unknown, so it counts.",
     replace: "  if (Array.isArray(day.stamps_unreadable) && day.stamps_unreadable.length) return { state: 'not-reported' };\n  // `true` is a stamp without an hour: reached, when unknown, so it counts." },
+  // 2026-10-28: the per-site caps' stamp. A site refusal is the third way the guard
+  // turns a call away, and each of these reads it as nothing.
+  { name: 'R12 a site refusal reads as no refusal',
+    anchor: "  if (hit.length) {",
+    replace: "  if (false) {" },
+  { name: 'R13 a missing site_ceiling_reached_at reads as a clean day (a relay before the caps)',
+    anchor: "  if (!sites || typeof sites !== 'object' || Array.isArray(sites)) return { state: 'not-reported', missing: 'site_ceiling_reached_at' };",
+    replace: "  if (!sites) return { state: 'none' };" },
+  { name: 'R14 an array is accepted as the object of site stamps',
+    anchor: "typeof sites !== 'object' || Array.isArray(sites)",
+    replace: "typeof sites !== 'object'" },
+  { name: 'R15 a site stamp with no hour reads as no refusal',
+    anchor: "  const hit = Object.entries(sites).filter(([, v]) => v);",
+    replace: "  const hit = Object.entries(sites).filter(([, v]) => typeof v === 'string');" },
+  { name: 'R16 an unreadable site stamp overrides a site refusal that was read',
+    anchor: "  const hit = Object.entries(sites).filter(([, v]) => v);",
+    replace: "  if (Array.isArray(day.stamps_unreadable) && day.stamps_unreadable.length) return { state: 'not-reported' };\n  const hit = Object.entries(sites).filter(([, v]) => v);" },
+  { name: 'R17 a site refusal is named before the month limit',
+    anchor: "  // `true` is a stamp without an hour: reached, when unknown, so it counts.",
+    replace: "  if (day.site_ceiling_reached_at && Object.values(day.site_ceiling_reached_at).some(Boolean)) return { state: 'site-ceiling', at: null, sites: [] };\n  // `true` is a stamp without an hour: reached, when unknown, so it counts." },
+
+  { name: 'R18 the site refusal reports its LATEST hour, not its earliest',
+    anchor: "return { state: 'site-ceiling', at: hours.length ? hours[0] : null, sites: named };",
+    replace: "return { state: 'site-ceiling', at: hours.length ? hours[hours.length - 1] : null, sites: named };" },
+  { name: 'R19 every refused site is given the first site\'s hour',
+    anchor: "const named = hit.map(([k, v]) => ({ site: k, at: typeof v === 'string' ? v : null }))",
+    replace: "const named = hit.map(([k]) => ({ site: k, at: hours.length ? hours[0] : null }))" },
+  { name: 'R20 a site with no hour is dropped from the list',
+    anchor: "const named = hit.map(([k, v]) => ({ site: k, at: typeof v === 'string' ? v : null }))",
+    replace: "const named = hit.filter(([, v]) => typeof v === 'string').map(([k, v]) => ({ site: k, at: v }))" },
   { name: 'P1 a field missing from the response reads as zero',
     anchor: "  if (block === undefined) return { state: 'not-reported', overloads: null };",
     replace: "  if (block === undefined) return { state: 'none', overloads: 0 };",
@@ -157,12 +195,12 @@ for (const mut of MUTATIONS) {
   }
   const red = spawnSync('node', SELF, { stdio: 'ignore' }).status !== 0;
   fs.writeFileSync(WATCH, original);
-  console.log(`${red ? 'CAUGHT    ' : 'NOT CAUGHT'} ${mut.name}\n            (${mut.catches})`);
+  console.log(`${red ? 'CAUGHT    ' : 'NOT CAUGHT'} ${mut.name}${mut.catches ? `\n            (${mut.catches})` : ''}`);
   if (red) caught++;
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
 console.log(`COVERAGE: d1OverloadVerdict (P1-P7, P12-P15), degradeVerdict (P8-P11) and`);
-console.log(`refusalVerdict (R1-R11) only. It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
+console.log(`refusalVerdict (R1-R20) only. It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
 console.log(`predicates in this watch; the fetch is verified by a scheduled run.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);

@@ -19,7 +19,12 @@
 // here rather than letting the list be quietly shorter than the population.
 // mutate-deploy-odds-wrappers.mjs quotes guard call sites as mutation anchors
 // (2026-10-19) and makes no guarded call; excluded for the same reason.
-// SCOPE-EXCLUDES: scripts/check-odds-calls-guarded.mjs scripts/mutate-odds-attribution.mjs scripts/check-odds-live-disabled.mjs scripts/mutate-deploy-odds-wrappers.mjs
+// check-odds-site-caps.mjs matches the call sites as TEXT to bind each capped site
+// to a label a caller really passes (2026-10-28), and mutate-odds-site-caps.mjs
+// quotes call sites as mutation anchors; neither makes a guarded call. This file
+// keeps the equality of the guard and reconcile labels and the declared sites;
+// that one owns "a cap key is passed by a call site". One boundary each.
+// SCOPE-EXCLUDES: scripts/check-odds-calls-guarded.mjs scripts/mutate-odds-attribution.mjs scripts/check-odds-live-disabled.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/check-odds-site-caps.mjs scripts/mutate-odds-site-caps.mjs
 //
 // THIS FILE ALSO SCANS reconcileOddsCredit as of 2026-09-16, and its population
 // is the same three files by construction: the equality it asserts is between

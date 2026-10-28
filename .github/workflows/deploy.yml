@@ -186,11 +186,39 @@ jobs:
           node scripts/check-ceiling-reached.mjs
           node scripts/mutate-ceiling-reached.mjs
 
+      # 2026-10-28: the mechanism described above (bump the site first, both
+      # carrying the day's predicate) was replaced by Task 3's gate, which holds the
+      # day, the month and the site in one statement that the three charges obey;
+      # the order that remains is the gate before the charges. What this step
+      # established still holds on the new statements: the mutations run the real
+      # SQL on node:sqlite and reproduce the same gap signs (E2 daily 90 / sum 150,
+      # E3 daily 150 / sum 90) and the 2026-10-18 split reverted (E9, month short).
       - name: the odds budget batch keeps its order and its ceilings
         run: |
           node scripts/check-odds-budget-batch.mjs --self-test
           node scripts/mutate-odds-budget-batch.mjs
           node scripts/check-odds-budget-batch.mjs
+
+      # Task 3 of docs/CC-CMD-2026-09-16-odds-spend-attribution.md. The batch above
+      # is read for its SHAPE; this one RUNS chargeOdds itself, 2,000 random
+      # sequences against a four-line reference model, because a third predicate
+      # on the statements one at a time looked right and agreed with the model on
+      # 973 of 2,000 sequences. The mutation harness turns each gate, order and
+      # cap mutation red or fails by name.
+      - name: a per-site cap refuses its own site and charges nothing it refused
+        run: |
+          node scripts/check-odds-site-caps.mjs
+          node scripts/mutate-odds-site-caps.mjs
+
+      # Review of Task 3: POST /debug/odds-budget-latency still prepared a statement
+      # the change had removed and answered 500, and no gate noticed. Every
+      # ODDS_BUDGET_SQL reference must name a statement that exists and bind as many
+      # values as it has placeholders.
+      - name: every odds budget statement is referenced by a key that exists and bound by its placeholder count
+        run: |
+          node scripts/check-odds-sql-binds.mjs --self-test
+          node scripts/mutate-odds-sql-binds.mjs
+          node scripts/check-odds-sql-binds.mjs
 
       - name: The backfill cannot pay for a payload and pair none of it
         run: node scripts/watch-odds-pairing-rate.mjs --self-test

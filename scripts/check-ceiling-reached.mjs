@@ -161,8 +161,10 @@ function sqliteD1(db) {
 let caseNo = 0;
 // A veto at `at` (and a second at `again`, if given), read back for `day` at
 // `readAt`, with stamp reads failing when `failGet` is set. `kind` 'day' fills
-// the day; 'month' fills the month and leaves the day room.
-async function replay({ kind, at, again = null, readAt, day, failGet = null }) {
+// the day; 'month' fills the month and leaves the day room; 'site' fills one
+// capped site (SITE) to its cap and leaves the day and the month room.
+const SITE = 'ambientCaptureClosingOdds';
+async function replay({ kind, at, again = null, readAt, day, failGet = null, legacySite = null }) {
   const mod = await import(`${pathToFileURL(resolve(SRC)).href}?case=${++caseNo}`);
   const db = new DatabaseSync(':memory:');
   const env = { FIELD_JOURNALISM: ttlKV(), ARCHIVE_DB: sqliteD1(db) };
@@ -175,15 +177,21 @@ async function replay({ kind, at, again = null, readAt, day, failGet = null }) {
       CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE odds_reconcile_state (day TEXT NOT NULL, site TEXT NOT NULL, state TEXT NOT NULL, cache TEXT NOT NULL,
         n INTEGER NOT NULL DEFAULT 0, credits_kept INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site, state, cache));`);
+    const who = kind === 'site' ? SITE : 'probe';
     if (kind === 'day') db.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(at.slice(0, 10), 1e9);
+    else if (kind === 'site') db.prepare('INSERT INTO odds_budget_site VALUES (?, ?, ?)').run(at.slice(0, 10), SITE, mod.siteCeilingFor(SITE, at.slice(0, 10)));
     else db.prepare('INSERT INTO odds_budget_month VALUES (?, ?)').run(at.slice(0, 7), mod.ODDS_HARD_LIMIT);
-    let refused = (await mod.chargeOdds(env, 3, 'probe')) === false;
-    if (again) { clock = RealDate.parse(again); refused = refused && (await mod.chargeOdds(env, 3, 'probe')) === false; }
+    let refused = (await mod.chargeOdds(env, 3, who)) === false;
+    if (again) { clock = RealDate.parse(again); refused = refused && (await mod.chargeOdds(env, 3, who)) === false; }
+    // A site stamp in the legacy shape (a bare '1', no hour), as a boolean-era
+    // writer left it: reached, hour unknown.
+    if (legacySite) await env.FIELD_JOURNALISM.put(`odds:daily:${at.slice(0, 10)}:warned:site:${legacySite}`, '1', { expirationTtl: 3 * 86400 });
     clock = RealDate.parse(readAt);
     env.FIELD_JOURNALISM.failGet = failGet;
     const got = await mod.peekDailyOdds(env, day);
     return { refused, ceiling: got?.ceiling_reached_at, month: got?.month_limit_reached_at, hasMonth: !!got && 'month_limit_reached_at' in got,
-             unreadable: got ? got.stamps_unreadable : undefined };
+             unreadable: got ? got.stamps_unreadable : undefined,
+             siteAt: got?.site_ceiling_reached_at, siteCaps: got?.site_ceilings, siteUnread: got?.site_stamps_unreadable };
   } finally { globalThis.Date = RealDate; console.warn = warn; }
 }
 // The four recorded ceiling days, each read at the minute the scheduled pairing
@@ -245,7 +253,7 @@ for (const [day, readAt] of READS) {
   // not read as "no refusal" (Rule 99). Each stamp alone, then both.
   for (const [kind, failGet, names] of [['day', /:warned$/, ['ceiling_reached_at']],
                                         ['month', /:warned:limit$/, ['month_limit_reached_at']],
-                                        ['month', /:warned/, ['ceiling_reached_at', 'month_limit_reached_at']]]) {
+                                        ['month', /:warned/, ['ceiling_reached_at', 'month_limit_reached_at', 'site_ceiling_reached_at']]]) {
     const r = await replay({ kind, at: '2026-10-31T22:00:00.000Z', readAt: '2026-11-01T15:36:00Z', day: '2026-10-31', failGet });
     ok(`a ${kind} veto, reads of ${failGet} throw: both stamps null, ${names.join(' and ')} named unreadable`,
       r.refused && r.ceiling === null && r.month === null && JSON.stringify(r.unreadable) === JSON.stringify(names),
@@ -262,6 +270,79 @@ for (const [day, readAt] of READS) {
       r.refused && r[field] === at && JSON.stringify(r.unreadable) === JSON.stringify([other]),
       `ceiling_reached_at ${JSON.stringify(r.ceiling)}, month_limit_reached_at ${JSON.stringify(r.month)}, stamps_unreadable ${JSON.stringify(r.unreadable)}`);
   }
+}
+
+// ── THE SITE CAPS' STAMPS (Task 3 of docs/CC-CMD-2026-09-16-odds-spend-attribution.md) ──
+// A site cap refuses calls too, and no caller reads a refusal, so the stamp is
+// the only place it shows. Same three states, same lifetime, same first-not-
+// latest, same named-when-unreadable as the day's and the month's.
+ok('the reader serves each site\'s cap and its stamps',
+  /site_ceilings: siteCeilings,/.test(reader) && /site_ceiling_reached_at: siteHit,/.test(reader),
+  'a value only the worker knows is not an artifact (Rule 90)');
+ok('the reader asks for the cap of the date asked about, so a siteExtra grant day is reported as granted',
+  /siteCeilingFor\(s, date\)/.test(reader),
+  'the standing cap on a grant day is a budget readout that disagrees with the budget (no siteExtra grant exists yet, so no replay can see this: a source read is all there is)');
+ok('a failed site-stamp read is named, and leaves that site null',
+  /siteHit\[s\] = null; siteUnreadable\.push\(s\);\s*\n\s*if \(!stampsUnreadable\.includes\('site_ceiling_reached_at'\)\) stampsUnreadable\.push\('site_ceiling_reached_at'\);/.test(reader),
+  'an unreadable KV must not report a refusal that never happened, nor hide one that did');
+{
+  const at = '2026-10-21T00:00:00.001Z';
+  const r = await replay({ kind: 'site', at, readAt: '2026-10-23T23:59:59.999Z', day: '2026-10-21' });
+  ok(`a site cap that refused at ${at} is still reported at the last instant the route serves the day`,
+    r.refused && r.siteAt?.[SITE] === at,
+    `refused ${r.refused}, site_ceiling_reached_at ${JSON.stringify(r.siteAt)}: the stamp expired before its reader, so a day that refused a consumer reads as one that did not`);
+  ok('...and it is filed under its own site only: the other capped sites are null',
+    r.siteAt && Object.entries(r.siteAt).every(([k, v]) => k === SITE || v === null),
+    JSON.stringify(r.siteAt));
+  ok("...and it is NOT filed as the day's or the month's refusal",
+    r.ceiling === null && r.month === null && r.unreadable === null,
+    `ceiling_reached_at ${JSON.stringify(r.ceiling)}, month_limit_reached_at ${JSON.stringify(r.month)}, stamps_unreadable ${JSON.stringify(r.unreadable)}`);
+  ok('...the caps are served with it: the four capped sites at their numbers, every other site null',
+    r.siteCaps && r.siteCaps.ambientCaptureClosingOdds === 400 && r.siteCaps.fetchSportOddsLive === 2000
+      && r.siteCaps.fetchSportOddsHistorical === 1800 && r.siteCaps.getWCPregameLambdas === 300
+      && Object.entries(r.siteCaps).every(([k, v]) => v === null || ['ambientCaptureClosingOdds', 'fetchSportOddsLive', 'fetchSportOddsHistorical', 'getWCPregameLambdas'].includes(k))
+      && Object.keys(r.siteCaps).length > 4,
+    JSON.stringify(r.siteCaps));
+  ok('...and the stamps list exactly the capped sites',
+    r.siteAt && JSON.stringify(Object.keys(r.siteAt).sort()) === JSON.stringify(['ambientCaptureClosingOdds', 'fetchSportOddsHistorical', 'fetchSportOddsLive', 'getWCPregameLambdas']),
+    JSON.stringify(r.siteAt));
+  const other = await replay({ kind: 'site', at, readAt: '2026-10-22T15:00:00Z', day: '2026-10-20' });
+  ok("...and a stamp is not reported for another date",
+    other.refused && other.siteAt?.[SITE] === null,
+    `site_ceiling_reached_at for 2026-10-20: ${JSON.stringify(other.siteAt)}`);
+}
+{
+  const m = await replay({ kind: 'site', at: '2026-10-21T08:00:00.000Z', again: '2026-10-21T20:00:00.000Z',
+    readAt: '2026-10-22T15:36:00Z', day: '2026-10-21' });
+  ok('two site vetoes: the stamp is the first',
+    m.refused && m.siteAt?.[SITE] === '2026-10-21T08:00:00.000Z',
+    `refused ${m.refused}, site_ceiling_reached_at ${JSON.stringify(m.siteAt)}`);
+}
+{
+  // THE THIRD STATE, EXECUTED. A stamp with no hour reads as `true` (reached, hour
+  // unknown), never as the raw value and never as null: collapsing it either way
+  // loses a refusal or invents an hour for it. Only the day's stamp had this case.
+  const r = await replay({ kind: 'day', at: '2026-10-21T08:00:00.000Z', readAt: '2026-10-22T15:36:00Z', day: '2026-10-21',
+    legacySite: 'fetchSportOddsLive' });
+  ok("a site stamp written as a bare '1' reads as true, and the other sites stay null",
+    r.siteAt?.fetchSportOddsLive === true && r.siteAt?.ambientCaptureClosingOdds === null,
+    `site_ceiling_reached_at ${JSON.stringify(r.siteAt)}`);
+}
+{
+  const at = '2026-10-21T08:00:00.000Z';
+  const r = await replay({ kind: 'site', at, readAt: '2026-10-22T15:36:00Z', day: '2026-10-21', failGet: /:warned:site:/ });
+  ok('a site veto, reads of its stamp throw: every site null, site_ceiling_reached_at named unreadable and nothing else',
+    r.refused && !!r.siteAt && Object.values(r.siteAt).every((v) => v === null) && JSON.stringify(r.unreadable) === JSON.stringify(['site_ceiling_reached_at']),
+    `site_ceiling_reached_at ${JSON.stringify(r.siteAt)}, stamps_unreadable ${JSON.stringify(r.unreadable)}`);
+  ok('...and the sites whose read failed are named, so a null says WHICH is unknown',
+    JSON.stringify([...(r.siteUnread || [])].sort()) === JSON.stringify(['ambientCaptureClosingOdds', 'fetchSportOddsHistorical', 'fetchSportOddsLive', 'getWCPregameLambdas']),
+    `site_stamps_unreadable ${JSON.stringify(r.siteUnread)}`);
+  const fine = await replay({ kind: 'site', at, readAt: '2026-10-22T15:36:00Z', day: '2026-10-21' });
+  ok('...and is null when every read worked', fine.siteUnread === null, `site_stamps_unreadable ${JSON.stringify(fine.siteUnread)}`);
+  const d = await replay({ kind: 'day', at, readAt: '2026-10-22T15:36:00Z', day: '2026-10-21', failGet: /:warned:site:/ });
+  ok("...and the day's stamp, read beside it, is still served",
+    d.refused && d.ceiling === at && JSON.stringify(d.unreadable) === JSON.stringify(['site_ceiling_reached_at']),
+    `ceiling_reached_at ${JSON.stringify(d.ceiling)}, stamps_unreadable ${JSON.stringify(d.unreadable)}`);
 }
 
 console.log(`\n${n - bad} of ${n} passed.`);

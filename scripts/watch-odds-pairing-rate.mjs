@@ -336,7 +336,11 @@ export function ceilingVerdict(daily) {
  * limits and nothing else, and stamps each the first time it refuses: the daily
  * ceiling as odds:daily:<date>:warned, served by /budget/odds?date= as
  * ceiling_reached_at, and the monthly limit as odds:credits:<month>:warned:limit,
- * served as month_limit_reached_at for the month of the date asked about. No
+ * served as month_limit_reached_at for the month of the date asked about. Since
+ * 2026-10-28 a third refuses: a PER-SITE cap, stamped per site as
+ * odds:daily:<date>:warned:site:<site> and served as site_ceiling_reached_at, an
+ * object of {site: ISO | true | null} over the capped sites (Task 3 of
+ * docs/CC-CMD-2026-09-16-odds-spend-attribution.md). No
  * caller reads a refusal (none checks `guarded`), so this is the one place it
  * can show (docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md, fix 3).
  * ceilingVerdict above asks a different question: whether the guard LET a call
@@ -364,6 +368,19 @@ export function refusalVerdict(day) {
   if (m === true) return { state: 'month-limit', at: null };
   // An hour after the closed day means the limit was reached later, not on it.
   if (typeof m === 'string' && m.slice(0, 10) <= day.date) return { state: 'month-limit', at: m };
+  // A SITE'S CAP. The day and the month had room, and one consumer was turned
+  // away. The field is an object over the capped sites; anything else (absent,
+  // null, an array) is a relay that does not report it, which is not a clean day.
+  const sites = day.site_ceiling_reached_at;
+  if (!sites || typeof sites !== 'object' || Array.isArray(sites)) return { state: 'not-reported', missing: 'site_ceiling_reached_at' };
+  const hit = Object.entries(sites).filter(([, v]) => v);
+  if (hit.length) {
+    const hours = hit.map(([, v]) => v).filter((v) => typeof v === 'string').sort();
+    // Each site with ITS OWN hour (null = reached, hour unknown), so a report can
+    // pair them; `at` is the earliest of them.
+    const named = hit.map(([k, v]) => ({ site: k, at: typeof v === 'string' ? v : null })).sort((a, b) => a.site < b.site ? -1 : 1);
+    return { state: 'site-ceiling', at: hours.length ? hours[0] : null, sites: named };
+  }
   if (Array.isArray(day.stamps_unreadable) && day.stamps_unreadable.length) return { state: 'not-reported', unreadable: day.stamps_unreadable };
   return { state: 'none' };
 }
@@ -617,33 +634,63 @@ if (SELF) {
   }
 
   const RD = '2026-10-31';
+  // The capped sites as /budget/odds serves them: every one read, none refused.
+  const NS = { ambientCaptureClosingOdds: null, fetchSportOddsLive: null, fetchSportOddsHistorical: null, getWCPregameLambdas: null };
   const REFUSAL = [
-    [{ date: RD, ceiling_reached_at: '2026-10-31T20:00:00.000Z', month_limit_reached_at: null }, 'day-ceiling', 'a stamped day: the ceiling first refused a call then (synthetic instant)'],
-    [{ date: '2026-10-22', ceiling_reached_at: null, month_limit_reached_at: null }, 'none', 'the real 2026-10-22 close: neither stamp'],
-    [{ date: RD, used: 1521, month_limit_reached_at: null }, 'not-reported', 'no ceiling_reached_at field at all is not a clean day (Rule 99)'],
-    [{ date: RD, ceiling_reached_at: null }, 'not-reported', 'no month_limit_reached_at field (a relay before fix 3 B) is not a clean day'],
-    [{ ceiling_reached_at: null, month_limit_reached_at: null }, 'not-reported', 'no date: the month stamp cannot be judged against the day'],
-    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-31T22:00:00.000Z' }, 'month-limit', 'the month limit first refused on the closed day itself (synthetic instant)'],
-    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'month-limit', 'reached two days before: it was still in force'],
-    [{ date: '2026-10-28', ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'none', 'reached the day after: the closed day had no month refusal'],
-    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: true }, 'month-limit', 'a stamp with no hour is reached, hour unknown'],
-    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, stamps_unreadable: ['month_limit_reached_at'] }, 'not-reported', 'the month stamp could not be read: its null is unknown, not clean (Rule 99)'],
-    [{ date: RD, ceiling_reached_at: '2026-10-31T20:00:00.000Z', month_limit_reached_at: null, stamps_unreadable: ['month_limit_reached_at'] }, 'day-ceiling', 'a stamp that was read and shows a refusal counts, whatever else failed'],
-    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, stamps_unreadable: null }, 'none', 'both stamps read, neither set'],
-    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-11-01T09:00:00.000Z', stamps_unreadable: ['ceiling_reached_at'] }, 'not-reported', 'the day stamp is unread and the month limit came after the day: unknown, not clean'],
-    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z', stamps_unreadable: ['ceiling_reached_at'] }, 'month-limit', 'the day stamp is unread, but a month refusal that was read is in force'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: '2026-10-31T20:00:00.000Z', month_limit_reached_at: null }, 'day-ceiling', 'a stamped day: the ceiling first refused a call then (synthetic instant)'],
+    [{ site_ceiling_reached_at: NS, date: '2026-10-22', ceiling_reached_at: null, month_limit_reached_at: null }, 'none', 'the real 2026-10-22 close: neither stamp'],
+    [{ site_ceiling_reached_at: NS, date: RD, used: 1521, month_limit_reached_at: null }, 'not-reported', 'no ceiling_reached_at field at all is not a clean day (Rule 99)'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null }, 'not-reported', 'no month_limit_reached_at field (a relay before fix 3 B) is not a clean day'],
+    [{ site_ceiling_reached_at: NS, ceiling_reached_at: null, month_limit_reached_at: null }, 'not-reported', 'no date: the month stamp cannot be judged against the day'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-31T22:00:00.000Z' }, 'month-limit', 'the month limit first refused on the closed day itself (synthetic instant)'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'month-limit', 'reached two days before: it was still in force'],
+    [{ site_ceiling_reached_at: NS, date: '2026-10-28', ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z' }, 'none', 'reached the day after: the closed day had no month refusal'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null, month_limit_reached_at: true }, 'month-limit', 'a stamp with no hour is reached, hour unknown'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null, month_limit_reached_at: null, stamps_unreadable: ['month_limit_reached_at'] }, 'not-reported', 'the month stamp could not be read: its null is unknown, not clean (Rule 99)'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: '2026-10-31T20:00:00.000Z', month_limit_reached_at: null, stamps_unreadable: ['month_limit_reached_at'] }, 'day-ceiling', 'a stamp that was read and shows a refusal counts, whatever else failed'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null, month_limit_reached_at: null, stamps_unreadable: null }, 'none', 'both stamps read, neither set'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-11-01T09:00:00.000Z', stamps_unreadable: ['ceiling_reached_at'] }, 'not-reported', 'the day stamp is unread and the month limit came after the day: unknown, not clean'],
+    [{ site_ceiling_reached_at: NS, date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z', stamps_unreadable: ['ceiling_reached_at'] }, 'month-limit', 'the day stamp is unread, but a month refusal that was read is in force'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, site_ceiling_reached_at: { ...NS, ambientCaptureClosingOdds: '2026-10-31T20:00:00.000Z' } }, 'site-ceiling', 'a capped consumer was turned away while the day and the month had room (synthetic instant)'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, site_ceiling_reached_at: { ...NS, fetchSportOddsLive: true } }, 'site-ceiling', 'a site stamp with no hour is reached, hour unknown'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null }, 'not-reported', 'no site_ceiling_reached_at field (a relay before the per-site caps) is not a clean day'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, site_ceiling_reached_at: null }, 'not-reported', 'a null site field is not an object of stamps'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, site_ceiling_reached_at: [] }, 'not-reported', 'an array is not an object of stamps'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, site_ceiling_reached_at: NS, stamps_unreadable: ['site_ceiling_reached_at'] }, 'not-reported', 'the site stamps could not be read: their nulls are unknown, not clean (Rule 99)'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, site_ceiling_reached_at: { ...NS, getWCPregameLambdas: '2026-10-31T09:00:00.000Z' }, stamps_unreadable: ['site_ceiling_reached_at'] }, 'site-ceiling', 'a site stamp that was read and shows a refusal counts, although another could not be read'],
+    [{ date: RD, ceiling_reached_at: '2026-10-31T20:00:00.000Z', month_limit_reached_at: null, site_ceiling_reached_at: { ...NS, getWCPregameLambdas: '2026-10-31T09:00:00.000Z' } }, 'day-ceiling', 'the day stamp is named first when both refused'],
+    [{ date: RD, ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z', site_ceiling_reached_at: { ...NS, getWCPregameLambdas: '2026-10-31T09:00:00.000Z' } }, 'month-limit', 'the month limit is named before a site cap'],
+    [{ date: '2026-10-28', ceiling_reached_at: null, month_limit_reached_at: '2026-10-29T09:00:00.000Z', site_ceiling_reached_at: { ...NS, ambientCaptureClosingOdds: '2026-10-28T20:00:00.000Z' } }, 'site-ceiling', 'a month stamp from after the closed day does not hide a site refusal on it'],
   ];
   for (const [day, want, why] of REFUSAL) {
     const got = refusalVerdict(day).state;
     got === want ? console.log(`  PASS  refusal: ${want.padEnd(27)} (${why})`)
                  : (bad++, console.log(`  FAIL  refusal: got ${got} want ${want}  (${why})`));
   }
+  // WHAT THE REPORT PRINTS, not only which state it is in: the earliest hour, and
+  // each site beside its OWN hour. The state loop above cannot see either, and a
+  // report that names the wrong time or the wrong site is read as true.
+  const SITE_DETAIL = [
+    [{ ambientCaptureClosingOdds: '2026-10-31T20:00:00.000Z' }, '2026-10-31T20:00:00.000Z', [{ site: 'ambientCaptureClosingOdds', at: '2026-10-31T20:00:00.000Z' }], 'one site, one hour'],
+    [{ getWCPregameLambdas: '2026-10-31T21:00:00.000Z', ambientCaptureClosingOdds: '2026-10-31T09:00:00.000Z' }, '2026-10-31T09:00:00.000Z',
+     [{ site: 'ambientCaptureClosingOdds', at: '2026-10-31T09:00:00.000Z' }, { site: 'getWCPregameLambdas', at: '2026-10-31T21:00:00.000Z' }], 'two sites: the earliest hour is `at`, and each site keeps its own'],
+    [{ fetchSportOddsLive: true, getWCPregameLambdas: '2026-10-31T21:00:00.000Z' }, '2026-10-31T21:00:00.000Z',
+     [{ site: 'fetchSportOddsLive', at: null }, { site: 'getWCPregameLambdas', at: '2026-10-31T21:00:00.000Z' }], 'a site with no hour is listed with null and does not hide the other'],
+    [{ fetchSportOddsLive: true }, null, [{ site: 'fetchSportOddsLive', at: null }], 'only an hour-less stamp: `at` is null, not a made-up time'],
+    [{ ...NS, fetchSportOddsHistorical: '2026-10-31T05:00:00.000Z' }, '2026-10-31T05:00:00.000Z', [{ site: 'fetchSportOddsHistorical', at: '2026-10-31T05:00:00.000Z' }], 'the sites that did not refuse are not listed'],
+  ];
+  for (const [stamps, wantAt, wantSites, why] of SITE_DETAIL) {
+    const v = refusalVerdict({ date: RD, ceiling_reached_at: null, month_limit_reached_at: null, site_ceiling_reached_at: stamps });
+    const okd = v.state === 'site-ceiling' && v.at === wantAt && JSON.stringify(v.sites) === JSON.stringify(wantSites);
+    okd ? console.log(`  PASS  site refusal detail: ${why}`)
+        : (bad++, console.log(`  FAIL  site refusal detail: ${why}\n        got ${JSON.stringify(v)}\n        want at ${JSON.stringify(wantAt)}, sites ${JSON.stringify(wantSites)}`));
+  }
 
   // COUNTED, NOT WRITTEN DOWN. This was `+ 32`, the number of one() calls on the
   // day it was typed, and adding an assertion without editing it would have
   // printed a denominator that was quietly wrong — the Rule 91 failure, inside
   // the self-test that exists to prevent it.
-  const _n = CASES.length + INTEGRITY.length + CEILING.length + REFUSAL.length + ones;
+  const _n = CASES.length + INTEGRITY.length + CEILING.length + REFUSAL.length + SITE_DETAIL.length + ones;
   console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${_n}/${_n}`);
   console.log(`COVERAGE: eight predicates on synthetic readings. None exercises D1, the`);
   console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers, three the real`);
@@ -942,7 +989,7 @@ if (integrity.over) {
 // A refusal on the closed day. An unreadable closed day already failed above.
 if (closedDay) {
   const refusal = refusalVerdict(closedDay);
-  const when = refusal.at ? ` — first refused a call at ${refusal.at}` : refusal.state === 'month-limit' ? ' — first refused a call, hour unknown' : '';
+  const when = refusal.at ? ` — first refused a call at ${refusal.at}` : (refusal.state === 'month-limit' || refusal.state === 'site-ceiling') ? ' — first refused a call, hour unknown' : '';
   console.log(`\n  refusals, closed day ${OVL_DAY}  : ${refusal.state}${when}`);
   if (refusal.state !== 'none') {
     failed = true;
@@ -951,13 +998,17 @@ if (closedDay) {
       console.log(`      Calls that did not fit after that were refused too, and no caller says so:`);
       console.log(`      closing captures, opening lines and CFL/WC probabilities may have gone`);
       console.log(`      unbought. Read /budget/odds?date=${OVL_DAY} by_site for who spent the day.`);
+    } else if (refusal.state === 'site-ceiling') {
+      console.log(`\nFAIL: a per-site cap first refused an odds call on ${OVL_DAY}: ${refusal.sites.map((x) => `${x.site} ${x.at ? `at ${x.at}` : 'at an unknown hour'}`).join('; ')}.`);
+      console.log(`      The day and the month had room; only that consumer was turned away, and no`);
+      console.log(`      caller says so. Read /budget/odds?date=${OVL_DAY} by_site and site_ceilings for what it spent.`);
     } else if (refusal.state === 'month-limit') {
       console.log(`\nFAIL: the monthly odds limit first refused a call ${refusal.at ? `at ${refusal.at}` : 'at an unknown hour'}, on or before`);
       console.log(`      ${OVL_DAY}. Calls that did not fit were refused from then on, and no caller says so.`);
     } else {
       console.log(`\nFAIL: refusals on ${OVL_DAY} are ${refusal.state}: ${refusal.unreadable
         ? `the relay could not read ${refusal.unreadable.join(' and ')}`
-        : 'ceiling_reached_at, month_limit_reached_at or date is missing from /budget/odds?date='}.`);
+        : `${refusal.missing || 'ceiling_reached_at, month_limit_reached_at, site_ceiling_reached_at or date'} is missing from /budget/odds?date=`}.`);
       console.log(`      Unknown is not a clean day (Rule 99).`);
     }
   }

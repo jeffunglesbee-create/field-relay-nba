@@ -27,6 +27,7 @@ const place = (target, text, tag) => {
   writeFileSync(p, text); born.push(p); return resolve(p);
 };
 process.on('exit', () => { for (const p of born) { try { unlinkSync(p); } catch (_e) {} } });
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));   // 'exit' handlers do not run on a signal unless it exits
 
 const run = (envs = {}) => {
   try {
@@ -45,8 +46,11 @@ if (!run(controlEnvs)) {
 console.log('baseline: the check passes on current source and on unmutated copies at the mutant locations\n');
 
 const H = 'helpers';
-const MONTH_CHARGE = "const SQL_MONTH_CHARGE = `UPDATE odds_budget_month SET used = used + ?\n             WHERE month = ? AND used + ? <= ?\n               AND (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?\n            RETURNING used`;";
-const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'site', 'monthCharge', 'charge'];";
+// Since 2026-10-28 the month's limit and the day's predicate are lines of the GATE,
+// not of the month's own statement, which only holds the token.
+const GATE_MONTH = '              AND (SELECT used FROM odds_budget_month WHERE month = ?) + ? <= ?\n';
+const GATE_DAY = "            WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?\n              AND (SELECT used FROM odds_budget_month";
+const ORDER = "export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge'];";
 const order = (keys) => `export const ODDS_CHARGE_ORDER = [${keys.map((k) => `'${k}'`).join(', ')}];`;
 
 // THE WRAPPER IS REPLACED WHOLE, NOT EDITED AT A LINE. These mutants first
@@ -78,13 +82,13 @@ const MUTATIONS = [
   // placeholders than binds, and the check went red on a bind-count crash
   // rather than on the ceiling. `AND (? + ?) IS NOT NULL` keeps both binds, so
   // the only thing that changes is that the limit no longer binds.
-  [H, 'M1 the month limit leaves the charge statement', MONTH_CHARGE,
-   MONTH_CHARGE.replace('WHERE month = ? AND used + ? <= ?', 'WHERE month = ? AND (? + ?) IS NOT NULL'),
-   'THE 85,000 LIMIT STOPS BINDING. Every charge returns a row, so nothing is ever vetoed and the month spends past the cap on a metered account'],
+  [H, 'M1 the month limit leaves the gate', GATE_MONTH,
+   "              AND (? || ? || ?) IS NOT NULL\n",
+   'THE 85,000 LIMIT STOPS BINDING. The gate passes whatever the month holds, so nothing is ever vetoed on the month and it spends past the cap on a metered account'],
 
   [H, 'M2 the ceiling becomes a strict inequality',
-   '             WHERE month = ? AND used + ? <= ?',
-   '             WHERE month = ? AND used + ? < ?',
+   GATE_MONTH,
+   '              AND (SELECT used FROM odds_budget_month WHERE month = ?) + ? < ?\n',
    'a charge landing exactly ON the ceiling is refused, so the last legitimate credits of every month are unspendable'],
 
   // Placeholder-preserving for the same reason as M1: `VALUES (?, 0)` drops a
@@ -120,22 +124,26 @@ const MUTATIONS = [
    'four hand-synced copies is how the limit came to be written out four times, each with a comment asking the next person to keep it in step'],
 
   // ── 2026-10-18: the day and the month in one batch ──────────────────────
-  [H, 'M9 the month loses the day predicate',
-   '               AND (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?\n',
-   '               AND ? IS NOT NULL AND ? IS NOT NULL AND ? IS NOT NULL\n',
-   'a day-vetoed call charges the month: the month runs AHEAD of the day, the mirror of the gap this change closes'],
+  [H, 'M9 the gate loses the day predicate',
+   GATE_DAY,
+   "            WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ? + 1000000000\n              AND (SELECT used FROM odds_budget_month",
+   'a day-vetoed call charges the month and the site: the split runs AHEAD of the day, the mirror of the gap this change closes'],
 
   [H, 'M10 monthCharge runs after charge',
-   ORDER, order(['seed', 'monthSeed', 'site', 'charge', 'monthCharge']),
-   'the month reads the POST-charge day total, so at the exact boundary the day charges and the month refuses — the month short again'],
+   ORDER, order(['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'charge', 'monthCharge']),
+   'the month is read from the wrong result, and the day verdict is read from the month statement'],
 
-  [H, 'M11 the day seed runs after monthCharge',
-   ORDER, order(['monthSeed', 'site', 'monthCharge', 'seed', 'charge']),
-   'on a fresh day the site and the month compare against NULL and refuse while the day charges — every first call of a day lost from two counters'],
+  [H, 'M11 the day seed runs after the gate',
+   ORDER, order(['monthSeed', 'siteSeed', 'snapshot', 'gate', 'seed', 'siteCharge', 'monthCharge', 'charge']),
+   'on a fresh day the gate compares the day against NULL and holds no token while the seeds run on — every first call of a day lost from all three counters'],
 
-  [H, 'M12 site runs after charge',
-   ORDER, order(['seed', 'monthSeed', 'monthCharge', 'charge', 'site']),
-   'the site reads the POST-charge total and refuses at the boundary while the day charges — the split falls behind the total'],
+  [H, 'M12 siteSeed runs after the gate',
+   ORDER, order(['seed', 'monthSeed', 'snapshot', 'gate', 'siteSeed', 'siteCharge', 'monthCharge', 'charge']),
+   'the first call of a site on a day finds no site row, the gate compares against NULL, and the site is refused with room to spare'],
+
+  [H, 'M12b the gate runs after the charges',
+   ORDER, order(['seed', 'monthSeed', 'siteSeed', 'snapshot', 'siteCharge', 'monthCharge', 'charge', 'gate']),
+   'the charges look for a token that is not there yet: nothing is ever charged, and every call is read as refused'],
 
   [H, 'M13 the month is read from the last result',
    "results?.[ODDS_CHARGE_ORDER.indexOf('monthCharge')]",
@@ -143,8 +151,8 @@ const MUTATIONS = [
    "the last result is the DAY's charge: the 50/75/90% warnings compare a day's total against 42,500 and never fire, and a month veto reads as a charge"],
 
   [H, 'M14 the month veto is asked first',
-   '        if (!dayCharged) {\n',
-   "        if (!monthOut.charged) { await env.FIELD_JOURNALISM.put(`odds:credits:${month}:warned:limit`, new Date().toISOString()); return false; }\n        if (!dayCharged) {\n",
+   "        if (veto === 'day') {\n",
+   "        if (!monthOut.charged) { await env.FIELD_JOURNALISM.put(`odds:credits:${month}:warned:limit`, new Date().toISOString()); return false; }\n        if (veto === 'day') {\n",
    "monthCharge returns no row on a day veto too, so a day veto is filed as a month veto: the limit key written, the day's key never, ceiling_reached_at null on a day that refused calls"],
 
   [H, 'M15 a second batch appears in the charger',
@@ -153,20 +161,20 @@ const MUTATIONS = [
    'two batches is two commits, and a stop between them is the 2,766-credit month gap of 2026-10-18'],
 
   // ── the wiring, which had no mutation at all ─────────────────────────────
-  [H, 'M16 the month\'s day predicate is bound with 0 units',
-   'bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling)',
-   'bind(units, month, units, ODDS_HARD_LIMIT, date, 0, ceiling)',
-   'one credit below the day boundary the month charges and the day refuses: the month runs ahead of the day on every capped day'],
+  [H, 'M16 the gate\'s month predicate is bound with 0 units',
+   'bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT,',
+   'bind(token, date, units, ceiling, month, 0, ODDS_HARD_LIMIT,',
+   'one credit below the month boundary the gate passes and the month overflows: the limit lets through the call that crosses it'],
 
-  [H, 'M19 the site\'s day predicate is bound with a literal 3',
-   'bind(date, site, units, date, units, ceiling)',
-   'bind(date, site, units, date, 3, ceiling)',
-   'a 30-credit historical call is admitted to by_site on a day it overflows: the split runs ahead of the total'],
+  [H, 'M19 the gate\'s day predicate is bound with a literal 3',
+   'bind(token, date, units, ceiling, month,',
+   'bind(token, date, 3, ceiling, month,',
+   'a 30-credit historical call passes the gate on a day it overflows, and 1-credit calls are refused three credits early'],
 
-  [H, 'M20 the month\'s day predicate is bound with a literal 3',
-   'bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling)',
-   'bind(units, month, units, ODDS_HARD_LIMIT, date, 3, ceiling)',
-   'a 30-credit call charges the month on a day the day refuses it'],
+  [H, 'M20 the gate\'s month predicate is bound with a literal 3',
+   'bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT,',
+   'bind(token, date, units, ceiling, month, 3, ODDS_HARD_LIMIT,',
+   'a 30-credit call crosses the monthly limit by up to 27, and 1-credit calls are refused two credits early'],
 
   // The return value stays false, so a return-value check passes it. What
   // changes is that a day-veto KV error falls through into the month block,
@@ -174,7 +182,7 @@ const MUTATIONS = [
   [H, 'M21 a day veto whose KV fails falls through to the month block',
    "                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });\n                }\n            } catch (e) {\n                // A day veto whose warning cannot be recorded is still a veto.\n                // Falling to the outer catch would degrade open with no counter\n                // charged and the month limit never asked.\n                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${_vetoErrText(e)}`);\n            }\n            return false;\n        }",
    "                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });\n                }\n                return false;\n            } catch (e) {\n                // A day veto whose warning cannot be recorded is still a veto.\n                // Falling to the outer catch would degrade open with no counter\n                // charged and the month limit never asked.\n                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${_vetoErrText(e)}`);\n            }\n        }",
-   'the month hard-limit key is written on a day veto, so when the month really reaches 85,000 no HARD LIMIT warning fires'],
+   'a day veto whose warned key cannot be written falls through to the success path and RETURNS TRUE: the refused call spends at the vendor'],
 
   [H, 'M17 a day veto whose warned key cannot be written degrades open',
    "                console.warn(`[odds-daily-guard] veto held; warned key not recorded: ${_vetoErrText(e)}`);",
@@ -282,7 +290,7 @@ for (const [target, name, anchor, repl, why] of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log('COVERAGE: the five charge statements, their order and the single charger in');
+console.log('COVERAGE: the eight charge statements, their order and the single charger in');
 console.log('src/budget-helpers.js, and the three wrappers that delegate to it. It does NOT');
 console.log('cover whether D1 supplies a transaction under concurrent isolates.');
 console.log(`${EQUIVALENTS.length - equivalentFails} of ${EQUIVALENTS.length} equivalent rewrites stayed green.`);

@@ -16634,10 +16634,15 @@ export default {
         //     guarded by module-level flags, so a FIRST call on an isolate makes
         //     four round trips and every later call makes one. Reporting only the
         //     batch would flatter the new form and answer a question nobody asked.
-        //   - since 2026-10-18 that one call is the FIVE-statement batch: the
-        //     month joined the day and the site
-        //     (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md). This
-        //     route times that batch, in that order, and reports the order.
+        //   - since 2026-10-18 that one call is ONE batch: the month joined the
+        //     day and the site
+        //     (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md), and
+        //     since 2026-10-28 it is EIGHT statements with a gate that decides
+        //     (docs/CC-CMD-2026-09-16-odds-spend-attribution.md, Task 3). This
+        //     route times that batch, in that order, and reports the order. It
+        //     was left on the five-statement form by that change and answered 500
+        //     until a review found it: scripts/check-odds-sql-binds.mjs now
+        //     fails on a reference to a statement that no longer exists.
         //
         // WRITES, AND THEY ARE BOUNDED. Everything lands on the sentinel day
         // '0000-00-00', the sentinel month '0000-00' and two sentinel KV keys,
@@ -16746,6 +16751,25 @@ export default {
             const CEILING = 1000000000;      // high on purpose: a vetoed charge does
                                              // less work, and would time the wrong path
             const MONTH_LIMIT = 1000000000;  // the same, for the month's hard limit
+            const PROBE_SITE = 'latency-probe';
+            const TOKEN_PREFIX = 'latency-probe-';
+            // The eight statements in ODDS_CHARGE_ORDER, with the binds chargeOdds
+            // gives them. A token per iteration, as chargeOdds mints one per call;
+            // every probe token starts with TOKEN_PREFIX so the cleanup below can
+            // delete them without touching a real call's token.
+            const eightStatements = (token) => {
+                const db = env.ARCHIVE_DB;
+                return [
+                    db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
+                    db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(MON, 0),
+                    db.prepare(ODDS_BUDGET_SQL.siteSeed).bind(DAY, PROBE_SITE),
+                    db.prepare(ODDS_BUDGET_SQL.snapshot).bind(DAY, MON, DAY, PROBE_SITE),
+                    db.prepare(ODDS_BUDGET_SQL.gate).bind(token, DAY, 1, CEILING, MON, 1, MONTH_LIMIT, DAY, PROBE_SITE, 1, CEILING),
+                    db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(1, DAY, PROBE_SITE, token),
+                    db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(1, MON, token),
+                    db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, token),
+                ];
+            };
             const med = (a) => { const t = [...a].sort((x, y) => x - y); return t[(t.length - 1) >> 1]; };
             const time = async (fn) => { const t0 = Date.now(); await fn(); return Date.now() - t0; };
             const out = { task: '0d', n: N, day: DAY, samples: {}, median_ms: {}, note: {} };
@@ -16768,13 +16792,7 @@ export default {
                 // (b) WARM — what every call after the first on an isolate costs.
                 const b = [];
                 for (let i = 0; i < N; i++) b.push(await time(async () => {
-                    await db.batch([
-                        db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
-                        db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(MON, 0),
-                        db.prepare(ODDS_BUDGET_SQL.site).bind(DAY, 'latency-probe', 1, DAY, 1, CEILING),
-                        db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(1, MON, 1, MONTH_LIMIT, DAY, 1, CEILING),
-                        db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, 1, CEILING),
-                    ]);
+                    await db.batch(eightStatements(TOKEN_PREFIX + crypto.randomUUID()));
                 }));
                 out.samples.d1_batch_warm = b;
 
@@ -16788,16 +16806,11 @@ export default {
                         db.prepare('CREATE TABLE IF NOT EXISTS odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)'),
                         db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site))'),
                         db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)'),
+                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL)'),
                     ]);
                     await env.FIELD_JOURNALISM.get(KV_A);
                     await env.FIELD_JOURNALISM.get(KV_M);
-                    await db.batch([
-                        db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
-                        db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(MON, 0),
-                        db.prepare(ODDS_BUDGET_SQL.site).bind(DAY, 'latency-probe', 1, DAY, 1, CEILING),
-                        db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(1, MON, 1, MONTH_LIMIT, DAY, 1, CEILING),
-                        db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, 1, CEILING),
-                    ]);
+                    await db.batch(eightStatements(TOKEN_PREFIX + crypto.randomUUID()));
                 }));
                 out.samples.d1_first_call_on_isolate = c;
 
@@ -16815,7 +16828,17 @@ export default {
                 // was careful not to touch.
                 out.cleaned = [];
                 try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget WHERE day = ?').bind(DAY).run(); out.cleaned.push('odds_budget'); } catch (_) {}
-                try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_site WHERE day = ?').bind(DAY).run(); out.cleaned.push('odds_budget_site'); } catch (_) {}
+                // The gate row is shared with the real charger, so only a row that
+                // still holds one of THIS probe's tokens goes; a real call's token
+                // stays where it is. One batch with the site rows: one try, so the
+                // number of bare catches in this block does not grow.
+                try {
+                    await env.ARCHIVE_DB.batch([
+                        env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_site WHERE day = ?').bind(DAY),
+                        env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_gate WHERE token LIKE ?').bind(TOKEN_PREFIX + '%'),
+                    ]);
+                    out.cleaned.push('odds_budget_site', 'odds_budget_gate');
+                } catch (_) {}
                 try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_month WHERE month = ?').bind(MON).run(); out.cleaned.push('odds_budget_month'); } catch (_) {} // catch-ok: a cleanup that failed is reported by its absence from out.cleaned
                 try { await env.FIELD_JOURNALISM.delete(KV_A); out.cleaned.push(KV_A); } catch (_) {}
                 try { await env.FIELD_JOURNALISM.delete(KV_B); out.cleaned.push(KV_B); } catch (_) {}
@@ -16873,7 +16896,13 @@ export default {
                 'odds_fill_dead_pairs',
                 'forecast_observations',
                 'odds_budget_month',
-                'odds_reconcile_state'];
+                'odds_reconcile_state',
+                // odds_budget_gate added 2026-10-28 with the per-site ceilings: the
+                // one-row table whose token says whether this call's day, month and
+                // site all had room. Readable so the post-deploy proof can show the
+                // row exists and changes per charge; nothing here reads it as a
+                // budget, and a token written from outside matches no call.
+                'odds_budget_gate'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),

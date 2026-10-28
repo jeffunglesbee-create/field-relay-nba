@@ -20,6 +20,7 @@ const place = (text, tag) => {
   writeFileSync(p, text); born.push(p); return resolve(p);
 };
 process.on('exit', () => { for (const p of born) { try { unlinkSync(p); } catch (_e) {} } });
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));   // 'exit' handlers do not run on a signal unless it exits
 
 // 'pass', 'red' (an assertion failed: a FAIL line and an "N of M passed." with
 // N < M), or 'error' (anything else: a crash or a load failure proves nothing
@@ -83,23 +84,23 @@ const MUTATIONS = [
    'a value only the worker knows is not an artifact — the whole reason this was invisible for the four days it has been happening'],
 
   // THE LIFETIME (fix 3 A). Each is a stamp that dies before a reader the route
-  // still serves; only the executed replay can see them.
-  ['T1 the stamp lives one day again',
-   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
-   '{ expirationTtl: 86400 });',
-   'THE STATE THIS ENDS: the watch read 10-07 and 10-11 as days with no refusal, because the stamp was gone by the next afternoon'],
-  ['T2 the stamp lives exactly SITE_TTL_DAYS',
-   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
-   '{ expirationTtl: SITE_TTL_DAYS * 86400 });',
-   'a stamp from early on day D is gone before the route stops serving D at the end of D+2'],
-  ['T3 one second short',
-   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
-   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 - 1 });',
-   'the boundary: a stamp from the first instant of D must survive to the last instant of D+2'],
-  ['T4 one day, spelt as an absolute expiry',
-   '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
-   '{ expiration: Math.floor(Date.now() / 1000) + 86400 });',
-   'Cloudflare honours `expiration` too; a replay that modelled only expirationTtl passed this'],
+  // still serves; only the executed replay can see them. Since 2026-10-28 the
+  // site stamp has the same lifetime and the same expression, so each is aimed at
+  // ONE writer by the key it puts: warnedKey is the day's, siteStampKey the site's.
+  ...[['', 'warnedKey', 'day'], ['S', 'siteStampKey', 'site']].flatMap(([t, key, what]) => {
+    const put = `put(${key}, new Date().toISOString(),\n                        `;
+    const ttl = '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });';
+    return [
+      [`${t}T1 the ${what} stamp lives one day again`, put + ttl, put + '{ expirationTtl: 86400 });',
+       'THE STATE THIS ENDS: the watch read 10-07 and 10-11 as days with no refusal, because the stamp was gone by the next afternoon'],
+      [`${t}T2 the ${what} stamp lives exactly SITE_TTL_DAYS`, put + ttl, put + '{ expirationTtl: SITE_TTL_DAYS * 86400 });',
+       'a stamp from early on day D is gone before the route stops serving D at the end of D+2'],
+      [`${t}T3 the ${what} stamp lives one second short`, put + ttl, put + '{ expirationTtl: (SITE_TTL_DAYS + 1) * 86400 - 1 });',
+       'the boundary: a stamp from the first instant of D must survive to the last instant of D+2'],
+      [`${t}T4 the ${what} stamp lives one day, spelt as an absolute expiry`, put + ttl, put + '{ expiration: Math.floor(Date.now() / 1000) + 86400 });',
+       'Cloudflare honours `expiration` too; a replay that modelled only expirationTtl passed this'],
+    ];
+  }),
   ['T5 the day stamp is refreshed on every veto',
    '                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),\n                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });\n                }',
    '                }\n                    await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),\n                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });',
@@ -163,6 +164,64 @@ const MUTATIONS = [
    '            const warnedKey = `odds:credits:${month}:warned:limit`;\n            try {\n                const already = await env.FIELD_JOURNALISM.get(warnedKey);',
    '            const warnedKey = `odds:credits:${month}:warned:limit`;\n            try {\n                const already = null;',
    'month_limit_reached_at moves to the latest refusal, and the watch reads a month that had been refusing since the 5th as clean on the 30th'],
+
+  // THE SITE CAPS' STAMPS (Task 3, 2026-10-28).
+  ['P1 the site stamp is refreshed on every veto',
+   '            const siteStampKey = _siteVetoKey(site, date);\n            try {\n                const already = await env.FIELD_JOURNALISM.get(siteStampKey);',
+   '            const siteStampKey = _siteVetoKey(site, date);\n            try {\n                const already = null;',
+   'site_ceiling_reached_at moves to the latest refusal, and a consumer that has been turned away since morning reads as turned away at night'],
+  ['P2 a failed site-stamp read invents a refusal',
+   '                siteHit[s] = null; siteUnreadable.push(s);\n                if (!stampsUnreadable',
+   '                siteHit[s] = true; siteUnreadable.push(s);\n                if (!stampsUnreadable',
+   'the watch counts `true` as a refusal with no hour, so a KV blip would turn it red on every capped site'],
+  ['P3 a failed site-stamp read is not named',
+   "\n                if (!stampsUnreadable.includes('site_ceiling_reached_at')) stampsUnreadable.push('site_ceiling_reached_at');",
+   '',
+   'a KV failure on a site stamp answers exactly like a consumer that was never turned away, and the watch passes it'],
+  ['P4 the site reader reads the day\'s stamp',
+   'get(_siteVetoKey(s, date))',
+   'get(`odds:daily:${date}:warned`)',
+   'every capped site is reported refused whenever the DAY is, and never when only its own cap is'],
+  ['P5 the site reader is keyed by today',
+   'get(_siteVetoKey(s, date))',
+   'get(_siteVetoKey(s, new Date().toISOString().slice(0, 10)))',
+   'a closed day read the next afternoon reports the new day\'s stamps: the refusal the watch is looking for is never found'],
+  ['P6 the site stamp loses its hour',
+   "                siteHit[s] = raw ? (/^\\d{4}-\\d{2}-\\d{2}T/.test(raw) ? raw : true) : null;",
+   '                siteHit[s] = raw ? true : null;',
+   'without the hour a refusal cannot be placed against the capture windows'],
+  ['P7 an absent site stamp reads as false',
+   "                siteHit[s] = raw ? (/^\\d{4}-\\d{2}-\\d{2}T/.test(raw) ? raw : true) : null;",
+   "                siteHit[s] = raw ? (/^\\d{4}-\\d{2}-\\d{2}T/.test(raw) ? raw : true) : false;",
+   'false reads as "checked, no refusal"; null is the only honest value for a read that found nothing (Rule 99)'],
+  ['P8 the site stamps never reach the response',
+   '            site_ceiling_reached_at: siteHit,',
+   '            // site_ceiling_reached_at removed',
+   'a refusal only the worker knows about is not an artifact'],
+  ['P9 the site caps never reach the response',
+   '            site_ceilings: siteCeilings,',
+   '            // site_ceilings removed',
+   'a reader cannot tell a consumer with no cap from one the route does not know about'],
+  ['P10 an uncapped site is served as a cap of 0',
+   'siteCeilings[s] = c === NO_SITE_CEILING ? null : c;',
+   'siteCeilings[s] = c === NO_SITE_CEILING ? 0 : c;',
+   'every uncapped consumer reads as refused outright, and the stamps are then read for all of them'],
+  ['P12 the sites whose stamp read failed are not named',
+   'siteHit[s] = null; siteUnreadable.push(s);',
+   'siteHit[s] = null;',
+   'a null in site_ceiling_reached_at no longer says which of the four sites is unknown'],
+  ['P13 a legacy site stamp is served raw instead of as true',
+   "                siteHit[s] = raw ? (/^\\d{4}-\\d{2}-\\d{2}T/.test(raw) ? raw : true) : null;",
+   "                siteHit[s] = raw ? raw : null;",
+   'the documented ISO / true / null contract held for the day stamp only; a reader asking === true would miss a bare 1'],
+  ['P14 site_stamps_unreadable never reaches the response',
+   '            site_stamps_unreadable: siteUnreadable.length ? siteUnreadable : null,',
+   '            // site_stamps_unreadable removed',
+   'a failure only the worker knows about is not an artifact'],
+  ['P11 the served cap ignores the date asked about',
+   'const c = siteCeilingFor(s, date);\n            siteCeilings[s]',
+   'const c = siteCeilingFor(s);\n            siteCeilings[s]',
+   'a grant day reports the standing cap, a budget readout that disagrees with the budget'],
 ];
 
 let caught = 0;
@@ -180,7 +239,7 @@ for (const [name, anchor, repl, why] of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log('COVERAGE: the day veto\'s writer, its lifetime, and the day and month readers in');
+console.log('COVERAGE: the day and site veto writers, their lifetimes, and the day, month and site readers in');
 console.log('src/budget-helpers.js — 1 file. It does NOT run the Worker, and proves nothing');
 console.log('about whether a veto occurred.');
 process.exit(caught === MUTATIONS.length ? 0 : 1);

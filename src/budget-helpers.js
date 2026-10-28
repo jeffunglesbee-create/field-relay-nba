@@ -36,6 +36,57 @@ const ODDS_CEILING_GRANTS = [
     { date: '2026-09-13', extra: 2500, why: 'tranche 2 archive backfill, owner-approved' },
 ];
 
+// PER-SITE CAPS, since 2026-10-28 (docs/CC-CMD-2026-09-16-odds-spend-attribution.md,
+// Task 3). One site going wrong must not be able to spend the whole day.
+//
+// WHERE THE NUMBERS COME FROM. About twice the largest closed-day charge of the
+// site since 10-13, rounded to a round number: live 1,020 -> 2,000 (1.96x),
+// historical 900 -> 1,800 (2.0x), WC lambdas 76 -> 300 (3.9x; the incident day,
+// 10-07, was 2,536). The closing capture's charge since its fix is only 90 a
+// day, so its cap is a busy-Saturday demand estimate (60 kickoff groups x 3 =
+// 180) at a little over twice: 400. These are policy, not a derivation, and the
+// rule above does not reproduce them to the digit. Replayed on the daily rows of
+// 09-20..10-27 they would have refused 21,514 credits, all of it closing-capture
+// spend above 400 and WC-lambda spend above 300, and 10 of the 11 days that
+// reached the shared ceiling would have stayed under it.
+//
+// A GRANT FOR A CAPPED SITE'S JOB MUST CARRY `siteExtra`. A day grant raises the
+// day's room and `remaining` on /budget/odds; the site still stops at its cap
+// unless the grant names it (`siteExtra: { fetchSportOddsHistorical: n }`). The
+// 2026-09-13 archive backfill, 2,310 credits of fetchSportOddsHistorical, is the
+// shape that would need one today.
+//
+// ONLY WHERE CHARGED FOLLOWS KEPT. A cap counts the charge, and a charge is an
+// estimate until the vendor's receipt corrects it. The closing capture, the live
+// odds and the historical fetch are kept at what they are charged (5,478/5,478,
+// 3,618/3,621, 3,060/3,060 over 10-14..10-23). The CFL route is not (6.4x), and
+// its options 2 and 3 are held, so it carries no cap: a cap there would bind on
+// credits the vendor never billed. The WC lambdas strand 116 as 8, but never
+// more than 76 in a day, and the cap is 300.
+//
+// A site that is not listed has no cap. `ambientFetchLiveOdds` would need about
+// 3,000 a day if served; it gets a cap when it is switched back on.
+export const SITE_CEILINGS = {
+    ambientCaptureClosingOdds: 400,
+    fetchSportOddsLive: 2000,
+    fetchSportOddsHistorical: 1800,
+    getWCPregameLambdas: 300,
+};
+export const NO_SITE_CEILING = Number.MAX_SAFE_INTEGER;
+
+/** A site's cap for a date: its standing cap plus any `siteExtra` granted FOR
+ *  THAT DATE, or NO_SITE_CEILING when the site is uncapped. A grant that names no
+ *  site leaves every cap alone, and an entry for another date contributes
+ *  nothing, so a site grant expires by doing nothing, as the day's does. */
+export function siteCeilingFor(site, date = new Date().toISOString().slice(0, 10), grants = ODDS_CEILING_GRANTS) {
+    const base = Object.prototype.hasOwnProperty.call(SITE_CEILINGS, site) ? SITE_CEILINGS[site] : null;
+    if (base === null) return NO_SITE_CEILING;
+    const extra = grants
+        .filter(g => g.date === date && g.siteExtra && Object.prototype.hasOwnProperty.call(g.siteExtra, site))
+        .reduce((n, g) => n + (Number(g.siteExtra[site]) || 0), 0);
+    return base + extra;
+}
+
 /** Today's ceiling: the standing one, plus any grant issued FOR TODAY. */
 function _dailyCeiling(today = new Date().toISOString().slice(0, 10)) {
     const extra = ODDS_CEILING_GRANTS
@@ -293,6 +344,39 @@ function _monthFromBatch(results) {
     return { charged: r.results.length > 0, used: (typeof v === 'number') ? v : null };
 }
 
+/** WHICH LIMIT REFUSED, read from the snapshot of the PRE-charge totals.
+ *
+ *  The batch's verdict is one bit: `charge` returns a row or it does not, and a
+ *  day, a month and a site veto all look the same there. The snapshot is the
+ *  three totals as the gate saw them (nothing has moved when a call is refused,
+ *  and the snapshot ran before the gate when it is not), so comparing each to its
+ *  limit names the refusing one. The order is the old one: the day is read first,
+ *  then the month, then the site.
+ *
+ *  BY NAME, NEVER BY POSITION, for the reason _monthFromBatch gives. A missing
+ *  row, or a total that is not a number, is a shape this code has never seen and
+ *  throws to the degrade path where it is counted. A NULL read as 0 would file a
+ *  veto under the wrong limit. */
+function _vetoFromBatch(results, units, dayCeiling, siteCeiling) {
+    const r = results?.[ODDS_CHARGE_ORDER.indexOf('snapshot')];
+    const row = r && Array.isArray(r.results) ? r.results[0] : null;
+    if (!row) throw new Error('odds budget batch: the snapshot statement returned no row');
+    for (const k of ['day_used', 'month_used', 'site_used']) {
+        if (typeof row[k] !== 'number') throw new Error(`odds budget batch: the snapshot's ${k} is ${row[k] === null ? 'null' : typeof row[k]}`);
+    }
+    if (row.day_used + units > dayCeiling) return 'day';
+    if (row.month_used + units > ODDS_HARD_LIMIT) return 'month';
+    if (row.site_used + units > siteCeiling) return 'site';
+    return null;
+}
+
+/** The stamp a site veto writes, and /budget/odds reads. Code-supplied site names
+ *  only (a cap exists for named sites), sanitised the way _siteKey does it. */
+function _siteVetoKey(site, date) {
+    const safe = String(site || 'unattributed').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'unattributed';
+    return `odds:daily:${date}:warned:site:${safe}`;
+}
+
 // A veto's catch must reach `return false`, so its warning cannot throw.
 // String() throws on a null-prototype object and on a throwing message or
 // toString getter; this never does.
@@ -317,20 +401,33 @@ function _vetoErrText(e) {
  * (outbox/odds-counter-internal-2026-10-18.md). In one batch there is no
  * "between", whatever the cause was.
  *
- * THE SAME INCREMENTS AND THE SAME PREDICATES, moved, not changed:
- *   - the day and the site carry the day ceiling over the PRE-charge day total,
- *     exactly as before;
- *   - the month keeps its hard limit and gains the day's predicate, over the
- *     same pre-charge total. A batch cannot skip a statement on an earlier
- *     statement's result, so "the month batch only ran after the day charged"
- *     becomes "the month statement refuses on the day's own condition";
- *   - `charge` stays LAST, so chargedFromBatch still reads the day's verdict.
+ * SINCE 2026-10-28 ONE STATEMENT DECIDES. `gate` holds the day's ceiling, the
+ * month's hard limit and the site's cap, each over its PRE-charge total, and
+ * writes this call's token only if all three have room. The three charges
+ * (siteCharge, monthCharge, charge) carry no predicate of their own: each applies
+ * only while the gate row holds the token. A call is therefore charged to all
+ * three or to none, and a month or a site veto leaves the day untouched. `snapshot`
+ * reads the pre-charge totals so the reason can be named, and `charge` stays LAST
+ * so chargedFromBatch still reads the verdict from it. See the block above SQL_SEED
+ * for why the predicates are not simply copied onto each statement.
+ *
+ * A CALL WITH UNITS OR A SITE THAT IS NOT WHAT A CALLER CAN PRODUCE (NaN, a
+ * string, a negative, no site) is a bug in the caller, not a question for the
+ * gate: SQL binds NaN as NULL and the JS reason would disagree with it. It throws
+ * to the degrade-open path below, where it is counted with its reason, rather
+ * than being refused by accident (NaN) or charged and counted as escaped ('3').
  *
  * @returns {Promise<boolean>} true = charged (or degraded open), false = vetoed.
  */
 async function chargeOdds(env, units = 1, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
     try {
+        if (typeof units !== 'number' || !Number.isFinite(units) || units < 0) {
+            throw new Error(`odds charge: units must be a finite number >= 0, got ${typeof units === 'number' ? units : typeof units}`);
+        }
+        if (typeof site !== 'string' || site === '') {
+            throw new Error(`odds charge: site must be a non-empty string, got ${typeof site === 'string' ? 'an empty one' : typeof site}`);
+        }
         const key = _dailyKey();
         const date = key.slice('odds:daily:'.length);
         const ceiling = _dailyCeiling();
@@ -348,27 +445,45 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
         const carried = await _seedFromKv(env, date);
         const carriedMonth = await _seedMonthFromKv(env, month);
         const db = env.ARCHIVE_DB;
+        // A RANDOM TOKEN PER CALL. The gate row holds the last call's token, so a
+        // call that the gate refused finds the PREVIOUS token there, which cannot
+        // equal this one. Nothing else is needed to tell the calls apart, because a
+        // D1 batch is one transaction and no other call's statements run inside it.
+        const token = crypto.randomUUID();
+        const siteCeiling = siteCeilingFor(site, date);
         const results = await db.batch([
             db.prepare(ODDS_BUDGET_SQL.seed).bind(date, carried),
             db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(month, carriedMonth),
-            db.prepare(ODDS_BUDGET_SQL.site).bind(date, site, units, date, units, ceiling),
-            db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling),
-            db.prepare(ODDS_BUDGET_SQL.charge).bind(units, date, units, ceiling),
+            db.prepare(ODDS_BUDGET_SQL.siteSeed).bind(date, site),
+            db.prepare(ODDS_BUDGET_SQL.snapshot).bind(date, month, date, site),
+            db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ceiling, month, units, ODDS_HARD_LIMIT, date, site, units, siteCeiling),
+            db.prepare(ODDS_BUDGET_SQL.siteCharge).bind(units, date, site, token),
+            db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, token),
+            db.prepare(ODDS_BUDGET_SQL.charge).bind(units, date, token),
         ]);
         const dayCharged = chargedFromBatch(results, ODDS_CHARGE_ORDER);
         const monthOut = _monthFromBatch(results);
+        const veto = _vetoFromBatch(results, units, ceiling, siteCeiling);
+        // THE VERDICT AND THE REASON ARE TWO READINGS OF ONE BATCH. If they
+        // disagree, something this code has never seen happened, and guessing
+        // which to believe would either refuse a call that charged or let one
+        // through that did not. It throws to the degrade path, where it is counted.
+        if (dayCharged !== (veto === null)) {
+            throw new Error(`odds budget batch: the gate ${dayCharged ? 'charged' : 'refused'} but the pre-charge totals say ${veto ? `${veto} veto` : 'room'}`);
+        }
 
-        // Vetoed by the DAY. Nothing was written -- the site and month
-        // statements carry the same predicate over the same pre-charge total,
-        // so there is no compensating write to make and no window in which the
-        // split is ahead of the total.
+        // Vetoed by the DAY. Nothing was charged -- the gate wrote no token, so
+        // the site and month charges found none either, and there is no
+        // compensating write to make and no window in which the split is ahead of
+        // the total.
         //
-        // THE DAY IS READ BEFORE THE MONTH, AND THE ORDER IS THE POINT. On a day
-        // veto monthCharge returns no row either, because it carries the day's
-        // predicate. Asked first, the month would file a day veto as a month
-        // veto: its limit key written, the day's key never, and /budget/odds
+        // THE DAY IS READ BEFORE THE MONTH, AND THE ORDER IS THE POINT. A day
+        // veto and a month veto look the same in the batch's results (no row from
+        // monthCharge), so the reason is read from the snapshot in _vetoFromBatch,
+        // day first. Asked in the other order, a day veto would be filed as a
+        // month veto: its limit key written, the day's key never, and /budget/odds
         // reporting ceiling_reached_at null on a day that refused calls.
-        if (!dayCharged) {
+        if (veto === 'day') {
             // One warn per day per ceiling-hit isolate. The monthly guard
             // emits its own warn separately.
             const warnedKey = `${key}:warned`;
@@ -410,12 +525,14 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
             return false;
         }
 
-        // The day charged and the MONTH refused: the 85,000 hard limit. The day
-        // and the site keep their charge and the call is refused -- what the
-        // two-batch code did too, because its day batch had committed before
-        // the month batch ran. The day's warned key is NOT written here: the
-        // day did not veto, and ceiling_reached_at must not say it did.
-        if (!monthOut.charged) {
+        // The MONTH refused: the 85,000 hard limit, the day having room. Since
+        // 2026-10-28 NOTHING was charged -- not the day, not the site -- because
+        // the gate refused all three. It used to keep both (the day batch had
+        // committed before the month batch ran), so a caller retrying a refused
+        // capture added up to 3 a poll to the day and the site with no vendor
+        // call. The day's warned key is NOT written here: the day did not veto,
+        // and ceiling_reached_at must not say it did.
+        if (veto === 'month') {
             const warnedKey = `odds:credits:${month}:warned:limit`;
             try {
                 const already = await env.FIELD_JOURNALISM.get(warnedKey);
@@ -426,6 +543,27 @@ async function chargeOdds(env, units = 1, site = 'unattributed') {
             } catch (e) {
                 // A limit veto whose warning cannot be recorded is still a veto.
                 console.warn(`[odds-month-guard] veto held; limit key not recorded: ${_vetoErrText(e)}`);
+            }
+            return false;
+        }
+
+        // The SITE refused: the day and the month had room. Nothing was charged.
+        // Its own stamp, one per site per day, so /budget/odds can say WHICH
+        // consumer was turned away and when, and the pairing watch can read a
+        // site veto as the refusal it is. Same TTL as the day's stamp, for the
+        // reason given there.
+        if (veto === 'site') {
+            const siteStampKey = _siteVetoKey(site, date);
+            try {
+                const already = await env.FIELD_JOURNALISM.get(siteStampKey);
+                if (!already) {
+                    console.warn(`[odds-site-guard] ${site} reached its cap of ${siteCeiling} -- +${units} refused; the day and the month had room`);
+                    await env.FIELD_JOURNALISM.put(siteStampKey, new Date().toISOString(),
+                        { expirationTtl: (SITE_TTL_DAYS + 1) * 86400 });
+                }
+            } catch (e) {
+                // A site veto whose stamp cannot be recorded is still a veto.
+                console.warn(`[odds-site-guard] veto held; stamp not recorded: ${_vetoErrText(e)}`);
             }
             return false;
         }
@@ -619,6 +757,30 @@ async function peekDailyOdds(env, forDate = null) {
             const raw = await env.FIELD_JOURNALISM.get(`odds:credits:${date.slice(0, 7)}:warned:limit`);
             if (raw) monthLimitHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
         } catch (_) { monthLimitHit = null; stampsUnreadable.push('month_limit_reached_at'); }
+        // EACH SITE'S CAP, AND WHETHER IT HAS REFUSED (2026-10-28). `site_ceilings`
+        // lists every declared site: its cap for THIS date, grants included, or
+        // null for a site that has none, so an uncapped site reads as uncapped
+        // and not as missing. `site_ceiling_reached_at` is read for the capped
+        // ones only, in the day stamp's three states, keyed by the date asked
+        // about and kept as long as the route serves the day (SITE_TTL_DAYS + 1).
+        // A failed read leaves that site null and is NAMED in stamps_unreadable,
+        // and the sites whose read failed are listed in site_stamps_unreadable, so
+        // a null means unknown and not "no refusal" (Rule 99) and says which.
+        const siteCeilings = {}, siteHit = {}, siteUnreadable = [];
+        for (const s of ODDS_SITES) {
+            const c = siteCeilingFor(s, date);
+            siteCeilings[s] = c === NO_SITE_CEILING ? null : c;
+        }
+        for (const s of Object.keys(siteCeilings)) {
+            if (siteCeilings[s] === null) continue;
+            try {
+                const raw = await env.FIELD_JOURNALISM.get(_siteVetoKey(s, date));
+                siteHit[s] = raw ? (/^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true) : null;
+            } catch (_) {
+                siteHit[s] = null; siteUnreadable.push(s);
+                if (!stampsUnreadable.includes('site_ceiling_reached_at')) stampsUnreadable.push('site_ceiling_reached_at');
+            }
+        }
         const unreadable = Object.keys(sites).filter(k => sites[k] === null);
         const sum = unreadable.length
             ? null
@@ -648,7 +810,15 @@ async function peekDailyOdds(env, forDate = null) {
             // An ISO string = the moment it first did, which may be after this
             // day; `true` = it did, hour unknown. Read with `date` to judge a day.
             month_limit_reached_at: monthLimitHit,
-            // null = both stamps were read. Otherwise the names of the stamp
+            // Each capped site's cap on this date (null = no cap), and the moment
+            // that cap first refused a call: an ISO string, `true` (reached, hour
+            // unknown) or null (not reached, or unreadable -- see below).
+            site_ceilings: siteCeilings,
+            site_ceiling_reached_at: siteHit,
+            // null = every site's stamp was read. Otherwise the sites whose read
+            // failed: their null in site_ceiling_reached_at means unknown.
+            site_stamps_unreadable: siteUnreadable.length ? siteUnreadable : null,
+            // null = every stamp was read. Otherwise the names of the stamp
             // fields above whose read failed: their null means unknown, not
             // "no refusal".
             stamps_unreadable: stampsUnreadable.length ? stampsUnreadable : null,
@@ -757,34 +927,109 @@ async function peekMonthlyOdds(env) {
 let _oddsBudgetReady = false;
 
 // ---------------------------------------------------------------------------
-// Task 2 — the three statements, exported so they can be read and mutated
-// without a database.
+// Task 2 — the statements, exported so they can be read and mutated without a
+// database. Rewritten 2026-10-28 for Task 3 of
+// docs/CC-CMD-2026-09-16-odds-spend-attribution.md (per-site caps).
 //
-// THE CC-CMD'S OWN SPEC WAS SELF-CONTRADICTORY, and this is the resolution.
-// Task 2 said "All three in one env.DB.batch([...])" AND "Statement 3 runs only
-// if statement 2 returned a row." Both cannot hold: a batch is submitted as a
-// unit, so nothing can read statement 2's result and then decide whether to
-// include statement 3. Taking the second sentence literally means two round
-// trips and no transaction, which destroys the entire point of the change.
+// THE CC-CMD'S OWN SPEC (Task 2, 2026-09-19) WAS SELF-CONTRADICTORY. It said
+// "All three in one env.DB.batch([...])" AND "Statement 3 runs only if statement
+// 2 returned a row." Both cannot hold: a batch is submitted as a unit, so
+// nothing can read one statement's result and then decide whether to include the
+// next. The resolution then was the ORDER: bump the site first, reading the
+// PRE-charge day total, then charge the day, each carrying the same predicate.
 //
-// THE FIX IS THE ORDER. Bump the site FIRST, reading the PRE-charge total, then
-// charge the day. Both statements carry the same ceiling predicate over the same
-// pre-charge value, so inside one transaction they either both apply or neither
-// does — and no result needs inspecting. The daily UPDATE's RETURNING still
-// gives the verdict, because it is last.
+// THAT STOPS WORKING WITH A THIRD PREDICATE. Copy the day's predicate onto the
+// site statement and add a site cap, and the statements that run later read
+// totals the earlier ones have already moved: on 2,000 random sequences 973
+// agreed with the model, and the 10-23 premise test found 398 of 400 disagreeing.
+// Reading that SQL one statement at a time looks right. Only running it shows it.
 //
-// Verified against real SQLite (node:sqlite, 2026-09-19) rather than reasoned
-// about: ceiling 100 charged in units of 30 gave CHARGED/CHARGED/CHARGED/VETOED
-// with daily and by-site equal at every step, and a vetoed call moved neither
-// counter. Both statements parse — the INSERT..SELECT..WHERE..ON CONFLICT form
-// is the one SQLite documents as ambiguous without a WHERE, and it has one.
+// SO ONE STATEMENT DECIDES, AND THE REST OBEY IT. `gate` writes this call's
+// random token into a one-row table only if the day, the month AND the site all
+// have room over their PRE-charge totals. The three charges then apply only when
+// the gate row holds this call's token. A call is charged to all three or to
+// none, which is the reference model scripts/check-odds-site-caps.mjs holds the
+// real chargeOdds to over 2,000 sequences (the gate: 2,000 of 2,000). A month or
+// a site veto therefore leaves the day untouched, which the old order could not
+// do: the month statement ran last and the day and site had already moved.
+//
+// WHY A TABLE AND NOT A COLUMN. `CREATE TABLE IF NOT EXISTS` is idempotent, and
+// `ALTER TABLE ... ADD COLUMN` is not. A new table also changes nothing the
+// running code reads, so a deploy that is half rolled out cannot break either
+// side. The cost is one more row written per charge.
+//
+// `snapshot` is a SELECT of the three pre-charge totals. It writes nothing; it
+// is how chargeOdds names WHICH limit refused, since all three look the same from
+// the verdict (zero rows from `charge`).
+//
+// THE STATEMENTS THIS REPLACED, kept as text because the reasoning they carried is
+// still the reasoning (git has them too; a comment is what the next editor sees).
+// They are not code and nothing calls them. `ODDS_BUDGET_SQL.site`, the key the
+// first of them lived under, is gone: a consumer of it now fails
+// scripts/check-odds-sql-binds.mjs instead of resolving to undefined.
+//
+//   TASK 2, 2026-09-19 -- the day and the site, ORDER the whole argument:
+//     SQL_SITE   = INSERT INTO odds_budget_site (day, site, used)
+//                    SELECT ?, ?, ?
+//                     WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
+//                  ON CONFLICT(day, site) DO UPDATE SET used = used + excluded.used
+//     SQL_CHARGE = UPDATE odds_budget SET used = used + ?
+//                   WHERE day = ? AND used + ? <= ?
+//                  RETURNING used
+//   Bump the site FIRST, reading the PRE-charge day total, then charge the day,
+//   both carrying the same ceiling predicate: inside one transaction they either
+//   both apply or neither does, and no result needs inspecting. The daily UPDATE's
+//   RETURNING gives the verdict because it is last.
+//   VERIFIED against real SQLite (node:sqlite, 2026-09-19) rather than reasoned
+//   about: ceiling 100 charged in units of 30 gave CHARGED/CHARGED/CHARGED/VETOED
+//   with daily and by-site equal at every step, and a vetoed call moved neither
+//   counter. The INSERT..SELECT..WHERE..ON CONFLICT form is the one SQLite
+//   documents as ambiguous without a WHERE, and it had one. That verification still
+//   holds for the day and the site on their own; it never covered a third predicate.
+//
+//   2026-10-18 -- the month joined the batch
+//   (docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md):
+//     SQL_MONTH_CHARGE = UPDATE odds_budget_month SET used = used + ?
+//                         WHERE month = ? AND used + ? <= ?
+//                           AND (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
+//                        RETURNING used
+//   The same shape as the day (seed then charge, the ceiling inside the UPDATE's
+//   WHERE so there is no read-then-decide window, RETURNING as the verdict: zero
+//   rows back is a veto), plus the DAY's predicate, over the same pre-charge day
+//   total because it ran before `charge`, so the month moved only when the day did.
+//   Its ceiling was the last bind argument and on its own line so
+//   check-odds-ceiling-grant.mjs could assert the GRANTED ceiling reached it: that
+//   survives, in SQL_GATE below.
+//
+//   WHAT BROKE IT: a third predicate. The site's cap needed the same
+//   copy-the-predicate-and-order-it treatment, and the later statements then read
+//   totals the earlier ones had moved (973 of 2,000 sequences agreed with the model).
+//   What survives unchanged: the order is still the argument, now for the gate
+//   (scripts/check-batch-order.mjs, check-odds-budget-batch.mjs); the three gap
+//   signs of 2026-09-19 (a charge unguarded gives daily 150 / sum 90, a site write
+//   unguarded gives 90 / 150) are reproduced on the new statements by
+//   scripts/mutate-odds-budget-batch.mjs; and the single batch of 2026-10-18 is
+//   still the reason there is no "between" (its E9).
 const SQL_SEED   = 'INSERT OR IGNORE INTO odds_budget (day, used) VALUES (?, ?)';
-const SQL_SITE   = `INSERT INTO odds_budget_site (day, site, used)
-              SELECT ?, ?, ?
-               WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
-            ON CONFLICT(day, site) DO UPDATE SET used = used + excluded.used`;
+// The site's row at 0, so the gate and the snapshot have a row to read. A call
+// refused by the day or the month leaves a site row at 0; it moved nothing.
+const SQL_SITE_SEED = 'INSERT OR IGNORE INTO odds_budget_site (day, site, used) VALUES (?, ?, 0)';
+const SQL_SNAPSHOT = `SELECT (SELECT used FROM odds_budget WHERE day = ?) AS day_used,
+                    (SELECT used FROM odds_budget_month WHERE month = ?) AS month_used,
+                    (SELECT used FROM odds_budget_site WHERE day = ? AND site = ?) AS site_used`;
+// The ceilings are the last argument of their own line, so a check can read which
+// bind reaches which predicate (check-odds-ceiling-grant.mjs does).
+const SQL_GATE = `INSERT OR REPLACE INTO odds_budget_gate (id, token)
+           SELECT 1, ?
+            WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
+              AND (SELECT used FROM odds_budget_month WHERE month = ?) + ? <= ?
+              AND (SELECT used FROM odds_budget_site WHERE day = ? AND site = ?) + ? <= ?`;
+const SQL_SITE_CHARGE = `UPDATE odds_budget_site SET used = used + ?
+             WHERE day = ? AND site = ?
+               AND EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)`;
 const SQL_CHARGE = `UPDATE odds_budget SET used = used + ?
-             WHERE day = ? AND used + ? <= ?
+             WHERE day = ?
+               AND EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)
             RETURNING used`;
 
 /** The batch, in order. Exported so a check can assert the ORDER, which is the
@@ -800,21 +1045,14 @@ const SQL_FIX_DAY  = 'UPDATE odds_budget SET used = MAX(0, used + ?) WHERE day =
 const SQL_FIX_SITE = `INSERT INTO odds_budget_site (day, site, used) VALUES (?, ?, MAX(0, ?))
             ON CONFLICT(day, site) DO UPDATE SET used = MAX(0, used + ?)`;
 
-// THE MONTH, SAME SHAPE AS THE DAY. Seed then charge, the ceiling inside the
-// UPDATE's WHERE so there is no read-then-decide window, and RETURNING as the
-// verdict: zero rows back is a veto, unambiguously.
-//
-// AND THE DAY'S PREDICATE, since the month joined the day's batch (2026-10-18).
-// The same text SQL_SITE carries, over the same PRE-charge day total, because
-// monthCharge runs before charge. The month therefore moves only when the day
-// does, as it did when the month batch was sent only after the day charged.
-// LAST in the WHERE, so `ceiling` is the last bind argument and
-// check-odds-ceiling-grant.mjs can assert the GRANTED ceiling reaches it; on
-// its own line, so the month limit's line above is byte-for-byte unchanged.
+// THE MONTH: seeded, then charged only when the gate holds this call's token. Its
+// own hard limit is a predicate of the GATE (the third line there), not of this
+// statement, so the month and the day and the site move together or not at all.
+// RETURNING gives the post-charge total the 50/75/90% ladder reads.
 const SQL_MONTH_SEED   = 'INSERT OR IGNORE INTO odds_budget_month (month, used) VALUES (?, ?)';
 const SQL_MONTH_CHARGE = `UPDATE odds_budget_month SET used = used + ?
-             WHERE month = ? AND used + ? <= ?
-               AND (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
+             WHERE month = ?
+               AND EXISTS (SELECT 1 FROM odds_budget_gate WHERE token = ?)
             RETURNING used`;
 // A correction is not a charge, so it carries no ceiling — same reason as the
 // day's. Clamped at zero so a lost race cannot hand back headroom truly spent.
@@ -845,7 +1083,8 @@ const SQL_RECONCILE_TALLY = `INSERT INTO odds_reconcile_state (day, site, state,
             ON CONFLICT(day, site, state, cache) DO UPDATE SET n = n + 1,
                                                                credits_kept = credits_kept + ?`;
 
-export const ODDS_BUDGET_SQL = { seed: SQL_SEED, site: SQL_SITE, charge: SQL_CHARGE,
+export const ODDS_BUDGET_SQL = { seed: SQL_SEED, siteSeed: SQL_SITE_SEED, snapshot: SQL_SNAPSHOT,
+                                 gate: SQL_GATE, siteCharge: SQL_SITE_CHARGE, charge: SQL_CHARGE,
                                  fixDay: SQL_FIX_DAY, fixSite: SQL_FIX_SITE,
                                  monthSeed: SQL_MONTH_SEED, monthCharge: SQL_MONTH_CHARGE,
                                  fixMonth: SQL_FIX_MONTH,
@@ -854,15 +1093,17 @@ export const ODDS_BUDGET_SQL = { seed: SQL_SEED, site: SQL_SITE, charge: SQL_CHA
 // chargedFromBatch's DEFAULT, so a call that forgets to name its order is read
 // against three statements, throws on every call and is counted as a degrade,
 // rather than quietly reading the wrong one.
-export const ODDS_BUDGET_ORDER = ['seed', 'site', 'charge'];
+export const ODDS_BUDGET_ORDER = ['seed', 'siteCharge', 'charge'];
 // THE CHARGE, ONE BATCH, since 2026-10-18: day, site and month together, so no
-// stop can land between the day's write and the month's. `charge` is LAST
-// because chargedFromBatch reads the last statement as the verdict; the month's
-// verdict is read by name, in _monthFromBatch.
+// stop can land between the day's write and the month's. Since 2026-10-28 it is
+// eight statements and ONE of them decides (`gate`); see the block above.
+// `charge` is LAST because chargedFromBatch reads the last statement as the
+// verdict; the month's total is read by name, in _monthFromBatch, and the
+// pre-charge totals by name, in _vetoFromBatch.
 //
 // THE MONTHLY BATCH WAS TWO STATEMENTS, and until 2026-10-11 nothing said so.
 // chargeMonthlyOdds sent those two to a helper hard-coded to three, so it threw
-// on EVERY monthly charge — the exact string /budget/odds reported as the
+// on EVERY monthly charge -- the exact string /budget/odds reported as the
 // degrade reason, `month: odds budget batch returned 2 result(s), expected 3`.
 // The charge landed (db.batch commits before anything inspects results), but
 // the return value was lost to the catch, which degrades open. Consequence:
@@ -871,14 +1112,14 @@ export const ODDS_BUDGET_ORDER = ['seed', 'site', 'charge'];
 // no warning could fire. The expected length comes from the statement list
 // itself rather than a number written beside it, because a number beside it is
 // what drifted.
-export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'site', 'monthCharge', 'charge'];
+export const ODDS_CHARGE_ORDER = ['seed', 'monthSeed', 'siteSeed', 'snapshot', 'gate', 'siteCharge', 'monthCharge', 'charge'];
 
 /** Did the batch charge? The UPDATE returns its row only when the ceiling
  *  allowed it, so zero rows is a veto and not an error. Absent results (a shape
  *  this code has never seen) are NOT read as a veto: that would silently stop
  *  every odds call, so it throws to the degrade path where it is counted.
  *
- *  `order` is the batch these results came from — ODDS_CHARGE_ORDER, five
+ *  `order` is the batch these results came from — ODDS_CHARGE_ORDER, eight
  *  statements. The day's charge is the LAST of them; the month's verdict is not
  *  read here but by name, in _monthFromBatch. */
 export function chargedFromBatch(results, order = ODDS_BUDGET_ORDER) {
@@ -938,6 +1179,17 @@ async function ensureOddsBudgetTables(env) {
             CREATE TABLE IF NOT EXISTS odds_budget_month (
               month TEXT PRIMARY KEY,
               used  INTEGER NOT NULL DEFAULT 0
+            )`),
+        // THE GATE, 2026-10-28. One row, rewritten by every charge with that
+        // call's random token; the three charge statements apply only when it
+        // holds the token. A NEW table rather than a new column: this statement
+        // is idempotent where ALTER TABLE ADD COLUMN is not, and nothing the
+        // running code reads changes, so a half-rolled-out deploy breaks neither
+        // side. See the block above SQL_SEED.
+        env.ARCHIVE_DB.prepare(`
+            CREATE TABLE IF NOT EXISTS odds_budget_gate (
+              id    INTEGER PRIMARY KEY,
+              token TEXT NOT NULL
             )`),
     ]);
     _oddsBudgetReady = true;

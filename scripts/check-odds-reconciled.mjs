@@ -42,7 +42,9 @@ const check = (n, ok, d = '') => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${
 // no charged call.
 // mutate-deploy-odds-wrappers.mjs (2026-10-19) quotes reconcile call sites as
 // anchors, to move a guard below its fetch, and makes no charged call.
-// SCOPE-EXCLUDES: scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs
+// check-odds-site-caps.mjs names reconcileOddsCredit in the pattern it uses to read
+// the call sites' labels as text (2026-10-28) and calls nothing.
+// SCOPE-EXCLUDES: scripts/check-odds-site-caps.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 function fnBounds(lines, i) {
   let start = 0;

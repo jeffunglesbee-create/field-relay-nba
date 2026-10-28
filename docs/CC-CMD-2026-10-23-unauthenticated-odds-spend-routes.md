@@ -25,7 +25,14 @@
   shared 3,800. Attributing calls by caller is premise 5 of
   `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md` (one
   worker tail for both labels); splitting the labels is Task 3 of
-  `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`, which is HELD.
+  `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. **Task 3 was built
+  2026-10-28 and did NOT split them**: it caps the shared labels
+  (`fetchSportOddsLive` 2,000, `fetchSportOddsHistorical` 1,800). An anonymous caller
+  therefore can no longer spend the whole day's 3,800 through them, but can exhaust
+  a label's cap and starve the cron that shares it. A reviewer reached the live cap
+  in 134 requests to `/identity/mismatches` on a fetch with no edge cache; the real
+  rate, with `cacheEverything` and refunds, is UNVERIFIED. The route gates here are
+  what closes it.
 - Related, not covering these: `/archive/game` is
   `docs/CC-CMD-2026-10-14-archive-game-unauthenticated-write.md` (RULED,
   blocked on rotation). It spends `fetchSportOddsHistorical` too.

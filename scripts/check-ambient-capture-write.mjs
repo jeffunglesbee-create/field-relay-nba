@@ -56,7 +56,7 @@ function makeDb(world) {
     // table") instead of falling through to the empty answer below.
     if (world.sqlite && /\bodds_\w+/.test(s)) {
       const st = world.sqlite.prepare(s);
-      if (/RETURNING/.test(s)) return { rows: st.all(...params), changes: 0 };
+      if (/RETURNING/.test(s) || /^SELECT/.test(s)) return { rows: st.all(...params), changes: 0 };
       return { rows: [], changes: Number(st.run(...params).changes) };
     }
     let m;
@@ -87,6 +87,13 @@ function makeDb(world) {
     if (world.ledger && /^UPDATE odds_budget(_month)? SET used = used \+ \? .*RETURNING used$/.test(s)) {
       world.ledger.charges++;
       return { rows: world.ledger.full ? [] : [{ used: 3 }], changes: world.ledger.full ? 0 : 1 };
+    }
+    // The snapshot of the three pre-charge totals chargeOdds reads to name WHICH
+    // limit refused (2026-10-28). A full ledger is a full DAY: the totals say so,
+    // or the verdict (no row) and the reason (none) would disagree and the call
+    // would degrade open instead of being refused.
+    if (world.ledger && /^SELECT \(SELECT used FROM odds_budget WHERE day = \?\) AS day_used/.test(s)) {
+      return { rows: [{ day_used: world.ledger.full ? 1e9 : 0, month_used: 0, site_used: 0 }], changes: 0 };
     }
     return { rows: [], changes: 0 };   // the odds-budget tally's DDL and writes: not under test
   };
@@ -498,14 +505,13 @@ async function selfTest() {
        ['espn:401879269', 'espn:401879270']]);
   }
 
-  // W22 — THE REFUSAL'S COST ON THE REAL LEDGER, PINNED. The month has no room
-  // (84,999 of 85,000) and the day has. chargeOdds charges the day and the site
-  // and refuses the call: what its own comment calls intended, and what
-  // scripts/check-monthly-atomic.mjs case B pins for one call. Because a refused
-  // capture is retried, four polls inside the window are four refusals: day and
-  // site +12, the month unmoved, no vendor call. This is today's behaviour, not
-  // the wanted one; Task 3 of docs/CC-CMD-2026-09-16-odds-spend-attribution.md
-  // changes it, and changes this pin in the same commit.
+  // W22 — THE REFUSAL'S COST ON THE REAL LEDGER. The month has no room (84,999 of
+  // 85,000) and the day has. Until 2026-10-28 chargeOdds charged the day and the
+  // site and refused the call, and because a refused capture is retried, four polls
+  // inside the window were four refusals: day and site +12, the month unmoved, no
+  // vendor call. Task 3 of docs/CC-CMD-2026-09-16-odds-spend-attribution.md moved
+  // the month's limit into the gate, so a refusal charges NONE of the three and
+  // this pin changed with it (scripts/check-monthly-atomic.mjs case B, the same).
   {
     const w = makeWorld({ at: '2026-11-14T18:51:00Z',
       board: [bg('espn:401879271', 'epl', 'EPL', '2026-11-14T19:00Z', 'Chelsea', 'Arsenal', '401879271')],
@@ -515,19 +521,20 @@ async function selfTest() {
     w.sqlite.exec(`CREATE TABLE odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site));
       CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL);
       CREATE TABLE odds_reconcile_state (day TEXT NOT NULL, site TEXT NOT NULL, state TEXT NOT NULL, cache TEXT NOT NULL,
         n INTEGER NOT NULL DEFAULT 0, credits_kept INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site, state, cache));
       INSERT INTO odds_budget VALUES ('2026-11-14', 100);
       INSERT INTO odds_budget_month VALUES ('2026-11', 84999);`);
     for (const at of ['18:51', '18:52', '18:53', '18:54']) { w.at = `2026-11-14T${at}:00Z`; await poll(C, w); }
     const one = (q) => w.sqlite.prepare(q).get()?.v ?? null;
-    eq('W22: four refused polls under a month veto: day and site +12, the month unmoved, no vendor call, the limit key written',
+    eq('W22: four refused polls under a month veto: the day, the site and the month all unmoved, no vendor call, the limit key written',
       [one("SELECT used v FROM odds_budget WHERE day = '2026-11-14'"),
        one("SELECT used v FROM odds_budget_site WHERE day = '2026-11-14' AND site = 'ambientCaptureClosingOdds'"),
        one("SELECT used v FROM odds_budget_month WHERE month = '2026-11'"),
        w.vendorCalls.length, w.kvPuts.includes('odds:credits:2026-11:warned:limit'),
        Object.keys(w.storage._m.get('starts:today') ?? {})],
-      [112, 12, 84999, 0, true, []]);
+      [100, 0, 84999, 0, true, []]);
   }
 
   // W23 — a billed call that yields no events (an error status, a dropped

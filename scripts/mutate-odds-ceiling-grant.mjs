@@ -36,7 +36,7 @@ const MUTATIONS = [
   { name: 'R4  the guard checks the standing ceiling, ignoring the grant',
     anchor: '        const ceiling = _dailyCeiling();',
     replace: '        const ceiling = ODDS_DAILY_CEILING;',
-    expect: 'the guard compares against the granted ceiling' },
+    expect: 'the gate compares against the granted ceiling' },
   { name: 'R5  a grant arrives with no stated reason',
     anchor: "why: 'tranche 2 archive backfill, owner-approved' }",
     replace: "why: '' }",
@@ -45,11 +45,30 @@ const MUTATIONS = [
     anchor: 'extra: 2500,',
     replace: 'extra: 500000,',
     expect: 'every grant is bounded' },
-  { name: 'R7  the month charge checks the standing ceiling, ignoring the grant',
-    anchor: 'db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT, date, units, ceiling),',
-    replace: 'db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT, date, units, ODDS_DAILY_CEILING),',
-    expect: 'the month charge carries the same granted ceiling' },
+  { name: 'R7  the gate checks the standing ceiling, ignoring the grant',
+    anchor: 'db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ceiling, month,',
+    replace: 'db.prepare(ODDS_BUDGET_SQL.gate).bind(token, date, units, ODDS_DAILY_CEILING, month,',
+    expect: 'the gate compares against the granted ceiling' },
+  { name: 'R8  the gate checks the standing site cap, ignoring a site grant',
+    anchor: 'const siteCeiling = siteCeilingFor(site, date);',
+    replace: 'const siteCeiling = siteCeilingFor(site, "1970-01-01");',
+    expect: 'the gate carries the site cap from siteCeilingFor, grants included' },
+  { name: 'R10 the site grant table defaults to nothing',
+    anchor: 'grants = ODDS_CEILING_GRANTS) {\n    const base',
+    replace: 'grants = []) {\n    const base',
+    expect: 'siteCeilingFor defaults to the real grant table' },
+  { name: 'R9  an unbounded site grant',
+    anchor: "{ date: '2026-09-13', extra: 2500, why:",
+    replace: "{ date: '2026-09-13', extra: 2500, siteExtra: { fetchSportOddsHistorical: 500000 }, why:",
+    expect: 'every siteExtra is a bounded positive integer' },
 ];
+
+// SRC IS MUTATED IN PLACE and restored by `git checkout` after every mutant. If the
+// process is stopped between the write and the checkout (Ctrl-C, SIGTERM, an
+// exception), the exit handler restores it too; 'exit' handlers do not run on a
+// signal unless the signal handler exits.
+process.on('exit', () => { try { sh('git', ['checkout', '--', SRC]); } catch (e) { console.error(`could not restore ${SRC}: ${e.message}`); } });
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));
 
 let bad = 0;
 for (const m of MUTATIONS) {

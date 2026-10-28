@@ -15,11 +15,19 @@
 // after the day's had returned, so anything that stopped between the two kept
 // the day's charge and lost the month's — odds_budget_month read 2,766 short of
 // the daily rows (outbox/odds-counter-internal-2026-10-18.md). chargeOdds now
-// sends seed, monthSeed, site, monthCharge and charge as ONE batch, and this
-// runs that batch: the statements and their order read from the source, every
-// placeholder bound, inside one transaction. Then it runs chargeOdds ITSELF,
-// imported from the source, against a D1 made of node:sqlite, because which
-// veto key a refusal writes is decided by branch order, and SQL cannot see it.
+// sends the statements as ONE batch, and this runs that batch: the statements
+// and their order read from the source, every placeholder bound, inside one
+// transaction. Then it runs chargeOdds ITSELF, imported from the source, against
+// a D1 made of node:sqlite, because which veto key a refusal writes is decided
+// by branch order, and SQL cannot see it.
+//
+// AND THEN, 2026-10-28: ONE GATE. The batch is eight statements and one of them
+// decides: `gate` writes this call's token only if the day, the month AND the
+// site all have room over the PRE-charge totals, and the three charges each
+// apply only while that token is in the gate. So the month no longer carries a
+// copy of the day's predicate, and a month veto charges NEITHER the day nor the
+// site (it used to keep both). The per-site caps themselves are executed in
+// check-odds-site-caps.mjs; this file keeps the month's half of that contract.
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -41,19 +49,21 @@ const grab = (name) => {
   const m = new RegExp(`const ${name}\\s*=\\s*(\`[^\`]*\`|'[^']*')`).exec(src);
   return m ? m[1].slice(1, -1) : null;
 };
-const SQL = { seed: grab('SQL_SEED'), monthSeed: grab('SQL_MONTH_SEED'), site: grab('SQL_SITE'),
+const SQL = { seed: grab('SQL_SEED'), monthSeed: grab('SQL_MONTH_SEED'), siteSeed: grab('SQL_SITE_SEED'),
+              snapshot: grab('SQL_SNAPSHOT'), gate: grab('SQL_GATE'), siteCharge: grab('SQL_SITE_CHARGE'),
               monthCharge: grab('SQL_MONTH_CHARGE'), charge: grab('SQL_CHARGE') };
 const FIX = grab('SQL_FIX_MONTH');
 const om = /export const ODDS_CHARGE_ORDER\s*=\s*\[([^\]]*)\]/.exec(src);
 const ORDER = om ? [...om[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : [];
 ok('the charge SQL and its order are in the source',
-  Object.values(SQL).every(Boolean) && !!FIX && ORDER.length === 5 && ORDER.every((k) => k in SQL),
+  Object.values(SQL).every(Boolean) && !!FIX && ORDER.length === 8 && ORDER.every((k) => k in SQL),
   `the statements or ODDS_CHARGE_ORDER could not be read (order ${JSON.stringify(ORDER)}), so nothing below was executed against them`);
 if (bad) { console.log(`\n${n - bad} of ${n} passed.`); process.exit(1); }
 
 const SCHEMA = `CREATE TABLE odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
   CREATE TABLE odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site));
-  CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);`;
+  CREATE TABLE odds_budget_month (month TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0);
+  CREATE TABLE odds_budget_gate (id INTEGER PRIMARY KEY, token TEXT NOT NULL);`;
 const fresh = () => { const d = new DatabaseSync(':memory:'); d.exec(SCHEMA); return d; };
 
 // Mirrors chargeOdds's binds, BY NAME. node:sqlite binds a missing parameter as
@@ -61,12 +71,16 @@ const fresh = () => { const d = new DatabaseSync(':memory:'); d.exec(SCHEMA); re
 // short bind list would turn every charge into a refusal and every "a veto
 // moves nothing" assertion into a pass. The count is asserted, not trusted.
 const D = '2026-10-18', M = '2026-10', BIG = 1e9;
-function batch(db, { units = 30, carried = 0, carriedMonth = 0, ceiling = BIG, limit = BIG, site = 'a' } = {}) {
+let tokenNo = 0;
+function batch(db, { units = 30, carried = 0, carriedMonth = 0, ceiling = BIG, limit = BIG, site = 'a', siteCeiling = BIG } = {}) {
+  const token = `t${++tokenNo}`;                      // a fresh one per call, as chargeOdds mints
   const binds = {
-    seed: [D, carried], monthSeed: [M, carriedMonth],
-    site: [D, site, units, D, units, ceiling],
-    monthCharge: [units, M, units, limit, D, units, ceiling],
-    charge: [units, D, units, ceiling],
+    seed: [D, carried], monthSeed: [M, carriedMonth], siteSeed: [D, site],
+    snapshot: [D, M, D, site],
+    gate: [token, D, units, ceiling, M, units, limit, D, site, units, siteCeiling],
+    siteCharge: [units, D, site, token],
+    monthCharge: [units, M, token],
+    charge: [units, D, token],
   };
   const out = {};
   db.exec('BEGIN');
@@ -132,9 +146,9 @@ const counters = (db) => ({
 
 // ── ONE BATCH: the day and the month move together or not at all ──────────
 {
-  // (A) A DAY VETO MOVES NOTHING. The month statement carries the day's
-  // predicate, so it refuses on the same condition the day does — what the
-  // two-batch code got by never sending the month batch after a day veto.
+  // (A) A DAY VETO MOVES NOTHING. The gate holds no token for the call, so the
+  // month and the site refuse on the day's own condition — what the two-batch
+  // code got by never sending the month batch after a day veto.
   const db = fresh();
   for (let i = 0; i < 3; i++) batch(db, { units: 30, ceiling: 100 });
   const before = counters(db);
@@ -144,16 +158,19 @@ const counters = (db) => ({
   eq('A  ...and day, site and month are all unmoved', counters(db), before);
 }
 {
-  // (B) THE DAY CHARGES, THE MONTH REFUSES. Day and site keep the charge and
-  // the call is refused — today's behaviour, pinned, because the two-batch
-  // code's day batch had committed before its month batch ran.
+  // (B) THE MONTH REFUSES, THE DAY HAD ROOM: NOTHING IS CHARGED. Changed on
+  // 2026-10-28. The two-batch code (and the one-batch code until then) kept the
+  // day's and the site's charge on a month veto, because the day's statement ran
+  // before the month's. A caller that retried a refused capture each poll then
+  // added up to 3 to the day and the site per poll with no vendor call behind it.
+  // The gate asks all three limits before any counter moves, so the refusal
+  // moves none of them.
   const db = fresh();
   batch(db, { units: 30, limit: 60 }); batch(db, { units: 30, limit: 60 });
   const r = batch(db, { units: 30, limit: 60 });
-  eq('B  day ok, month at its limit: the day charges', r.day, 90);
+  eq('B  day ok, month at its limit: the day returns no row', r.day, null);
   eq('B  ...the month returns no row', r.month, null);
-  eq('B  ...day and site moved, the month did not', counters(db), { day: 90, site: 90, month: 60 });
-  eq('B  ...and the verdict is a refusal', r.day !== null && r.month !== null, false);
+  eq('B  ...and day, site and month are all unmoved', counters(db), { day: 60, site: 60, month: 60 });
 }
 {
   // (C) THE EXACT DAY BOUNDARY. A pre-charge day at ceiling minus units charges
@@ -182,7 +199,7 @@ let caseNo = 0;
 async function charger() {
   return import(`${pathToFileURL(resolve(HELPERS)).href}?case=${++caseNo}`);
 }
-function fakeD1(db, { throwOnCharge = null } = {}) {
+function fakeD1(db, { throwOnCharge = null, throwAt = ORDER.indexOf('monthCharge') } = {}) {
   const stmt = (sql, args = []) => ({ sql, args, bind: (...a) => stmt(sql, a) });
   return {
     prepare: (sql) => stmt(sql),
@@ -190,7 +207,7 @@ function fakeD1(db, { throwOnCharge = null } = {}) {
       db.exec('BEGIN');
       try {
         const out = stmts.map((s, i) => {
-          if (throwOnCharge && stmts.length === ORDER.length && i === 3) throw new Error(throwOnCharge);
+          if (throwOnCharge && stmts.length === ORDER.length && i === throwAt) throw new Error(throwOnCharge);
           return { results: db.prepare(s.sql).all(...s.args), success: true };
         });
         db.exec('COMMIT');
@@ -224,13 +241,13 @@ function fakeKV({ day = null, month = null, failVeto = null } = {}) {
     puts,
   };
 }
-async function call({ day = null, month = null, units = 3, throwOnCharge = null, failVeto = null } = {}) {
+async function call({ day = null, month = null, units = 3, throwOnCharge = null, throwAt, failVeto = null } = {}) {
   const mod = await charger();
   const db = new DatabaseSync(':memory:');               // ensureOddsBudgetTables makes the tables
   const kv = fakeKV({ day, month, failVeto });
   const warn = console.warn; console.warn = () => {};
   let r;
-  try { r = await mod.chargeOdds({ FIELD_JOURNALISM: kv, ARCHIVE_DB: fakeD1(db, { throwOnCharge }) }, units, 'probe'); }
+  try { r = await mod.chargeOdds({ FIELD_JOURNALISM: kv, ARCHIVE_DB: fakeD1(db, { throwOnCharge, throwAt }) }, units, 'probe'); }
   finally { console.warn = warn; }
   const one = (q) => { try { return db.prepare(q).get()?.v ?? null; } catch { return null; } };
   return { r, puts: kv.puts.map(([k]) => k), vals: Object.fromEntries(kv.puts),
@@ -254,7 +271,7 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
   ok("F  ...writes the day's warned key, as an ISO timestamp",
     c.puts.some((k) => DAY_KEY.test(k) && /^\d{4}-\d{2}-\d{2}T/.test(c.vals[k])), JSON.stringify(c.vals));
   ok("F  ...and NOT the month's limit key", !c.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(c.puts));
-  eq('F  ...and moves nothing', [c.day, c.site, c.month], [BIG, null, 0]);
+  eq('F  ...and moves nothing', [c.day, c.site, c.month], [BIG, 0, 0]);
 }
 {
   // AT THE DAY BOUNDARY, through chargeOdds's OWN binds. The day veto above uses
@@ -272,7 +289,7 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
     eq(`G  units=${u} ...day, site and month all move by units`, [lo.day, lo.site, lo.month], [CEIL, u, 1000 + u]);
     const hi = await call({ day: String(CEIL - u + 1), month: '1000', units: u });
     eq(`G  units=${u}, pre-day = ceiling - units + 1: chargeOdds returns false`, hi.r, false);
-    eq(`G  units=${u} ...and day, site and month are all unmoved`, [hi.day, hi.site, hi.month], [CEIL - u + 1, null, 1000]);
+    eq(`G  units=${u} ...and day, site and month are all unmoved`, [hi.day, hi.site, hi.month], [CEIL - u + 1, 0, 1000]);
     ok(`G  units=${u} ...filed as the DAY veto`, hi.puts.some((k) => DAY_KEY.test(k)) && !hi.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(hi.puts));
   }
 }
@@ -305,7 +322,22 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
   eq('F  a month veto: chargeOdds returns false', c.r, false);
   ok("F  ...writes the month's limit key", c.puts.some((k) => LIMIT_KEY.test(k)), JSON.stringify(c.puts));
   ok("F  ...and NOT the day's warned key — the day did not veto", !c.puts.some((k) => DAY_KEY.test(k)), JSON.stringify(c.puts));
-  eq('F  ...day and site charged, the month did not', [c.day, c.site, c.month], [3, 3, 84999]);
+  eq('F  ...NOTHING charged: not the day, not the site, not the month', [c.day, c.site, c.month], [0, 0, 84999]);
+}
+{
+  // (J) THE MONTH'S EXACT BOUNDARY, at several unit sizes. The case above uses
+  // 84,999 with 3 units, where a literal 3 in the gate's month bind is the same
+  // as `units`. A pre-month total of limit - units charges; one more is refused,
+  // and the refusal is the MONTH's, not the day's.
+  for (const u of [1, 3, 30]) {
+    const lo = await call({ month: String(85000 - u), units: u });
+    eq(`J  units=${u}, pre-month = limit - units: chargeOdds returns true`, lo.r, true);
+    eq(`J  units=${u} ...day, site and month all move by units`, [lo.day, lo.site, lo.month], [u, u, 85000]);
+    const hi = await call({ month: String(85000 - u + 1), units: u });
+    eq(`J  units=${u}, pre-month = limit - units + 1: chargeOdds returns false`, hi.r, false);
+    eq(`J  units=${u} ...and day, site and month are all unmoved`, [hi.day, hi.site, hi.month], [0, 0, 85000 - u + 1]);
+    ok(`J  units=${u} ...filed as the MONTH veto`, hi.puts.some((k) => LIMIT_KEY.test(k)) && !hi.puts.some((k) => DAY_KEY.test(k)), JSON.stringify(hi.puts));
+  }
 }
 {
   // (E) THE LADDER READS THE MONTH'S OWN ROW. The day's charge is the LAST
@@ -328,6 +360,19 @@ const DAY_KEY = /^odds:daily:\d{4}-\d{2}-\d{2}:warned$/, LIMIT_KEY = /^odds:cred
     !!v && v.events === 1 && v.credits === 3 && Object.keys(v.reasons || {}).length === 1
       && Object.keys(v.reasons)[0].startsWith('charge: D1_ERROR'),
     JSON.stringify(v));
+}
+
+{
+  // (K) A THROW ON ANY STATEMENT UNDOES THE REST. The gate row and the three
+  // charges are separate statements, so a stop between them (the fake throws on
+  // statement i, after 0..i-1 ran) must leave no counter moved and no gate row,
+  // or a half-written batch would charge the day and not the site. Every index is
+  // tried, because the gate is the statement where a half-write would matter.
+  for (let i = 0; i < ORDER.length; i++) {
+    const c = await call({ throwOnCharge: `D1_ERROR: stopped at statement ${i}`, throwAt: i });
+    eq(`K  a throw at statement ${i} (${ORDER[i]}): chargeOdds degrades open`, c.r, true);
+    eq(`K  ...and day, site and month are all unmoved`, [c.day, c.site, c.month], [null, null, null]);
+  }
 }
 
 // ── The wiring: one implementation, three delegating call sites ───────────
@@ -403,7 +448,7 @@ ok('the hard limit has ONE definition',
   'it was written out four times, each with a comment asking the next person to sync it by hand');
 
 console.log(`\n${n - bad} of ${n} passed.`);
-console.log('COVERAGE: the five charge statements executed in their source order against');
+console.log('COVERAGE: the eight charge statements executed in their source order against');
 console.log('real node:sqlite, chargeOdds itself run against a node:sqlite D1 and a fake KV,');
 console.log('and the wiring of three call sites. It does NOT run in a Worker and says nothing');
 console.log('about whether D1 supplies a transaction under concurrent isolates — that is');

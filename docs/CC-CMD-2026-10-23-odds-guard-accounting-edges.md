@@ -22,7 +22,8 @@ both survive only in comments, and their charge is now `chargeOdds`.
 `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`).
 **Narrowed 2026-10-23 (BUILD-ON-A).** A content audit against every existing
 CC-CMD (workflow `wf_dd67792d-4ca`) moved item 1 into Task 3 of the 09-16
-CC-CMD, which is HELD. Items 2-5 have no other owner. Numbering is kept so
+CC-CMD, which the owner released on 2026-10-28 and which is built (see item 1).
+Items 2-5 have no other owner. Numbering is kept so
 that references to "item N" stay valid.
 
 ---
@@ -40,6 +41,10 @@ that references to "item N" stay valid.
    and two deploy-path gates that pin it (`check-monthly-atomic.mjs` case B,
    "today's behaviour, pinned"; `mutate-odds-budget-batch.mjs`, "the day
    keeps its charge").
+   **Built 2026-10-28 by Task 3** (a month veto now charges neither the day nor
+   the site, because the month's limit moved into the gate): `check-monthly-atomic`
+   case B, `check-ambient-capture-write` W22 and the batch check changed in the same
+   commit, as this item required.
 2. **Degrade-open hangs on the KV binding, not the D1 store the guard
    charges.** Every wrapper and `chargeOdds` start with
    `if (!env.FIELD_JOURNALISM) return true;`. Harness:
@@ -92,6 +97,12 @@ that references to "item N" stay valid.
    kickoff as a skip, like a miss, so a date with only such rows is still
    marked tried (right: they never become pre-kickoff). It does not touch the
    guard refusal or the tried key, so this item is unchanged by it.
+   **Added 2026-10-28 (review of Task 3):** the 1,800 per-site cap on
+   `fetchSportOddsHistorical` is a second way for this function to be refused, with
+   no spend, so a capped day stamps the date tried for 30 days exactly as a day
+   veto does; `pickNextOddsBackfillDate` ignores the marker, so the cursor stalls on
+   the oldest date and logs `skipped_tried`. Reproduced by a reviewer from the
+   source; still UNVERIFIED on a live capped day.
 5. **The stale-data sentinel watches KV counters the guard no longer
    charges.** `src/stale-data-sentinel.js` checks `odds:daily:<day>` and
    `odds:credits:<month>` in KV; since the D1 move those are written only by

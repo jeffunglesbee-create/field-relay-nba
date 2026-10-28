@@ -75,19 +75,32 @@ eq('an ordinary day reports grant_today as null, not absent',
 const _gi = SRC.indexOf('const ceiling = _dailyCeiling();');
 const _gj = _gi < 0 ? -1 : SRC.indexOf('\n}\n', _gi);
 const guard = (_gi < 0 || _gj < 0) ? '' : SRC.slice(_gi, _gj);
-eq('the guard compares against the granted ceiling',
-   /ODDS_BUDGET_SQL\.charge\)\.bind\([^)]*ceiling\)/.test(guard), true);
-// And the site statement carries the SAME ceiling, or a vetoed call writes one
-// counter and not the other — which is the divergence Task 2 exists to remove.
-eq('the site write carries the same granted ceiling',
-   /ODDS_BUDGET_SQL\.site\)\.bind\([^)]*ceiling\)/.test(guard), true);
-// AND THE MONTH, since it carries the day's predicate (2026-10-18). Its LAST
-// bind is the day ceiling; bound to the standing one, a granted day would veto
-// the month as soon as the pre-charge day passed 3,800 — the call refused while
-// the site and the day still charged, and the grant silently revoked.
-eq('the month charge carries the same granted ceiling',
-   /ODDS_BUDGET_SQL\.monthCharge\)\.bind\([^)]*,\s*ceiling\)/.test(guard), true);
+// SINCE 2026-10-28 ONE STATEMENT DECIDES (Task 3 of
+// docs/CC-CMD-2026-09-16-odds-spend-attribution.md): `gate` carries the day's
+// ceiling, the month's hard limit and the site's cap, and the three charges obey
+// its token. So the granted day ceiling has ONE place to reach, not three. Bound to
+// the standing ceiling, a granted day would be refused by the gate once the
+// pre-charge day passed 3,800, and the grant silently revoked.
+eq('the gate compares against the granted ceiling',
+   /ODDS_BUDGET_SQL\.gate\)\.bind\(token, date, units, ceiling, month,/.test(guard), true);
+// AND THE SITE'S CAP, with a grant's `siteExtra` for that date: bound to the
+// standing cap, a granted day could not spend through a capped site, which would
+// defeat the grant for exactly the work it was issued for.
+eq('the gate carries the site cap from siteCeilingFor, grants included',
+   /const siteCeiling = siteCeilingFor\(site, date\);/.test(guard)
+   && /ODDS_HARD_LIMIT, date, site, units, siteCeiling\)/.test(guard), true);
+// THE DEFAULT GRANT TABLE. siteCeilingFor takes `grants` so a harness can inject
+// one, and its default must stay the real table: a default of [] leaves every
+// siteExtra inert, so an approved backfill is refused at the site's cap.
+eq('siteCeilingFor defaults to the real grant table',
+   /export function siteCeilingFor\(site, date = .+?, grants = ODDS_CEILING_GRANTS\)/.test(SRC), true);
+// A SITE GRANT IS BOUNDED TOO, and expires by its date like the day's.
+eq('every siteExtra is a bounded positive integer',
+   grants.every(g => !g.siteExtra || Object.values(g.siteExtra).every(v => Number.isInteger(v) && v > 0 && v <= 5000)), true);
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked}`
           + ` — ${grants.length} grant(s), standing ceiling ${base}`);
+console.log('COVERAGE: SOURCE TEXT of src/budget-helpers.js and a re-parse of its grant table. It');
+console.log('never executes a grant. The granted day run through chargeOdds and peekDailyOdds, and');
+console.log('siteCeilingFor with injected grants, are in scripts/check-odds-site-caps.mjs.');
 process.exit(failed ? 1 : 0);
