@@ -1,11 +1,14 @@
 # CC-CMD 2026-09-16 — attribute odds spend before changing any ceiling
 
-Status: **PARTIAL.** Tasks 1 and 2 DONE (2026-10-21). Task 3 released by the
-owner 2026-10-28 ("go task 3"), after its hold ("Hold it; fix 3 first", 2026-10-23)
-lifted when `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` went DONE. Task 3
-is in progress; see "Task 3 — build" below. It must land before 2026-11-08 or after
-2026-11-23 (the CFL experiment's VOID window). Results are under "Results" at the end.
-Session doc: `outbox/cc-session-2026-10-21-per-consumer-demand.md`.
+Status: **DONE.** Tasks 1 and 2 DONE (2026-10-21). Task 3 released by the owner
+2026-10-28 ("go task 3"), after its hold ("Hold it; fix 3 first", 2026-10-23)
+lifted when `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` went DONE; built and
+deployed the same day (commit `5b92e04`, Deploy RELAY Worker run 40731128552), all five
+Task 3 done conditions met (see "Task 3 — DONE" under "Results"). It landed ten days
+before the CFL experiment's VOID window (2026-11-08..11-23). A real site refusal has not
+been seen live; that is staged, not owed (Rule 74), and is recorded there.
+Session doc: `outbox/cc-session-2026-10-28-site-caps.md` (Task 3);
+`outbox/cc-session-2026-10-21-per-consumer-demand.md` (Tasks 1 and 2).
 Supersedes the demand-derived-ceiling proposal made earlier the same day, which
 this document's own probe block refutes.
 
@@ -407,3 +410,29 @@ discarded finding. Where each piece of knowledge lives now:
 2026-11-08 to 11-23. If the review leaves a high-severity finding open on 2026-11-06,
 it does not land before 11-24, and this section says so.
 
+### Task 3 — DONE 2026-10-28
+
+| done condition | artifact |
+|---|---|
+| 1. a reference-model check over at least 2,000 random sequences, and its mutation harness | `scripts/check-odds-site-caps.mjs`: 135 checks; the real `chargeOdds` agrees with the model on 2,000 sequences of 25 calls (50,000 calls; vetoes day 9,830, month 9,589, site 1,768). `scripts/mutate-odds-site-caps.mjs`: 38 of 38 caught |
+| 2. `check-monthly-atomic` case B and the "day keeps its charge" case changed in the same commit | `5b92e04`: case B now "a month veto charges neither the day nor the site"; `check-ambient-capture-write` W22 changed with it; `mutate-odds-budget-batch.mjs` B-mutants reworked and its E1-E9 executed half restored on the eight statements (26 of 26 caught) |
+| 3. `/budget/odds` serves `site_ceilings`, and a site veto sets `site_ceiling_reached_at` in a harness that reaches a cap | live: `outbox/odds-site-caps-live-proof-20261028T172529Z.md` §1. In the harness: `check-ceiling-reached.mjs` (39 checks, 44 mutants caught) and `check-odds-site-caps.mjs` |
+| 4. every deploy and guards step but the two environment-only ones | `gates.py` on a clean worktree named `field-relay-nba`: 141 of 145, the two environment-only failures plus the scope-claims step in both workflows (fixed; the step, its mutation and the two checks re-run); then CI ran the same steps on `5b92e04`: Deploy RELAY Worker 40731128552 and Repo guards 40731128567 green |
+| 5. after the deploy, a worker charge leaves a gate row and moves the site and day counters equally, `degraded_open` 0 | `outbox/odds-site-caps-live-proof-20261028T172529Z.md` §2-3: +9 on the day, +9 on the site split, +9 on the month; one `odds_budget_gate` row, a v4 UUID token; `degraded_open` 0 events |
+
+**Stop conditions.** Not triggered: the review (workflow `wf_f45e3a89-b2e`) left no high-severity
+finding open (the three it rated high were test gaps, rated medium or low on re-run, and were
+fixed), and the push was 16:58Z on 10-28.
+
+**STAGED: a real refusal.** What is staged: the live behaviour of a site cap refusing a
+call (the stamp, `site_ceiling_reached_at`, the pairing watch's refusal line). Blocked by: no
+site has come near its cap since the deploy; the check executes the path, nothing has refused it
+live. Unblocked by: a site reaching its cap, or the first closed full day (2026-10-29, read
+2026-10-30 12:00Z by a scheduled wake). Verify: `/budget/odds?date=<D>` with
+`site_ceiling_reached_at` non-null for the capped site, `by_site` at or below its cap,
+`degraded_open.events` 0, `by_site_sum == used`.
+
+**Owner's decisions still open, none of them blocking this CC-CMD:** fix 3 E (a failed stamp write
+reads as no refusal; it now also covers site stamps); whether to split the two capped labels shared
+with unauthenticated routes (`docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`); the
+cap numbers themselves, which are policy.

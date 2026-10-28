@@ -1,5 +1,33 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (17:30Z) — Task 3: per-site caps on the odds guard, live
+
+**HEAD:** `4d8cd07` → `5b92e04` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-28-site-caps.md
+
+`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 3 (released by the owner 2026-10-28): **BUILT and DEPLOYED**
+(Deploy RELAY Worker run 40731128552, Repo guards 40731128567). `chargeOdds` sends eight statements in one batch; `gate`
+writes a per-call token only if the day, the month and the site all have room, and the three charges obey it, so a call is
+charged to all three or to none (a month veto no longer keeps the day's and the site's charge). Caps: closing capture 400,
+live odds 2,000, historical 1,800, WC lambdas 300; CFL and `ambientFetchLiveOdds` uncapped. `/budget/odds` serves
+`site_ceilings`, `site_ceiling_reached_at`, `site_stamps_unreadable`; the pairing watch reads site stamps as refusals.
+
+- **Live proof** (`outbox/odds-site-caps-live-proof-20261028T172529Z.md`): after a real +9 charge the day, the site
+  split and the month each moved by 9; `odds_budget_gate` holds one row; `degraded_open` 0; the rebuilt debug latency
+  route answers 200.
+- **Checks:** `check-odds-site-caps` (the real `chargeOdds` against a reference model, 2,000 sequences; 38 mutants),
+  `check-odds-sql-binds` (new; fails on a reference to a removed statement or a bind list of the wrong length; 8
+  mutants), `mutate-odds-budget-batch` E1-E9 (the old executed mutants, restored on the eight statements).
+- **Review:** five lenses and a skeptic per finding (`wf_f45e3a89-b2e`): 33 of 34 findings confirmed and all fixed or
+  recorded; disposition table in the CC-CMD. The owner's correction ("build upon knowledge, not disregard it because of
+  small errors and deletions") is why the replaced statements, mutants and header history were restored.
+- **Open, with an automated wake (2026-10-30T12:00Z):** no site cap has refused a call yet, so the refusal is
+  executed by the check and not seen live; the first closed full day after the deploy is 2026-10-29.
+- **Left as the owner's call:** fix 3 E (now also covers site stamps); the label split for the two capped labels shared
+  with unauthenticated routes (`docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md`).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-28 (12:10Z) — the shared join is DONE; Task 3's hold is lifted
 
 **HEAD:** `2ce952b` → this close-out · **Branch:** main
