@@ -1,5 +1,24 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (02:50Z) — the BSD WebSocket frame shape is recorded
+
+**HEAD:** `f4c4855b` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-28-bsd-ws-frame-shape.md
+
+`docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md` (field-laboratory): **DONE for one match**. Frames from a live
+`websocket_plus` match (event 602466, Primera A), 728 across three windows: livedata frames are commentary
+incidents (`freekick`, `corner`, `substitution`, `shotofftarget`), `coordinates` is `[]` on 14 of 14, `uts` is epoch
+seconds, restarts beyond free kicks and corners exist only as cumulative `event.stats` counters. Verdict
+`COORDINATES-EMPTY`. Artifact `outbox/bsd-ws-frame-shape-latest.json`, `-602466.json`.
+
+- **Two CC-CMDs filed from it:** `docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md` (the relay reads `frame.minute`
+  and `frame.period` that the frames do not have) and `docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md`
+  (automated wake 2026-10-28T11:20Z).
+- **Repaired on the way:** the capture workflow's inline commit loop landed nothing on one run; it now commits through
+  `scripts/probe-commit-retry.sh`.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-28 (00:28Z) — the BSD event id is on archived soccer rows, live
 
 **HEAD:** `b8d83b4` → this close-out · **Branch:** main

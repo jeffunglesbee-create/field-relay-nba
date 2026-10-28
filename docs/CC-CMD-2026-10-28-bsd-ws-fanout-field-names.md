@@ -25,10 +25,11 @@ across `docs/CC-CMD-*.md` and `outbox/*.md` in both repos.
 
 ## What was measured (Rule 73: date, method, conditions)
 
-2026-10-28, runs 40619254199 and 40619557017 of `bsd-ws-capture.yml`, one live match
-(event 602466, Categoría Primera A, `websocket_plus: true`), 394 frames in all,
-raw files `outbox/bsd-ws-frames-602466-*.jsonl`. The relay's own `_bsdOnFrame`,
-extracted from `src/ambient-do.js` and run over those recorded frames:
+2026-10-28, runs 40619557017 and 40621873322 of `bsd-ws-capture.yml` (the table is run
+40619557017's; the second window agrees), one live match (event 602466, Categoría
+Primera A, `websocket_plus: true`), raw files `outbox/bsd-ws-frames-602466-*.jsonl`.
+The relay's own `_bsdOnFrame`, extracted from `src/ambient-do.js` and run over the
+recorded frames of run 40619557017:
 
 | frame `type` | frames | broadcast by `_bsdOnFrame` | what the broadcast carries |
 |---|---|---|---|
@@ -38,7 +39,7 @@ extracted from `src/ambient-do.js` and run over those recorded frames:
 | `ingest_debug` | 299 | 0 | nothing (a server-side diagnostic; not meant for clients) |
 | `odds` | 3 | 0 | nothing (REST serves odds, by design) |
 
-Limits: one match, one lower-division league, about 20 minutes of play. Whether a
+Limits: one match, one lower-division league, two ten-minute windows. Whether a
 top-flight match carries non-empty `coordinates` is NOT established
 (`docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md`).
 
@@ -76,16 +77,21 @@ against HEAD before Task 1 and green after.
 
 ## Task 3 — the client (Rule 70, same session)
 
-`_bsdOnSSEFrame` in jubilant-bassoon `src/legacy/field.js` reads `data.shots ||
-data.shotmap` and the ball `coords`. Confirm by grep that nothing else reads
-`bsd:stats.minute` or `.period`, then change nothing there unless Task 1 removed a
-key it reads. Edit `src/legacy/field.js` only, never `index.html`'s script block.
+`_bsdOnSSEFrame` in jubilant-bassoon `src/legacy/field.js` sets `_bsdBallPos = data`
+for a `bsd:ball` frame and `_bsdRepaint` then reads `_bsdBallPos.x` and `.y`, while the
+relay sends the position as `data.coords` (`{x, y}`): read 2026-10-28, a ball would not
+draw even from a populated frame. That is a Rule 60 mismatch, and the relay owns the
+contract: settle which side moves (the relay can add `x`/`y` beside `coords`, or the
+client read `data.coords`), and also confirm `_bsdRepaint` is safe when `coords` is null,
+which every recorded `bsd:ball` is (it also arrives for `substitution` incidents). Confirm
+by grep that nothing reads `bsd:stats.minute` or `.period`. Edit `src/legacy/field.js`
+only, never `index.html`'s script block.
 
 ## Done conditions
 
 1. The Task 2 check is red on the commit before Task 1 and green after, both outputs
    in the session doc under `outbox/`.
-2. `curl`-free: the relay is deployed by `deploy.yml` on push; the run id and the
-   check's green output are in the session doc.
+2. The relay is deployed by `deploy.yml` on push; the deploy run id and the check's
+   green output are in the session doc.
 3. `CONTRACTS.md` updated for `bsd:stats` and `bsd:ball`, with a note that the
    jubilant-bassoon copy must be synced (Rule 86).
