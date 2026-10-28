@@ -143,3 +143,21 @@ Run in the same session after "next". HEAD progression: `e89004df` → `9f7b61c5
 - **Next wake:** 17:10Z, to collect both artifacts and re-dispatch for the evening kickoffs (last dispatch before
   2026-10-29T00:00Z).
 
+### 17:13Z evening collection (collected by the scheduled wake)
+
+- **Live verifier, run 40679565426 (11:23Z to 16:05Z):** `no-frames-through-relay`: it picked event 601989
+  (Veikkausliiga, minute 0), subscribed ok, received 0 `bsd:stats` and 0 `bsd:ball` in 150 s. I treated it as a finding
+  about the deployed AmbientDO (Rule 77) and read the live feed instead of retrying. `/bsd/events/live` rows carry TWO
+  flags: `live_websocket` and `websocket_plus`. 601989 had `live_websocket: false, websocket_plus: true`. My `pickEvent`
+  only tested `websocket_plus`, so the tool, not the relay, had picked a match BSD does not stream. Fixed in `846ef015`
+  (both flags required; new test and mutation, 37 of 37 caught). The verifier's artifact now records `live_websocket`.
+- **Live verifier, run 40734070210 (17:16Z), after the fix:** `verified`. Event 602346 (DFB Pokal, SC Paderborn 07 v VfB
+  Stuttgart, both flags true): 7 `bsd:stats`, 29 `bsd:ball`, 8 other SSE events in 150 s through the deployed relay;
+  11 of 11 assertions pass. The AmbientDO's outbound socket works in production. Fan-out CC-CMD is DONE.
+- **Capture, run 40679561469 (11:23Z to 17:03Z):** `no-qualifying-event`, 673 polls: no match in league ids
+  1, 3, 4, 5, 7, 8 was live and streamed in that window.
+- **A capture in a different league, run 40734621854 (17:20Z):** event 602352 (DFB Pokal, SG Dynamo Dresden v FC Schalke
+  04, both flags true), 409 frames in 600 s: 82 `livedata`, 25 `event`, 300 `ingest_debug`. League 43 is not in the
+  tracked list the CC-CMD names; it was taken because the match was live and streamed, and the match is a different
+  kind of feed from the Primera A one (next section).
+

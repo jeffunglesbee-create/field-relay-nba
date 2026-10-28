@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (relay deploys first); jubilant-bassoon consumes (Rule 70)
 **Filed:** 2026-10-28, by CC, from `docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md` (field-laboratory)
 **Confidence gate:** `node scripts/bsd-ws-capture.mjs --self-test` and the Task 2 assertion below
-**Status:** BUILT and DEPLOYED 2026-10-28 (relay `069de491`, deploy run 40631193919; client CONTRACTS.md `f3bcce2`). Done conditions 1 and 3 met; 2 met except its end-to-end half, which needs a live `websocket_plus` match: `bsd-fanout-live-verify.yml` run dispatched 2026-10-28 ~04:30Z (wait 345 min) and an automated wake at 11:20Z re-dispatches it until `verified` (STAGED per Rule 74: blocked by no live match; unblocked when one is live; verify: `node -e "const a=require('./outbox/bsd-fanout-live-verify-latest.json');console.assert(a.state==='verified')"`).
+**Status:** DONE 2026-10-28. Built and deployed (relay `069de491`, deploy run 40631193919; client CONTRACTS.md `f3bcce2`), and proven end to end through the deployed relay: `bsd-fanout-live-verify.yml` run 40734070210, state `verified`, 11 of 11 assertions, 7 `bsd:stats` and 29 `bsd:ball` over 150 s from event 602346 (DFB Pokal), `outbox/bsd-fanout-live-verify-latest.json` (artifact commit `105cdd9b`). Task 3 (the client) is owned by `docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md` Task 3.
 
 ---
 
@@ -98,12 +98,18 @@ unblocked by a capture with `analysis.coordinates.maxElements` above 0.
 1. MET. The Task 2 check was red on the commit before Task 1 (69 recorded frames
    misrepresented: 55 event, 14 livedata) and is green after (`9f7b61c5`); 41 of 41
    mutations caught (`b63fec56`).
-2. MET for deploy and contract, STAGED for the live stream. Deploy run 40631193919
-   success. The live `/bsd/contract` passes 25 of 25 assertions including the three new
-   ones (run 40632008540, `outbox/bsd-contract-verify-latest.txt`). The deployed
-   AmbientDO's outbound BSD socket has never been observed working in production; the
-   end-to-end proof is `scripts/bsd-fanout-live-verify.mjs`, which needs a live match
-   (state `no-qualifying-event` is not a pass).
+2. MET. Deploy run 40631193919 success. The live `/bsd/contract` passes 25 of 25
+   assertions including the three new ones (run 40632008540,
+   `outbox/bsd-contract-verify-latest.txt`). End to end: run 40734070210 of
+   `bsd-fanout-live-verify.yml` subscribed the deployed AmbientDO to event 602346 (DFB
+   Pokal, `live_websocket` true, `websocket_plus` true) over the public routes and
+   received 7 `bsd:stats` and 29 `bsd:ball` through `/live/ambient` in 150 s; all 11
+   assertions pass (exact key sets, a numeric `time.minute`, no top-level minute/period).
+   The deployed AmbientDO's outbound BSD socket does work in production.
+   The first live attempt (run 40632211489, 04:25Z to 10:09Z) found no football in play;
+   the second (run 40679565426) picked event 601989 (Veikkausliiga), received no frame in
+   150 s, and the cause was my event selection: that row had `websocket_plus` true and
+   `live_websocket` FALSE. Selection now requires both (`846ef015`).
 3. MET. `CONTRACTS.md` declares `bsd:stats` and `bsd:ball` in both repos, identical
    (relay `2fd2901a`, client `f3bcce2`; identity check green after one re-run: it had
    run 2 seconds before the client commit landed, relay-first as Rule 70 orders).
