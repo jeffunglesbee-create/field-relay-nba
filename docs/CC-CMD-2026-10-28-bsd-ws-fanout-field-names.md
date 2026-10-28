@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (relay deploys first); jubilant-bassoon consumes (Rule 70)
 **Filed:** 2026-10-28, by CC, from `docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md` (field-laboratory)
 **Confidence gate:** `node scripts/bsd-ws-capture.mjs --self-test` and the Task 2 assertion below
-**Status:** FILED, not started.
+**Status:** BUILT and DEPLOYED 2026-10-28 (relay `069de491`, deploy run 40631193919; client CONTRACTS.md `f3bcce2`). Done conditions 1 and 3 met; 2 met except its end-to-end half, which needs a live `websocket_plus` match: `bsd-fanout-live-verify.yml` run dispatched 2026-10-28 ~04:30Z (wait 345 min) and an automated wake at 11:20Z re-dispatches it until `verified` (STAGED per Rule 74: blocked by no live match; unblocked when one is live; verify: `node -e "const a=require('./outbox/bsd-fanout-live-verify-latest.json');console.assert(a.state==='verified')"`).
 
 ---
 
@@ -95,9 +95,15 @@ unblocked by a capture with `analysis.coordinates.maxElements` above 0.
 
 ## Done conditions
 
-1. The Task 2 check is red on the commit before Task 1 and green after, both outputs
-   in the session doc under `outbox/`.
-2. The relay is deployed by `deploy.yml` on push; the deploy run id and the check's
-   green output are in the session doc.
-3. `CONTRACTS.md` updated for `bsd:stats` and `bsd:ball`, with a note that the
-   jubilant-bassoon copy must be synced (Rule 86).
+1. MET. The Task 2 check was red on the commit before Task 1 (69 recorded frames
+   misrepresented: 55 event, 14 livedata) and is green after (`9f7b61c5`); 41 of 41
+   mutations caught (`b63fec56`).
+2. MET for deploy and contract, STAGED for the live stream. Deploy run 40631193919
+   success. The live `/bsd/contract` passes 25 of 25 assertions including the three new
+   ones (run 40632008540, `outbox/bsd-contract-verify-latest.txt`). The deployed
+   AmbientDO's outbound BSD socket has never been observed working in production; the
+   end-to-end proof is `scripts/bsd-fanout-live-verify.mjs`, which needs a live match
+   (state `no-qualifying-event` is not a pass).
+3. MET. `CONTRACTS.md` declares `bsd:stats` and `bsd:ball` in both repos, identical
+   (relay `2fd2901a`, client `f3bcce2`; identity check green after one re-run: it had
+   run 2 seconds before the client commit landed, relay-first as Rule 70 orders).

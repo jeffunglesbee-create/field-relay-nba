@@ -1,5 +1,22 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (04:35Z) — the BSD fan-out forwards the fields the frames have
+
+**HEAD:** `8a95a202` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-28-bsd-ws-frame-shape.md (Part 2)
+
+`docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md`: **BUILT and DEPLOYED** (run 40631193919). `bsd:stats` carries
+`time` (the old `minute`/`period` never existed on the frame); `bsd:ball` carries `side`, `time`, `commentary`;
+`/bsd/contract` declares both from recorded frames (live: 25 of 25). Check red on 69 frames before, green after; 41
+mutations caught.
+
+- **Open, with an automated wake (2026-10-28T11:20Z):** the live stream proof (`bsd-fanout-live-verify.yml`, needs a
+  live `websocket_plus` match) and the second WebSocket sample from a tracked league (ball-field Task 3).
+- **Found:** the deployed AmbientDO's outbound BSD socket has never been observed working in production; the live
+  verifier will say.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-28 (03:30Z) — nine more BSD club names, live on seven more dates
 
 **HEAD:** `dca3f5b` → this close-out · **Branch:** main

@@ -97,3 +97,31 @@ Also seen in the raw frames, unfixed, in no CC-CMD yet: `event.time.period` alte
 - Status: VERIFIED for the recorder and for this match's frames; the population note's wider claim is STAGED on
   the top-flight sample (unblocked when a listed-league `websocket_plus` match is live; verify:
   `node -e "const a=require('./outbox/bsd-ws-frame-shape-latest.json');console.assert(a.state==='captured'&&[1,3,4,5,7,8].includes(a.event.league_id))"`).
+
+## Part 2 — the fan-out fix (docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md)
+
+Run in the same session after "next". HEAD progression: `e89004df` → `9f7b61c5` (AmbientDO) → `9cb03d01`
+(/bsd/contract examples) → `b63fec56` (check) → `2fd2901a` (CONTRACTS.md) → `069de491` (docs, pushed, deployed) →
+`8a95a202` (live verifier). Client repo: `f3bcce2` (CONTRACTS.md only).
+
+- **Done:** `_bsdOnFrame` forwards `time` on `bsd:stats` and `side`, `time`, `commentary` on `bsd:ball`; nothing
+  computed. `/bsd/contract` `frameShapes.livedata` and `.stats` replaced with recorded shapes (the old examples were
+  invented). `scripts/check-bsd-ws-fanout.mjs` replays 55 event and 14 livedata recorded frames through the real
+  function in strict mode, exact key set, plus 17 synthetic cases (populated coordinates, shotmap, missing id,
+  non-JSON), coverage derived from the data; RED on 69 frames before the fix, GREEN after; 41 of 41 mutations.
+  Deployed (run 40631193919); live `/bsd/contract` 25 of 25 (run 40632008540).
+- **Review:** a 4-lens adversarial workflow (35 agents, each finding re-verified by a skeptic) returned 27 confirmed
+  and 4 refuted findings; every confirmed one was fixed or recorded: the check could not see a populated
+  `coordinates` path, extra keys, shotmap/momentum, or sloppy-vs-strict mode; the served notes quoted one capture's
+  counts as all frames; the coverage line was hard-coded; and the client mismatch had no owner (now top-flight CC-CMD
+  Task 3, STAGED).
+- **A wrong word I wrote and the review caught:** "lower-division" for Categoría Primera A, which is Colombia's top
+  division. Corrected in six files; the accurate statement is "a league outside the relay's tracked V2_LEAGUES".
+- **Not done, with unblock criteria (Rule 74):** the end-to-end stream proof. Blocked by: no live `websocket_plus`
+  match when this was written. Unblocked when one is live. Verify:
+  `node -e "const a=require('./outbox/bsd-fanout-live-verify-latest.json');console.assert(a.state==='verified')"`.
+  Run dispatched ~04:30Z (345 min wait); the 11:20Z wake re-dispatches until verified or 2026-10-29T00:00Z.
+- **Environment note:** `scripts/check-empty-catches.mjs --control` exits 1 in this sandbox on a CLEAN checkout too
+  (tree-sitter absent); the bare count is 112, equal to the baseline.
+- **Client:** no code change. `_bsdOnSSEFrame`/`_bsdRepaint` read `_bsdBallPos.x`, the relay sends `coords`; both
+  inert while `coords` is null on 14 of 14 frames. Owned by the top-flight CC-CMD Task 3.
