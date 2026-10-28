@@ -1,4 +1,6 @@
-# Claude Code Command — a second WebSocket sample, from a top-flight match
+# Claude Code Command — a second WebSocket sample, from a league the relay tracks
+
+(The file name says "top-flight" from the first draft. Categoría Primera A, the first sample's league, is Colombia's top division, so the word named nothing. The selector is the league id list below.)
 
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba executes it (the BSD token is an Actions secret); the artifact is read by field-laboratory
@@ -24,11 +26,11 @@ across `docs/CC-CMD-*.md` and `outbox/*.md` in both repos.
 ## Why a second sample
 
 The first sample (event 602466, Categoría Primera A, `websocket_plus: true`) had
-`coordinates: []` on all of its livedata frames, and its livedata frames were
-commentary incidents, six in ten minutes. Whether a top-flight match carries ball or
-player coordinates is not established by a lower-division match. The league filter
-(`--league-ids`, workflow input `league_ids`) exists so the next sample is not
-another lower-division match.
+`coordinates: []` on all 14 of its livedata frames, and those frames were commentary
+incidents. Categoría Primera A is outside the leagues this relay tracks (V2_LEAGUES
+ids 1, 3, 4, 5, 7, 8). Whether a match in a tracked league carries ball or player
+coordinates is not established by it. The league filter (`--league-ids`, workflow
+input `league_ids`) exists so the next sample is not another untracked league.
 
 ## Probe block (run first, against HEAD)
 
@@ -65,6 +67,26 @@ count and seconds. Then add one dated paragraph to
 `field-laboratory/docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md` under "Second sample":
 verdict, `coordinates` length distribution, identifier keys seen, `situation` values.
 
+## Task 3 — settle the ball field (runs only on the result of Task 2)
+
+Owner of the client mismatch recorded in `CONTRACTS.md` ("bsd:ball", Known mismatch) and
+in `docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md` Task 3: jubilant-bassoon
+`_bsdOnSSEFrame` stores the whole payload as `_bsdBallPos` and `_bsdRepaint` reads
+`_bsdBallPos.x` / `.y`, while the relay sends `coords` (nested).
+
+Read `analysis.coordinates.maxElements` in the new artifact:
+
+- **above 0:** a coordinate element has been recorded. Declare its keys (copy them
+  verbatim from `analysis.elementKeys`) in `/bsd/contract` `frameShapes.livedata` and in
+  `CONTRACTS.md`, then align producer and reader in ONE change, relay first (Rule 70):
+  the relay carries what the client reads, or the client reads `data.coords`. Edit
+  `src/legacy/field.js` only, never `index.html`'s script block. Verify with
+  `node scripts/check-bsd-ws-fanout.mjs` and a Playwright run per jubilant-bassoon
+  Rule 90.
+- **0:** record "the ball renderer stays dormant: no coordinate element in N livedata
+  frames across M matches" in the artifact's session doc, and leave the mismatch STAGED
+  with this CC-CMD's date. Do not edit the client.
+
 ## Done conditions
 
 1. `outbox/bsd-ws-frame-shape-latest.json` has `state: captured`, `event.league_id`
@@ -72,7 +94,9 @@ verdict, `coordinates` length distribution, identifier keys seen, `situation` va
    `node -e "const a=require('./outbox/bsd-ws-frame-shape-latest.json');console.assert(a.state==='captured'&&[1,3,4,5,7,8].includes(a.event.league_id)&&a.analysis.verdict)"`
    prints nothing and exits 0.
 2. The first sample's analysis is preserved in `outbox/bsd-ws-frame-shape-602466.json`.
-3. If no listed-league match with `websocket_plus` is live before 2026-10-29T00:00Z, the
+3. Task 3 is carried out in the branch Task 2's artifact selects, and the choice is
+   written in the session doc.
+4. If no listed-league match with `websocket_plus` is live before 2026-10-29T00:00Z, the
    artifact says `no-qualifying-event` with its poll count, and a fresh wake is set for
    the next day's first kickoff window. That is a genuine residual (the vendor has no
    such match), not deferred work.

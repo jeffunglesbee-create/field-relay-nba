@@ -39,7 +39,7 @@ recorded frames of run 40619557017:
 | `ingest_debug` | 299 | 0 | nothing (a server-side diagnostic; not meant for clients) |
 | `odds` | 3 | 0 | nothing (REST serves odds, by design) |
 
-Limits: one match, one lower-division league, two ten-minute windows. Whether a
+Limits: one match, in Categoría Primera A (Colombia's top division, outside the relay's tracked leagues), two ten-minute windows. Whether a
 top-flight match carries non-empty `coordinates` is NOT established
 (`docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md`).
 
@@ -67,25 +67,31 @@ In `_bsdOnFrame` (`src/ambient-do.js`), and only there:
 
 ## Task 2 — the assertion that proves it
 
-Replay the committed raw frames through the extracted function and assert the
-broadcast now holds the fields. `scripts/check-bsd-ws-fanout.mjs` (new, with
-`--self-test` and a Rule 90 mutation script) reads
-`outbox/bsd-ws-frames-602466-2026-10-28T02-12-33-452Z.jsonl` and asserts, over its 26
-`event` and 6 `livedata` frames, that every broadcast carries `time.minute` and
-`time.period` (event) and `side` and `time.minute` (livedata). The check must go red
-against HEAD before Task 1 and green after.
+`scripts/check-bsd-ws-fanout.mjs` (with `--self-test` and `scripts/mutate-bsd-ws-fanout.mjs`, Rule 90)
+extracts the real `_bsdOnFrame` and replays every recorded frame in
+`outbox/bsd-ws-frames-*.jsonl` (55 event and 14 livedata frames of one match, on
+2026-10-28) through it, strict mode as in production. It asserts the payload carries the
+frame's `time`, `score`, `stats`, `shotmap`, `momentum` (event) and `uts`, `side`,
+`situation`, `time`, `commentary`, `coords` (livedata) under the frame's own names, with
+an EXACT key set (nothing computed rides along), that other frame types are not
+broadcast, and, as a separately counted SYNTHETIC section, the shapes no recording
+contains yet: a populated or bare-object `coordinates`, a present `shotmap`/`momentum`,
+a missing event id, a non-JSON message. The check went red on HEAD before Task 1
+(69 recorded frames misrepresented) and green after.
 
-## Task 3 — the client (Rule 70, same session)
+## Task 3 — the client (Rule 70)
 
-`_bsdOnSSEFrame` in jubilant-bassoon `src/legacy/field.js` sets `_bsdBallPos = data`
-for a `bsd:ball` frame and `_bsdRepaint` then reads `_bsdBallPos.x` and `.y`, while the
-relay sends the position as `data.coords` (`{x, y}`): read 2026-10-28, a ball would not
-draw even from a populated frame. That is a Rule 60 mismatch, and the relay owns the
-contract: settle which side moves (the relay can add `x`/`y` beside `coords`, or the
-client read `data.coords`), and also confirm `_bsdRepaint` is safe when `coords` is null,
-which every recorded `bsd:ball` is (it also arrives for `substitution` incidents). Confirm
-by grep that nothing reads `bsd:stats.minute` or `.period`. Edit `src/legacy/field.js`
-only, never `index.html`'s script block.
+Determined 2026-10-28 by reading `src/legacy/field.js`: `_bsdOnSSEFrame` sets
+`_bsdBallPos = data` and `_bsdRepaint` reads `_bsdBallPos.x != null` then `.x` / `.y`,
+while the relay sends the position as `data.coords`. It is a Rule 60 mismatch, but both
+sides are inert today: `coords` is null on 14 of 14 recorded frames and `_bsdRepaint`
+is safe on null (the `!= null` guard skips it; reviewed, not run in a browser). Nothing
+reads `bsd:stats.minute` or `.period` (grep, three repos). Inventing a flat `x`/`y` from
+a coordinate element no recording contains would be inventing data, so the client is
+NOT edited here. The fix needs one recorded element and is owned by
+`docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md` Task 3, which runs on a scheduled
+wake (2026-10-28T11:20Z). STAGED per Rule 74: blocked by no recorded coordinate element;
+unblocked by a capture with `analysis.coordinates.maxElements` above 0.
 
 ## Done conditions
 

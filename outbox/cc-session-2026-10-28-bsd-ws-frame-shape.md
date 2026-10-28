@@ -56,7 +56,7 @@ is incident-driven, 6 to 8 frames in ten minutes.
   empty array; `ingest_debug` reports what the server ingests (`raw_count` summed over its 300 pulls is 146, a figure that
   counts a still-visible item once per pull; `sent_count` summed is 8, equal to the 8 livedata frames;
   `drop_breakdown` reasons `duplicate` and `out_of_order`).
-- NOT ESTABLISHED: any other match. One lower-division league, `websocket_plus: true`. A top-flight match may
+- NOT ESTABLISHED: any other match. One league (Categoría Primera A, Colombia's top division, outside the relay's tracked V2_LEAGUES), `websocket_plus: true`. A match in a tracked league may
   carry coordinates. That is `docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md`, with an automated wake at
   2026-10-28T11:20Z (trigger `trig_016L8y35g7iFsA2f4A1qUnBC`).
 - An abnormal close (1006 after 109 s) happened once in three windows; the recorder now reconnects, bounded
