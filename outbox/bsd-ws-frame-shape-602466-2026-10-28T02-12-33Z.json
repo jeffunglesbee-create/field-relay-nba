@@ -1,0 +1,251 @@
+{
+  "startedAt": "2026-10-28T02:12:33.452Z",
+  "polls": 1,
+  "liveRowsOnLastPoll": 1,
+  "state": "captured",
+  "verdict": "COORDINATES-EMPTY",
+  "coverage": "335 frames over 600.7 s from 1 event (602466, Categoría Primera A); the verdict describes this match on this tier, not every match",
+  "event": {
+    "id": 602466,
+    "league_id": 80,
+    "league_name": "Categoría Primera A",
+    "home_team": "Boyacá Chicó FC",
+    "away_team": "Junior Barranquilla",
+    "status": "inprogress",
+    "period": "2nd_half",
+    "current_minute": 46,
+    "live_websocket": true,
+    "websocket_plus": true
+  },
+  "ended": "duration-and-frames",
+  "rawFile": "outbox/bsd-ws-frames-602466-2026-10-28T02-12-33-452Z.jsonl",
+  "rawFramesNotStoredInFull": 0,
+  "socketEvents": [
+    {
+      "t": 569,
+      "kind": "open"
+    },
+    {
+      "t": 569,
+      "kind": "sent",
+      "raw": "{\"action\":\"subscribe\",\"event_id\":602466}"
+    }
+  ],
+  "analysis": {
+    "frames": 335,
+    "parsedObjects": 335,
+    "unparseable": 0,
+    "keyUnion": {
+      "type": 335,
+      "event_id": 335,
+      "event": 1,
+      "livedata": 1,
+      "odds": 4,
+      "pulled_at": 299,
+      "raw_count": 299,
+      "sent_count": 299,
+      "merged_into_existing": 299,
+      "drop_breakdown": 299,
+      "type_breakdown": 299,
+      "last_seen_uts": 299,
+      "new_max_uts": 299,
+      "advanced_uts": 299,
+      "home": 26,
+      "away": 26,
+      "score": 26,
+      "time": 32,
+      "stats": 26,
+      "websocket_plus": 26,
+      "uts": 6,
+      "side": 6,
+      "situation": 6,
+      "coordinates": 6,
+      "commentary": 6,
+      "updated_at": 3,
+      "next_update_at": 3,
+      "update_reason": 3
+    },
+    "byType": {
+      "subscribed": 1,
+      "ingest_debug": 299,
+      "event": 26,
+      "livedata": 6,
+      "odds": 3
+    },
+    "subscribedLivedataLengths": {
+      "0": 1
+    },
+    "coordinates": {
+      "absent": 329,
+      "array": 6,
+      "object": 0,
+      "other": 0,
+      "lengths": {
+        "0": 6
+      },
+      "maxElements": 0,
+      "multiPointFrames": 0
+    },
+    "elementKinds": {},
+    "elementKeys": {},
+    "identifierKeysSeen": {},
+    "distinctIdentifiersPerUts": {
+      "distribution": {
+        "0": 6
+      },
+      "max": 0,
+      "utsGroups": 6
+    },
+    "restartEvents": {
+      "situation = freekick": 3,
+      "situation = corner": 2,
+      "commentary = Boyacá Chicó take the corner short.": 1,
+      "commentary = Corner for Boyacá Chicó.": 1
+    },
+    "restartCounters": {
+      "home.fouls": {
+        "first": 6,
+        "last": 7,
+        "changes": 1,
+        "changedAtMs": [
+          96807
+        ]
+      },
+      "home.throw_ins": {
+        "first": 12,
+        "last": 16,
+        "changes": 4,
+        "changedAtMs": [
+          96807,
+          219007,
+          395811,
+          576636
+        ]
+      },
+      "home.free_kicks": {
+        "first": 4,
+        "last": 4,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "home.goal_kicks": {
+        "first": 2,
+        "last": 2,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "home.corner_kicks": {
+        "first": 3,
+        "last": 5,
+        "changes": 2,
+        "changedAtMs": [
+          219007,
+          395811
+        ]
+      },
+      "home.fouled_in_final_third": {
+        "first": 1,
+        "last": 2,
+        "changes": 1,
+        "changedAtMs": [
+          576636
+        ]
+      },
+      "away.fouls": {
+        "first": 4,
+        "last": 4,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.throw_ins": {
+        "first": 5,
+        "last": 7,
+        "changes": 1,
+        "changedAtMs": [
+          460366
+        ]
+      },
+      "away.free_kicks": {
+        "first": 6,
+        "last": 7,
+        "changes": 1,
+        "changedAtMs": [
+          96807
+        ]
+      },
+      "away.goal_kicks": {
+        "first": 3,
+        "last": 3,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.corner_kicks": {
+        "first": 2,
+        "last": 2,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.fouled_in_final_third": {
+        "first": 1,
+        "last": 1,
+        "changes": 0,
+        "changedAtMs": []
+      }
+    },
+    "ingestDebug": {
+      "frames": 299,
+      "rawCountSum": 114,
+      "rawCountFramesWithoutNumber": 0,
+      "sentCountSum": 6,
+      "sentCountFramesWithoutNumber": 0,
+      "advancedTrue": 6,
+      "lastSeenUts": [
+        1793153532,
+        1793153961,
+        1793153989,
+        1793154042,
+        1793154059
+      ],
+      "pulledAtSecondsEpoch": true,
+      "typeBreakdownNonEmpty": 85,
+      "incidentTypesSeenMaxPerPull": {
+        "periodstart": 2,
+        "freekick": 1,
+        "corner": 1,
+        "shotofftarget": 1
+      },
+      "dropReasonsSeenMaxPerPull": {
+        "duplicate": 2,
+        "out_of_order": 1
+      }
+    },
+    "livedataSituations": {
+      "freekick": 3,
+      "corner": 2,
+      "shotofftarget": 1
+    },
+    "livedataTimeSecondValues": {
+      "0": 6
+    },
+    "eventTimePeriodValues": {
+      "2": 10,
+      "\"2T\"": 16
+    },
+    "utsClock": {
+      "numericFrames": 6,
+      "nonNumeric": 0,
+      "distinctValues": 6,
+      "magnitude": "epoch seconds",
+      "smallestNonzeroStep": 16,
+      "sample": [
+        1793153961,
+        1793153989,
+        1793154042,
+        1793154059,
+        1793154107
+      ]
+    },
+    "verdict": "COORDINATES-EMPTY"
+  },
+  "reanalyzedWith": "scripts/bsd-ws-capture.mjs analyze() at the commit that wrote this line"
+}

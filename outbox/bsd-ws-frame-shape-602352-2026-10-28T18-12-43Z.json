@@ -1,0 +1,299 @@
+{
+  "startedAt": "2026-10-28T18:12:43.371Z",
+  "polls": 1,
+  "liveRowsOnLastPoll": 18,
+  "leagueIdFilter": [
+    43
+  ],
+  "state": "captured",
+  "verdict": "IDENTIFIER-LESS",
+  "coverage": "413 frames over 600.5 s from 1 event (602352, DFB Pokal); the verdict describes this match on this tier, not every match",
+  "event": {
+    "id": 602352,
+    "league_id": 43,
+    "league_name": "DFB Pokal",
+    "home_team": "SG Dynamo Dresden",
+    "away_team": "FC Schalke 04",
+    "status": "inprogress",
+    "period": "2nd_half",
+    "current_minute": 50,
+    "live_websocket": true,
+    "websocket_plus": true
+  },
+  "ended": "duration-and-frames",
+  "reconnects": 0,
+  "rawFile": "outbox/bsd-ws-frames-602352-2026-10-28T18-12-43-371Z.jsonl",
+  "rawFramesNotStoredInFull": 0,
+  "socketEvents": [
+    {
+      "t": 539,
+      "kind": "open"
+    },
+    {
+      "t": 539,
+      "kind": "sent",
+      "raw": "{\"action\":\"subscribe\",\"event_id\":602352}"
+    }
+  ],
+  "analysis": {
+    "frames": 413,
+    "parsedObjects": 413,
+    "unparseable": 0,
+    "keyUnion": {
+      "type": 413,
+      "event_id": 413,
+      "event": 1,
+      "livedata": 1,
+      "odds": 1,
+      "pulled_at": 300,
+      "raw_count": 300,
+      "sent_count": 300,
+      "merged_into_existing": 300,
+      "drop_breakdown": 300,
+      "type_breakdown": 300,
+      "last_seen_uts": 300,
+      "new_max_uts": 300,
+      "advanced_uts": 300,
+      "uts": 84,
+      "side": 84,
+      "situation": 84,
+      "time": 112,
+      "coordinates": 84,
+      "commentary": 84,
+      "home": 28,
+      "away": 28,
+      "score": 28,
+      "stats": 28,
+      "websocket_plus": 28
+    },
+    "byType": {
+      "subscribed": 1,
+      "ingest_debug": 300,
+      "livedata": 84,
+      "event": 28
+    },
+    "subscribedLivedataLengths": {
+      "0": 1
+    },
+    "coordinates": {
+      "absent": 329,
+      "array": 84,
+      "object": 0,
+      "other": 0,
+      "lengths": {
+        "0": 19,
+        "1": 24,
+        "4": 41
+      },
+      "maxElements": 4,
+      "multiPointFrames": 41
+    },
+    "elementKinds": {
+      "object": 188
+    },
+    "elementKeys": {
+      "x": 188,
+      "y": 188
+    },
+    "identifierKeysSeen": {},
+    "distinctIdentifiersPerUts": {
+      "distribution": {
+        "0": 63
+      },
+      "max": 0,
+      "utsGroups": 63
+    },
+    "restartEvents": {
+      "situation = freekick": 2,
+      "situation = throwin": 4,
+      "commentary = Schalke throw-in deep in the half.": 1,
+      "commentary = Schalke take a free kick wide.": 1,
+      "commentary = Schalke side-on throw in their own half.": 1,
+      "situation = goal_kick": 1
+    },
+    "restartCounters": {
+      "home.fouls": {
+        "first": 7,
+        "last": 9,
+        "changes": 2,
+        "changedAtMs": [
+          165028,
+          578889
+        ]
+      },
+      "home.throw_ins": {
+        "first": 18,
+        "last": 20,
+        "changes": 2,
+        "changedAtMs": [
+          37406,
+          280220
+        ]
+      },
+      "home.free_kicks": {
+        "first": 5,
+        "last": 6,
+        "changes": 1,
+        "changedAtMs": [
+          37406
+        ]
+      },
+      "home.goal_kicks": {
+        "first": 0,
+        "last": 0,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "home.corner_kicks": {
+        "first": 0,
+        "last": 0,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.fouls": {
+        "first": 5,
+        "last": 6,
+        "changes": 1,
+        "changedAtMs": [
+          37406
+        ]
+      },
+      "away.throw_ins": {
+        "first": 6,
+        "last": 11,
+        "changes": 3,
+        "changedAtMs": [
+          37406,
+          280220,
+          465432
+        ]
+      },
+      "away.free_kicks": {
+        "first": 7,
+        "last": 9,
+        "changes": 2,
+        "changedAtMs": [
+          165028,
+          578889
+        ]
+      },
+      "away.goal_kicks": {
+        "first": 4,
+        "last": 4,
+        "changes": 0,
+        "changedAtMs": []
+      },
+      "away.corner_kicks": {
+        "first": 2,
+        "last": 2,
+        "changes": 0,
+        "changedAtMs": []
+      }
+    },
+    "ingestDebug": {
+      "frames": 300,
+      "rawCountSum": 1075,
+      "rawCountFramesWithoutNumber": 0,
+      "sentCountSum": 84,
+      "sentCountFramesWithoutNumber": 0,
+      "advancedTrue": 56,
+      "lastSeenUts": [
+        1793211137,
+        1793211167,
+        1793211176,
+        1793211178,
+        1793211195
+      ],
+      "pulledAtSecondsEpoch": true,
+      "typeBreakdownNonEmpty": 282,
+      "incidentTypesSeenMaxPerPull": {
+        "matchsituation": 1,
+        "ballcoordinates": 1,
+        "freekick": 1,
+        "possible_event": 1,
+        "shotontarget": 2,
+        "goal": 1,
+        "possession": 1,
+        "throwin": 2,
+        "goalkeeper_saved": 1,
+        "card": 2,
+        "substitution": 1,
+        "goal_kick": 1
+      },
+      "dropReasonsSeenMaxPerPull": {
+        "duplicate": 4,
+        "out_of_order": 7
+      }
+    },
+    "livedataSituations": {
+      "freekick": 2,
+      "safe": 22,
+      "attack": 15,
+      "dangerous": 4,
+      "possible_event": 1,
+      "shotontarget": 12,
+      "goal": 5,
+      "possession": 12,
+      "throwin": 4,
+      "goalkeeper_saved": 3,
+      "card": 2,
+      "substitution": 1,
+      "goal_kick": 1
+    },
+    "livedataTimeSecondValues": {
+      "1": 1,
+      "2": 2,
+      "4": 3,
+      "10": 2,
+      "15": 3,
+      "17": 1,
+      "18": 4,
+      "20": 4,
+      "22": 1,
+      "24": 1,
+      "25": 2,
+      "26": 1,
+      "27": 6,
+      "28": 1,
+      "29": 1,
+      "31": 1,
+      "32": 1,
+      "35": 1,
+      "37": 1,
+      "38": 2,
+      "39": 1,
+      "46": 2,
+      "47": 2,
+      "48": 1,
+      "49": 2,
+      "50": 1,
+      "53": 2,
+      "54": 1,
+      "55": 1,
+      "56": 19,
+      "57": 7,
+      "58": 1,
+      "59": 5
+    },
+    "eventTimePeriodValues": {
+      "2": 12,
+      "\"2T\"": 16
+    },
+    "utsClock": {
+      "numericFrames": 84,
+      "nonNumeric": 0,
+      "distinctValues": 63,
+      "magnitude": "epoch seconds",
+      "smallestNonzeroStep": 1,
+      "sample": [
+        1793211167,
+        1793211176,
+        1793211178,
+        1793211195,
+        1793211201
+      ]
+    },
+    "verdict": "IDENTIFIER-LESS"
+  },
+  "reanalyzedWith": "scripts/bsd-ws-capture.mjs analyze() at the commit that wrote this line"
+}

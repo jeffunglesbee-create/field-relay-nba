@@ -5,7 +5,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba executes it (the BSD token is an Actions secret); the artifact is read by field-laboratory
 **Filed:** 2026-10-28, by CC, from `docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md` (field-laboratory)
-**Status:** FILED. An automated wake is set for 2026-10-28T11:20Z (see Task 1); nothing waits on a person.
+**Status:** DONE 2026-10-28. Captured in a tracked league (Serie A, event 210143, Parma v Udinese, `outbox/bsd-ws-frame-shape-210143-2026-10-28T17-49-29Z.json`), plus two more matches in DFB Pokal (including a second half). Task 3: relay side done, client side owned by `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`.
 
 ---
 
@@ -80,10 +80,12 @@ live match can give today.
 
 ## Done conditions
 
-1. `outbox/bsd-ws-frame-shape-latest.json` has `state: captured`, `event.league_id`
-   in `[1,3,4,5,7,8]`, and `analysis.verdict` set: assertion
-   `node -e "const a=require('./outbox/bsd-ws-frame-shape-latest.json');console.assert(a.state==='captured'&&[1,3,4,5,7,8].includes(a.event.league_id)&&a.analysis.verdict)"`
-   prints nothing and exits 0.
+1. MET, on the per-capture artifact (`bsd-ws-frame-shape-latest.json` is overwritten by every run, so a later
+   capture in another league cannot hold the condition): the file
+   `outbox/bsd-ws-frame-shape-210143-2026-10-28T17-49-29Z.json` has `state: captured`, `event.league_id` 4
+   (Serie A), and `analysis.verdict` `IDENTIFIER-LESS`. Assertion
+   `node -e "const a=require('./outbox/bsd-ws-frame-shape-210143-2026-10-28T17-49-29Z.json');console.assert(a.state==='captured'&&[1,3,4,5,7,8].includes(a.event.league_id)&&a.analysis.verdict)"`
+   prints nothing and exits 0 (run 2026-10-28T18:5xZ).
 2. The first sample's analysis is preserved in `outbox/bsd-ws-frame-shape-602466.json`.
 3. Task 3 is carried out in the branch Task 2's artifact selects, and the choice is
    written in the session doc.

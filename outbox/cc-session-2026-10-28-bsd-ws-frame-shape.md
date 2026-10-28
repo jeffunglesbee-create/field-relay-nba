@@ -161,3 +161,35 @@ Run in the same session after "next". HEAD progression: `e89004df` → `9f7b61c5
   tracked list the CC-CMD names; it was taken because the match was live and streamed, and the match is a different
   kind of feed from the Primera A one (next section).
 
+### Findings from the populated captures (17:20Z to 18:23Z)
+
+Four matches, seven capture windows, 392 livedata and 170 event frames (`outbox/bsd-ws-frames-*.jsonl`; analysis per
+capture in `outbox/bsd-ws-frame-shape-<event>-<time>.json`, all re-analyzed with the final analyzer).
+
+- **The Primera A feed was the outlier, not the rule.** Events 602352 and 602347 (DFB Pokal) and 210143 (Serie A)
+  carried one to four `{x, y}` points on 306 of 378 livedata frames; event 602466 (Categoría Primera A, same two flags
+  true) had an empty window on 14 of 14. Coverage varies by match, not by flag.
+- **`frame.coordinates` is a sliding window, NEWEST FIRST.** 216 of 233 consecutive multi-point pairs prepend new points,
+  0 append (17 gaps). The relay took the LAST element, the OLDEST point. Fixed (`43cf6c44`); the check was red on 69 then
+  more recorded frames before the fix and is green after.
+- **Elements are `{x, y}` integers and nothing else (1014 of 1014): no identifier.** Verdict for the empowerment lock:
+  identifier-less points in a sliding window of recent incident positions (touches, restarts), not a continuous
+  track and not player tracking. That is the CC-CMD's "ball trail" branch, with the caveat that it is a window of incident
+  positions. Frame of reference: one shared pitch, home defends x=0, the same in the one second half measured.
+- **Typed restarts and dead-time markers exist at second grain in the tracked-tier feed**: `freekick`, `throwin`,
+  `goal_kick`, `corner`, `temporary_interruption`, `gameon`, with `uts` epoch seconds (smallest step 1 s) and a real
+  `time.second`. Primera A had none of that. So the empowerment Task 2 question "can a 4-minute window exclude dead
+  time" is answerable per match with this surface, and the answer depends on the match.
+- **Wrong word I wrote, caught by the review workflow:** "lower-division" for Categoría Primera A (Colombia's top
+  division); and **a wrong fix I shipped and then caught:** a reflow of the two served notes that blanked them
+  (`12781c6e`, deployed). `node --check`, the provenance gate and the synthetic self-test all passed. The route-provenance
+  deploy gate had failed on the PREVIOUS push because my notes grew the `/bsd/` handler to 1513 lines (scan window 1500);
+  my first "fix" removed the content instead of moving it, so the handler "shrank to 1494". Real fix: the notes are module
+  constants (`40d6e7eb`), the handler is 1490 lines, and `bsd-contract-verify.mjs --source-notes` reads the served notes where
+  they are written (deploy and guards). Live proof: `/bsd/contract` 28 of 28 (run 40749184981), live verifier `verified`
+  with 12 assertions on event 602352 (run 40749190922).
+- **Process lesson, twice in one session:** I ran a subset of gates and pushed. Running every pre-deploy step of
+  `deploy.yml` in a clean worktree (110 steps; 105 ok, 3 skipped for lack of Cloudflare secrets, 1 needed the real checkout
+  directory name) is the check that finds this class; it is how the other session's orphan STAGED claim
+  (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md`, fixed by them in `1b21f465`) was found too.
+
