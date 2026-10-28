@@ -1,0 +1,565 @@
+{
+  "measuredAt": "2026-10-28T03:12:10.911Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "expectationFrom": "outbox/bsd-join-aliases-measure-before.json",
+  "dates": {
+    "2026-10-10": {
+      "contextRows": 125,
+      "soccerRows": 53,
+      "joined": 53,
+      "joinedBeforeAliases": 48,
+      "byLabel": {
+        "MLS": {
+          "joined": 29,
+          "soccer": 29
+        },
+        "EPL": {
+          "joined": 6,
+          "soccer": 6
+        },
+        "La Liga": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Serie A": {
+          "joined": 3,
+          "soccer": 3
+        },
+        "Bundesliga": {
+          "joined": 6,
+          "soccer": 6
+        },
+        "Ligue 1": {
+          "joined": 5,
+          "soccer": 5
+        }
+      },
+      "notJoined": [],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 5,
+        "written": 5,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      }
+    },
+    "2026-09-12": {
+      "contextRows": 144,
+      "soccerRows": 45,
+      "joined": 44,
+      "joinedBeforeAliases": 39,
+      "byLabel": {
+        "MLS": {
+          "joined": 19,
+          "soccer": 20
+        },
+        "EPL": {
+          "joined": 7,
+          "soccer": 7
+        },
+        "La Liga": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Serie A": {
+          "joined": 3,
+          "soccer": 3
+        },
+        "Bundesliga": {
+          "joined": 6,
+          "soccer": 6
+        },
+        "Ligue 1": {
+          "joined": 5,
+          "soccer": 5
+        }
+      },
+      "notJoined": [
+        {
+          "id": "2026-09-12-mls-sd-phi",
+          "sport": "MLS",
+          "game": "San Diego FC v Philadelphia Union"
+        }
+      ],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 45,
+        "written": 44,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 7,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: San Diego FC v Philadelphia Union"
+        ]
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 1,
+        "written": 0
+      }
+    },
+    "2026-09-19": {
+      "contextRows": 141,
+      "soccerRows": 40,
+      "joined": 40,
+      "joinedBeforeAliases": 35,
+      "byLabel": {
+        "MLS": {
+          "joined": 17,
+          "soccer": 17
+        },
+        "EPL": {
+          "joined": 5,
+          "soccer": 5
+        },
+        "La Liga": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Serie A": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Bundesliga": {
+          "joined": 5,
+          "soccer": 5
+        },
+        "Ligue 1": {
+          "joined": 5,
+          "soccer": 5
+        }
+      },
+      "notJoined": [],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 40,
+        "written": 40,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 4,
+        "upstreamPages": 11,
+        "cacheHits": 0,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      }
+    },
+    "2026-10-17": {
+      "contextRows": 121,
+      "soccerRows": 50,
+      "joined": 50,
+      "joinedBeforeAliases": 47,
+      "byLabel": {
+        "MLS": {
+          "joined": 29,
+          "soccer": 29
+        },
+        "EPL": {
+          "joined": 5,
+          "soccer": 5
+        },
+        "La Liga": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Serie A": {
+          "joined": 3,
+          "soccer": 3
+        },
+        "Bundesliga": {
+          "joined": 6,
+          "soccer": 6
+        },
+        "Ligue 1": {
+          "joined": 3,
+          "soccer": 3
+        }
+      },
+      "notJoined": [],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 50,
+        "written": 50,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 15,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      }
+    },
+    "2026-10-18": {
+      "contextRows": 43,
+      "soccerRows": 28,
+      "joined": 28,
+      "joinedBeforeAliases": 22,
+      "byLabel": {
+        "MLS": {
+          "joined": 9,
+          "soccer": 9
+        },
+        "EPL": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "La Liga": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Serie A": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Bundesliga": {
+          "joined": 2,
+          "soccer": 2
+        },
+        "Ligue 1": {
+          "joined": 5,
+          "soccer": 5
+        }
+      },
+      "notJoined": [],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 28,
+        "written": 28,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 8,
+        "upstreamPages": 1,
+        "cacheHits": 4,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      }
+    },
+    "2026-10-24": {
+      "contextRows": 120,
+      "soccerRows": 48,
+      "joined": 47,
+      "joinedBeforeAliases": 46,
+      "byLabel": {
+        "MLS": {
+          "joined": 28,
+          "soccer": 29
+        },
+        "EPL": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "La Liga": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Serie A": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Bundesliga": {
+          "joined": 6,
+          "soccer": 6
+        },
+        "Ligue 1": {
+          "joined": 1,
+          "soccer": 1
+        }
+      },
+      "notJoined": [
+        {
+          "id": "2026-10-24-mls-lafc-la",
+          "sport": "MLS",
+          "game": "Los Angeles Football Club v LA Galaxy"
+        }
+      ],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 48,
+        "written": 47,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 14,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Los Angeles Football Club v LA Galaxy"
+        ]
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 1,
+        "written": 0
+      }
+    },
+    "2026-10-25": {
+      "contextRows": 57,
+      "soccerRows": 30,
+      "joined": 30,
+      "joinedBeforeAliases": 25,
+      "byLabel": {
+        "MLS": {
+          "joined": 8,
+          "soccer": 8
+        },
+        "EPL": {
+          "joined": 5,
+          "soccer": 5
+        },
+        "La Liga": {
+          "joined": 4,
+          "soccer": 4
+        },
+        "Serie A": {
+          "joined": 5,
+          "soccer": 5
+        },
+        "Bundesliga": {
+          "joined": 2,
+          "soccer": 2
+        },
+        "Ligue 1": {
+          "joined": 6,
+          "soccer": 6
+        }
+      },
+      "notJoined": [],
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 30,
+        "written": 30,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 7,
+        "upstreamPages": 1,
+        "cacheHits": 4,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      }
+    }
+  },
+  "assertions": [
+    {
+      "name": "2026-10-10: the backfill answered ok, twice",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-10-10: joined 53 of 53 soccer rows is at least 90%",
+      "pass": true,
+      "detail": "53/53"
+    },
+    {
+      "name": "2026-10-10: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "2026-09-12: the backfill answered ok, twice",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-09-12: joined 44 of 45 soccer rows is at least 90%",
+      "pass": true,
+      "detail": "44/45"
+    },
+    {
+      "name": "2026-09-12: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "2026-09-19: the backfill answered ok, twice",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-09-19: joined 40 of 40 soccer rows is at least 90%",
+      "pass": true,
+      "detail": "40/40"
+    },
+    {
+      "name": "2026-09-19: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "2026-10-17: the backfill answered ok, twice",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-10-17: joined 50 of 50 soccer rows is at least 90%",
+      "pass": true,
+      "detail": "50/50"
+    },
+    {
+      "name": "2026-10-17: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "2026-10-18: the backfill answered ok, twice",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-10-18: joined 28 of 28 soccer rows is at least 90%",
+      "pass": true,
+      "detail": "28/28"
+    },
+    {
+      "name": "2026-10-18: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "2026-10-24: the backfill answered ok, twice",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-10-24: joined 47 of 48 soccer rows is at least 90%",
+      "pass": true,
+      "detail": "47/48"
+    },
+    {
+      "name": "2026-10-24: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "2026-10-25: the backfill answered ok, twice",
+      "pass": true,
+      "detail": "first {\"s\":200}, second {\"s\":200}"
+    },
+    {
+      "name": "2026-10-25: joined 30 of 30 soccer rows is at least 90%",
+      "pass": true,
+      "detail": "30/30"
+    },
+    {
+      "name": "2026-10-25: a second run writes nothing (the IS NULL scope holds)",
+      "pass": true,
+      "detail": "second run wrote 0"
+    },
+    {
+      "name": "proposals (both sides named a club BSD spells differently): 27 of 27 carry the event the measurement named (0 absent from the served context, 0 wrong or unjoined)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "one-side-only (the other side now an alias): 3 of 3 carry the event the measurement named (0 absent from the served context, 0 wrong or unjoined)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-event (BSD has no event for the game): 2 of 2 still carry no id, 0 absent",
+      "pass": true,
+      "detail": "a row is absent from the served context"
+    },
+    {
+      "name": "the deployed relay serves the id the offline rule gives on 292 of 292 fixture rows it joins (the deploy carries this resolver)",
+      "pass": true,
+      "detail": "0 fixture rows not in the served contexts"
+    },
+    {
+      "name": "every joined row names the teams of its event, in order (292 judged, 0 unjudged)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no event is claimed by two rows of one id scheme (52 events shared across schemes, counted)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no row of another sport carries a bsd_event_id (457 non-soccer rows read)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "every served row's key set is the fixture's key set plus bsd_event_id, compared by name",
+      "pass": true,
+      "detail": "0 rows differ"
+    }
+  ],
+  "proposals": {
+    "inScope": 27,
+    "right": 27,
+    "absent": [],
+    "wrong": []
+  },
+  "oneSide": {
+    "inScope": 3,
+    "right": 3,
+    "absent": [],
+    "wrong": []
+  },
+  "noEvent": {
+    "inScope": 2,
+    "present": 2,
+    "carryingAnId": []
+  },
+  "agreement": {
+    "fixtureRowsJoinedOffline": 292,
+    "servedAndCompared": 292,
+    "differ": 0
+  },
+  "teams": {
+    "joinedRows": 292,
+    "judged": 292,
+    "unjudged": 0,
+    "wrong": 0
+  },
+  "sharedEvents": {
+    "groups": 52,
+    "sameScheme": []
+  },
+  "nonSoccerRowsCarryingAnId": 0,
+  "contract": {
+    "fixtureColumns": 26,
+    "rowsWithADifferentKeySet": 0
+  },
+  "coverage": "7 dates, 751 context rows read, 294 soccer rows, 292 carrying an id"
+}
