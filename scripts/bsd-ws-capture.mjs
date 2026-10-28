@@ -619,7 +619,7 @@ const selfTest = async () => {
   process.exit(fail === 0 ? 0 : 1)
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.argv.includes('--self-test')) await selfTest()
   else await main()
 }
