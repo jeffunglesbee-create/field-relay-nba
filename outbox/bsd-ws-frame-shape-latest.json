@@ -1,0 +1,99 @@
+{
+  "startedAt": "2026-10-28T02:09:27.437Z",
+  "polls": 1,
+  "liveRowsOnLastPoll": 1,
+  "state": "captured",
+  "verdict": "NO-COORDINATE-FRAMES",
+  "coverage": "59 frames over 109.1 s from 1 event (602466, Categoría Primera A); the verdict describes this match on this tier, not every match",
+  "event": {
+    "id": 602466,
+    "league_id": 80,
+    "league_name": "Categoría Primera A",
+    "home_team": "Boyacá Chicó FC",
+    "away_team": "Junior Barranquilla",
+    "status": "inprogress",
+    "period": "halftime",
+    "current_minute": 45,
+    "live_websocket": true,
+    "websocket_plus": true
+  },
+  "ended": "socket-closed",
+  "rawFile": "outbox/bsd-ws-frames-602466-2026-10-28T02-09-27-437Z.jsonl",
+  "rawFramesNotStoredInFull": 0,
+  "socketEvents": [
+    {
+      "t": 508,
+      "kind": "open"
+    },
+    {
+      "t": 508,
+      "kind": "sent",
+      "raw": "{\"action\":\"subscribe\",\"event_id\":602466}"
+    },
+    {
+      "t": 109093,
+      "kind": "close",
+      "code": 1006,
+      "reason": ""
+    }
+  ],
+  "analysis": {
+    "frames": 59,
+    "parsedObjects": 59,
+    "unparseable": 0,
+    "keyUnion": {
+      "type": 59,
+      "event_id": 59,
+      "event": 1,
+      "livedata": 1,
+      "odds": 1,
+      "pulled_at": 54,
+      "raw_count": 54,
+      "sent_count": 54,
+      "merged_into_existing": 54,
+      "drop_breakdown": 54,
+      "type_breakdown": 54,
+      "last_seen_uts": 54,
+      "new_max_uts": 54,
+      "advanced_uts": 54,
+      "home": 4,
+      "away": 4,
+      "score": 4,
+      "time": 4,
+      "stats": 4,
+      "websocket_plus": 4
+    },
+    "byType": {
+      "subscribed": 1,
+      "ingest_debug": 54,
+      "event": 4
+    },
+    "coordinates": {
+      "absent": 59,
+      "array": 0,
+      "object": 0,
+      "other": 0,
+      "lengths": {},
+      "maxElements": 0,
+      "multiPointFrames": 0
+    },
+    "elementKinds": {},
+    "elementKeys": {},
+    "identifierKeysSeen": {},
+    "distinctIdentifiersPerUts": {
+      "distribution": {},
+      "max": 0,
+      "utsGroups": 0
+    },
+    "restartEvents": {},
+    "utsClock": {
+      "numericFrames": 0,
+      "nonNumeric": 0,
+      "distinctValues": 0,
+      "magnitude": null,
+      "smallestNonzeroStep": null,
+      "sample": []
+    },
+    "verdict": "NO-COORDINATE-FRAMES"
+  }
+}
