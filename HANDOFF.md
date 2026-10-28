@@ -1,5 +1,23 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (00:35Z) — the BSD event id is on archived soccer rows, live
+
+**HEAD:** `b8d83b4` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-27-bsd-event-id-on-game-rows.md
+
+`docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`: **DONE**. A soccer row from
+`/context/date/{date}` carries `bsd_event_id`: 43 of 43 and 41 of 41 rows on 2026-08-29 and
+2026-09-05, written by `POST /admin/bsd-game-join`; a rerun writes 0; the 9 oracle rows present
+in the archive are all correct (3 of the 12 are absent from it). Deploy run 40607238843, live
+proof run 40608452953. The laboratory's consumer CC-CMD is unblocked.
+
+- **Open:** the once-per-day pass in `handleJournalismCycle` has not been seen writing on its own.
+  Rows dated 10-27..10-31 (41 soccer rows) had no id at 00:25Z. Read 2026-10-28 01:35Z.
+- **Repaired on the way:** the coverage-states deploy gate no longer depends on the vendor's
+  state today (dated evidence instead), and Repo guards is back to 112 bare empty catches.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-27 (12:10Z) — the shared join passes for NBA, NHL and NFL
 
 **HEAD:** `71a4591` → this close-out · **Branch:** main

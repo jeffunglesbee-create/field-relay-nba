@@ -7,8 +7,24 @@
 without a second CC-CMD).
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — one additive field, one join module, one backfill
-**Status:** FILED. Resolved against HEAD `048de87`; Task 0 re-probes every line
-number below, because they will have drifted.
+**Status:** DONE 2026-10-28. All seven tasks and all eight done conditions, no stop condition hit.
+Deploy run 40607238843 (`04d28bd`); live proof run 40608452953 (`8d51a11`), artifact
+`outbox/bsd-game-join-live-latest.json` (first run kept at
+`outbox/bsd-game-join-live-2026-10-28T0023Z-first-run.json`); idempotence rerun `40ce12b`. Session doc:
+`outbox/cc-session-2026-10-27-bsd-event-id-on-game-rows.md`. The consumer, field-laboratory
+`docs/CC-CMD-2026-10-27-lineups-on-game-cards.md`, is unblocked.
+
+Three corrections this work produced, recorded so the document is not read as still-true:
+
+1. **9 of the 12 oracle row ids exist in the live archive**, not 12. The artifact names the other three
+   (`2026-08-29-mls-min-orl`, `-skc-van`, `-hou-sj`); the 9 present are all correct.
+2. **A same-teams twin a day later is `ambiguous`, not "refused".** Kickoff never chooses between
+   candidates; it only refuses (owner ruling 2026-10-19).
+3. **The archive holds two rows of one fixture under two id schemes**, and both carry the one event id (11
+   events shared by two rows). That is correct for this field.
+
+Still open, and said where it is read: the once-per-day pass has not been observed live (Task 4's own
+limitation below); the session doc carries its unblock criteria and the query that reads it.
 
 ```bash
 git remote get-url origin | grep -q field-relay-nba || { echo "WRONG REPO"; exit 1; }
@@ -204,7 +220,7 @@ synced.
    refusedKickoff == soccerRows`, and `joined / soccerRows >= 0.90`; every non-joined row is named
    with its reason. Printed as `joined N of M soccer rows` per date. Below 0.90 means continue
    Task 3, not defer.
-2. **The 12 oracle pairs, 12 of 12.** Their event ids were fixed by the laboratory's probe from the
+2. **The 12 oracle pairs, 12 of 12** (measured: 9 of the 12 row ids exist in the live archive, 9 of 9 correct, 3 named; see Corrections). Their event ids were fixed by the laboratory's probe from the
    BSD payload by exact name pair, a different code path from this rule:
 
    | date | row id | lab name | `bsd_event_id` | BSD name |
@@ -231,7 +247,7 @@ synced.
 6. **Contract unchanged except by one field:** the key set of a served row equals the Task 1
    fixture's key set plus `bsd_event_id`, compared by name.
 7. **Idempotent:** the Task 6.3 rerun wrote zero rows.
-8. `7 of 7 caught` from the mutation harness; existing identity-resolver checks equal before and
+8. `7 of 7 caught` from the mutation harness (measured: 7 of 7 on the rule, 9 of 9 on the wiring); existing identity-resolver checks equal before and
    after; deploy run success, id printed.
 
 **What this does not prove, stated where it is read:** two dates, 93 soccer rows, committed
