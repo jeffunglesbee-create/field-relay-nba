@@ -40,7 +40,7 @@ const MUTATIONS = [
   ['livedata inside a subscribed ack is not analysed', 'for (const el of o.livedata) if (isObj(el)) units.push(el)', ''],
   ['restart counters match every stat key', '!RESTART_RE.test(k) || typeof st[k]', 'typeof st[k]'],
   ['restart counters never record a change', 'if (st[k] !== c.last) {', 'if (false) {'],
-  ['ingest_debug raw_count is not summed', 'rawCountSum: dbg.reduce((a, o) => a + (Number(o.raw_count) || 0), 0)', 'rawCountSum: 0'],
+  ['ingest_debug raw_count is not summed', 'rawCountSum: rawTotal.sum', 'rawCountSum: 0'],
   ['ingest_debug advanced_uts is not counted', "advancedTrue: dbg.filter((o) => o.advanced_uts === true).length", 'advancedTrue: 0'],
   ['empty coordinate arrays read as a ball trail', "else if (maxElements === 0) verdict = 'COORDINATES-EMPTY'", 'else if (false) verdict = \'COORDINATES-EMPTY\''],
   ['livedata situations are not counted', "if (o.type === 'livedata') bump(situations,", "if (false) bump(situations,"],
@@ -50,6 +50,8 @@ const MUTATIONS = [
   ['the league filter is ignored', "(leagueIds.length === 0 || leagueIds.includes(Number(r.league_id)))", 'true'],
   ['an empty league filter excludes everything', 'leagueIds.length === 0 ||', 'false ||'],
   ['a feed with no events array reads as an empty slate', "if (!Array.isArray(body?.events)) throw new Error('live feed has no events array')", ''],
+  ['a missing raw_count is summed as zero without being reported', 'rawCountFramesWithoutNumber: rawTotal.skipped', 'rawCountFramesWithoutNumber: 0'],
+  ['sent_count skipped frames are not reported', 'sentCountFramesWithoutNumber: sentTotal.skipped', 'sentCountFramesWithoutNumber: 0'],
   ['a socket error is not recorded', "log('error', { message: redact(evt?.message", "void ({ message: redact(evt?.message"],
 ]
 

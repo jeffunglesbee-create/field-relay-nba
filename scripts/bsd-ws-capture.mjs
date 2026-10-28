@@ -25,6 +25,7 @@
 
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { total } from './lib/summary-invariants.mjs'
 
 export const WS_BASE = 'wss://sports.bzzoiro.com/ws/live/'
 export const LIVE_URL = process.env.RELAY_URL
@@ -209,10 +210,16 @@ export const analyze = (frames) => {
     }
     return out
   }
+  // A frame missing `raw_count` is a finding about the frame, never a zero: total()
+  // sums only numbers and reports how many frames were skipped.
+  const rawTotal = total(dbg, 'raw_count')
+  const sentTotal = total(dbg, 'sent_count')
   const ingestDebug = {
     frames: dbg.length,
-    rawCountSum: dbg.reduce((a, o) => a + (Number(o.raw_count) || 0), 0),
-    sentCountSum: dbg.reduce((a, o) => a + (Number(o.sent_count) || 0), 0),
+    rawCountSum: rawTotal.sum,
+    rawCountFramesWithoutNumber: rawTotal.skipped,
+    sentCountSum: sentTotal.sum,
+    sentCountFramesWithoutNumber: sentTotal.skipped,
     advancedTrue: dbg.filter((o) => o.advanced_uts === true).length,
     lastSeenUts: [...new Set(dbg.map((o) => o.last_seen_uts))].slice(0, 5),
     pulledAtSecondsEpoch: dbg.length && dbg.every((o) => o.pulled_at >= 1e9 && o.pulled_at < 1e11),
@@ -715,6 +722,15 @@ const selfTest = async () => {
   ok('ingest_debug is summarised: zero ingested, uts frozen, pulled_at in epoch seconds',
     ing.ingestDebug.frames === 2 && ing.ingestDebug.rawCountSum === 0 && ing.ingestDebug.lastSeenUts.length === 1 &&
     ing.ingestDebug.advancedTrue === 0 && ing.ingestDebug.pulledAtSecondsEpoch === true, JSON.stringify(ing.ingestDebug))
+  const ingMissing = analyze([
+    fr({ type: 'ingest_debug', raw_count: 4, sent_count: 1, pulled_at: 1793153369 }),
+    fr({ type: 'ingest_debug', sent_count: 1, pulled_at: 1793153371 }),
+    fr({ type: 'ingest_debug', raw_count: 'x', pulled_at: 1793153373 }),
+  ])
+  ok('an ingest_debug frame without a numeric raw_count is counted as such, not summed as zero',
+    ingMissing.ingestDebug.rawCountSum === 4 && ingMissing.ingestDebug.rawCountFramesWithoutNumber === 2 &&
+    ingMissing.ingestDebug.sentCountSum === 2 && ingMissing.ingestDebug.sentCountFramesWithoutNumber === 1,
+    JSON.stringify(ingMissing.ingestDebug))
   const ing2 = analyze([fr({ type: 'ingest_debug', raw_count: 3, sent_count: 3, last_seen_uts: 6, pulled_at: 1793153369,
     type_breakdown: { livedata: 3 }, advanced_uts: true })])
   ok('ingest_debug with data reads as ingesting', ing2.ingestDebug.rawCountSum === 3 && ing2.ingestDebug.advancedTrue === 1 &&
