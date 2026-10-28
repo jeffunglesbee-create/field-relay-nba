@@ -70,6 +70,7 @@ is incident-driven, 6 to 8 frames in ten minutes.
 | `IDENTIFIER-LESS` for an empty `coordinates` array | run 40619557017's six frames | `COORDINATES-EMPTY` verdict, own test and mutation |
 | state `captured` for a 109 s capture that met neither floor | run 40619254199's artifact | `stateOf`: only a full-duration capture is `captured` |
 | a 10-minute run concluded success and committed nothing | `origin/main` had no commit for run 40619664790 | commit step now `scripts/probe-commit-retry.sh` (the repo's helper for exactly this); cause of the lost rebase is unread (log blob Forbidden), the inline loop's is-ancestor guard reading a half-rebased HEAD as landed is the documented mechanism, not a measurement of this run |
+| Repo guards red on every push from `c4c63860` to `1fb8004e` (about 40 minutes) | step "No absence-collapse site appears beyond the baseline": `?? []` 22 > baseline 21, site `scripts/bsd-ws-capture.mjs :: lastRows = (await r.json()).events ?? []`. Mine; green was last seen at `60599499`, red began at my first commit. I read the red only after the capture work, not on the first push | a feed with no `events` array is now a thrown, logged failed poll; own test and mutation; green at `ba90529f` (run 40623279354), including the new BSD WS step |
 | `node -e` import threw (`process.argv[1]` undefined) | the offline re-analysis | guard on `argv[1]` |
 
 Rule 90: 33 mutations in `scripts/mutate-bsd-ws-capture.mjs`, 33 caught. The first pass had 2 survivors (an
