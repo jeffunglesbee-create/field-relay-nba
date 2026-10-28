@@ -1,52 +1,47 @@
 {
-  "startedAt": "2026-10-28T17:49:29.251Z",
+  "startedAt": "2026-10-28T18:12:43.371Z",
   "polls": 1,
-  "liveRowsOnLastPoll": 12,
+  "liveRowsOnLastPoll": 18,
   "leagueIdFilter": [
-    1,
-    3,
-    4,
-    5,
-    7,
-    8
+    43
   ],
   "state": "captured",
   "verdict": "IDENTIFIER-LESS",
-  "coverage": "483 frames over 600.5 s from 1 event (210143, Serie A); the verdict describes this match on this tier, not every match",
+  "coverage": "413 frames over 600.5 s from 1 event (602352, DFB Pokal); the verdict describes this match on this tier, not every match",
   "event": {
-    "id": 210143,
-    "league_id": 4,
-    "league_name": "Serie A",
-    "home_team": "Parma",
-    "away_team": "Udinese",
+    "id": 602352,
+    "league_id": 43,
+    "league_name": "DFB Pokal",
+    "home_team": "SG Dynamo Dresden",
+    "away_team": "FC Schalke 04",
     "status": "inprogress",
-    "period": "1st_half",
-    "current_minute": 17,
+    "period": "2nd_half",
+    "current_minute": 50,
     "live_websocket": true,
     "websocket_plus": true
   },
   "ended": "duration-and-frames",
   "reconnects": 0,
-  "rawFile": "outbox/bsd-ws-frames-210143-2026-10-28T17-49-29-251Z.jsonl",
+  "rawFile": "outbox/bsd-ws-frames-602352-2026-10-28T18-12-43-371Z.jsonl",
   "rawFramesNotStoredInFull": 0,
   "socketEvents": [
     {
-      "t": 456,
+      "t": 539,
       "kind": "open"
     },
     {
-      "t": 456,
+      "t": 539,
       "kind": "sent",
-      "raw": "{\"action\":\"subscribe\",\"event_id\":210143}"
+      "raw": "{\"action\":\"subscribe\",\"event_id\":602352}"
     }
   ],
   "analysis": {
-    "frames": 483,
-    "parsedObjects": 483,
+    "frames": 413,
+    "parsedObjects": 413,
     "unparseable": 0,
     "keyUnion": {
-      "type": 483,
-      "event_id": 483,
+      "type": 413,
+      "event_id": 413,
       "event": 1,
       "livedata": 1,
       "odds": 1,
@@ -59,275 +54,243 @@
       "last_seen_uts": 300,
       "new_max_uts": 300,
       "advanced_uts": 300,
-      "uts": 147,
-      "side": 147,
-      "situation": 147,
-      "time": 182,
-      "coordinates": 147,
-      "commentary": 147,
-      "home": 35,
-      "away": 35,
-      "score": 35,
-      "stats": 35,
-      "websocket_plus": 35
+      "uts": 84,
+      "side": 84,
+      "situation": 84,
+      "time": 112,
+      "coordinates": 84,
+      "commentary": 84,
+      "home": 28,
+      "away": 28,
+      "score": 28,
+      "stats": 28,
+      "websocket_plus": 28
     },
     "byType": {
       "subscribed": 1,
       "ingest_debug": 300,
-      "livedata": 147,
-      "event": 35
+      "livedata": 84,
+      "event": 28
     },
     "subscribedLivedataLengths": {
       "0": 1
     },
     "coordinates": {
-      "absent": 336,
-      "array": 147,
+      "absent": 329,
+      "array": 84,
       "object": 0,
       "other": 0,
       "lengths": {
-        "0": 25,
-        "1": 28,
-        "4": 94
+        "0": 19,
+        "1": 24,
+        "4": 41
       },
       "maxElements": 4,
-      "multiPointFrames": 94
+      "multiPointFrames": 41
     },
     "elementKinds": {
-      "object": 404
+      "object": 188
     },
     "elementKeys": {
-      "x": 404,
-      "y": 404
+      "x": 188,
+      "y": 188
     },
     "identifierKeysSeen": {},
     "distinctIdentifiersPerUts": {
       "distribution": {
-        "0": 118
+        "0": 63
       },
       "max": 0,
-      "utsGroups": 118
+      "utsGroups": 63
     },
     "restartEvents": {
-      "situation = freekick": 13,
-      "commentary = Udinese thread the free kick short.": 1,
-      "commentary = Udinese loft it in from the free kick.": 1,
-      "situation = throwin": 2,
-      "situation = goal_kick": 4,
-      "commentary = Udinese goal kick — measured and short.": 1,
-      "commentary = Parma goal kick — and we restart.": 1,
-      "commentary = Parma loft it in from the free kick.": 1,
-      "commentary = Foul! Free kick to Parma.": 2,
-      "commentary = Udinese take a free kick wide.": 1,
-      "commentary = Foul! Free kick to Udinese.": 1,
-      "commentary = Udinese have a chance from the free kick.": 1,
-      "commentary = Parma clip a quick free kick.": 1,
-      "commentary = Whistle — free kick to Parma.": 1
+      "situation = freekick": 2,
+      "situation = throwin": 4,
+      "commentary = Schalke throw-in deep in the half.": 1,
+      "commentary = Schalke take a free kick wide.": 1,
+      "commentary = Schalke side-on throw in their own half.": 1,
+      "situation = goal_kick": 1
     },
     "restartCounters": {
       "home.fouls": {
-        "first": 1,
-        "last": 4,
-        "changes": 3,
+        "first": 7,
+        "last": 9,
+        "changes": 2,
         "changedAtMs": [
-          170401,
-          527606,
-          587357
+          165028,
+          578889
         ]
       },
       "home.throw_ins": {
-        "first": 1,
-        "last": 2,
-        "changes": 1,
+        "first": 18,
+        "last": 20,
+        "changes": 2,
         "changedAtMs": [
-          289189
+          37406,
+          280220
         ]
       },
       "home.free_kicks": {
-        "first": 1,
-        "last": 4,
-        "changes": 2,
+        "first": 5,
+        "last": 6,
+        "changes": 1,
         "changedAtMs": [
-          468486,
-          587357
+          37406
         ]
       },
       "home.goal_kicks": {
-        "first": 4,
-        "last": 7,
-        "changes": 3,
-        "changedAtMs": [
-          227800,
-          409257,
-          468486
-        ]
+        "first": 0,
+        "last": 0,
+        "changes": 0,
+        "changedAtMs": []
       },
       "home.corner_kicks": {
-        "first": 1,
-        "last": 1,
+        "first": 0,
+        "last": 0,
         "changes": 0,
         "changedAtMs": []
       },
       "away.fouls": {
-        "first": 1,
-        "last": 4,
-        "changes": 2,
+        "first": 5,
+        "last": 6,
+        "changes": 1,
         "changedAtMs": [
-          468486,
-          587357
+          37406
         ]
       },
       "away.throw_ins": {
-        "first": 5,
-        "last": 7,
-        "changes": 2,
+        "first": 6,
+        "last": 11,
+        "changes": 3,
         "changedAtMs": [
-          53572,
-          170401
+          37406,
+          280220,
+          465432
         ]
       },
       "away.free_kicks": {
-        "first": 1,
-        "last": 4,
-        "changes": 3,
+        "first": 7,
+        "last": 9,
+        "changes": 2,
         "changedAtMs": [
-          170401,
-          527606,
-          587357
+          165028,
+          578889
         ]
       },
       "away.goal_kicks": {
-        "first": 2,
-        "last": 3,
-        "changes": 1,
-        "changedAtMs": [
-          170401
-        ]
+        "first": 4,
+        "last": 4,
+        "changes": 0,
+        "changedAtMs": []
       },
       "away.corner_kicks": {
-        "first": 1,
-        "last": 1,
+        "first": 2,
+        "last": 2,
         "changes": 0,
         "changedAtMs": []
       }
     },
     "ingestDebug": {
       "frames": 300,
-      "rawCountSum": 1197,
+      "rawCountSum": 1075,
       "rawCountFramesWithoutNumber": 0,
-      "sentCountSum": 147,
+      "sentCountSum": 84,
       "sentCountFramesWithoutNumber": 0,
-      "advancedTrue": 103,
+      "advancedTrue": 56,
       "lastSeenUts": [
-        1793209764,
-        1793209768,
-        1793209774,
-        1793209779,
-        1793209782
+        1793211137,
+        1793211167,
+        1793211176,
+        1793211178,
+        1793211195
       ],
       "pulledAtSecondsEpoch": true,
-      "typeBreakdownNonEmpty": 300,
+      "typeBreakdownNonEmpty": 282,
       "incidentTypesSeenMaxPerPull": {
         "matchsituation": 1,
         "ballcoordinates": 1,
-        "shotofftarget": 1,
+        "freekick": 1,
+        "possible_event": 1,
+        "shotontarget": 2,
+        "goal": 1,
         "possession": 1,
-        "freekick": 2,
-        "throwin": 1,
-        "goal_kick": 1,
-        "shotontarget": 1,
-        "goalkeeper_saved": 1
+        "throwin": 2,
+        "goalkeeper_saved": 1,
+        "card": 2,
+        "substitution": 1,
+        "goal_kick": 1
       },
       "dropReasonsSeenMaxPerPull": {
-        "duplicate": 5,
-        "out_of_order": 6
+        "duplicate": 4,
+        "out_of_order": 7
       }
     },
     "livedataSituations": {
-      "attack": 29,
-      "safe": 36,
-      "shotofftarget": 4,
-      "dangerous": 29,
-      "possession": 21,
-      "freekick": 13,
-      "throwin": 2,
-      "goal_kick": 4,
-      "shotontarget": 5,
-      "goalkeeper_saved": 4
+      "freekick": 2,
+      "safe": 22,
+      "attack": 15,
+      "dangerous": 4,
+      "possible_event": 1,
+      "shotontarget": 12,
+      "goal": 5,
+      "possession": 12,
+      "throwin": 4,
+      "goalkeeper_saved": 3,
+      "card": 2,
+      "substitution": 1,
+      "goal_kick": 1
     },
     "livedataTimeSecondValues": {
-      "0": 8,
       "1": 1,
       "2": 2,
-      "3": 1,
-      "4": 6,
-      "5": 2,
-      "6": 1,
-      "8": 2,
-      "9": 2,
-      "10": 1,
-      "11": 1,
-      "12": 2,
-      "13": 2,
-      "14": 3,
-      "15": 2,
-      "16": 1,
-      "17": 2,
-      "18": 2,
-      "19": 3,
-      "20": 3,
-      "21": 2,
-      "22": 3,
-      "23": 4,
-      "24": 2,
+      "4": 3,
+      "10": 2,
+      "15": 3,
+      "17": 1,
+      "18": 4,
+      "20": 4,
+      "22": 1,
+      "24": 1,
+      "25": 2,
       "26": 1,
-      "27": 3,
-      "28": 2,
+      "27": 6,
+      "28": 1,
       "29": 1,
-      "30": 1,
-      "31": 5,
-      "32": 4,
-      "33": 1,
-      "35": 6,
-      "36": 6,
+      "31": 1,
+      "32": 1,
+      "35": 1,
+      "37": 1,
       "38": 2,
       "39": 1,
-      "40": 2,
-      "41": 1,
-      "42": 6,
-      "43": 2,
-      "44": 2,
-      "45": 1,
-      "47": 1,
-      "48": 8,
-      "49": 13,
-      "50": 5,
-      "51": 1,
-      "52": 1,
-      "53": 3,
-      "54": 3,
-      "55": 2,
-      "56": 1,
-      "57": 1,
-      "58": 2,
-      "59": 1
+      "46": 2,
+      "47": 2,
+      "48": 1,
+      "49": 2,
+      "50": 1,
+      "53": 2,
+      "54": 1,
+      "55": 1,
+      "56": 19,
+      "57": 7,
+      "58": 1,
+      "59": 5
     },
     "eventTimePeriodValues": {
-      "1": 20,
-      "\"1T\"": 15
+      "2": 12,
+      "\"2T\"": 16
     },
     "utsClock": {
-      "numericFrames": 147,
+      "numericFrames": 84,
       "nonNumeric": 0,
-      "distinctValues": 118,
+      "distinctValues": 63,
       "magnitude": "epoch seconds",
       "smallestNonzeroStep": 1,
       "sample": [
-        1793209768,
-        1793209774,
-        1793209779,
-        1793209781,
-        1793209782
+        1793211167,
+        1793211176,
+        1793211178,
+        1793211195,
+        1793211201
       ]
     },
     "verdict": "IDENTIFIER-LESS"
