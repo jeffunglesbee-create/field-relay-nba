@@ -9629,6 +9629,36 @@ async function handleJournalismCycle(env, opts = {}) {
   }
 }
 
+// The served /bsd/contract notes for the two WebSocket payloads, measured from recorded frames
+// (outbox/bsd-ws-frames-*.jsonl, 2026-10-28). They live HERE, not inline in the /bsd/ handler:
+// scripts/lib/route-scan.mjs reads a handler for at most 1500 lines, and inline these pushed
+// /bsd/ to 1513, which flags its provenance entry as a partial read (deploy run 40739293078).
+// docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md.
+const BSD_WS_LIVEDATA_NOTE =
+    'A livedata frame is an INCIDENT (uts epoch seconds, side home|away, situation, time, commentary, coordinates). ' +
+    'frame.coordinates is a SLIDING WINDOW of up to four {x, y} points, NEWEST FIRST (216 of 233 consecutive pairs: ' +
+    'the next frame is the previous one with new points prepended, 0 appended, 17 gaps); coords is its first element, ' +
+    'or null when the window is empty. Elements carry x and y and nothing else (1014 of 1014), integers (x 5 to 95, y ' +
+    '0 to 100), and no player or team identifier. They are positions at incidents, not a continuous track (frames as ' +
+    'often as every second, and six in ten minutes in one match). Frame of reference: ONE shared pitch, and the same ' +
+    'in the one second half measured (event 602352): the home side defends x=0 and attacks toward x=100 (home goal ' +
+    'kicks at x=5, away goal kicks at x=95, away shots at x=10 to 20, a home goal at x=93 in the second half), so BSD ' +
+    'does not flip the frame at half time in that match. Only one second half has been measured. Coverage varies by ' +
+    'match: event 602466 (Categoria Primera A, both flags true) had an empty window on 14 of 14 frames and ' +
+    'time.second 0 on all 14; events 210143 (Serie A), 602352 and 602347 (DFB Pokal) carried one to four points on ' +
+    '306 of 378. Situations over 392 frames in four matches: safe 95, attack 78, dangerous 63, possession 57, ' +
+    'freekick 26, shotontarget 17, throwin 12, shotofftarget 11, goal_kick 7, goalkeeper_saved 7, substitution 5, ' +
+    'goal 5, card 3, corner 3, temporary_interruption 1, gameon 1, possible_event 1. Evidence: four matches, one ' +
+    'evening (2026-10-28); see docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md.';
+
+const BSD_WS_STATS_NOTE =
+    'Of 170 recorded event frames (4 matches, 2026-10-28): time.period is a string on 97 ("1T" 47, "2T" 49, "HT" 1) ' +
+    'with second and display null; the number 1 or 2 on 72 (40 and 32), with a real second and display; the number 31 ' +
+    'on 1, with second null. A reader must accept both types. shotmap and momentum are null: none of the 170 carries ' +
+    'either key. stats is nested per side and its key count differs by match and grows within one: 43 per side on ' +
+    'event 602466, 36 to 41 on the other three. Do not read it as a fixed key set. Every event frame also carries ' +
+    'websocket_plus.';
+
 export default {
     // Cron triggers:
     //   */5  * * * * → push notification heartbeat (drama threshold)
@@ -10529,10 +10559,7 @@ export default {
                                        time: { minute: 45, second: 0, display: '45:00', period: 2,
                                                injury_time: 2, period_started_at_uts: 1793153529 },
                                        commentary: 'Junior Barranquilla send another in.' },
-                            note: ' +                                    +                                    +                                    + ' +
-                                  '+                                    +                                    +                                    + ' +
-                                  '+                                    +                                    +                                    + ' +
-                                  '+                                    +                                    +                                    +',
+                            note: BSD_WS_LIVEDATA_NOTE,
                         },
                         stats: {
                             // VERBATIM `time`, `score` and the four stats values shown, from a recorded
@@ -10548,8 +10575,7 @@ export default {
                                        stats: { home: { fouls: 6, throw_ins: 12, xg: 0.3, ball_possession: 43 },
                                                 away: { fouls: 4, throw_ins: 5, xg: 0.2, ball_possession: 57 } },
                                        shotmap: null, momentum: null },
-                            note: ' +                                    +                                    +                                    + ' +
-                                  '+                                    +                                    +',
+                            note: BSD_WS_STATS_NOTE,
                         },
                         shot: {
                             // VERBATIM from scripts/fixtures/bsd-223324-coordinates.json, captured

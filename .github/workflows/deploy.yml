@@ -860,6 +860,8 @@ jobs:
           node scripts/check-bsd-ws-fanout.mjs --self-test
           node scripts/mutate-bsd-ws-fanout.mjs
           node scripts/check-bsd-ws-fanout.mjs
+          node scripts/bsd-contract-verify.mjs --self-test
+          node scripts/bsd-contract-verify.mjs --source-notes
 
       # THE REGISTRY THE SIX GUARDS ABOVE WERE EACH WRITTEN INSTEAD OF. Every one
       # of them was authored after an incident and covers exactly one edge, and

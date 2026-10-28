@@ -390,6 +390,8 @@ jobs:
           node scripts/check-bsd-ws-fanout.mjs --self-test
           node scripts/mutate-bsd-ws-fanout.mjs
           node scripts/check-bsd-ws-fanout.mjs
+          node scripts/bsd-contract-verify.mjs --self-test
+          node scripts/bsd-contract-verify.mjs --source-notes
 
       # The live half of the same CC-CMD (bsd-fanout-live-verify.yml needs a live match).
       # Its pure part is gated here so it cannot rot between matches.

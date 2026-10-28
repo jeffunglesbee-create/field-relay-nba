@@ -75,8 +75,11 @@ export const assertions = (c) => [
     c?.frameShapes?.livedata?.exampleWithoutCoordinates?.coords === null],
   ['the livedata note says the window is newest first and that coords is its first element',
     /NEWEST FIRST/.test(c?.frameShapes?.livedata?.note ?? '') && /first element/.test(c?.frameShapes?.livedata?.note ?? '')],
-  ['the livedata note says the second half is not measured',
-    /second half is NOT yet measured/.test(c?.frameShapes?.livedata?.note ?? '')],
+  ['the livedata note states the half-time frame of reference and the limit of that evidence',
+    /does not flip the frame/.test(c?.frameShapes?.livedata?.note ?? '')
+    && /Only one second half has been measured/.test(c?.frameShapes?.livedata?.note ?? '')],
+  ['the stats note tells a reader to accept both period types',
+    /accept both types/.test(c?.frameShapes?.stats?.note ?? '')],
 ]
 
 function selfTest () {
@@ -105,10 +108,11 @@ function selfTest () {
       shot: { example: { gm: { x: 0 } } },
       avgPosition: { example: { n: 46, name: 'Cleiton' }, n: 'A COUNT, exact definition UNCONFIRMED' },
       incidentSequence: { example: { gk: { x: 5.4 } } },
-      stats: { example: { type: 'bsd:stats', id: '1', time: { minute: 47, period: 2 }, score: { home: 0, away: 0 } } },
+      stats: { example: { type: 'bsd:stats', id: '1', time: { minute: 47, period: 2 }, score: { home: 0, away: 0 } },
+               note: 'A reader must accept both types.' },
       livedata: { example: { type: 'bsd:ball', id: '1', coords: { x: 72, y: 47 }, side: 'away', time: { minute: 45 }, commentary: 'x' },
                   exampleWithoutCoordinates: { type: 'bsd:ball', id: '2', coords: null },
-                  note: 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. The second half is NOT yet measured.' },
+                  note: 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. BSD does not flip the frame at half time. Only one second half has been measured.' },
     },
   }
   check('a correct contract passes every assertion', assertions(good).every(([, ok]) => ok))
@@ -137,8 +141,10 @@ function selfTest () {
     ['the ball example loses its side', c => { delete c.frameShapes.livedata.example.side }],
     ['the ball example loses its time', c => { delete c.frameShapes.livedata.example.time }],
     ['the ball commentary is not a string', c => { c.frameShapes.livedata.example.commentary = 5 }],
-    ['the newest-first statement dropped from the note', c => { c.frameShapes.livedata.note = 'coords is the first element. The second half is NOT yet measured.' }],
-    ['the second-half caveat dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null.' }],
+    ['the newest-first statement dropped from the note', c => { c.frameShapes.livedata.note = 'coords is the first element. BSD does not flip the frame at half time. Only one second half has been measured.' }],
+    ['the second-half caveat dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. BSD does not flip the frame at half time.' }],
+    ['the half-time frame statement dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. Only one second half has been measured.' }],
+    ['the stats note emptied (the 2026-10-28 damage, as served)', c => { c.frameShapes.stats.note = ' +      +      + ' }],
   ]
   for (const [name, apply] of mutations) {
     const c = JSON.parse(JSON.stringify(good))
@@ -148,8 +154,56 @@ function selfTest () {
     const caught = !assertions(c).every(([, ok]) => ok)
     check(`MUTATION applied and caught: ${name}`, applied && caught)
   }
+  // the source-note reader
+  const goodSrc = `const BSD_WS_LIVEDATA_NOTE =\n  '${'x'.repeat(300)} INCIDENT NEWEST FIRST; coords is its first element. ' +\n  'ONE shared pitch, BSD does not flip the frame at half time. Only one second half has been measured. Coverage varies by match.';\n\nconst BSD_WS_STATS_NOTE =\n  '${'y'.repeat(340)} A reader must accept both types. shotmap and momentum are null. The key count differs by match.';\n\nexport default {`
+  check('the source-note reader passes a well-formed pair of constants', noteProblems(goodSrc).length === 0)
+  const damaged = goodSrc.replace(/const BSD_WS_STATS_NOTE =[\s\S]*?;\n/, `const BSD_WS_STATS_NOTE =\n  ' +                                    +                                    +                                    + ' +\n  '+                                    +                                    +';\n`)
+  check('MUTATION applied and caught: the 2026-10-28 damage (a note of spaces and plus signs)', damaged !== goodSrc && noteProblems(damaged).length > 0)
+  check('MUTATION applied and caught: a constant deleted', noteProblems(goodSrc.replace('const BSD_WS_LIVEDATA_NOTE', 'const SOMETHING_ELSE')).length > 0)
+  check('MUTATION applied and caught: the newest-first sentence lost', noteProblems(goodSrc.replace('NEWEST FIRST', 'newest last')).length > 0)
+  check('MUTATION applied and caught: the half-time sentence lost', noteProblems(goodSrc.replace('does not flip the frame', 'is unknown')).length > 0)
+  check('MUTATION applied and caught: a note too short to be one', noteProblems(goodSrc.replace(/x{300}/, '')).length > 0)
   console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${total - failed}/${total} self-tests`)
   return failed
+}
+
+// --- the served notes, checked in the SOURCE (no network, no deploy) ----------
+//
+// The two WebSocket notes live as module constants in src/index.js. On 2026-10-28 a reflow of them
+// replaced both with strings of spaces and plus signs: `node --check` passed (it is valid JS), the
+// provenance gate passed (the handler got SHORTER), the synthetic self-test passed (it never reads the
+// source), and it deployed. Only the live check below would have said so. This reads the constants
+// where they are written and asserts what they say, so that cannot ship again.
+export const extractNote = (src, name) => {
+  const m = src.match(new RegExp(`const ${name} =\\s*([\\s\\S]*?);\\n`))
+  if (!m) throw new Error(`${name} is not defined in the source`)
+  return new Function(`return (${m[1]})`)()
+}
+export const NOTE_RULES = {
+  BSD_WS_LIVEDATA_NOTE: [[/NEWEST FIRST/, 'says the window is newest first'], [/first element/, 'says coords is the first element'],
+    [/does not flip the frame/, 'states the half-time frame of reference'], [/Only one second half has been measured/, 'states the limit of the second-half evidence'],
+    [/Coverage varies by match/, 'states that coverage varies by match'], [/INCIDENT/, 'says a livedata frame is an incident']],
+  BSD_WS_STATS_NOTE: [[/accept both types/, 'tells a reader to accept both period types'], [/shotmap and momentum are null/, 'states shotmap and momentum are null'],
+    [/differs by match/, 'states the stats key count differs by match']],
+}
+export const noteProblems = (src) => {
+  const out = []
+  for (const [name, rules] of Object.entries(NOTE_RULES)) {
+    let text
+    try { text = extractNote(src, name) } catch (e) { out.push(e.message); continue }
+    if (typeof text !== 'string' || text.length < 400) out.push(`${name} is ${typeof text === 'string' ? text.length : typeof text} characters, expected a real note`)
+    for (const [re, what] of rules) if (!re.test(String(text))) out.push(`${name} does not match ${re}: it ${what}`)
+    if (/\+\s{8,}\+/.test(String(text))) out.push(`${name} contains a run of spaces and plus signs: a broken reflow`)
+  }
+  return out
+}
+if (process.argv.includes('--source-notes')) {
+  const { readFileSync } = await import('node:fs')
+  const fileArg = process.argv.indexOf('--source-file') > -1 ? process.argv[process.argv.indexOf('--source-file') + 1] : null
+  const problems = noteProblems(readFileSync(fileArg ?? new URL('../src/index.js', import.meta.url), 'utf8'))
+  for (const p of problems) console.log(`FAIL  ${p}`)
+  console.log(problems.length === 0 ? `OK: both served WebSocket notes read as written (${Object.keys(NOTE_RULES).length} constants, ${Object.values(NOTE_RULES).flat().length} rules)` : `FAILED: ${problems.length} problem(s)`)
+  process.exit(problems.length === 0 ? 0 : 1)
 }
 
 if (process.argv.includes('--self-test')) process.exit(selfTest())
