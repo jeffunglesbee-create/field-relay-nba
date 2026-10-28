@@ -1,5 +1,22 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (12:10Z) — the shared join is DONE; Task 3's hold is lifted
+
+**HEAD:** `2ce952b` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-25-shared-join.md (updated)
+
+- `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`: **DONE**.
+  Done condition 4 read CFB on closed day 10-27: 1 of 2 games has an opening line (the
+  other, Western KY, is the design's known residual); 0 of 68 opening lines since the
+  deploy at or after kickoff (NBA 32, NHL 23, NFL 12, CFB 1).
+- `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`: **DONE**, because its fix 2 is
+  that done condition. Fix 3 E stays the owner's call.
+- **The owner's hold on Task 3** of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`
+  ("Hold it; fix 3 first") is lifted by that. Task 3 is **not started**; it waits for the
+  owner.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-28 (04:35Z) — the BSD fan-out forwards the fields the frames have
 
 **HEAD:** `8a95a202` → this close-out · **Branch:** main

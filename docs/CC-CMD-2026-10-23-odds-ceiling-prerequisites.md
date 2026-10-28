@@ -5,9 +5,9 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (spend and lost captures) and B (visibility)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. Done conditions 1 and 3 are MET (3 on 2026-10-24, run 40101398801). Fix 2 (done condition 2) is done condition 4 of the 10-21 join CC-CMD and lands 2026-10-25. Fix 3 E is the owner's call. DONE waits on fix 2 only, because the owner's hold on Task 3 of the 09-16 CC-CMD ("Hold it; fix 3 first") named all three fixes and lifts when this is DONE. Owner ruling 2026-10-23: "Hold it; fix 3 first".
+**Status:** DONE 2026-10-28. Done conditions 1 and 3 were met on 2026-10-24 (3: run 40101398801). Done condition 2 (fix 2) is done condition 4 of the 10-21 join CC-CMD, met for NBA, NHL and NFL on 2026-10-27 and for CFB on 2026-10-28. Fix 3 E (a failed stamp WRITE still reads as no refusal) is not a done condition and stays the owner's call. DONE lifts the owner's hold on Task 3 of the 09-16 CC-CMD ("Hold it; fix 3 first"); Task 3 is not started.
 **Blocks:** Task 3 of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`,
-HELD until this is DONE.
+HELD until this is DONE (it is, 2026-10-28; Task 3 itself is the owner's to start).
 **Do not land 2026-11-08..11-23** anything that changes `chargeOdds`,
 `consumeOddsCredit`, `reconcileOddsCredit`, `handleCFLOddsProbs`, jubilant-
 bassoon `fetchCFLOddsProbs` or `fetchSchedule`, or any option of
@@ -128,6 +128,8 @@ here:
    on refusal is caught.
 2. Fix 2: moved to done condition 4 of
    `docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`.
+   **Result 2026-10-28: PASS.** That done condition read NBA, NHL and NFL on 10-27 and CFB
+   on 10-28; see "Readings" in that CC-CMD.
 3. Fix 3: the pairing watch's refusal verdict is red on a stamped day and
    green on an unstamped one in its self-test (with its mutations), and its
    next scheduled run reads `none` for a closed day with no refusal.

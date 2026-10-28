@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a fetch that cannot produce its write)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL. Shape (a) LANDED 2026-10-25: `d46106b` and `f4bea6a`, pushed 14:31Z, deploy run 40202657716 green at 14:38Z. Done conditions 2 and 3 are met (3 by the letter; see Readings). Done condition 4 passes for NBA, NHL and NFL on 2026-10-27; CFB has no closed day with rows yet and is read 2026-10-28 12:00Z (`trig_01PUmdEL1RdEgBfREYUjtgj4`). RULED 2026-10-23: shape (a), make the join match. Session doc: `outbox/cc-session-2026-10-25-shared-join.md`.
+**Status:** DONE 2026-10-28. Shape (a) LANDED 2026-10-25: `d46106b` and `f4bea6a`, deploy run 40202657716 green at 14:38Z. Done conditions 2 and 3 are met (3 by the letter; see Readings). Done condition 4 is met for NBA, NHL and NFL on 2026-10-27 and for CFB on 2026-10-28. RULED 2026-10-23: shape (a), make the join match. Session doc: `outbox/cc-session-2026-10-25-shared-join.md`.
 **Filed by:** the per-consumer demand measurement
 (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md` Task 2). Rule 87.4: found
 in its adversarial review, outside its scope.
@@ -372,3 +372,28 @@ Before the deploy these sports had 0 (10-23 to 10-25 read).
 
 **Verdict.** Done condition 3 is met by the letter. Done condition 4 passes for
 NBA, NHL and NFL. CFB is unread, so the Status stays PARTIAL.
+
+### Readings, 2026-10-28 12:05Z (CFB, closed day 2026-10-27)
+
+**No refusal on the day.** `/budget/odds?date=2026-10-27` at 12:05Z: `ceiling_reached_at`
+null, `month_limit_reached_at` null, `stamps_unreadable` null; used 261 of 3,800,
+`unaccounted` 0.
+
+**Done condition 4, CFB.** The first closed day with rows is 10-27, with two games:
+
+| game | kickoff | opening line |
+|---|---|---|
+| `CFB_2026-10-27_e401871072`, Missouri St v Sam Houston | 00:00Z on 10-28 | written 2026-10-27 10:01:05Z |
+| `CFB_2026-10-27_e401871071`, Western KY v Delaware | 23:00Z | none |
+
+- Opening writes with `ts` on 10-27: CFB 1, above 0.
+- The missing line is the name the design's 112-pair replay left unmatched ("Western
+  KY"), which the CI backfill's whole-slate matcher covers. Whether the vendor lists
+  that game was not checked, because that costs credits.
+- **None at or after its kickoff,** all four sports, from the deploy (2026-10-25
+  14:38Z) to 2026-10-28 12:05Z: NBA 32, NHL 23, NFL 12 and CFB 1 opening lines, 0 at or
+  after kickoff.
+- **`fetchSportOddsLive`,** Tuesday 10-27: 123 credits (41 calls), against 264 on Tuesday
+  10-20. No cause is attributed.
+
+**Verdict.** Done condition 4 passes for all four sports. The CC-CMD is DONE.

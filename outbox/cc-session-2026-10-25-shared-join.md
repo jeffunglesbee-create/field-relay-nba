@@ -112,8 +112,13 @@ Full table and queries: `docs/CC-CMD-2026-10-21-historical-closing-join-misses-f
   opening lines, 0 at or after kickoff. `archive_game_closing` for NFL: 11, 1, 1 on
   10-25, 10-26, 10-27. `fetchSportOddsLive` on 10-26: 105 credits against 204 on
   the previous Monday; no cause attributed.
-- **Open:** CFB has no closed day with rows until 10-27 closes. Read
-  `trig_01PUmdEL1RdEgBfREYUjtgj4`, 2026-10-28 12:00Z. One of its two games, Western
-  KY v Delaware, has no opening line yet; that name is the design's known residual.
-- **Prerequisites CC-CMD:** `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md`
-  stays PARTIAL until CFB passes. Task 3 is not started.
+- **CFB, read 2026-10-28 12:05Z (closed day 10-27):** 1 of 2 games has an opening line
+  (Missouri St v Sam Houston, 2026-10-27 10:01:05Z); Western KY v Delaware has none,
+  the design's known residual. From the deploy: NBA 32, NHL 23, NFL 12, CFB 1 opening
+  lines, 0 at or after kickoff. `fetchSportOddsLive` on Tuesday 10-27: 123 credits
+  against 264 on 10-20. Done condition 4 passes for all four sports; the CC-CMD is
+  **DONE** (2026-10-28).
+- **Prerequisites CC-CMD:** `docs/CC-CMD-2026-10-23-odds-ceiling-prerequisites.md` is
+  **DONE** (2026-10-28). That lifts the owner's hold on Task 3 of
+  `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`. Task 3 is not started. Fix 3 E
+  stays the owner's call.
