@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-28 (19:05Z) — the BSD WebSocket fan-out is proven live, and its coordinates are decoded
+
+**HEAD:** `1835de1f` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-28-bsd-ws-frame-shape.md (Parts 1 to 3)
+
+`docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md`: **DONE**, proven through the deployed relay (live verifier
+`verified`, runs 40734070210 and 40749190922). `docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md`: **DONE** (Serie A,
+event 210143). `docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md`: **DONE** (field-laboratory), verdict `IDENTIFIER-LESS`.
+
+- **What the feed is.** `livedata` is incident commentary with `coordinates`: a sliding window of up to four `{x, y}`
+  integers, NEWEST FIRST, no identifier (1014 of 1014); empty in Categoría Primera A, populated in Serie A and DFB Pokal.
+  `bsd:ball.coords` took the OLDEST point until `43cf6c44`; it is the newest now. Selection needs `live_websocket` AND
+  `websocket_plus` (`846ef015`).
+- **Mistake and repair:** `12781c6e` blanked both served notes while "reflowing" them and deployed; the notes are now
+  module constants gated by `bsd-contract-verify.mjs --source-notes` (deploy and guards), live `/bsd/contract` 28 of 28.
+- **Open, one thing:** `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md` (jubilant-bassoon): the client reads
+  `_bsdBallPos.x` but the relay sends `coords`, and the shot reader reads fields the contract does not carry. FILED, not
+  started; needs a Playwright render proof on the deployed page.
+- **Process:** run EVERY pre-deploy step of `deploy.yml` in a clean worktree before a src push (110 steps), not a subset.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-28 (17:30Z) — Task 3: per-site caps on the odds guard, live
 
 **HEAD:** `4d8cd07` → `5b92e04` → this close-out · **Branch:** main
