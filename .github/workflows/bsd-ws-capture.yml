@@ -21,6 +21,9 @@ on:
       duration_minutes:
         description: Minutes of frames to record
         default: '10'
+      league_ids:
+        description: Comma-separated BSD league ids to accept (blank = any). 1 EPL, 3 La Liga, 4 Serie A, 5 Bundesliga, 7 UCL, 8 Europa
+        default: ''
 
 permissions:
   contents: write
@@ -44,21 +47,18 @@ jobs:
       - name: Record the frames
         env:
           BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
-        run: node scripts/bsd-ws-capture.mjs --wait-minutes "${{ inputs.wait_minutes }}" --duration-minutes "${{ inputs.duration_minutes }}"
+        run: node scripts/bsd-ws-capture.mjs --wait-minutes "${{ inputs.wait_minutes }}" --duration-minutes "${{ inputs.duration_minutes }}" --league-ids "${{ inputs.league_ids }}"
 
+      # scripts/probe-commit-retry.sh, not the inline loop this file started with:
+      # run 40619664790 (2026-10-28) recorded 10 minutes of frames, concluded
+      # success, and landed NOTHING on main. The inline `git pull --rebase ... &&
+      # git push` loop plus an is-ancestor guard reads a half-rebased detached HEAD
+      # as "landed". The helper aborts to a clean branch, auto-resolves only
+      # regenerated *-latest.json files, and fails loudly otherwise.
       - name: Commit the artifact
         if: always()
         run: |
-          set -euo pipefail
-          git config user.email "claude@field.dev"
-          git config user.name  "FIELD CI"
-          git add outbox/bsd-ws-frame-shape-latest.json outbox/bsd-ws-frames-*.jsonl
-          git diff --cached --quiet && echo "no change" && exit 0
-          git commit -m "chore: BSD WS capture artifact"
-          for i in 1 2 3; do
-            git pull --rebase --autostash origin main && git push origin main && break
-            sleep $((i * 5))
-          done
-          git fetch -q origin main
-          git merge-base --is-ancestor HEAD origin/main \
-            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-ws-*' \
+          bash scripts/probe-commit-retry.sh "chore: BSD WS capture artifact"

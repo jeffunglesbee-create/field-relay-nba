@@ -48,9 +48,10 @@ export const RESTART_RE = /throw[\s_-]?in|goal[\s_-]?kick|free[\s_-]?kick|corner
 /** First live row that carries the tracking tier. A row between halves is taken
  *  only when nothing is in play: frames are expected when play resumes, but a
  *  playing match is the better bet. */
-export const pickEvent = (rows) => {
+export const pickEvent = (rows, leagueIds = []) => {
   const eligible = (Array.isArray(rows) ? rows : []).filter(
-    (r) => r && r.websocket_plus === true && r.status === 'inprogress' && r.id != null)
+    (r) => r && r.websocket_plus === true && r.status === 'inprogress' && r.id != null &&
+      (leagueIds.length === 0 || leagueIds.includes(Number(r.league_id))))
   return eligible.find((r) => r.period !== 'halftime') ?? eligible[0] ?? null
 }
 
@@ -198,6 +199,16 @@ export const analyze = (frames) => {
   //     raw_count / sent_count / last_seen_uts: zero throughout a live half is
   //     evidence that no livedata exists upstream, whatever the tier flag says.
   const dbg = objs.map((p) => p.o).filter((o) => o.type === 'ingest_debug')
+  // Each pull repeats the items it still sees, so counts are the MAX seen in one
+  // pull, never a sum across pulls.
+  const maxPerPull = (field) => {
+    const out = {}
+    for (const o of dbg) {
+      if (!isObj(o[field])) continue
+      for (const [k, v] of Object.entries(o[field])) out[k] = Math.max(out[k] ?? 0, typeof v === 'number' ? v : 1)
+    }
+    return out
+  }
   const ingestDebug = {
     frames: dbg.length,
     rawCountSum: dbg.reduce((a, o) => a + (Number(o.raw_count) || 0), 0),
@@ -206,11 +217,26 @@ export const analyze = (frames) => {
     lastSeenUts: [...new Set(dbg.map((o) => o.last_seen_uts))].slice(0, 5),
     pulledAtSecondsEpoch: dbg.length && dbg.every((o) => o.pulled_at >= 1e9 && o.pulled_at < 1e11),
     typeBreakdownNonEmpty: dbg.filter((o) => isObj(o.type_breakdown) && Object.keys(o.type_breakdown).length).length,
+    incidentTypesSeenMaxPerPull: maxPerPull('type_breakdown'),
+    dropReasonsSeenMaxPerPull: maxPerPull('drop_breakdown'),
   }
+
+  // 5e. what the livedata frames ARE, by `situation`, and what the event frames call
+  //     the period (a field that changes type between frames is a contract fact).
+  const situations = {}
+  for (const o of units) if (o.type === 'livedata') bump(situations, typeof o.situation === 'string' ? o.situation : '<no situation>')
+  const eventTimePeriodValues = {}
+  for (const { o } of objs) if (o.type === 'event' && isObj(o.time)) bump(eventTimePeriodValues, JSON.stringify(o.time.period))
+  const livedataTimeSecondValues = {}
+  for (const o of units) if (o.type === 'livedata' && isObj(o.time)) bump(livedataTimeSecondValues, JSON.stringify(o.time.second))
 
   let verdict
   if (frames.length === 0) verdict = 'NO-FRAMES'
   else if (coord.array + coord.object === 0) verdict = 'NO-COORDINATE-FRAMES'
+  // `coordinates: []` on every frame (seen 2026-10-28, six livedata frames) has no
+  // element to be identified or anonymous, so it supports neither the off-ball
+  // reading nor the ball-trail reading; it is its own verdict.
+  else if (maxElements === 0) verdict = 'COORDINATES-EMPTY'
   else if (maxIdsAtOneUts >= 2) verdict = 'OFF-BALL-INSTANT'
   else if (Object.keys(idKeySeen).length === 0) verdict = 'IDENTIFIER-LESS'
   else verdict = 'IDENTIFIED-BUT-ONE-PER-UTS'
@@ -230,6 +256,9 @@ export const analyze = (frames) => {
     restartEvents: restarts,
     restartCounters,
     ingestDebug,
+    livedataSituations: situations,
+    livedataTimeSecondValues,
+    eventTimePeriodValues,
     utsClock: {
       numericFrames: utsVals.length, nonNumeric: utsNonNumber, distinctValues: sorted.length,
       magnitude, smallestNonzeroStep: minStep, sample: sorted.slice(0, 5),
@@ -332,7 +361,7 @@ export const stateOf = ({ ended, frames }) => {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-const waitForEvent = async (waitMs, fetchImpl = fetch) => {
+const waitForEvent = async (waitMs, leagueIds = [], fetchImpl = fetch) => {
   const deadline = Date.now() + waitMs
   let polls = 0
   let lastRows = []
@@ -342,7 +371,7 @@ const waitForEvent = async (waitMs, fetchImpl = fetch) => {
       const r = await fetchImpl(LIVE_URL)
       if (r.ok) {
         lastRows = (await r.json()).events ?? []
-        const pick = pickEvent(lastRows)
+        const pick = pickEvent(lastRows, leagueIds)
         if (pick) return { event: pick, polls, liveRows: lastRows.length }
       }
     } catch (e) {
@@ -351,6 +380,22 @@ const waitForEvent = async (waitMs, fetchImpl = fetch) => {
     if (Date.now() + 30_000 > deadline) return { event: null, polls, liveRows: lastRows.length }
     await sleep(30_000)
   }
+}
+
+/** Rebuild a committed artifact's analysis from its own raw file with the current
+ *  analyzer. The recorded frames are the evidence; the analysis is a pure function
+ *  of them, so a better analyzer can be applied without a second match. */
+export const reanalyze = async (artifactPath) => {
+  const { readFileSync } = await import('node:fs')
+  const art = JSON.parse(readFileSync(artifactPath, 'utf8'))
+  const lines = readFileSync(art.rawFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+  const frames = lines.filter((l) => l.raw !== undefined)
+  art.analysis = analyze(frames)
+  art.verdict = art.analysis.verdict
+  art.state = stateOf({ ended: art.ended, frames })
+  art.reanalyzedWith = 'scripts/bsd-ws-capture.mjs analyze() at the commit that wrote this line'
+  writeFileSync(artifactPath, JSON.stringify(art, null, 2) + '\n')
+  console.log(`reanalyzed ${art.rawFile}: ${frames.length} frames, state ${art.state}, verdict ${art.verdict}`)
 }
 
 const main = async () => {
@@ -367,8 +412,9 @@ const main = async () => {
 
   mkdirSync('outbox', { recursive: true })
   const startedAt = new Date().toISOString()
-  const { event, polls, liveRows } = await waitForEvent(waitMs)
-  const base = { startedAt, polls, liveRowsOnLastPoll: liveRows }
+  const leagueIds = String(arg('league-ids', '')).split(',').map((x) => Number(x)).filter((x) => Number.isInteger(x) && x > 0)
+  const { event, polls, liveRows } = await waitForEvent(waitMs, leagueIds)
+  const base = { startedAt, polls, liveRowsOnLastPoll: liveRows, leagueIdFilter: leagueIds.length ? leagueIds : null }
   if (!event) {
     const out = { ...base, state: 'no-qualifying-event',
       note: `no live row with websocket_plus === true and status 'inprogress' in ${polls} polls over ${waitMs / 60000} min` }
@@ -435,6 +481,11 @@ const selfTest = async () => {
   ok('pickEvent refuses a feed with no websocket_plus event',
     pickEvent(rows.filter((r) => r.id === 1 || r.id === 4)) === null)
   ok('pickEvent tolerates a non-array', pickEvent(null) === null)
+  const lg = [{ id: 10, league_id: 80, websocket_plus: true, status: 'inprogress', period: '2nd_half' },
+    { id: 11, league_id: 7, websocket_plus: true, status: 'inprogress', period: '2nd_half' }]
+  ok('pickEvent with a league filter takes only a listed league', pickEvent(lg, [7, 8])?.id === 11, `got ${pickEvent(lg, [7, 8])?.id}`)
+  ok('pickEvent with a league filter and no listed league in play returns null', pickEvent(lg, [1]) === null)
+  ok('pickEvent with no filter takes the first eligible row', pickEvent(lg, [])?.id === 10)
 
   // verdicts
   const trail = analyze([
@@ -569,6 +620,29 @@ const selfTest = async () => {
     JSON.stringify({ opened, sent: sentMessages.length, ev: r4.events.map((e) => e.kind) }))
   ok('frames from the socket after the reconnect are kept', r4.frames.length === 3 && r4.ended === 'duration-and-frames',
     `${r4.frames.length} ${r4.ended}`)
+  // the shape seen on the wire: a livedata frame is an incident with an empty coordinates array
+  const inc = analyze([
+    fr({ type: 'livedata', uts: 1793153961, side: 'away', situation: 'freekick', time: { minute: 45, second: 0 }, coordinates: [], commentary: 'x' }),
+    fr({ type: 'livedata', uts: 1793153989, side: 'home', situation: 'corner', time: { minute: 47, second: 0 }, coordinates: [], commentary: 'y' }),
+    fr({ type: 'event', time: { period: '2T', minute: 48 }, stats: {} }),
+    fr({ type: 'event', time: { period: 2, minute: 48 }, stats: {} }),
+  ])
+  ok('empty coordinate arrays read COORDINATES-EMPTY, not a ball trail',
+    inc.verdict === 'COORDINATES-EMPTY' && inc.coordinates.array === 2 && inc.coordinates.maxElements === 0, inc.verdict)
+  ok('livedata situations are counted and the uts step is read', inc.livedataSituations.freekick === 1 &&
+    inc.livedataSituations.corner === 1 && inc.utsClock.smallestNonzeroStep === 28 && inc.utsClock.magnitude === 'epoch seconds')
+  ok('an event period that changes type between frames is visible',
+    inc.eventTimePeriodValues['"2T"'] === 1 && inc.eventTimePeriodValues['2'] === 1, JSON.stringify(inc.eventTimePeriodValues))
+  ok('livedata time.second values are reported', inc.livedataTimeSecondValues['0'] === 2)
+  const dbgs = analyze([
+    fr({ type: 'ingest_debug', raw_count: 2, sent_count: 0, last_seen_uts: 1, pulled_at: 1793153555, type_breakdown: { periodstart: 2 }, drop_breakdown: { duplicate: 2 }, advanced_uts: false }),
+    fr({ type: 'ingest_debug', raw_count: 2, sent_count: 0, last_seen_uts: 1, pulled_at: 1793153557, type_breakdown: { periodstart: 2 }, drop_breakdown: { duplicate: 2 }, advanced_uts: false }),
+    fr({ type: 'ingest_debug', raw_count: 1, sent_count: 1, last_seen_uts: 2, pulled_at: 1793153559, type_breakdown: { corner: 1 }, drop_breakdown: {}, advanced_uts: true }),
+  ])
+  ok('incident types and drop reasons are the max in one pull, not a sum over repeated pulls',
+    dbgs.ingestDebug.incidentTypesSeenMaxPerPull.periodstart === 2 && dbgs.ingestDebug.incidentTypesSeenMaxPerPull.corner === 1 &&
+    dbgs.ingestDebug.dropReasonsSeenMaxPerPull.duplicate === 2 && dbgs.ingestDebug.sentCountSum === 1, JSON.stringify(dbgs.ingestDebug))
+
   const WS5 = makeWS((s) => { s.emit('open', {}); s.emit('close', { code: 1006, reason: '' }) })
   const p5 = capture({ WS: WS5, url: 'wss://x/', eventId: 5, durationMs: 4000, minFrames: 2, hardCapMs: 60000,
     now: fakeNow, setTimer: setT, clearTimer: clearT, token: TOKEN, maxReconnects: 1, reconnectPauseMs: 1000 })
@@ -577,6 +651,22 @@ const selfTest = async () => {
   const r5 = await p5
   ok('reconnects are bounded: a socket that always closes ends as socket-closed',
     r5.ended === 'socket-closed' && r5.reconnects === 1, `${r5.ended} ${r5.reconnects}`)
+
+  // reanalysis rebuilds analysis, verdict and state from the artifact's own raw file
+  const { mkdtempSync, writeFileSync: wf, readFileSync: rf } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const dir = mkdtempSync(`${tmpdir()}/bsd-ws-`)
+  const rawPath = `${dir}/raw.jsonl`
+  wf(rawPath, [
+    JSON.stringify({ socketEvent: { t: 0, kind: 'open' } }),
+    JSON.stringify({ t: 1, raw: JSON.stringify({ type: 'livedata', uts: 1793153961, situation: 'corner', coordinates: [] }) }),
+    JSON.stringify({ t: 2, raw: JSON.stringify({ type: 'event', time: { period: '2T' } }) }),
+  ].join('\n') + '\n')
+  wf(`${dir}/art.json`, JSON.stringify({ rawFile: rawPath, ended: 'socket-closed', state: 'captured', verdict: 'STALE', analysis: {} }))
+  await reanalyze(`${dir}/art.json`)
+  const re = JSON.parse(rf(`${dir}/art.json`, 'utf8'))
+  ok('reanalyze recomputes analysis, verdict and state from the raw file',
+    re.analysis.frames === 2 && re.verdict === 'COORDINATES-EMPTY' && re.state === 'incomplete', JSON.stringify({ f: re.analysis.frames, v: re.verdict, s: re.state }))
 
   // state: only a full-duration capture with the frame floor met is `captured`
   ok('stateOf: full duration is captured', stateOf({ ended: 'duration-and-frames', frames: [1] }) === 'captured')
@@ -621,5 +711,6 @@ const selfTest = async () => {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.argv.includes('--self-test')) await selfTest()
+  else if (process.argv.includes('--reanalyze')) await reanalyze(process.argv[process.argv.indexOf('--reanalyze') + 1])
   else await main()
 }
