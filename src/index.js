@@ -9669,6 +9669,29 @@ const BSD_WS_LIVEDATA_NOTE =
     'goal 5, card 3, corner 3, temporary_interruption 1, gameon 1, possible_event 1. Evidence: four matches, one ' +
     'evening (2026-10-28); see docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md.';
 
+// The shotmap-to-shared-pitch placement served in /bsd/contract transformReference.sharedPitch. Measured
+// 2026-10-29 by joining each goal's incidents sequence pos (one shared pitch, home attacks x = 100) to its
+// shotmap pos (target-goal-relative): 121 of 126 goals (2 own goals excluded) across 38 finished websocket_plus
+// events, home 69 of 69 exact on (100 - x, 100 - y), away 51 of 52 exact on (x, y) and the 52nd within 0.5 of it
+// (outbox/bsd-shared-pitch-fit-latest.json, scripts/bsd-shared-pitch-fit.mjs, run 40810163501).
+// A module constant for the same reason as the notes above: the /bsd/ handler is at the scanner's window.
+// docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md.
+const BSD_SHARED_PITCH = {
+    for:  'placing shotmap[].pos on the pitch the ball (livedata coordinates) and incidents[].sequence[].pos are on, ' +
+          'where the home side attacks x = 100',
+    home: 'x = 100 - x; y = 100 - y',
+    away: 'x = x; y = y',
+    note: 'mirrorAway above is the OTHER orientation: it leaves the home side raw, so home attacks x = 0. A pitch takes ' +
+          'one orientation, never both, and it must match whatever else is drawn on it. The ball, the goal build-up ' +
+          'sequence and the incident positions are home-attacks-x=100, so a shot drawn with them uses sharedPitch, ' +
+          'not mirrorAway. y is rotated for the home side and untouched for the away side: both teams share one ' +
+          'lateral axis once placed.',
+    measured: { date: '2026-10-29', method: 'join of incidents[] goal sequence pos to shotmap[] goal pos by player id, ' +
+                'side and minute (+-1), finished websocket_plus events 2026-10-26 to 2026-10-28',
+                goals: 126, paired: 121, ownGoalsExcluded: 2, events: 38, home: { pairs: 69, exact: 69 }, away: { pairs: 52, exact: 51, widest: 0.5 },
+                source: 'outbox/bsd-shared-pitch-fit-latest.json' },
+};
+
 const BSD_WS_STATS_NOTE =
     'Of 170 recorded event frames (4 matches, 2026-10-28): time.period is a string on 97 ("1T" 47, "2T" 49, "HT" 1) ' +
     'with second and display null; the number 1 or 2 on 72 (40 and 32), with a real second and display; the number 31 ' +
@@ -10657,6 +10680,7 @@ export default {
                         mirrorAwayAppliesTo: 'the away side only, for any single-pitch render, of a perTeam: true frame',
                         mirrorAwayNotFor: ['incidents[].sequence[].pos — already one shared pitch; mirroring it ' +
                                            'moves the away build-up into the wrong half'],
+                        sharedPitch: BSD_SHARED_PITCH,
                         mirrorForAwayPerspective: 'x = 100 - x; y = 100 - y',
                         mirrorForAwayPerspectiveNote: 'DEPRECATED NAME, kept so existing readers do not break. ' +
                                                       'Same formula; use mirrorAway.',

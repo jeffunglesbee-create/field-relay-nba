@@ -16,6 +16,7 @@ export const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
 export const WANT_REVISION = '2026-10-16-1'
 export const SEQ = 'incidents[].sequence[].pos'
 export const MIRROR = 'x = 100 - x; y = 100 - y'
+export const SHARED_AWAY = 'x = x; y = y'
 
 /** Every done-condition assertion, as data, so the list is checkable and the
  *  mutation below can target one. */
@@ -80,6 +81,17 @@ export const assertions = (c) => [
     && /Only one second half has been measured/.test(c?.frameShapes?.livedata?.note ?? '')],
   ['the stats note tells a reader to accept both period types',
     /accept both types/.test(c?.frameShapes?.stats?.note ?? '')],
+  // The shot placement on the pitch the ball is drawn on, measured 2026-10-29 by an exact join of goal
+  // incidents to shotmap records (outbox/bsd-shared-pitch-fit-latest.json). docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md.
+  ['sharedPitch: the HOME side is rotated (home attacks x = 100 on the shared pitch)',
+    c?.transformReference?.sharedPitch?.home === MIRROR],
+  ['sharedPitch: the AWAY side is left as it is',
+    c?.transformReference?.sharedPitch?.away === SHARED_AWAY],
+  ['sharedPitch names its orientation and says it is the OTHER one from mirrorAway',
+    /home side attacks x = 100/.test(c?.transformReference?.sharedPitch?.for ?? '')
+    && /OTHER orientation/.test(c?.transformReference?.sharedPitch?.note ?? '')],
+  ['sharedPitch carries the measurement it rests on (>= 100 paired goals)',
+    (c?.transformReference?.sharedPitch?.measured?.paired ?? 0) >= 100],
 ]
 
 function selfTest () {
@@ -103,7 +115,9 @@ function selfTest () {
     },
     supersedes: { revision: '2026-10-10-1', wrongAbout: [SEQ] },
     transformReference: { mirrorAway: MIRROR, mirrorAwayRequired: true, mirrorForAwayPerspective: MIRROR,
-                          mirrorAwayNotFor: [`${SEQ} — already one shared pitch`] },
+                          mirrorAwayNotFor: [`${SEQ} — already one shared pitch`],
+                          sharedPitch: { for: 'placing shotmap[].pos where the home side attacks x = 100', home: MIRROR, away: SHARED_AWAY,
+                                         note: 'mirrorAway above is the OTHER orientation.', measured: { paired: 123 } } },
     frameShapes: {
       shot: { example: { gm: { x: 0 } } },
       avgPosition: { example: { n: 46, name: 'Cleiton' }, n: 'A COUNT, exact definition UNCONFIRMED' },
@@ -145,6 +159,13 @@ function selfTest () {
     ['the second-half caveat dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. BSD does not flip the frame at half time.' }],
     ['the half-time frame statement dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. Only one second half has been measured.' }],
     ['the stats note emptied (the 2026-10-28 damage, as served)', c => { c.frameShapes.stats.note = ' +      +      + ' }],
+    ['sharedPitch: home and away swapped (the contract mirrorAway orientation)', c => { const sp = c.transformReference.sharedPitch; [sp.home, sp.away] = [sp.away, sp.home] }],
+    ['sharedPitch: away given a y flip', c => { c.transformReference.sharedPitch.away = 'x = x; y = 100 - y' }],
+    ['sharedPitch: home given only an x flip', c => { c.transformReference.sharedPitch.home = 'x = 100 - x; y = y' }],
+    ['sharedPitch: dropped', c => { delete c.transformReference.sharedPitch }],
+    ['sharedPitch: the orientation sentence lost', c => { c.transformReference.sharedPitch.for = 'placing shotmap[].pos' }],
+    ['sharedPitch: the OTHER-orientation warning lost', c => { c.transformReference.sharedPitch.note = 'x' }],
+    ['sharedPitch: the measurement shrunk to a hand check', c => { c.transformReference.sharedPitch.measured.paired = 7 }],
   ]
   for (const [name, apply] of mutations) {
     const c = JSON.parse(JSON.stringify(good))
