@@ -1,0 +1,1794 @@
+{
+  "generated_at": "2026-10-29T02:54:54.659Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "hypothesis": {
+    "home": "rotate",
+    "away": "identity"
+  },
+  "tolerance": 0.15,
+  "minSeparablePerSide": 8,
+  "coverage": {
+    "dates": [
+      "2026-10-28",
+      "2026-10-27",
+      "2026-10-26"
+    ],
+    "events": 40,
+    "eventsAvailable": 80,
+    "goalIncidents": 126,
+    "paired": 123,
+    "unpaired": {
+      "no_sequence": 0,
+      "own_goal": 0,
+      "no_record": 1,
+      "ambiguous": 2
+    },
+    "fetchErrors": []
+  },
+  "fit": {
+    "home": {
+      "n": 71,
+      "separable": 60,
+      "fits": {
+        "identity": 0,
+        "flipX": 7,
+        "flipY": 0,
+        "rotate": 71
+      },
+      "hypothesis": "rotate",
+      "misfits": []
+    },
+    "away": {
+      "n": 52,
+      "separable": 45,
+      "fits": {
+        "identity": 51,
+        "flipX": 0,
+        "flipY": 4,
+        "rotate": 0
+      },
+      "hypothesis": "identity",
+      "misfits": [
+        {
+          "event": 604443,
+          "minute": 90,
+          "side": "away",
+          "pid": 473,
+          "shared": {
+            "x": 9.7,
+            "y": 53.6
+          },
+          "rest": {
+            "x": 10.2,
+            "y": 53.4
+          }
+        }
+      ]
+    }
+  },
+  "verdict": "CONTRADICTED",
+  "pairs": [
+    {
+      "event": 5383,
+      "minute": 86,
+      "side": "home",
+      "pid": 6776,
+      "shared": {
+        "x": 89.2,
+        "y": 47.4
+      },
+      "rest": {
+        "x": 10.8,
+        "y": 52.6
+      }
+    },
+    {
+      "event": 5383,
+      "minute": 64,
+      "side": "home",
+      "pid": 9550,
+      "shared": {
+        "x": 96.2,
+        "y": 51.4
+      },
+      "rest": {
+        "x": 3.8,
+        "y": 48.6
+      }
+    },
+    {
+      "event": 5383,
+      "minute": 29,
+      "side": "away",
+      "pid": 6246,
+      "shared": {
+        "x": 8.7,
+        "y": 62.7
+      },
+      "rest": {
+        "x": 8.7,
+        "y": 62.7
+      }
+    },
+    {
+      "event": 5382,
+      "minute": 83,
+      "side": "home",
+      "pid": 9270,
+      "shared": {
+        "x": 88.1,
+        "y": 39.5
+      },
+      "rest": {
+        "x": 11.9,
+        "y": 60.5
+      }
+    },
+    {
+      "event": 5382,
+      "minute": 79,
+      "side": "home",
+      "pid": 9270,
+      "shared": {
+        "x": 87.9,
+        "y": 42.9
+      },
+      "rest": {
+        "x": 12.1,
+        "y": 57.1
+      }
+    },
+    {
+      "event": 5382,
+      "minute": 67,
+      "side": "home",
+      "pid": 9270,
+      "shared": {
+        "x": 88,
+        "y": 33.7
+      },
+      "rest": {
+        "x": 12,
+        "y": 66.3
+      }
+    },
+    {
+      "event": 5382,
+      "minute": 7,
+      "side": "home",
+      "pid": 9261,
+      "shared": {
+        "x": 91.8,
+        "y": 48.9
+      },
+      "rest": {
+        "x": 8.2,
+        "y": 51.1
+      }
+    },
+    {
+      "event": 5381,
+      "minute": 83,
+      "side": "home",
+      "pid": 9219,
+      "shared": {
+        "x": 96.2,
+        "y": 56.6
+      },
+      "rest": {
+        "x": 3.8,
+        "y": 43.4
+      }
+    },
+    {
+      "event": 5381,
+      "minute": 64,
+      "side": "away",
+      "pid": 9620,
+      "shared": {
+        "x": 11.7,
+        "y": 38.1
+      },
+      "rest": {
+        "x": 11.7,
+        "y": 38.1
+      }
+    },
+    {
+      "event": 5381,
+      "minute": 51,
+      "side": "away",
+      "pid": 10434,
+      "shared": {
+        "x": 9,
+        "y": 63.6
+      },
+      "rest": {
+        "x": 9,
+        "y": 63.6
+      }
+    },
+    {
+      "event": 5381,
+      "minute": 46,
+      "side": "home",
+      "pid": 9528,
+      "shared": {
+        "x": 96.1,
+        "y": 50.6
+      },
+      "rest": {
+        "x": 3.9,
+        "y": 49.4
+      }
+    },
+    {
+      "event": 5381,
+      "minute": 9,
+      "side": "home",
+      "pid": 9528,
+      "shared": {
+        "x": 76.6,
+        "y": 55.3
+      },
+      "rest": {
+        "x": 23.4,
+        "y": 44.7
+      }
+    },
+    {
+      "event": 5380,
+      "minute": 90,
+      "side": "home",
+      "pid": 3152,
+      "shared": {
+        "x": 76.8,
+        "y": 65.6
+      },
+      "rest": {
+        "x": 23.2,
+        "y": 34.4
+      }
+    },
+    {
+      "event": 5380,
+      "minute": 88,
+      "side": "away",
+      "pid": 2811,
+      "shared": {
+        "x": 4.6,
+        "y": 53
+      },
+      "rest": {
+        "x": 4.6,
+        "y": 53
+      }
+    },
+    {
+      "event": 5380,
+      "minute": 70,
+      "side": "home",
+      "pid": 9148,
+      "shared": {
+        "x": 75.6,
+        "y": 47.3
+      },
+      "rest": {
+        "x": 24.4,
+        "y": 52.7
+      }
+    },
+    {
+      "event": 5379,
+      "minute": 90,
+      "side": "home",
+      "pid": 46,
+      "shared": {
+        "x": 83.8,
+        "y": 67.8
+      },
+      "rest": {
+        "x": 16.2,
+        "y": 32.2
+      }
+    },
+    {
+      "event": 5379,
+      "minute": 86,
+      "side": "away",
+      "pid": 9161,
+      "shared": {
+        "x": 20.9,
+        "y": 53.6
+      },
+      "rest": {
+        "x": 20.9,
+        "y": 53.6
+      }
+    },
+    {
+      "event": 5379,
+      "minute": 80,
+      "side": "away",
+      "pid": 9800,
+      "shared": {
+        "x": 16.1,
+        "y": 73.9
+      },
+      "rest": {
+        "x": 16.1,
+        "y": 73.9
+      }
+    },
+    {
+      "event": 5379,
+      "minute": 61,
+      "side": "home",
+      "pid": 9085,
+      "shared": {
+        "x": 84.3,
+        "y": 69.4
+      },
+      "rest": {
+        "x": 15.7,
+        "y": 30.6
+      }
+    },
+    {
+      "event": 602467,
+      "minute": 52,
+      "side": "home",
+      "pid": 74871,
+      "shared": {
+        "x": 88.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 7320,
+      "minute": 90,
+      "side": "home",
+      "pid": 4260,
+      "shared": {
+        "x": 95.7,
+        "y": 61.3
+      },
+      "rest": {
+        "x": 4.3,
+        "y": 38.7
+      }
+    },
+    {
+      "event": 7320,
+      "minute": 51,
+      "side": "home",
+      "pid": 69,
+      "shared": {
+        "x": 91.4,
+        "y": 60.7
+      },
+      "rest": {
+        "x": 8.6,
+        "y": 39.3
+      }
+    },
+    {
+      "event": 7320,
+      "minute": 43,
+      "side": "home",
+      "pid": 69,
+      "shared": {
+        "x": 90.8,
+        "y": 55.2
+      },
+      "rest": {
+        "x": 9.2,
+        "y": 44.8
+      }
+    },
+    {
+      "event": 7318,
+      "minute": 90,
+      "side": "home",
+      "pid": 638,
+      "shared": {
+        "x": 97,
+        "y": 51
+      },
+      "rest": {
+        "x": 3,
+        "y": 49
+      }
+    },
+    {
+      "event": 7318,
+      "minute": 78,
+      "side": "home",
+      "pid": 644,
+      "shared": {
+        "x": 75.9,
+        "y": 35.4
+      },
+      "rest": {
+        "x": 24.1,
+        "y": 64.6
+      }
+    },
+    {
+      "event": 7318,
+      "minute": 46,
+      "side": "away",
+      "pid": 171,
+      "shared": {
+        "x": 11.6,
+        "y": 38.2
+      },
+      "rest": {
+        "x": 11.6,
+        "y": 38.2
+      }
+    },
+    {
+      "event": 599528,
+      "minute": 45,
+      "side": "home",
+      "pid": 4328,
+      "shared": {
+        "x": 88.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 604438,
+      "minute": 43,
+      "side": "home",
+      "pid": 331,
+      "shared": {
+        "x": 88.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 604438,
+      "minute": 40,
+      "side": "away",
+      "pid": 511,
+      "shared": {
+        "x": 11.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 211168,
+      "minute": 89,
+      "side": "away",
+      "pid": 9060,
+      "shared": {
+        "x": 6.3,
+        "y": 55.5
+      },
+      "rest": {
+        "x": 6.3,
+        "y": 55.5
+      }
+    },
+    {
+      "event": 211168,
+      "minute": 57,
+      "side": "home",
+      "pid": 6016,
+      "shared": {
+        "x": 91.6,
+        "y": 41.1
+      },
+      "rest": {
+        "x": 8.4,
+        "y": 58.9
+      }
+    },
+    {
+      "event": 211168,
+      "minute": 48,
+      "side": "home",
+      "pid": 5773,
+      "shared": {
+        "x": 97.1,
+        "y": 52.6
+      },
+      "rest": {
+        "x": 2.9,
+        "y": 47.4
+      }
+    },
+    {
+      "event": 211168,
+      "minute": 16,
+      "side": "away",
+      "pid": 9240,
+      "shared": {
+        "x": 4.8,
+        "y": 47.9
+      },
+      "rest": {
+        "x": 4.8,
+        "y": 47.9
+      }
+    },
+    {
+      "event": 604443,
+      "minute": 90,
+      "side": "away",
+      "pid": 473,
+      "shared": {
+        "x": 9.7,
+        "y": 53.6
+      },
+      "rest": {
+        "x": 10.2,
+        "y": 53.4
+      }
+    },
+    {
+      "event": 604443,
+      "minute": 42,
+      "side": "away",
+      "pid": 1644,
+      "shared": {
+        "x": 3.2,
+        "y": 58.2
+      },
+      "rest": {
+        "x": 3.2,
+        "y": 58.2
+      }
+    },
+    {
+      "event": 604443,
+      "minute": 39,
+      "side": "home",
+      "pid": 4335,
+      "shared": {
+        "x": 98,
+        "y": 56.5
+      },
+      "rest": {
+        "x": 2,
+        "y": 43.5
+      }
+    },
+    {
+      "event": 604443,
+      "minute": 29,
+      "side": "home",
+      "pid": 8389,
+      "shared": {
+        "x": 92.3,
+        "y": 45.8
+      },
+      "rest": {
+        "x": 7.7,
+        "y": 54.2
+      }
+    },
+    {
+      "event": 604443,
+      "minute": 26,
+      "side": "home",
+      "pid": 350,
+      "shared": {
+        "x": 99.4,
+        "y": 52.6
+      },
+      "rest": {
+        "x": 0.59999999999999,
+        "y": 47.4
+      }
+    },
+    {
+      "event": 604442,
+      "minute": 37,
+      "side": "away",
+      "pid": 434,
+      "shared": {
+        "x": 11.1,
+        "y": 55.2
+      },
+      "rest": {
+        "x": 11.1,
+        "y": 55.2
+      }
+    },
+    {
+      "event": 604440,
+      "minute": 69,
+      "side": "home",
+      "pid": 2767,
+      "shared": {
+        "x": 92.3,
+        "y": 60.5
+      },
+      "rest": {
+        "x": 7.7,
+        "y": 39.5
+      }
+    },
+    {
+      "event": 604440,
+      "minute": 51,
+      "side": "home",
+      "pid": 2371,
+      "shared": {
+        "x": 83.4,
+        "y": 86.2
+      },
+      "rest": {
+        "x": 16.6,
+        "y": 13.8
+      }
+    },
+    {
+      "event": 604440,
+      "minute": 7,
+      "side": "home",
+      "pid": 790,
+      "shared": {
+        "x": 93.1,
+        "y": 50.3
+      },
+      "rest": {
+        "x": 6.9,
+        "y": 49.7
+      }
+    },
+    {
+      "event": 602355,
+      "minute": 86,
+      "side": "away",
+      "pid": 26280,
+      "shared": {
+        "x": 5.5,
+        "y": 38.5
+      },
+      "rest": {
+        "x": 5.5,
+        "y": 38.5
+      }
+    },
+    {
+      "event": 602355,
+      "minute": 14,
+      "side": "away",
+      "pid": 8869,
+      "shared": {
+        "x": 18.1,
+        "y": 54.7
+      },
+      "rest": {
+        "x": 18.1,
+        "y": 54.7
+      }
+    },
+    {
+      "event": 602350,
+      "minute": 23,
+      "side": "home",
+      "pid": 17233,
+      "shared": {
+        "x": 95,
+        "y": 39.3
+      },
+      "rest": {
+        "x": 5,
+        "y": 60.7
+      }
+    },
+    {
+      "event": 602350,
+      "minute": 11,
+      "side": "away",
+      "pid": 5156,
+      "shared": {
+        "x": 11.7,
+        "y": 51
+      },
+      "rest": {
+        "x": 11.7,
+        "y": 51
+      }
+    },
+    {
+      "event": 602343,
+      "minute": 89,
+      "side": "home",
+      "pid": 4554,
+      "shared": {
+        "x": 86.9,
+        "y": 30.4
+      },
+      "rest": {
+        "x": 13.1,
+        "y": 69.6
+      }
+    },
+    {
+      "event": 602343,
+      "minute": 78,
+      "side": "home",
+      "pid": 2139,
+      "shared": {
+        "x": 74.2,
+        "y": 60.1
+      },
+      "rest": {
+        "x": 25.8,
+        "y": 39.9
+      }
+    },
+    {
+      "event": 602343,
+      "minute": 70,
+      "side": "home",
+      "pid": 2145,
+      "shared": {
+        "x": 88.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 602343,
+      "minute": 49,
+      "side": "home",
+      "pid": 2138,
+      "shared": {
+        "x": 95.5,
+        "y": 48.6
+      },
+      "rest": {
+        "x": 4.5,
+        "y": 51.4
+      }
+    },
+    {
+      "event": 602343,
+      "minute": 41,
+      "side": "home",
+      "pid": 2138,
+      "shared": {
+        "x": 94.7,
+        "y": 47.6
+      },
+      "rest": {
+        "x": 5.3,
+        "y": 52.4
+      }
+    },
+    {
+      "event": 602343,
+      "minute": 30,
+      "side": "away",
+      "pid": 61825,
+      "shared": {
+        "x": 2.2,
+        "y": 45.3
+      },
+      "rest": {
+        "x": 2.2,
+        "y": 45.3
+      }
+    },
+    {
+      "event": 602343,
+      "minute": 13,
+      "side": "away",
+      "pid": 26318,
+      "shared": {
+        "x": 18.2,
+        "y": 45.5
+      },
+      "rest": {
+        "x": 18.2,
+        "y": 45.5
+      }
+    },
+    {
+      "event": 602341,
+      "minute": 90,
+      "side": "home",
+      "pid": 4102,
+      "shared": {
+        "x": 74.4,
+        "y": 53.3
+      },
+      "rest": {
+        "x": 25.6,
+        "y": 46.7
+      }
+    },
+    {
+      "event": 602341,
+      "minute": 73,
+      "side": "home",
+      "pid": 1350,
+      "shared": {
+        "x": 86.7,
+        "y": 52.6
+      },
+      "rest": {
+        "x": 13.3,
+        "y": 47.4
+      }
+    },
+    {
+      "event": 602341,
+      "minute": 70,
+      "side": "home",
+      "pid": 5170,
+      "shared": {
+        "x": 98,
+        "y": 52.2
+      },
+      "rest": {
+        "x": 2,
+        "y": 47.8
+      }
+    },
+    {
+      "event": 602341,
+      "minute": 50,
+      "side": "home",
+      "pid": 2467,
+      "shared": {
+        "x": 88.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 602341,
+      "minute": 21,
+      "side": "home",
+      "pid": 3511,
+      "shared": {
+        "x": 90,
+        "y": 35.8
+      },
+      "rest": {
+        "x": 10,
+        "y": 64.2
+      }
+    },
+    {
+      "event": 602341,
+      "minute": 15,
+      "side": "away",
+      "pid": 41363,
+      "shared": {
+        "x": 20.4,
+        "y": 25.5
+      },
+      "rest": {
+        "x": 20.4,
+        "y": 25.5
+      }
+    },
+    {
+      "event": 602341,
+      "minute": 10,
+      "side": "home",
+      "pid": 2467,
+      "shared": {
+        "x": 93.7,
+        "y": 45.8
+      },
+      "rest": {
+        "x": 6.3,
+        "y": 54.2
+      }
+    },
+    {
+      "event": 211170,
+      "minute": 83,
+      "side": "home",
+      "pid": 29935,
+      "shared": {
+        "x": 96.8,
+        "y": 50.5
+      },
+      "rest": {
+        "x": 3.2,
+        "y": 49.5
+      }
+    },
+    {
+      "event": 211170,
+      "minute": 78,
+      "side": "away",
+      "pid": 28085,
+      "shared": {
+        "x": 1.9,
+        "y": 49.8
+      },
+      "rest": {
+        "x": 1.9,
+        "y": 49.8
+      }
+    },
+    {
+      "event": 211169,
+      "minute": 54,
+      "side": "away",
+      "pid": 6720,
+      "shared": {
+        "x": 13.4,
+        "y": 51.6
+      },
+      "rest": {
+        "x": 13.4,
+        "y": 51.6
+      }
+    },
+    {
+      "event": 211169,
+      "minute": 34,
+      "side": "away",
+      "pid": 5959,
+      "shared": {
+        "x": 14.5,
+        "y": 52
+      },
+      "rest": {
+        "x": 14.5,
+        "y": 52
+      }
+    },
+    {
+      "event": 211169,
+      "minute": 19,
+      "side": "home",
+      "pid": 29626,
+      "shared": {
+        "x": 93,
+        "y": 52.8
+      },
+      "rest": {
+        "x": 7,
+        "y": 47.2
+      }
+    },
+    {
+      "event": 211167,
+      "minute": 90,
+      "side": "home",
+      "pid": 5977,
+      "shared": {
+        "x": 88.1,
+        "y": 70.4
+      },
+      "rest": {
+        "x": 11.9,
+        "y": 29.6
+      }
+    },
+    {
+      "event": 211167,
+      "minute": 83,
+      "side": "home",
+      "pid": 5977,
+      "shared": {
+        "x": 93.3,
+        "y": 46.8
+      },
+      "rest": {
+        "x": 6.7,
+        "y": 53.2
+      }
+    },
+    {
+      "event": 211167,
+      "minute": 75,
+      "side": "away",
+      "pid": 8863,
+      "shared": {
+        "x": 11.6,
+        "y": 49.8
+      },
+      "rest": {
+        "x": 11.6,
+        "y": 49.8
+      }
+    },
+    {
+      "event": 211167,
+      "minute": 32,
+      "side": "home",
+      "pid": 8438,
+      "shared": {
+        "x": 90.1,
+        "y": 48.6
+      },
+      "rest": {
+        "x": 9.9,
+        "y": 51.4
+      }
+    },
+    {
+      "event": 211166,
+      "minute": 65,
+      "side": "home",
+      "pid": 3386,
+      "shared": {
+        "x": 90.2,
+        "y": 47.4
+      },
+      "rest": {
+        "x": 9.8,
+        "y": 52.6
+      }
+    },
+    {
+      "event": 211166,
+      "minute": 31,
+      "side": "away",
+      "pid": 8884,
+      "shared": {
+        "x": 6.7,
+        "y": 48.2
+      },
+      "rest": {
+        "x": 6.7,
+        "y": 48.2
+      }
+    },
+    {
+      "event": 211166,
+      "minute": 28,
+      "side": "away",
+      "pid": 5875,
+      "shared": {
+        "x": 7.3,
+        "y": 58.7
+      },
+      "rest": {
+        "x": 7.3,
+        "y": 58.7
+      }
+    },
+    {
+      "event": 211166,
+      "minute": 18,
+      "side": "home",
+      "pid": 3639,
+      "shared": {
+        "x": 92.1,
+        "y": 45.3
+      },
+      "rest": {
+        "x": 7.9,
+        "y": 54.7
+      }
+    },
+    {
+      "event": 211165,
+      "minute": 73,
+      "side": "away",
+      "pid": 33653,
+      "shared": {
+        "x": 11.2,
+        "y": 53.6
+      },
+      "rest": {
+        "x": 11.2,
+        "y": 53.6
+      }
+    },
+    {
+      "event": 210142,
+      "minute": 67,
+      "side": "away",
+      "pid": 4374,
+      "shared": {
+        "x": 8.9,
+        "y": 35.4
+      },
+      "rest": {
+        "x": 8.9,
+        "y": 35.4
+      }
+    },
+    {
+      "event": 210142,
+      "minute": 62,
+      "side": "away",
+      "pid": 1767,
+      "shared": {
+        "x": 4.3,
+        "y": 53.6
+      },
+      "rest": {
+        "x": 4.3,
+        "y": 53.6
+      }
+    },
+    {
+      "event": 210142,
+      "minute": 48,
+      "side": "away",
+      "pid": 1093,
+      "shared": {
+        "x": 10.6,
+        "y": 67.6
+      },
+      "rest": {
+        "x": 10.6,
+        "y": 67.6
+      }
+    },
+    {
+      "event": 210142,
+      "minute": 43,
+      "side": "home",
+      "pid": 1892,
+      "shared": {
+        "x": 95.9,
+        "y": 52.2
+      },
+      "rest": {
+        "x": 4.1,
+        "y": 47.8
+      }
+    },
+    {
+      "event": 210142,
+      "minute": 10,
+      "side": "away",
+      "pid": 1091,
+      "shared": {
+        "x": 14.5,
+        "y": 46
+      },
+      "rest": {
+        "x": 14.5,
+        "y": 46
+      }
+    },
+    {
+      "event": 210141,
+      "minute": 28,
+      "side": "home",
+      "pid": 1069,
+      "shared": {
+        "x": 90.8,
+        "y": 61.9
+      },
+      "rest": {
+        "x": 9.2,
+        "y": 38.1
+      }
+    },
+    {
+      "event": 210141,
+      "minute": 12,
+      "side": "home",
+      "pid": 2575,
+      "shared": {
+        "x": 92.5,
+        "y": 32.2
+      },
+      "rest": {
+        "x": 7.5,
+        "y": 67.8
+      }
+    },
+    {
+      "event": 604454,
+      "minute": 72,
+      "side": "home",
+      "pid": 1039,
+      "shared": {
+        "x": 90,
+        "y": 51.1
+      },
+      "rest": {
+        "x": 10,
+        "y": 48.9
+      }
+    },
+    {
+      "event": 604454,
+      "minute": 47,
+      "side": "away",
+      "pid": 1633,
+      "shared": {
+        "x": 9.6,
+        "y": 35.8
+      },
+      "rest": {
+        "x": 9.6,
+        "y": 35.8
+      }
+    },
+    {
+      "event": 604454,
+      "minute": 40,
+      "side": "home",
+      "pid": 4350,
+      "shared": {
+        "x": 76.8,
+        "y": 50.4
+      },
+      "rest": {
+        "x": 23.2,
+        "y": 49.6
+      }
+    },
+    {
+      "event": 604454,
+      "minute": 30,
+      "side": "away",
+      "pid": 6535,
+      "shared": {
+        "x": 4.4,
+        "y": 52.2
+      },
+      "rest": {
+        "x": 4.4,
+        "y": 52.2
+      }
+    },
+    {
+      "event": 605689,
+      "minute": 87,
+      "side": "away",
+      "pid": 2634,
+      "shared": {
+        "x": 15.7,
+        "y": 51.3
+      },
+      "rest": {
+        "x": 15.7,
+        "y": 51.3
+      }
+    },
+    {
+      "event": 605688,
+      "minute": 90,
+      "side": "away",
+      "pid": 63593,
+      "shared": {
+        "x": 11.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 605688,
+      "minute": 90,
+      "side": "home",
+      "pid": 39220,
+      "shared": {
+        "x": 88.3,
+        "y": 45.8
+      },
+      "rest": {
+        "x": 11.7,
+        "y": 54.2
+      }
+    },
+    {
+      "event": 605688,
+      "minute": 83,
+      "side": "home",
+      "pid": 12078,
+      "shared": {
+        "x": 88.6,
+        "y": 43
+      },
+      "rest": {
+        "x": 11.4,
+        "y": 57
+      }
+    },
+    {
+      "event": 602465,
+      "minute": 45,
+      "side": "away",
+      "pid": 19032,
+      "shared": {
+        "x": 8.8,
+        "y": 55.2
+      },
+      "rest": {
+        "x": 8.8,
+        "y": 55.2
+      }
+    },
+    {
+      "event": 602465,
+      "minute": 33,
+      "side": "away",
+      "pid": 74695,
+      "shared": {
+        "x": 5.1,
+        "y": 56
+      },
+      "rest": {
+        "x": 5.1,
+        "y": 56
+      }
+    },
+    {
+      "event": 223844,
+      "minute": 67,
+      "side": "home",
+      "pid": 20154,
+      "shared": {
+        "x": 69.1,
+        "y": 77.5
+      },
+      "rest": {
+        "x": 30.9,
+        "y": 22.5
+      }
+    },
+    {
+      "event": 599527,
+      "minute": 90,
+      "side": "away",
+      "pid": 28439,
+      "shared": {
+        "x": 10.2,
+        "y": 45.5
+      },
+      "rest": {
+        "x": 10.2,
+        "y": 45.5
+      }
+    },
+    {
+      "event": 599527,
+      "minute": 71,
+      "side": "home",
+      "pid": 4010,
+      "shared": {
+        "x": 96.4,
+        "y": 51.1
+      },
+      "rest": {
+        "x": 3.6,
+        "y": 48.9
+      }
+    },
+    {
+      "event": 599527,
+      "minute": 44,
+      "side": "home",
+      "pid": 4010,
+      "shared": {
+        "x": 96.8,
+        "y": 55.5
+      },
+      "rest": {
+        "x": 3.2,
+        "y": 44.5
+      }
+    },
+    {
+      "event": 606015,
+      "minute": 88,
+      "side": "away",
+      "pid": 28417,
+      "shared": {
+        "x": 5.7,
+        "y": 49.4
+      },
+      "rest": {
+        "x": 5.7,
+        "y": 49.4
+      }
+    },
+    {
+      "event": 606015,
+      "minute": 80,
+      "side": "away",
+      "pid": 28406,
+      "shared": {
+        "x": 15.6,
+        "y": 53.6
+      },
+      "rest": {
+        "x": 15.6,
+        "y": 53.6
+      }
+    },
+    {
+      "event": 606015,
+      "minute": 71,
+      "side": "away",
+      "pid": 28406,
+      "shared": {
+        "x": 11.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 606000,
+      "minute": 109,
+      "side": "home",
+      "pid": 29096,
+      "shared": {
+        "x": 88.6,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.4,
+        "y": 50
+      }
+    },
+    {
+      "event": 606000,
+      "minute": 99,
+      "side": "away",
+      "pid": 913,
+      "shared": {
+        "x": 5,
+        "y": 41.2
+      },
+      "rest": {
+        "x": 5,
+        "y": 41.2
+      }
+    },
+    {
+      "event": 606000,
+      "minute": 97,
+      "side": "away",
+      "pid": 915,
+      "shared": {
+        "x": 12.5,
+        "y": 47.4
+      },
+      "rest": {
+        "x": 12.5,
+        "y": 47.4
+      }
+    },
+    {
+      "event": 606000,
+      "minute": 43,
+      "side": "away",
+      "pid": 915,
+      "shared": {
+        "x": 11.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 606000,
+      "minute": 23,
+      "side": "home",
+      "pid": 33406,
+      "shared": {
+        "x": 79.1,
+        "y": 68.2
+      },
+      "rest": {
+        "x": 20.9,
+        "y": 31.8
+      }
+    },
+    {
+      "event": 605996,
+      "minute": 68,
+      "side": "away",
+      "pid": 1786,
+      "shared": {
+        "x": 4.5,
+        "y": 42.6
+      },
+      "rest": {
+        "x": 4.5,
+        "y": 42.6
+      }
+    },
+    {
+      "event": 605996,
+      "minute": 55,
+      "side": "away",
+      "pid": 68753,
+      "shared": {
+        "x": 13.9,
+        "y": 42.1
+      },
+      "rest": {
+        "x": 13.9,
+        "y": 42.1
+      }
+    },
+    {
+      "event": 605996,
+      "minute": 47,
+      "side": "away",
+      "pid": 1777,
+      "shared": {
+        "x": 10.9,
+        "y": 34.4
+      },
+      "rest": {
+        "x": 10.9,
+        "y": 34.4
+      }
+    },
+    {
+      "event": 605996,
+      "minute": 26,
+      "side": "away",
+      "pid": 1779,
+      "shared": {
+        "x": 14.9,
+        "y": 41.8
+      },
+      "rest": {
+        "x": 14.9,
+        "y": 41.8
+      }
+    },
+    {
+      "event": 605996,
+      "minute": 13,
+      "side": "away",
+      "pid": 5144,
+      "shared": {
+        "x": 14.5,
+        "y": 60.1
+      },
+      "rest": {
+        "x": 14.5,
+        "y": 60.1
+      }
+    },
+    {
+      "event": 604439,
+      "minute": 50,
+      "side": "away",
+      "pid": 456,
+      "shared": {
+        "x": 4.5,
+        "y": 50.5
+      },
+      "rest": {
+        "x": 4.5,
+        "y": 50.5
+      }
+    },
+    {
+      "event": 604439,
+      "minute": 21,
+      "side": "home",
+      "pid": 37570,
+      "shared": {
+        "x": 91.9,
+        "y": 66.8
+      },
+      "rest": {
+        "x": 8.1,
+        "y": 33.2
+      }
+    },
+    {
+      "event": 642912,
+      "minute": 79,
+      "side": "home",
+      "pid": 34032,
+      "shared": {
+        "x": 85.8,
+        "y": 39.7
+      },
+      "rest": {
+        "x": 14.2,
+        "y": 60.3
+      }
+    },
+    {
+      "event": 642912,
+      "minute": 71,
+      "side": "home",
+      "pid": 28477,
+      "shared": {
+        "x": 90.6,
+        "y": 47.9
+      },
+      "rest": {
+        "x": 9.4,
+        "y": 52.1
+      }
+    },
+    {
+      "event": 642912,
+      "minute": 62,
+      "side": "home",
+      "pid": 28470,
+      "shared": {
+        "x": 85.6,
+        "y": 57.9
+      },
+      "rest": {
+        "x": 14.4,
+        "y": 42.1
+      }
+    },
+    {
+      "event": 642912,
+      "minute": 45,
+      "side": "away",
+      "pid": 33654,
+      "shared": {
+        "x": 21.2,
+        "y": 33.6
+      },
+      "rest": {
+        "x": 21.2,
+        "y": 33.6
+      }
+    },
+    {
+      "event": 642912,
+      "minute": 40,
+      "side": "home",
+      "pid": 28470,
+      "shared": {
+        "x": 95.6,
+        "y": 52.8
+      },
+      "rest": {
+        "x": 4.4,
+        "y": 47.2
+      }
+    },
+    {
+      "event": 606180,
+      "minute": 84,
+      "side": "away",
+      "pid": 50469,
+      "shared": {
+        "x": 11.8,
+        "y": 64.8
+      },
+      "rest": {
+        "x": 11.8,
+        "y": 64.8
+      }
+    },
+    {
+      "event": 606180,
+      "minute": 72,
+      "side": "home",
+      "pid": 6063,
+      "shared": {
+        "x": 84.9,
+        "y": 48.8
+      },
+      "rest": {
+        "x": 15.1,
+        "y": 51.2
+      }
+    },
+    {
+      "event": 606180,
+      "minute": 51,
+      "side": "home",
+      "pid": 6063,
+      "shared": {
+        "x": 84.5,
+        "y": 60.9
+      },
+      "rest": {
+        "x": 15.5,
+        "y": 39.1
+      }
+    },
+    {
+      "event": 606180,
+      "minute": 44,
+      "side": "home",
+      "pid": 4385,
+      "shared": {
+        "x": 88.5,
+        "y": 50
+      },
+      "rest": {
+        "x": 11.5,
+        "y": 50
+      }
+    },
+    {
+      "event": 605038,
+      "minute": 87,
+      "side": "home",
+      "pid": 8464,
+      "shared": {
+        "x": 99.2,
+        "y": 47
+      },
+      "rest": {
+        "x": 0.8,
+        "y": 53
+      }
+    },
+    {
+      "event": 605038,
+      "minute": 80,
+      "side": "home",
+      "pid": 33785,
+      "shared": {
+        "x": 76.4,
+        "y": 49.6
+      },
+      "rest": {
+        "x": 23.6,
+        "y": 50.4
+      }
+    },
+    {
+      "event": 605038,
+      "minute": 39,
+      "side": "home",
+      "pid": 34246,
+      "shared": {
+        "x": 93.8,
+        "y": 49
+      },
+      "rest": {
+        "x": 6.2,
+        "y": 51
+      }
+    },
+    {
+      "event": 605038,
+      "minute": 37,
+      "side": "away",
+      "pid": 34109,
+      "shared": {
+        "x": 10.9,
+        "y": 59.7
+      },
+      "rest": {
+        "x": 10.9,
+        "y": 59.7
+      }
+    }
+  ]
+}
