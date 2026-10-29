@@ -9640,6 +9640,8 @@ async function handleJournalismCycle(env, opts = {}) {
 // docs/CC-CMD-2026-10-28-bsd-ws-fanout-field-names.md.
 const BSD_WS_LIVEDATA_NOTE =
     'A livedata frame is an INCIDENT (uts epoch seconds, side home|away, situation, time, commentary, coordinates). ' +
+    'side is null on the dead-time markers temporary_interruption and gameon (3 of 3 seen: event 602347 at 38:04 and ' +
+    '39:18, 2026-10-28; event 7314 at 57:47, 2026-10-29). ' +
     'frame.coordinates is a SLIDING WINDOW of up to four {x, y} points, NEWEST FIRST (216 of 233 consecutive pairs: ' +
     'the next frame is the previous one with new points prepended, 0 appended, 17 gaps); coords is its first element, ' +
     'or null when the window is empty. Elements carry x and y and nothing else (1014 of 1014), integers (x 5 to 95, y ' +
