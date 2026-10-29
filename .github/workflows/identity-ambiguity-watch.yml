@@ -5,7 +5,9 @@ name: Identity Ambiguity Watch
 #
 #   CC-CMD-2026-09-13-team-key-sport-blind          Task 5
 #   CC-CMD-2026-09-13-alias-table-silent-overwrite  Task 5
-#   CC-CMD-2026-09-11-odds-identity-join-cfb        blocked until both close
+#   CC-CMD-2026-09-11-odds-identity-join-cfb        NOT gated by this watch since 2026-10-29: its Task 3 moved to
+#                                                   docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md
+#                                                   Part B and is measured by the Saturday probe (B1(a))
 #
 # Two of its conditions were restated on 2026-09-13 because neither could ever
 # be met. This watch reports what the LIVE ARCHIVE can answer and nothing else:
@@ -148,6 +150,5 @@ jobs:
         run: |
           echo "::notice title=Identity ambiguity resolved::All done conditions met — \
           CC-CMD-2026-09-13-team-key-sport-blind and \
-          CC-CMD-2026-09-13-alias-table-silent-overwrite can close, and \
-          CC-CMD-2026-09-11-odds-identity-join-cfb is unblocked. \
+          CC-CMD-2026-09-13-alias-table-silent-overwrite can close. \
           Artifact: ${{ steps.watch.outputs.path }}"

@@ -9,7 +9,9 @@ the two to exercise, so the copy would be the one that drifted.
 
   CC-CMD-2026-09-13-team-key-sport-blind          Task 5
   CC-CMD-2026-09-13-alias-table-silent-overwrite  Task 5
-  CC-CMD-2026-09-11-odds-identity-join-cfb        blocked until both close
+  CC-CMD-2026-09-11-odds-identity-join-cfb        NOT gated by this watch since 2026-10-29: its Task 3 moved to
+                                                  docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md
+                                                  Part B and is measured by the Saturday probe (B1(a))
 """
 
 CC_CMDS = [

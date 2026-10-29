@@ -112,6 +112,11 @@ same snapshot serves every sport the backfill handles.
 Each extra historical call is priced by `oddsCreditCost` per sport-date. The
 decision names the cost from A0.2's population.
 
+**Decided 2026-10-29 (owner): (c), hold, and read 2026-10-31.** 0 credits. 2026-10-31 is the first CFB Saturday after
+the CFB join was met (2026-10-28); NBA, NHL and NFL stopped losing games on 10-23 (A0.2). The reading is the A0.1
+SELECT on that date's CFB rows (priced, and priced before kickoff, over all rows), recorded under "Results" below. If it
+shows CFB still losing early games, A1 (a) or (b) comes back to the owner with that number; it is not built on a guess.
+
 ### TASK A2 — `opening_odds` readers honour the after-kickoff mark
 
 Every reader from A0.3 either goes through `selectLineOdds` or checks
@@ -142,8 +147,8 @@ Task 3's done condition:
     2026-10-19), where `matchSlate` gives 73 + 7.
 - **The Saturday workflow probes the wrong day.**
   `.github/workflows/odds-identity-join-saturday.yml` (cron `40 23 * * 6`)
-  passes no date on a schedule run, so `scripts/probe-odds-join.mjs:56` falls
-  back to UTC today. Its 6 scheduled runs all started on Sunday UTC (01:24Z
+  passes no date on a schedule run, so the script's own default (removed
+  2026-10-29; it was `new Date().toISOString().slice(0, 10)`) fell back to UTC today. Its 6 scheduled runs all started on Sunday UTC (01:24Z
   to 02:51Z, 09-13 to 10-18). The 7th run (dispatch 34667508348) was dated
   Saturday 2026-09-12 but ran at 02:23Z, before the slate was played. CFB
   reads `NO_ROWS` in all 7 artifacts, and every run concluded success.
@@ -160,12 +165,49 @@ Task 3's done condition:
 - (b) restate Task 3 onto the backfill's own per-sport line and its D1
   result, retiring the route as its artifact.
 
+**Decided 2026-10-29 (owner): "go with claude's best recommendations while keeping as much as possible and only retire
+if necessary."** Read as (a): keep the route and the Saturday workflow, make them measure. Retiring was not necessary.
+
+**(a) as written is stale and was redefined, not followed.** It says to wire `matchSlate`, the matcher of the CI
+backfill. Since the 2026-10-25 shared join (`docs/CC-CMD-2026-10-21-historical-closing-join-misses-four-sports.md`) the
+join that decides whether CFB is priced before kickoff is the relay cron's: `indexOddsByPair` and `findOddsForRow`, with
+the row's `start_time`, in `snapshotCronOdds`. Measured 2026-10-29 on the real 80-row slate of 2026-09-12
+(`outbox/fixture-cfb-2026-09-12.json`): the old route's exact pair key 0, the relay cron's join 73, `matchSlate` 80 (73 by
+stage 1, 7 by elimination). So the route now joins with the relay's join and reports `matchSlate` beside it
+(`slate_matched`, decided over the WHOLE slate, priced rows included, because that is what lets the backfill force an
+initialism by elimination: all 7 of the 7 left when the 73 are priced, 6 when it is given the 7 alone, measured 2026-10-29).
+`scripts/check-odds-matcher-wiring.mjs` is NOT given `src/index.js`, because that check bans patterns `src/index.js`
+legitimately contains and the route is a diagnostic, not a writer. Instead the route is the fourth join site held by
+`check-odds-writers-sport-scoped.mjs` and `check-ambiguous-team-identity.mjs`, and `scripts/check-identity-route-join.mjs`
+runs it on the real slate.
+
+**What the route reports now** (an independent four-lens review of the first version, 2026-10-29, found each of these
+wrong or missing, with a reproduction): the rows of BOTH games tables (a bowl game is a postseason row), `date` required
+and validated before any billed call (the old default was the UTC day, not the archive's Eastern-day key), `priceable`
+(joined is not priced: the cron skips a finalized game, a started one by either clock, and an event with no bookmaker),
+`d1_priced_late` (priced after kickoff), `odds_events_in_window` (a feed that lists the slate beside a date with no rows is
+a missing archive, not an off day), and one SELECT per table so the denominators cannot disagree with each other.
+**What the probe says now:** `ALL_PRICED`, `PRICED_LATE`, `NO_SLATE` (no rows and nothing in the feed: off-season, not a
+failure), `NO_JOIN_EVIDENCE` (every unpriced game has finished or started, so the live feed cannot say whether the join
+solves it), `COVERED`, and for the failures `C2_JOIN` (upcoming unpriced games and nothing joined), `NO_ROWS_AT_ALL` (the
+feed lists the slate and the archive has none), an unreadable or inconsistent report, the vendor or our own guard
+answering. A failing verdict for CFB fails the run.
+
+**What Task 3's done condition can mean now (a premise, tested before building).** It read: a fresh
+`/identity/mismatches?sports=CFB` on a date with rows must report `matched > 0`. But D1 rows for a day are created at
+about 10:00Z that morning (measured: 44 CFB rows of 2026-10-24 all `created_at` 10:00:51 to 10:01:08) and the
+opening-line cron prices them minutes later, so a join that WORKS leaves no unpriced rows, and the route (which joins
+the NULL-opening ones) has nothing to report: `matched` is 0 and `d1_missing` is 0, exactly as in all seven scheduled
+artifacts (2026-09-13 to 10-25), none of which carried a CFB row to join. "All priced" and "no rows" were
+indistinguishable. The route now reports `d1_rows` and `d1_priced`, and
+the probe says `ALL_PRICED: 44 of 44` for the first and refuses `NO_ROWS_AT_ALL` for the second.
+
 ### TASK B2 — make the Saturday probe measure, or stop it
 
 - Pass an explicit Saturday `PROBE_DATE` on schedule runs.
 - Make a CFB `NO_ROWS` print as a refusal rather than a green run.
 - Correct the cost comment.
-- If B1 chooses (b), remove the workflow instead and say so.
+- If B1 chooses (b), remove the workflow instead and say so. (B1 chose (a); the workflow stays.)
 
 ### TASK B3 — stale encodings
 
@@ -182,7 +224,10 @@ Task 3's done condition:
    green after, a mutation, and one green deploy-path run. A2 also needs a
    green jubilant-bassoon deploy.
 4. **After B2, the next Saturday's artifact reads a Saturday `probe_date`,**
-   and is either `matched > 0` or a printed refusal.
+   and is either `matched > 0` or a printed refusal. (Restated 2026-10-29: once the cron prices the morning's rows,
+   `matched > 0` cannot be the test. The artifact must read `probe_date` 2026-10-31, show `d1_rows`/`d1_priced`
+   for CFB, and carry a verdict of `ALL_PRICED`, `PRICED_LATE`, `COVERED`, `NO_JOIN_EVIDENCE` or `NO_SLATE` with those
+   denominators, or a printed failure (`C2_JOIN`, a refusal) and a red run.)
 
 ## FORBIDDEN
 
