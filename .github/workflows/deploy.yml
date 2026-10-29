@@ -444,6 +444,16 @@ jobs:
       - name: Every cross-module call resolves to an import
         run: node scripts/check-imports-resolve.mjs
 
+      # The check above read code through three regex replaces until 2026-10-29,
+      # and a slash-star inside a `//` comment or a string made it skip 119,320
+      # characters of src/ (docs/CC-CMD-2026-10-29-imports-check-comment-stripper.md).
+      # A check that has only ever passed has proven nothing (Rule 90): the
+      # self-test runs it on fixtures, the mutants prove the self-test can fail.
+      - name: The import check reads code, not comments (self-test and mutants)
+        run: |
+          node scripts/check-imports-resolve-selftest.mjs
+          node scripts/mutate-imports-resolve.mjs
+
       # A Durable Object's response reaches the browser as-is — index.js
       # dispatches with `return stub.fetch(request)` and adds no headers. A
       # response without CORS is unreachable from a page, and the browser

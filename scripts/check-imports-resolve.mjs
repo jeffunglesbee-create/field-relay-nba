@@ -23,6 +23,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { blankCommentsAndStrings } from './lib/blank-comments.mjs';
 
 const SRC = process.env.SRC_DIR || 'src';
 
@@ -41,19 +42,27 @@ const checked = [];
 for (const f of fs.readdirSync(SRC).filter((x) => x.endsWith('.js'))) {
   const full = path.join(SRC, f);
   const src = fs.readFileSync(full, 'utf8');
-  // Strip comments and strings so a name mentioned in prose is not a call.
-  // The 2026-09-06 short-circuit lint in field-laboratory learned this the
-  // hard way: a banned token inside the comment explaining the ban failed it.
-  const code = src
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/^\s*\/\/.*$/gm, ' ')
-    .replace(/(['"`])(?:\\.|(?!\1)[^\\])*\1/g, '""');
+  // Comments and quoted strings blanked by the shared string- and regex-aware stripper, so a name mentioned in prose
+  // is not a call. The three sequential regex replaces this used to be paired a slash-star inside a `//` comment or a
+  // string with a later close and deleted the code between: 119,320 characters of src/ were never read
+  // (docs/CC-CMD-2026-10-29-imports-check-comment-stripper.md). Template text outside ${...} is kept by that
+  // stripper, so a name followed by a paren in template prose can read as a call (a false failure, never a hidden call).
+  const code = blankCommentsAndStrings(src);
 
   const imported = new Set();
   for (const m of code.matchAll(/import\s*\{([^}]*)\}\s*from/g)) {
     for (const part of m[1].split(',')) {
       const name = part.trim().split(/\s+as\s+/)[0].trim();
       if (name) imported.add(name);
+    }
+  }
+  // `const { a, b: c } = await import('./x.js')` binds a and c. The BOUND name is recorded, so `{ foo: bar }` does not
+  // make a call to foo() look imported. File-level, like the static imports: a name bound in one function counts for
+  // the whole module.
+  for (const m of code.matchAll(/\b(?:const|let|var)\s*\{([^}]*)\}\s*=\s*(?:await\s+)?import\s*\(/g)) {
+    for (const part of m[1].split(',')) {
+      const bound = part.split(':').pop().split('=')[0].trim().replace(/^\.\.\./, '');
+      if (bound) imported.add(bound);
     }
   }
   // Defined locally counts as resolved.
