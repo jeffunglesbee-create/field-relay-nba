@@ -1,0 +1,61 @@
+name: BSD request budget
+
+# docs/CC-CMD-2026-10-29-bsd-live-shot-source.md, Task 0.
+#
+# What does one BSD request cost, and how much of the day is spent? Reads the vendor's own RateLimit and
+# RateLimit-Policy headers (the structured-field pair BSD's pricing page documents; the 2026-10-10 probe looked
+# for other names and concluded none existed), makes at most 6 requests 1.2 s apart (the documented ceiling is 10 per
+# second per IP), and commits outbox/bsd-request-budget-latest.json with every header it saw.
+#
+# CI because the container cannot reach sports.bzzoiro.com (403 at CONNECT) and the token is a secret here.
+# Read-only. Exit 0 POLICY-KNOWN, 3 any other honest answer (NO-HEADER, REMAINING-ONLY, ...), anything else fails.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-request-budget
+  cancel-in-progress: false
+
+jobs:
+  budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The check can still fail
+        run: |
+          node scripts/bsd-request-budget.mjs --self-test
+          node scripts/bsd-request-budget.mjs --mutate
+
+      - name: Measure
+        id: run
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: |
+          set +e
+          node scripts/bsd-request-budget.mjs
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: The stored calls re-derive the stored verdict
+        run: node scripts/bsd-request-budget.mjs --check outbox/bsd-request-budget-latest.json
+
+      - name: Commit the artifact
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-request-budget-latest.json' \
+          bash scripts/probe-commit-retry.sh "chore: BSD request budget artifact"
+
+      - name: Result
+        run: |
+          code="${{ steps.run.outputs.code }}"
+          echo "budget exit code: $code  (0 POLICY-KNOWN, 3 another honest answer)"
+          [ "$code" = "0" ] || [ "$code" = "3" ]

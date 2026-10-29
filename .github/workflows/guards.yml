@@ -448,6 +448,14 @@ jobs:
           node scripts/bsd-shared-pitch-fit.mjs --self-test
           node scripts/bsd-shared-pitch-fit.mjs --mutate
 
+      # docs/CC-CMD-2026-10-29-bsd-live-shot-source.md, Task 0. The reader of BSD's RateLimit headers and the
+      # arithmetic on them, and a mutation harness that strips, reverses and renames them. Rule 90.
+      - name: the BSD request-budget reader fails when it is broken on purpose
+        if: always()
+        run: |
+          node scripts/bsd-request-budget.mjs --self-test
+          node scripts/bsd-request-budget.mjs --mutate
+
       # Rule 99, the absence-collapse ratchet. deploy.yml carries the same step
       # for src-only pushes; this one covers scripts/ and workers/ changes that
       # reach here. Reaches github.com to clone jubilant-bassoon, whose
