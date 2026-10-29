@@ -26,6 +26,19 @@ const MUTATIONS = [
   ['zero frames reads as verified', "if (assessed.counts.stats === 0) return 'no-frames-through-relay'", ''],
   ['failed assertions read as verified', "return assessed.checks.every((c) => c.pass) ? 'verified' : 'assertions-failed'", "return 'verified'"],
   ['the SSE parser drops the unparseable flag', "out.push({ event, data: null, unparseable: true })", 'out.push({ event, data: {} })'],
+  // the poll half
+  ['an unreadable poll state passes', "if (!isObj(poll) || poll.error) return done('poll-state-unreadable')", ''],
+  ['a stopped poll passes', "if (poll.stopped) return done('poll-stopped')", ''],
+  ['zero calls passes', "if (!(poll.calls >= 1) || poll.day !== today) return done('poll-did-not-run')", ''],
+  ['another day\'s count passes', "|| poll.day !== today) return done('poll-did-not-run')", ") return done('poll-did-not-run')"],
+  ['a vendor body with no array is blamed on nobody', "if (poll.last?.kind === 'no-shotmap-array') return done('poll-vendor-sent-no-shotmap-array')", ''],
+  ['a failed request with no array passes', "if (withArray.length === 0 && poll.last?.kind !== 'ok') return done('poll-request-failed')", ''],
+  ['a cached array that never arrived passes', "if (withArray.length === 0) return done('poll-ok-but-not-delivered')", ''],
+  ['the shot shape is not checked', "if (!shapeOk) return done('poll-shape-wrong')", ''],
+  // (removed: "isObj(x.pos) is not required" is an EQUIVALENT mutant, Number.isFinite(x.pos?.x) is false for any
+  // pos that is not an object with a finite x, so no input tells the two apart.)
+  ['home may be any type', " && typeof x.home === 'boolean')", ')'],
+  ['a null shotmap counts as an array', "Array.isArray(e.data?.shotmap)", "'shotmap' in (e.data ?? {})"],
 ]
 
 const base = spawnSync('node', [T, '--self-test'], { encoding: 'utf8', timeout: 60000 })

@@ -23,7 +23,7 @@
 // SAMPLE-COVERAGE-A (Rule 91): the event, the window and the frame counts are in the
 // artifact and the printed result.
 //
-// Usage: node scripts/bsd-fanout-live-verify.mjs [--wait-minutes 5] [--listen-seconds 150]
+// Usage: node scripts/bsd-fanout-live-verify.mjs [--wait-minutes 5] [--listen-seconds 200]
 //        node scripts/bsd-fanout-live-verify.mjs --self-test
 
 import { writeFileSync, mkdirSync } from 'node:fs'
@@ -87,6 +87,36 @@ export const stateOf = ({ event, assessed }) => {
   return assessed.checks.every((c) => c.pass) ? 'verified' : 'assertions-failed'
 }
 
+/** The poll half (docs/CC-CMD-2026-10-29-bsd-live-shot-source.md). AmbientDO polls BSD's REST /stats/ once a minute
+ *  for a match somebody activated; this asks whether a LIVE match's bsd:stats then carried a shotmap ARRAY, and
+ *  what the DO says it did (`poll` is /ambient/state's bsdPoll, read after the window). The premise it settles, that a
+ *  live /stats/ carries the same `shotmap` key a finished one does, had no live evidence when the poll was built.
+ *  Each state names one thing, and only `poll-verified` is a pass:
+ *    poll-state-unreadable                 /ambient/state had no bsdPoll (not deployed, or the read failed)
+ *    poll-stopped                          the DO stopped itself (429 / 401 / 402 / 403): a finding about the vendor
+ *    poll-did-not-run                      no call counted today inside the window
+ *    poll-vendor-sent-no-shotmap-array     the request succeeded and the live body had no shotmap array
+ *    poll-request-failed                   the last attempt was an error, not an answer
+ *    poll-ok-but-not-delivered             the DO cached an array and no bsd:stats carried it: our bug
+ *    poll-shape-wrong                      an array arrived whose records lack pos{x,y} or a boolean home
+ *    poll-verified                         an array arrived, in the shape the client reads */
+export const assessPoll = ({ events, poll, today }) => {
+  const stats = events.filter((e) => e.event === 'bsd:stats')
+  const withArray = stats.filter((e) => Array.isArray(e.data?.shotmap))
+  const shots = withArray.flatMap((e) => e.data.shotmap)
+  const shapeOk = shots.every((x) => isObj(x) && isObj(x.pos) && Number.isFinite(x.pos.x) && Number.isFinite(x.pos.y) && typeof x.home === 'boolean')
+  const counts = { statsWithShotmapArray: withArray.length, shotsSeen: shots.length }
+  const done = (state) => ({ state, counts })
+  if (!isObj(poll) || poll.error) return done('poll-state-unreadable')
+  if (poll.stopped) return done('poll-stopped')
+  if (!(poll.calls >= 1) || poll.day !== today) return done('poll-did-not-run')
+  if (poll.last?.kind === 'no-shotmap-array') return done('poll-vendor-sent-no-shotmap-array')
+  if (withArray.length === 0 && poll.last?.kind !== 'ok') return done('poll-request-failed')
+  if (withArray.length === 0) return done('poll-ok-but-not-delivered')
+  if (!shapeOk) return done('poll-shape-wrong')
+  return done('poll-verified')
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const waitForEvent = async (waitMs) => {
@@ -111,7 +141,7 @@ const waitForEvent = async (waitMs) => {
 const main = async () => {
   const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > -1 ? process.argv[i + 1] : d }
   const waitMs = Number(arg('wait-minutes', '5')) * 60_000
-  const listenMs = Number(arg('listen-seconds', '150')) * 1000
+  const listenMs = Number(arg('listen-seconds', '200')) * 1000
   mkdirSync('outbox', { recursive: true })
   const startedAt = new Date().toISOString()
   const { event, polls } = await waitForEvent(waitMs)
@@ -138,6 +168,12 @@ const main = async () => {
   const subscribeResponse = await subRes.json().catch(() => ({ ok: false, error: `HTTP ${subRes.status}, body not JSON` }))
   console.log(`subscribe: HTTP ${subRes.status} ${JSON.stringify(subscribeResponse)}`)
   await sleep(listenMs)
+  // What the DO says it did, read BEFORE the unsubscribe (which drops its cache). A failed read is a state, not a pass.
+  let bsdPoll
+  try {
+    const st = await fetch(`${RELAY}/ambient/state`)
+    bsdPoll = st.ok ? (await st.json()).bsdPoll : { error: `HTTP ${st.status}` }
+  } catch (e) { bsdPoll = { error: String(e.message) } }
   try {
     await fetch(`${RELAY}/ambient/bsd/unsubscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: event.id }) })
   } catch (e) { console.log(`  unsubscribe failed (the verdict is unaffected): ${e.message}`) }
@@ -147,17 +183,25 @@ const main = async () => {
   const events = parseSSE(buffer)
   const assessed = assess({ events, eventId: event.id, subscribeResponse })
   const state = stateOf({ event, assessed })
+  // The poll fires one interval (60 s) after the subscribe and its array rides the next event frame (about 15 s):
+  // a window shorter than that cannot judge it, and says so instead of failing it.
+  const pollAssessed = listenMs >= 100_000
+    ? assessPoll({ events, poll: bsdPoll, today: new Date().toISOString().slice(0, 10) })
+    : { state: 'poll-not-assessed', counts: null }
   const art = {
     ...base, state,
     coverage: `${assessed.counts.stats} bsd:stats, ${assessed.counts.ball} bsd:ball, ${assessed.counts.other} other SSE events over ${listenMs / 1000} s from 1 event (${event.id}, ${event.league_name}) through the deployed relay`,
     event: { id: event.id, league_id: event.league_id, league_name: event.league_name, period: event.period, current_minute: event.current_minute, live_websocket: event.live_websocket, websocket_plus: event.websocket_plus },
     subscribeResponse, checks: assessed.checks, counts: assessed.counts,
+    pollState: pollAssessed.state, pollCounts: pollAssessed.counts, bsdPoll,
     sample: events.filter((e) => e.event === 'bsd:stats' || e.event === 'bsd:ball').slice(0, 3),
   }
   writeFileSync('outbox/bsd-fanout-live-verify-latest.json', JSON.stringify(art, null, 2) + '\n')
   for (const c of assessed.checks) console.log(`${c.pass ? 'PASS' : 'FAIL'}  ${c.name}`)
   console.log(`state: ${state}; ${art.coverage}`)
-  process.exit(state === 'verified' ? 0 : state === 'assertions-failed' ? 1 : 4)
+  console.log(`poll: ${pollAssessed.state}; ${JSON.stringify(pollAssessed.counts)}; DO says ${JSON.stringify(bsdPoll)}`)
+  // 0 only when the fan-out AND the poll are both verified. A verified fan-out with a poll that is not is exit 5.
+  process.exit(state === 'verified' ? (pollAssessed.state === 'poll-verified' ? 0 : 5) : state === 'assertions-failed' ? 1 : 4)
 }
 
 // --- self-test ---------------------------------------------------------------
@@ -196,6 +240,25 @@ const selfTest = () => {
   ok('state: subscribed but zero bsd:stats is no-frames-through-relay', stateOf({ event: {}, assessed: A([]) }) === 'no-frames-through-relay')
   ok('state: frames that fail an assertion are assertions-failed', stateOf({ event: {}, assessed: A([stats({ drama: 1 })]) }) === 'assertions-failed')
   ok('state: all assertions on real traffic is verified', stateOf({ event: {}, assessed: good }) === 'verified')
+  // --- the poll half ---
+  const T = '2026-10-29'
+  const shot = (extra = {}) => ({ pos: { x: 10.2, y: 53.4, z: 0 }, home: true, xg: 0.1, ...extra })
+  const okPoll = { cap: 600, day: T, calls: 2, stopped: null, last: { kind: 'ok' } }
+  const P = (events, poll) => assessPoll({ events, poll, today: T }).state
+  const withShots = [stats({ shotmap: [shot(), shot({ home: false })] })]
+  ok('poll: an array of well-formed shots on a bsd:stats is poll-verified', P(withShots, okPoll) === 'poll-verified')
+  ok('poll: an EMPTY array is poll-verified (no shots yet is an answer)', P([stats({ shotmap: [] })], okPoll) === 'poll-verified')
+  ok('poll: a null shotmap on every stats frame is poll-ok-but-not-delivered, not verified', P([stats(), stats()], okPoll) === 'poll-ok-but-not-delivered')
+  ok('poll: no bsdPoll at all is poll-state-unreadable', P(withShots, undefined) === 'poll-state-unreadable' && P(withShots, { error: 'HTTP 500' }) === 'poll-state-unreadable')
+  ok('poll: a stop is poll-stopped even when an array also arrived', P(withShots, { ...okPoll, stopped: { reason: '429' } }) === 'poll-stopped')
+  ok('poll: zero calls today is poll-did-not-run', P([stats()], { ...okPoll, calls: 0 }) === 'poll-did-not-run')
+  ok('poll: a count from another day is poll-did-not-run', P(withShots, { ...okPoll, day: '2026-10-28' }) === 'poll-did-not-run')
+  ok('poll: a successful request whose body had no array names the vendor, not us', P([stats()], { ...okPoll, last: { kind: 'no-shotmap-array' } }) === 'poll-vendor-sent-no-shotmap-array')
+  ok('poll: a failed last attempt with no array is poll-request-failed', P([stats()], { ...okPoll, last: { kind: 'http-error' } }) === 'poll-request-failed')
+  ok('poll: a shot with no pos fails the shape', P([stats({ shotmap: [{ home: true }] })], okPoll) === 'poll-shape-wrong')
+  ok('poll: a shot with a string home fails the shape', P([stats({ shotmap: [shot({ home: 'home' })] })], okPoll) === 'poll-shape-wrong')
+  ok('poll: a shot with a non-finite coordinate fails the shape', P([stats({ shotmap: [shot({ pos: { x: null, y: 1 } })] })], okPoll) === 'poll-shape-wrong')
+  ok('poll: counts say how many arrays and shots were seen', (() => { const c = assessPoll({ events: withShots, poll: okPoll, today: T }).counts; return c.statsWithShotmapArray === 1 && c.shotsSeen === 2 })())
   console.log(failed === 0 ? '\nALL PASS' : `\n${failed} FAILED`)
   return failed === 0 ? 0 : 1
 }

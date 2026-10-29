@@ -17,8 +17,8 @@ on:
         description: Minutes to wait for a live websocket_plus event
         default: '5'
       listen_seconds:
-        description: Seconds to listen on the SSE stream after subscribing
-        default: '150'
+        description: Seconds to listen on the SSE stream after subscribing (the stats poll needs at least 100, one interval and then the next event frame)
+        default: '200'
 
 permissions:
   contents: write
