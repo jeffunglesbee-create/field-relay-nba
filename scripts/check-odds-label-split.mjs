@@ -62,6 +62,7 @@ class PinnedDate extends RealDate {
 }
 globalThis.Date = PinnedDate;
 
+const MCP_SECRET = 'mcp-secret-for-the-check';
 const INDEX = resolve(process.env.INDEX_SRC || 'src/index.js');
 const HELPERS = resolve(process.env.BUDGET_HELPERS_SRC || 'src/budget-helpers.js');
 const { SITE_CEILINGS, siteCeilingFor, ODDS_SITES } = await import(pathToFileURL(HELPERS).href);
@@ -73,7 +74,8 @@ const ROUTES = [
     call: () => new Request('https://x.test/identity/mismatches?sports=MLB'),
     seed: { games: false } },
   { label: 'archiveOddsBackfill', cron: 'fetchSportOddsHistorical',
-    call: () => new Request('https://x.test/archive/odds-backfill?date=2026-10-01'),
+    // Gated since 2026-10-29 (FIELD_MCP_SECRET, as /admin/* checks it): this route sends the credential.
+    call: () => new Request('https://x.test/archive/odds-backfill?date=2026-10-01', { headers: { Authorization: `Bearer ${MCP_SECRET}` } }),
     seed: { games: true } },
   { label: 'archiveGameClosing',  cron: 'fetchSportOddsHistorical',
     call: () => new Request('https://x.test/archive/game', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -100,7 +102,7 @@ CREATE TABLE odds_reconcile_state (day TEXT NOT NULL, site TEXT NOT NULL, state 
 `;
 
 /** One scenario: a fresh world, one request, then the readings. */
-async function world(route, { siteUsed = {}, dayUsed = 100 } = {}, wantBody = false) {
+async function world(route, { siteUsed = {}, dayUsed = 100, env: envOverride = {} } = {}, wantBody = false) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(SCHEMA);
   sqlite.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(DAY, dayUsed);
@@ -152,7 +154,7 @@ async function world(route, { siteUsed = {}, dayUsed = 100 } = {}, wantBody = fa
     ledger: sqlite.prepare('SELECT site, state, n FROM odds_reconcile_state WHERE day = ? ORDER BY site, state').all(DAY).map(r => ({ ...r })),
   });
   const before = rows();
-  const env = { FIELD_JOURNALISM: KV, ARCHIVE_DB: D1, ODDS_API_KEY: 'k', RELAY_SHARED_SECRET: 's' };
+  const env = { FIELD_JOURNALISM: KV, ARCHIVE_DB: D1, ODDS_API_KEY: 'k', RELAY_SHARED_SECRET: 's', FIELD_MCP_SECRET: MCP_SECRET, ...envOverride };
   const w = console.warn, l = console.log, e = console.error;
   console.warn = console.log = console.error = () => {};
   let status, body = null;
@@ -220,6 +222,30 @@ for (const route of ROUTES) {
     check(`${tag}: ${other.label} at its cap does not stop it`, d.vendor >= 1 && (d.after.sites[label] ?? 0) > 0,
       `${d.vendor} calls, ${label}=${d.after.sites[label] ?? 'absent'}`);
   }
+}
+
+// ── THE GATED ROUTE answers 401 before it spends (TASK 1, Route A, of
+// docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md; the owner released it 2026-10-29) ───────
+// /archive/odds-backfill spends 30 billed credits per sport-date and answered anyone. The vendor stub
+// counts calls, so "before any odds function runs" is a count of zero, and the ledger must not move.
+{
+  const backfill = ROUTES[1];
+  const url = 'https://x.test/archive/odds-backfill?date=2026-10-01';
+  const attempts = [
+    ['with no credential', () => new Request(url), {}],
+    ['with a wrong credential', () => new Request(url, { headers: { Authorization: 'Bearer not-the-secret' } }), {}],
+    ['with the RELAY secret, the published one', () => new Request(url, { headers: { Authorization: 'Bearer s' } }), {}],
+    ['with a credential when the relay has no FIELD_MCP_SECRET', () => new Request(url, { headers: { Authorization: 'Bearer undefined' } }), { env: { FIELD_MCP_SECRET: undefined } }],
+    ['with an empty header when the relay secret is the empty string', () => new Request(url, { headers: { Authorization: '' } }), { env: { FIELD_MCP_SECRET: '' } }],
+  ];
+  for (const [what, call, opts] of attempts) {
+    const g = await world({ ...backfill, call }, opts);
+    check(`gate: ${what}: 401, the vendor never called, nothing moved`, g.status === 401 && g.vendor === 0 && unmoved(g), `status ${g.status}, ${g.vendor} calls, ${JSON.stringify({ before: g.before, after: g.after })}`);
+  }
+  const ok = await world(backfill);
+  check('gate: with the credential it answers 200 and spends under its own label', ok.status === 200 && (ok.after.sites.archiveOddsBackfill ?? 0) > 0, `status ${ok.status}, ${JSON.stringify(ok.after.sites)}`);
+  const post = await world({ ...backfill, call: () => new Request(url, { method: 'POST' }) });
+  check('gate: POST is gated the same as GET', post.status === 401 && post.vendor === 0, `status ${post.status}, ${post.vendor} calls`);
 }
 
 // ── A REFUSAL BY OUR OWN GUARD IS NOT A VENDOR FAULT ─────────────────────────

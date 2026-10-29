@@ -83,6 +83,13 @@ const MUTANTS = [
   ['L18 the opening-odds snapshot passes the identity selector', "const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey);", "const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey, 'identityMismatches');"],
   ['L19 the dead-hour backfill is called with the odds-backfill selector', "oddsResult = await runOddsBackfillForDate(env, oddsDate);", "oddsResult = await runOddsBackfillForDate(env, oddsDate, 'archiveOddsBackfill');"],
   ['L20 our own guard\'s refusal is reported as a vendor failure', "report.sports[sport] = guarded\n", "report.sports[sport] = false\n"],
+  // THE GATE on /archive/odds-backfill (2026-10-29).
+  ['L22 the gate is removed',
+   "                if (!mcpBearerMatches(request.headers.get('Authorization'), env))\n                    return new Response('Unauthorized', { status: 401, headers: CORS });\n",
+   ""],
+  ['L23 an unset or empty relay secret opens the helper', "return typeof s === 'string' && s.length > 0 && typeof header === 'string' && header.replace('Bearer ', '') === s;", "return typeof header === 'string' && header.replace('Bearer ', '') === s;"],
+  ['L24 the helper compares the published relay secret', "const s = env && env.FIELD_MCP_SECRET;", "const s = env && env.RELAY_SHARED_SECRET;"],
+  ['L25 the gate answers but does not stop the route', "                    return new Response('Unauthorized', { status: 401, headers: CORS });\n                const date = url.searchParams.get('date');", "                    void new Response('Unauthorized', { status: 401, headers: CORS });\n                const date = url.searchParams.get('date');"],
   // THE DEBUG ROUTE that prepares the charge's statements itself.
   ['L12 the debug route\'s refusal probe is admitted instead of refused',
    "['gate', db.prepare(ODDS_BUDGET_SQL.gate).bind(token, DAY, 1, ceiling, MON, 1, MONTH_LIMIT, DAY, PROBE_SITE, 1, ceiling)],",

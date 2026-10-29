@@ -131,6 +131,17 @@ function relaySecretMatches(header, env) {
   return typeof s === 'string' && s.length > 0 && header === s;
 }
 
+// THE ADMIN BEARER, FROM THE WORKER BINDING ONLY (FIELD_MCP_SECRET, 2026-10-29). The admin routes check
+// it inline as `auth !== env.FIELD_MCP_SECRET`; this is that check for a route that spends billed odds
+// credits, written to FAIL CLOSED like relaySecretMatches: an unset or empty binding matches no header, an
+// absent header matches nothing, and the published RELAY_SHARED_SECRET is not accepted here (the 10-14 ruling:
+// gating with a published credential is worse than leaving the route open). Same stripping as the admin
+// routes: the header with or without its "Bearer " prefix.
+function mcpBearerMatches(header, env) {
+  const s = env && env.FIELD_MCP_SECRET;
+  return typeof s === 'string' && s.length > 0 && typeof header === 'string' && header.replace('Bearer ', '') === s;
+}
+
 import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
@@ -12755,6 +12766,10 @@ export default {
             //   { ok, date, games_found, odds_populated, odds_skipped,
             //     quota_remaining, stopped?, reason? }
             if (pathname === '/archive/odds-backfill' && (request.method === 'GET' || request.method === 'POST')) {
+                // GATED 2026-10-29 (docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md TASK 1, Route A):
+                // 30 billed credits per sport-date, and it answered anyone. First thing it does, before any odds call.
+                if (!mcpBearerMatches(request.headers.get('Authorization'), env))
+                    return new Response('Unauthorized', { status: 401, headers: CORS });
                 const date = url.searchParams.get('date');
                 if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
                     return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
