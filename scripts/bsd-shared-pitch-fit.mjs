@@ -41,9 +41,18 @@ import { fileURLToPath } from 'node:url'
 export const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
 export const ARTIFACT = 'outbox/bsd-shared-pitch-fit-latest.json'
 
-/** The vendor rounds to one decimal on both sides of the join; a mismatch of one
- *  rounding step plus float error is not a mismatch. */
+/** EXACT: the vendor rounds to one decimal on both sides of the join, so one
+ *  rounding step plus float error. 122 of 123 pairs on 2026-10-29 sat inside it. */
 export const TOL = 0.15
+/** AGREE: what the VERDICT tests. Measured 2026-10-29: one pair in 123 differs by
+ *  0.5 (event 604443 min 90, away: the incident holds the shot at 9.7,53.6 and the
+ *  shotmap holds the preceding cross's end point 10.2,53.4). That is the same shot
+ *  carried to a slightly different place, not a different placement: the other three
+ *  candidates are tens of units away. The question this script answers is WHICH of
+ *  four placements, whose separable pairs sit more than 1 unit apart, so a pair
+ *  within 1.0 of the hypothesis placement agrees with it and a pair outside does not.
+ *  Reported separately: `exact` (<= TOL) and `agree` (<= AGREE). */
+export const AGREE = 1.0
 /** Pairs per side whose four candidate placements are all distinguishable. */
 export const MIN_SEPARABLE_PER_SIDE = 8
 
@@ -95,21 +104,26 @@ export function fitPairs (pairs, hypothesis = HYPOTHESIS) {
     const ps = pairs.filter(p => p.side === side)
     const fits = Object.fromEntries(Object.keys(TRANSFORMS).map(k => [k, 0]))
     const misfits = []
-    let sep = 0
+    let sep = 0, exact = 0, widest = 0
     for (const p of ps) {
       const isSep = separable(p.rest)
       if (isSep) sep++
       for (const [k, fn] of Object.entries(TRANSFORMS)) if (dist(fn(p.rest), p.shared) <= TOL) fits[k]++
-      if (dist(TRANSFORMS[hypothesis[side]](p.rest), p.shared) > TOL) misfits.push(p)
+      const e = dist(TRANSFORMS[hypothesis[side]](p.rest), p.shared)
+      if (e <= TOL) exact++
+      if (e > widest) widest = e
+      if (e > AGREE) misfits.push(p)
     }
-    out[side] = { n: ps.length, separable: sep, fits, hypothesis: hypothesis[side], misfits }
+    out[side] = { n: ps.length, separable: sep, exact, widest: Math.round(widest * 100) / 100,
+                  fits, hypothesis: hypothesis[side], misfits }
   }
   return out
 }
 
-/** CONFIRMED needs every pair to agree with the hypothesis AND enough separable
- *  pairs on each side that agreement means something. Any misfit is CONTRADICTED,
- *  whatever the counts: a transform that is right "mostly" is not a transform. */
+/** CONFIRMED needs every pair to AGREE with the hypothesis (<= AGREE) AND enough
+ *  separable pairs on each side that agreement means something. Any pair beyond
+ *  AGREE is CONTRADICTED, whatever the counts: a transform that is right "mostly"
+ *  is not a transform. */
 export function verdictOf (fit) {
   if (fit.home.misfits.length || fit.away.misfits.length) return 'CONTRADICTED'
   if (fit.home.separable < MIN_SEPARABLE_PER_SIDE || fit.away.separable < MIN_SEPARABLE_PER_SIDE) return 'INSUFFICIENT'
@@ -123,7 +137,8 @@ export function coverageLine (cov, fit, verdict) {
   return `COVERAGE: ${cov.paired} of ${cov.goalIncidents} goal incidents paired across ${cov.events} events ` +
     `(${cov.eventsAvailable} finished websocket_plus events listed on ${cov.dates.join(', ')}); ` +
     `unpaired ${sum(cov.unpaired)} (${Object.entries(cov.unpaired).map(([k, v]) => `${k} ${v}`).join(', ')}); ` +
-    `home ${fit.home.n} pairs / ${fit.home.separable} separable, away ${fit.away.n} / ${fit.away.separable}; ` +
+    `home ${fit.home.n} pairs / ${fit.home.separable} separable / ${fit.home.exact} exact (widest ${fit.home.widest}), ` +
+    `away ${fit.away.n} / ${fit.away.separable} / ${fit.away.exact} exact (widest ${fit.away.widest}); ` +
     `fetch errors ${cov.fetchErrors.length}; verdict ${verdict}`
 }
 
@@ -162,8 +177,14 @@ function selfTest () {
   check('...and fits the home-raw hypothesis, so the two are told apart',
         fitPairs(synth(12, { homeMode: 'identity', awayMode: 'rotate' }), { home: 'identity', away: 'rotate' }).home.misfits.length === 0)
   check('7 pairs are INSUFFICIENT, not CONFIRMED', verdictOf(fitPairs(synth(7))) === 'INSUFFICIENT')
-  const bent = synth(12); bent[0].shared = { x: bent[0].shared.x, y: bent[0].shared.y + 0.4 }
-  check('ONE pair off by 0.4 is CONTRADICTED even with 24 pairs', verdictOf(fitPairs(bent)) === 'CONTRADICTED')
+  const bent = synth(12); bent[0].shared = { x: bent[0].shared.x, y: bent[0].shared.y + 5 }
+  check('ONE pair off by 5 is CONTRADICTED even with 24 pairs', verdictOf(fitPairs(bent)) === 'CONTRADICTED')
+  const half = synth(12); half[0].shared = { x: half[0].shared.x + 0.5, y: half[0].shared.y }
+  const hf = fitPairs(half)
+  check('one pair off by 0.5 (the measured vendor residual) AGREES but is not exact',
+        verdictOf(hf) === 'CONFIRMED' && hf.home.exact === 11 && hf.away.exact === 12 && hf.home.widest === 0.5)
+  const edge = synth(12); edge[0].shared = { x: edge[0].shared.x + 1.01, y: edge[0].shared.y }
+  check('...and one pair off by 1.01 is past AGREE', verdictOf(fitPairs(edge)) === 'CONTRADICTED')
   const wobble = synth(12); wobble[0].shared = { x: wobble[0].shared.x + 0.1, y: wobble[0].shared.y }
   check('one rounding step (0.1) is NOT a mismatch', verdictOf(fitPairs(wobble)) === 'CONFIRMED')
 
@@ -217,7 +238,7 @@ function mutate () {
   const muts = [
     ['away placed with y flipped', (ps) => ps.map(p => p.side === 'away' ? { ...p, shared: TRANSFORMS.flipY(p.rest) } : p)],
     ['home left raw (the contract mirrorAway placement)', (ps) => ps.map(p => p.side === 'home' ? { ...p, shared: TRANSFORMS.identity(p.rest) } : p)],
-    ['one pair nudged by 0.4', (ps) => ps.map((p, i) => i === 0 ? { ...p, shared: { x: p.shared.x + 0.4, y: p.shared.y } } : p)],
+    ['one pair nudged by 5', (ps) => ps.map((p, i) => i === 0 ? { ...p, shared: { x: p.shared.x + 5, y: p.shared.y } } : p)],
     ['every away pair removed', (ps) => ps.filter(p => p.side === 'home')],
   ]
   const want = ['CONTRADICTED', 'CONTRADICTED', 'CONTRADICTED', 'INSUFFICIENT']
