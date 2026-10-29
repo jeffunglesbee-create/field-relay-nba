@@ -195,6 +195,14 @@ const main = async () => {
     subscribeResponse, checks: assessed.checks, counts: assessed.counts,
     pollState: pollAssessed.state, pollCounts: pollAssessed.counts, bsdPoll,
     sample: events.filter((e) => e.event === 'bsd:stats' || e.event === 'bsd:ball').slice(0, 3),
+    // When an assertion fails the artifact must show WHICH frames broke it, not only that one did: the whole window's
+    // bsd:ball payloads (a few dozen) and the distinct values of the fields the assertions read.
+    evidence: state === 'assertions-failed' ? {
+      balls: events.filter((e) => e.event === 'bsd:ball').map((e) => e.data),
+      sideValues: [...new Set(events.filter((e) => e.event === 'bsd:ball').map((e) => JSON.stringify(e.data?.side)))],
+      commentaryTypes: [...new Set(events.filter((e) => e.event === 'bsd:ball').map((e) => typeof e.data?.commentary))],
+      timeTypes: [...new Set(events.filter((e) => e.event === 'bsd:ball').map((e) => e.data?.time === null ? 'null' : typeof e.data?.time))],
+    } : null,
   }
   writeFileSync('outbox/bsd-fanout-live-verify-latest.json', JSON.stringify(art, null, 2) + '\n')
   for (const c of assessed.checks) console.log(`${c.pass ? 'PASS' : 'FAIL'}  ${c.name}`)
