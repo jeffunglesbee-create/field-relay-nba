@@ -22,8 +22,8 @@ D1 (`regular_season_games`, read 2026-10-29):
 | 2026-10-23 to 10-27 | 2, 2, 2, 2, 1 | 0 |
 | 2026-10-09 to 10-12 (previous event) | 2, 2, 2, 1 | 1, 1, 1, 1 |
 
-The check tests the date four days before its run. The 10-25 run read 10-21's neighbour 10-22, where the one `sport='PGA Tour'` row existed,
-so it passed on the defective row; the 10-26 run read 10-23, where none exists. The check was never counting golf; it was counting the bug.
+The check tests the date four days before its run (the committed output of each run names it). The 10-25 run read 10-22, where the one
+`sport='PGA Tour'` row existed, so it passed on the defective row; the 10-26 run read 10-23, where none exists. The check was never counting golf; it was counting the bug.
 
 ## Fix
 
