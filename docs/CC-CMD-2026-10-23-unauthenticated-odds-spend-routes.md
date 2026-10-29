@@ -5,10 +5,11 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (spend reachable by anyone)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL — Route A DONE 2026-10-29 (`1d55722`, Deploy RELAY Worker `40863046648`; proof
-`outbox/odds-backfill-gate-live-proof-20261029T1120Z.md`). ROUTE B HELD: waits on B1 of
-`docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`, an owner option with no pick. `/odds/*`
-(`oddsProxyRoute`) is uncapped and needs a number from the owner.
+**Status:** DONE 2026-10-29 for the two routes it gates. Route A `/archive/odds-backfill`: `1d55722`, Deploy RELAY Worker
+`40863046648`, proof `outbox/odds-backfill-gate-live-proof-20261029T1120Z.md`. Route B `/identity/mismatches`: `5c664f8`
+(pushed as `89f047a`), Deploy RELAY Worker `40920118796`, proof `outbox/identity-mismatches-gate-live-proof-20261029T1730Z.md`.
+`/odds/*` (`oddsProxyRoute`) is named below but is not a task of this document: the owner ruled 2026-10-29 to hold and size
+its cap from measured demand (`docs/CC-CMD-2026-09-16-odds-spend-attribution.md`).
 **Filed by:** the Task 3 premise test of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`
 (workflow `wf_c984c219-a1f`, 2026-10-23), Rule 87.4.
 
@@ -125,13 +126,31 @@ rewrote the done condition so it can fail.
    for `archiveOddsBackfill` 0 before and 0 after, day used 449 before and after, month used 46323 before and after (table
    and its limits in the proof). The authorized path (200 with `FIELD_MCP_SECRET`) was not run live; the check runs it.
 
-### Route B, `/identity/mismatches`: NOT gated
+### Route B, `/identity/mismatches`, 2026-10-29 (owner: B1 "keep as much as possible, retire only if necessary")
 
-The Saturday workflow `odds-identity-join-saturday.yml` sends no credential and would get 401 and exit 1. Route B is
-gated in the same commit as B2's outcome (either the workflow sends the secret, or B1(b) removes the workflow). B1 is
-the owner's.
+B1 was decided as (a) (keep the route and the workflow), so the gate and the callers' secret ship together, as this
+document required: the route (`5c664f8`), the probe script and the two workflows that call it (`3f5dabf`) were pushed as
+one `89f047a`.
+1. **TASK 0 re-run at dispatch:** the callers are `scripts/probe-odds-join.mjs`, run by `odds-identity-join-saturday.yml`
+   (cron `40 23 * * 6`) and by `probe-odds-api.yml` (dispatch only); both now pass `FIELD_MCP_SECRET` from the repo secret,
+   which other workflows already use against `FIELD_MCP_SECRET`-gated routes. The MCP self-probe allow-list (prefix
+   `/identity`) sends no credential and now gets 401 on this route; `/identity/substitution-census`, which the ambiguity
+   watch reads, is a different route and stays open. Nothing in jubilant-bassoon, field-laboratory or field-playground calls it.
+2. **The check red before, green after, mutation caught:** `scripts/check-odds-label-split.mjs` 80 of 80 on the real worker
+   (no credential, wrong credential, the published relay secret by `Authorization` and by `X-FIELD-Relay`, unset and empty
+   secrets, the right secret with something before or after it: all 401 with the vendor never called and nothing moved; the
+   right secret: 200 and a charge under `identityMismatches`); `scripts/mutate-odds-label-split.mjs` 27 of 27 (L26, L27, L28
+   for the gate and its comparison); `scripts/check-identity-route-join.mjs` 41 of 41 and its mutants 32 of 32 (J32 removes
+   the gate).
+3. **After deploy: HTTP 401, `Unauthorized`,** from the self-probe of `/identity/mismatches?date=2026-10-29&sports=CFB`.
+   `by_site` for `identityMismatches` 0 before and 0 after, day used 758, month used 46632 and every reconcile row identical
+   across the 15 seconds. The authorized path and the new report were not run live (no secret; an off-schedule run would
+   spend about 12 credits, which needs the owner's word); the 2026-10-31 scheduled run is the live proof, read by
+   `trig_01Xrhu7D91b4WhnQKAcPYQS9` on 2026-11-01.
 
 ### `/odds/*`, `oddsProxyRoute`: neither gated nor capped
 
-Anonymous and uncapped, and it shares the day's 3,800 and the month's 85,000. Needs a cap number from the owner; none
-is invented here.
+Anonymous and uncapped, and it shares the day's 3,800 and the month's 85,000. It is the PUBLIC proxy the client's users
+trigger, so it cannot be gated behind a secret. Owner 2026-10-29: hold, and size the cap from measured demand; the
+2026-10-30T12:00Z wake (`trig_019pHMT7Ym3XGHi3KVKQLDZx`) reads the first closed day of per-label spend, `oddsProxyRoute` 0
+credits so far today. No number is invented here.

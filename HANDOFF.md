@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-29 (17:40Z) — the identity route and the Saturday probe measure something
+
+**HEAD:** `aee34be` → `5c664f8`, `3f5dabf`, `89f047a` (deployed 17:29Z) → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-29-identity-route-and-saturday-probe.md
+
+Owner answers (2026-10-29): CFB A1 = **hold, read 2026-10-31**; B1 = **keep the route and the workflow, retire only if necessary**
+(read as (a)); `/odds/*` cap = **hold, size from measured demand**. Built and deployed on that:
+
+- **`/identity/mismatches` joins the way the relay's writers do** (`indexOddsByPair` + `findOddsForRow` with `start_time`) and reports
+  the denominators `d1_rows`, `d1_priced`, `d1_priced_late`, `odds_events_in_window`, plus `priceable`, `slate_matched` (the backfill's
+  matcher over the whole slate), and `start_time`/`finalized` on each unmatched row. On the real CFB slate of 2026-09-12: old route **0**
+  of 80, the cron's join **73**, the slate matcher **80**. Both games tables are read; `?date=` is required.
+- **Route B is gated** (FIELD_MCP_SECRET, fail closed). Live: self-probe HTTP **401**, `/budget/odds` identical across it.
+  `outbox/identity-mismatches-gate-live-proof-20261029T1730Z.md`. `docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md` DONE.
+- **The Saturday probe can fail.** It sends the secret (and redacts it), requires `PROBE_DATE` (the workflows compute the US Eastern
+  day six hours before the run starts; all seven scheduled artifacts had probed the Sunday), refuses a Sunday, and exits 1 when CFB is
+  `C2_JOIN`, `NO_ROWS_AT_ALL` (the feed lists the slate and the archive has none) or an unreadable report. `NO_SLATE` (off-season) and
+  `NO_JOIN_EVIDENCE` (every unpriced game has finished) are not failures. `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`.
+- **A premise tested first:** D1 rows are created at about 10:00Z on game day and the cron prices them minutes later, so a working join
+  leaves nothing unpriced; "all priced" and "no rows" read the same in all seven artifacts. Done condition 4 was restated.
+- **An independent four-lens review** (32 findings, 44 minutes) found the first version's whole-slate, postseason, priceable, date and
+  scoping defects and a way for a malformed secret to reach the committed artifact; each was reproduced and fixed; two nits were
+  left on purpose (table in the session doc). Checks: route 41 / 32 mutants, probe 88 / 47, workflows 35 / 19, label-split 80 / 27.
+- **Not observed live:** the authorized path and the new report. Unblocked by the **scheduled run on Saturday 2026-10-31** (about 12
+  credits, already scheduled); the wake **`trig_01Xrhu7D91b4WhnQKAcPYQS9` (2026-11-01T04:30Z)** reads the artifact and runs the A1
+  coverage SELECT. Do not dispatch the probe by hand: Odds API calls need the owner's word.
+- **Observed, not fixed:** `/budget/odds` `degraded_open` 5 events / 30 credits, "D1 DB is overloaded", last 16:04:03Z. Read at the
+  2026-10-30T12:00Z wake.
+- **Owner decisions that remain:** none. **Unbuilt, in an existing CC-CMD:** TASK A2 (six relay readers, three client readers, Rule 70);
+  the job-log half of A0.2.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-29 (16:05Z) — the BSD pitch plots inside its own lines
 
 **HEAD:** `c44c02a8` → this close-out · **Branch:** main

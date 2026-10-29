@@ -5,8 +5,9 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
 **Status:** PARTIAL — approved 2026-10-29 ("cfb Saturday approved"). TASK A0 done except the job-log half of A0.2
-(`outbox/cfb-saturday-a0-20261029.md`). A1 and B1 are owner options with no pick yet. A2 does not depend on either
-(it changes readers, not what the backfill writes).
+(`outbox/cfb-saturday-a0-20261029.md`). A1 decided: hold, read 2026-10-31. B1 decided: (a), redefined. B2 and B3 built and
+deployed (`89f047a`); their live proof is the 2026-10-31 scheduled run (done condition 4), read on 2026-11-01. A2 is not
+built; it does not depend on A1 or B1 (it changes readers, not what the backfill writes).
 **Filed by:** CC, while recording the CFB done condition (Rule 87.4). Its
 sibling is `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`, which covers
 pairs that are wrong. This one covers games the backfill never prices,
