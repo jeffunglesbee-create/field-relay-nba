@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T02:54:54.659Z",
+  "generated_at": "2026-10-29T02:56:51.195Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "hypothesis": {
     "home": "rotate",
@@ -29,6 +29,8 @@
     "home": {
       "n": 71,
       "separable": 60,
+      "exact": 71,
+      "widest": 0,
       "fits": {
         "identity": 0,
         "flipX": 7,
@@ -41,6 +43,8 @@
     "away": {
       "n": 52,
       "separable": 45,
+      "exact": 51,
+      "widest": 0.5,
       "fits": {
         "identity": 51,
         "flipX": 0,
@@ -48,25 +52,10 @@
         "rotate": 0
       },
       "hypothesis": "identity",
-      "misfits": [
-        {
-          "event": 604443,
-          "minute": 90,
-          "side": "away",
-          "pid": 473,
-          "shared": {
-            "x": 9.7,
-            "y": 53.6
-          },
-          "rest": {
-            "x": 10.2,
-            "y": 53.4
-          }
-        }
-      ]
+      "misfits": []
     }
   },
-  "verdict": "CONTRADICTED",
+  "verdict": "CONFIRMED",
   "pairs": [
     {
       "event": 5383,
