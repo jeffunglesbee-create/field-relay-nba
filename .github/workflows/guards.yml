@@ -409,6 +409,17 @@ jobs:
           node scripts/bsd-fanout-live-verify.mjs --self-test
           node scripts/mutate-bsd-fanout-live-verify.mjs
 
+      # docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md, Task 2. The join that says
+      # which transform puts a shotmap `pos` on the pitch the ball is drawn on. Its
+      # pairing and its verdict are checked against synthetic data, and the harness
+      # mutates the data (a reflection, the contract's home-raw placement, one pair
+      # nudged, a side removed) and requires each to be caught. Rule 90.
+      - name: the BSD shared-pitch fit fails when it is broken on purpose
+        if: always()
+        run: |
+          node scripts/bsd-shared-pitch-fit.mjs --self-test
+          node scripts/bsd-shared-pitch-fit.mjs --mutate
+
       # Rule 99, the absence-collapse ratchet. deploy.yml carries the same step
       # for src-only pushes; this one covers scripts/ and workers/ changes that
       # reach here. Reaches github.com to clone jubilant-bassoon, whose

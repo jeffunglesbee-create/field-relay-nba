@@ -1,0 +1,77 @@
+name: BSD shared-pitch fit
+
+# docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md, Task 2.
+#
+# Joins each goal's /incidents `sequence[].pos` (shared pitch) to its /shotmap `pos`
+# (target-goal-relative) across finished websocket_plus events, and reports which
+# transform per side places a shot on the pitch the ball is drawn on. Writes
+# outbox/bsd-shared-pitch-fit-latest.json, including every pair, so the verdict
+# can be re-derived offline (`--check`).
+#
+# CI because the container cannot reach the relay host (403 at CONNECT). Read-only
+# against the relay: public routes, no token. Cost: at most 3 by-date requests
+# (edge-cached 300 s for a past day) and 2 requests per event (cached 60 s for a
+# finished event), capped by max_events, paced 250 ms apart.
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_events:
+        description: Cap on events fetched
+        default: '30'
+      dates:
+        description: Comma-separated YYYY-MM-DD (blank = the three days before today, UTC)
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-shared-pitch-fit
+  cancel-in-progress: false
+
+jobs:
+  fit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The check can still fail
+        run: |
+          node scripts/bsd-shared-pitch-fit.mjs --self-test
+          node scripts/bsd-shared-pitch-fit.mjs --mutate
+
+      # Exit 0 CONFIRMED, 1 CONTRADICTED, 3 INSUFFICIENT. The artifact is written in
+      # every case and committed below; the step's own result is kept so the run
+      # does not go green on a verdict that is not CONFIRMED.
+      - name: Fit
+        id: fit
+        run: |
+          set +e
+          node scripts/bsd-shared-pitch-fit.mjs --max-events "${{ inputs.max_events }}" --dates "${{ inputs.dates }}"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: The stored pairs re-derive the stored verdict
+        run: |
+          set +e
+          node scripts/bsd-shared-pitch-fit.mjs --check outbox/bsd-shared-pitch-fit-latest.json
+          c=$?
+          # 0 CONFIRMED, 3 consistent-but-not-confirmed are both honest answers;
+          # 1 is an artifact that disagrees with its own pairs.
+          [ "$c" = "0" ] || [ "$c" = "3" ]
+
+      - name: Commit the artifact
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-shared-pitch-fit-latest.json' \
+          bash scripts/probe-commit-retry.sh "chore: BSD shared-pitch fit artifact"
+
+      - name: Result
+        run: |
+          echo "fit exit code: ${{ steps.fit.outputs.code }}  (0 CONFIRMED, 1 CONTRADICTED, 3 INSUFFICIENT)"
+          [ "${{ steps.fit.outputs.code }}" = "0" ]
