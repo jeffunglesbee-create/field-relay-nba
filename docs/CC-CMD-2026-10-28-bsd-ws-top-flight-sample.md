@@ -67,7 +67,7 @@ count and seconds. Then add one dated paragraph to
 `field-laboratory/docs/CC-CMD-2026-10-16-bsd-ws-frame-shape.md` under "Second sample":
 verdict, `coordinates` length distribution, identifier keys seen, `situation` values.
 
-## Task 3 — settle the ball field (RELAY SIDE DONE 2026-10-28; client side moved)
+## Task 3 — settle the ball field (RELAY SIDE DONE 2026-10-28; client side DONE 2026-10-29 under the pitch-renderer CC-CMD)
 
 The branch Task 2's artifact selects was "above 0": a coordinate element was recorded on the evening of
 2026-10-28 in two DFB Pokal matches (events 602352, 602347; `live_websocket` and `websocket_plus` both true).

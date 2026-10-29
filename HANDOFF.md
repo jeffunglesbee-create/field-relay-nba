@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-29 (03:55Z) — the BSD pitch draws a ball and shots, proven on the deployed page
+
+**HEAD:** `5dfaf6f` → `fd7f9d22` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-29-bsd-pitch-renderer.md
+
+`docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`: **DONE**. The client (jubilant-bassoon `94d8b56`, `18b4873`) now reads
+the relay's nested `coords`, keeps the last point on a null frame, drops it at 30 s (273 gaps: median 5 s, p90 17 s, p95 26 s)
+and ignores another match's frame. Proof: `jubilant-bassoon/outbox/bsd-pitch-probe-manifest-2026-10-29T03-53-57.json`
+(run 40814597354, `pass: true`; reader on recorded payloads over the page's real SSE path, not a live match).
+
+- **Relay contract:** `/bsd/contract` `transformReference.sharedPitch` (`fd7f9d22`, Deploy RELAY Worker 40811980794,
+  contract verify 40812803674): home `x = 100 - x; y = 100 - y`, away `x = x; y = y`. Measured by an exact join of goal incidents to
+  shotmap records, 121 of 126 goals, 38 matches (`outbox/bsd-shared-pitch-fit-latest.json`). **`mirrorAway` is the other
+  orientation (home raw) and is wrong for the ball's pitch; the CC-CMD said to use it and was corrected.**
+- **Filed, not deferred:** `docs/CC-CMD-2026-10-29-bsd-live-shot-source.md` (0 of 170 event frames carry `shotmap`: a live match
+  shows no shots; blocked by the unmeasured BSD request budget) and `docs/CC-CMD-2026-10-29-bsd-pitch-inset.md` (pitch lines
+  5% inside the canvas, plotting to the edge).
+- **Process:** a relay commit with `|| []` reddened the CLIENT deploy gate through the cross-repo absence-collapse ratchet (client
+  run 40809785846). Run the client's pre-deploy steps before a client push, and the other repo's ratchet before a relay one.
+- **Wake still armed:** 2026-11-03T18:00Z, the weather first-call count (`trig_01H7eoLwoZqWDj2q53XC1S8x`).
+
+---
 ## SESSION CLOSE-OUT — 2026-10-28 (22:20Z) — the owner's three decisions on Task 3: labels split, refusal record, caps ratified
 
 **HEAD:** `5dfaf6f` → `0e6a894` → this close-out · **Branch:** main

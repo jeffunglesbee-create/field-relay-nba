@@ -3,7 +3,10 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** jubilant-bassoon executes it (`src/legacy/field.js` only; never `index.html`'s script block). The relay side is already declared and deployed.
 **Filed:** 2026-10-28, by CC, from `docs/CC-CMD-2026-10-28-bsd-ws-top-flight-sample.md` Task 3
-**Status:** FILED, not started. Blocked by: nothing that waits on a person. Needs one measurement first (Task 0).
+**Status:** DONE 2026-10-29. Ball: jubilant-bassoon `94d8b56`; shots: `18b4873`; relay contract `fd7f9d22`; proof: the committed
+manifest `jubilant-bassoon/outbox/bsd-pitch-probe-manifest-2026-10-29T03-53-57.json` (run 40814597354; green again at 03:51:47).
+Session doc: `outbox/cc-session-2026-10-29-bsd-pitch-renderer.md`. Task 2 was NOT built as written: see its correction. Two
+follow-ups filed, not deferred: `docs/CC-CMD-2026-10-29-bsd-pitch-inset.md` and `docs/CC-CMD-2026-10-29-bsd-live-shot-source.md`.
 
 ---
 
@@ -72,6 +75,15 @@ In `_bsdOnSSEFrame` and `_bsdRepaint` only:
 Plot from `pos` and `home`, applying the contract's `transformReference.mirrorAway` to away shots so both teams
 share one pitch. The source of the formula is the served `/bsd/contract`; copy it, do not retype it from memory.
 
+**CORRECTED 2026-10-29 (Rule 100: the premise was not tested before it was written).** `mirrorAway` leaves the HOME side
+raw, which makes the home side attack x = 0. The ball is on the pitch where home attacks x = 100, so applying
+`mirrorAway` would draw the home side's shots at the end the ball's home side defends. An exact join of each goal's
+incident `sequence[].pos` (shared pitch) to its shotmap `pos` (121 of 126 goals, 38 finished websocket_plus matches;
+`outbox/bsd-shared-pitch-fit-latest.json`, `scripts/bsd-shared-pitch-fit.mjs`) gave: **home `x = 100 - x; y = 100 - y`
+(69 of 69 exact), away `x = x; y = y` (51 of 52 exact, the 52nd 0.5 off)**. The relay now serves this as
+`transformReference.sharedPitch` (`fd7f9d22`) and the client copies it (`_bsdShotPoint`). `mirrorAway` is unchanged: it is
+the right placement for a home-raw render and the wrong one for this pitch.
+
 ## Verification (jubilant-bassoon Rule 90, CI-as-proxy Playwright; an artifact, not "looks right")
 
 A workflow `bsd-pitch-probe.yml`, triggered by an `outbox/.trigger-*` push, loads the DEPLOYED page in a real
@@ -83,8 +95,10 @@ This proves the reader, not a live match; say so in the artifact.
 
 ## Done conditions
 
-1. The manifest exists on main and every boolean above is true, with `nanAttributes` equal to 0.
-2. `node smoke.js index.html` shows 0 failed, SW_VERSION bumped in `index.html` and `sw.js` and equal.
-3. The Task 0 numbers (gap median and p90, second-half frame) are in the commit message and the session doc.
-4. `field-relay-nba/CONTRACTS.md` "Known mismatch (STAGED)" line for `bsd:ball` is replaced by what shipped,
-   in both repos' copies.
+1. MET. The manifest exists on main and every boolean above is true, with `nanAttributes` equal to 0
+   (`bsd-pitch-probe-manifest-2026-10-29T03-53-57.json`: `pass: true`, `failing: []`, `ballCx 259.2`, `ballCy 127.2`,
+   `nanAttributes 0`, `nanAttributesAfterAge 0`).
+2. MET. `node smoke.js index.html` 1065 passed, 0 failed; SW_VERSION `2026-10-28b` in `index.html`, `sw.js` and `field.js`.
+3. MET. The Task 0 numbers (gap median 5 s, p90 17 s, p95 26 s, n = 273; one second half measured, no flip) are in the
+   `94d8b56` commit message and the session doc.
+4. MET. `CONTRACTS.md` "Known mismatch (STAGED)" line for `bsd:ball` is replaced by what shipped, in both repos' copies.

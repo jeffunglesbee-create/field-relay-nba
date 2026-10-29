@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-10-28 (relay copy → client: the `bsd:stats` and `bsd:ball` SSE events; before that, the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
+Last synced: 2026-10-29 (relay copy → client: the client reader of `bsd:ball` / `bsd:stats` and the shot placement `transformReference.sharedPitch`; before that, 2026-10-28, the `bsd:stats` and `bsd:ball` SSE events, and the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
 
 ---
 
@@ -160,7 +160,8 @@ Consumer: jubilant-bassoon `AmbientEventSource` (~line 26124)
 ### Event: bsd:stats
 Producer: `_bsdOnFrame` in `src/ambient-do.js`, from a BSD WebSocket `event` frame. Fields are the
 vendor's own, forwarded unchanged (Rule 47, Rule 60). Consumer: jubilant-bassoon `_bsdOnSSEFrame`,
-which reads only `data.shots || data.shotmap`.
+which reads `data.shotmap` (an array) and nothing else; there is no `shots` key. It ignores a frame whose `id`
+is not the match it activated: AmbientDO fans every subscribed match out to every client.
 ```
 {
   type:     "bsd:stats"
@@ -171,8 +172,9 @@ which reads only `data.shots || data.shotmap`.
   stats:    { home: {...}, away: {...} }   // nested per side; the key count DIFFERS BY MATCH (43 per
                          //   side on event 602466; 36 to 39 on two DFB Pokal matches); throw_ins,
                          //   free_kicks, goal_kicks, corner_kicks, fouls are CUMULATIVE counts where present
-  shotmap:  null         // null: none of 107 recorded frames carries the key. Its WebSocket type is
-                         //   unobserved (the REST route serves an array)
+  shotmap:  null         // null: none of 170 recorded frames carries the key. Its WebSocket type is
+                         //   unobserved (the REST route serves an array). So NO shot is drawn during a live
+                         //   match; shots draw for a finished game, from R2. docs/CC-CMD-2026-10-29-bsd-live-shot-source.md
   momentum: null         // as shotmap
 }
 ```
@@ -181,6 +183,14 @@ which reads only `data.shots || data.shotmap`.
 - `time.period`, over the 107 recorded event frames (3 matches, 2026-10-28): a string on 66 (`"1T"` 32,
   `"2T"` 33, `"HT"` 1) with `second` and `display` null; the number `1` or `2` on 40 (20 each), with a real
   `second` and `display`; the number `31` on 1, with `second` null. A reader must accept both types.
+- **Placing a shotmap record on the ball's pitch** (client, `_bsdShotPoint`). A record is `pos{x,y,z}`, `home`,
+  `xg`: no top-level `x`, `y` or `team`. `pos` is target-goal-relative per team; the ball is on ONE shared pitch
+  (home attacks x = 100). `/bsd/contract` `transformReference.sharedPitch`: home `x = 100 - x; y = 100 - y`,
+  away `x = x; y = y`. NOT `mirrorAway`, which is the other orientation (home raw, home attacks x = 0). Measured
+  2026-10-29 by joining each goal's incident sequence `pos` to its shotmap `pos`: 121 of 126 goals (2 own goals
+  excluded), 38 finished websocket_plus matches, home 69 of 69 exact, away 51 of 52 exact and the 52nd 0.5 off
+  (`outbox/bsd-shared-pitch-fit-latest.json`, `scripts/bsd-shared-pitch-fit.mjs`). A record with no numeric `pos`
+  or no boolean `home` is not drawn.
 - Evidence and limit (as of 2026-10-28): `scripts/check-bsd-ws-fanout.mjs` replays those 107 frames through
   the real function. They are THREE matches (events 602466 Categoría Primera A, 602352 and 602347 DFB Pokal);
   every other league is unmeasured.
@@ -217,9 +227,14 @@ Producer: `_bsdOnFrame`, from a BSD WebSocket `livedata` frame. Same rules as ab
   flip the frame at half time there. One second half is thin evidence; a reader should not assume it for another.
 - **Which matches stream.** `/bsd/events/live` rows carry `live_websocket` AND `websocket_plus`. A row with
   `live_websocket: false` delivered no frame to the relay in 150 s (event 601989, Veikkausliiga).
-- **Known mismatch (STAGED).** `_bsdOnSSEFrame` stores the whole payload as `_bsdBallPos` and `_bsdRepaint` reads
-  `_bsdBallPos.x` / `.y`; the payload carries `coords` (nested). A ball would not draw. Owned by
-  `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`. Unblocked by a render proof on the deployed page.
+- **Client reader (VERIFIED on the deployed page 2026-10-29, jubilant-bassoon `bsd-pitch-probe.yml`).**
+  `_bsdOnSSEFrame` reads `data.coords` (`{x, y}`), keeps the previous point on a frame whose `coords` is null
+  (72 of 378 recorded frames), drops a point older than 30 s (273 gaps between point-carrying frames, 4 captures,
+  3 matches: median 5 s, p90 17 s, p95 26 s, max 112 s; 263 of 273 within 30 s), and ignores a frame whose `id`
+  is not its active match. Age is taken at receipt on the device's monotonic clock, not against `uts`. The probe
+  feeds the page's own EventSource this payload (the served `frameShapes.livedata.example` verbatim) and reads
+  the SVG back; it proves the reader, not a live match. Owned by
+  `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`.
 - **Incident types seen** (`situation`, 392 frames): safe, attack, dangerous, possession, freekick, shotontarget,
   throwin, shotofftarget, goal_kick, goalkeeper_saved, substitution, goal, card, corner, temporary_interruption,
   gameon, possible_event. Restarts (`freekick`, `throwin`, `goal_kick`, `corner`) and the dead-time markers
