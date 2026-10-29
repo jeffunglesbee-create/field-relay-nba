@@ -72,19 +72,23 @@ const dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
  *  Returns pairs plus an account of every goal that did NOT pair, by reason:
  *  Rule 99, an unpaired goal is a different fact from a goal that disagreed. */
 export function pairGoals (eventId, shotmap, incidents) {
+  // Rule 99: a payload without the array is not a payload with no goals. The caller records it as a
+  // fetch error; reaching here with anything else is a bug, not an empty event.
+  if (!Array.isArray(shotmap) || !Array.isArray(incidents)) throw new TypeError(`event ${eventId}: shotmap and incidents must both be arrays`)
   const pairs = []
   const unpaired = { no_sequence: 0, own_goal: 0, no_record: 0, ambiguous: 0 }
   let goals = 0
-  for (const inc of incidents || []) {
+  for (const inc of incidents) {
     if (inc?.type !== 'goal') continue
     goals++
     // The vendor's value is "ownGoal" (/bsd/contract frames[SEQ].ownGoal): `is_home` names the team
     // CREDITED, the sequence belongs to the OTHER side, so it is in neither side's frame here.
     if (/own/i.test(String(inc.goal_type ?? ''))) { unpaired.own_goal++; continue }
-    const step = (inc.sequence || []).find(s => s?.event === 'goal')
+    // A goal with no sequence array is COUNTED as no_sequence, not read as an empty one.
+    const step = Array.isArray(inc.sequence) ? inc.sequence.find(s => s?.event === 'goal') : undefined
     if (!step || !num(step.pos?.x) || !num(step.pos?.y)) { unpaired.no_sequence++; continue }
     const side = inc.is_home === true ? 'home' : 'away'
-    const cand = (shotmap || []).filter(s =>
+    const cand = shotmap.filter(s =>
       s?.type === 'goal' && s.player_id === step.pid && (s.home === true) === (side === 'home') &&
       num(s.min) && Math.abs(s.min - inc.minute) <= 1 && num(s.pos?.x) && num(s.pos?.y))
     if (cand.length === 0) { unpaired.no_record++; continue }
@@ -222,6 +226,11 @@ function selfTest () {
   check('...an own goal, a missing sequence, a missing record and an ambiguous record are each counted, not paired',
         r.unpaired.own_goal === 1 && r.unpaired.no_sequence === 1 && r.unpaired.no_record === 1 && r.unpaired.ambiguous === 1)
   check('...and the goals add up: paired + unpaired = goal incidents', r.pairs.length + sum(r.unpaired) === r.goals)
+  check('a payload with no array is an error, not an event with no goals (Rule 99)',
+        (() => { try { pairGoals(1, undefined, []); return false } catch (e) { return e instanceof TypeError } })() &&
+        (() => { try { pairGoals(1, [], null); return false } catch (e) { return e instanceof TypeError } })())
+  check('a goal whose sequence is not an array is counted as no_sequence',
+        pairGoals(1, [], [{ type: 'goal', minute: 5, is_home: true, sequence: 'x' }]).unpaired.no_sequence === 1)
   check('a record for the OTHER side with the same player and minute is not taken',
         pairGoals(1, [{ type: 'goal', player_id: 5, home: false, min: 9, pos: { x: 1, y: 2 } }],
                   [{ type: 'goal', minute: 9, is_home: true, sequence: [{ event: 'goal', pid: 5, pos: { x: 3, y: 4 } }] }]).pairs.length === 0)
@@ -260,7 +269,8 @@ function mutate () {
 // ---------------------------------------------------------------- check
 function checkArtifact (file) {
   const a = JSON.parse(readFileSync(file, 'utf8'))
-  const fit = fitPairs(a.pairs || [])
+  if (!Array.isArray(a.pairs)) { console.log(`FAIL: ${file} has no pairs array`); return 1 }
+  const fit = fitPairs(a.pairs)
   const v = verdictOf(fit)
   console.log(coverageLine(a.coverage, fit, v))
   if (v !== a.verdict) { console.log(`FAIL: artifact says ${a.verdict}, its own pairs say ${v}`); return 1 }
@@ -295,7 +305,9 @@ async function run (argv) {
   for (const d of dates) {
     const r = await getJson(`/bsd/events/by-date?date=${d}&limit=50`)
     if (r.error) { cov.fetchErrors.push(`by-date ${d}: ${r.error}`); continue }
-    for (const e of r.body?.results || []) if (e.status === 'finished' && e.websocket_plus === true) listed.push(e.id)
+    // A reply without a results array is a failed listing, recorded as one, not a day with no events.
+    if (!Array.isArray(r.body?.results)) { cov.fetchErrors.push(`by-date ${d}: no results array`); continue }
+    for (const e of r.body.results) if (e.status === 'finished' && e.websocket_plus === true) listed.push(e.id)
     await sleep(250)
   }
   cov.eventsAvailable = listed.length
@@ -305,7 +317,11 @@ async function run (argv) {
     const i = await getJson(`/bsd/events/${id}/incidents`)
     if (s.error || i.error) { cov.fetchErrors.push(`${id}: ${s.error || ''} ${i.error || ''}`.trim()); continue }
     cov.events++
-    const r = pairGoals(id, s.body?.shotmap, i.body?.incidents)
+    if (!Array.isArray(s.body?.shotmap) || !Array.isArray(i.body?.incidents)) {
+      cov.fetchErrors.push(`${id}: shotmap array ${Array.isArray(s.body?.shotmap)}, incidents array ${Array.isArray(i.body?.incidents)}`)
+      continue
+    }
+    const r = pairGoals(id, s.body.shotmap, i.body.incidents)
     cov.goalIncidents += r.goals; cov.paired += r.pairs.length
     for (const k of Object.keys(r.unpaired)) cov.unpaired[k] += r.unpaired[k]
     pairs.push(...r.pairs)
