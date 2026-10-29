@@ -751,5 +751,25 @@
     "games_paired_in_window": 287,
     "games_paired_rows_counted": 14,
     "games_paired_rows_skipped": 0
+  },
+  {
+    "at": "2026-10-29T17:16:42.287Z",
+    "provider_used": "35212",
+    "provider_remaining": "64788",
+    "ledger_month_used": 46617,
+    "daily_used": 743,
+    "daily_ceiling": 3800,
+    "degraded_open": {
+      "events": 5,
+      "credits": 30,
+      "reasons": {
+        "charge: D1_ERROR: D1 DB is overloaded. Requests queued for too long.": 5
+      },
+      "last": "2026-10-29T16:04:03.057Z"
+    },
+    "daily_date": "2026-10-29",
+    "games_paired_in_window": 301,
+    "games_paired_rows_counted": 14,
+    "games_paired_rows_skipped": 0
   }
 ]
