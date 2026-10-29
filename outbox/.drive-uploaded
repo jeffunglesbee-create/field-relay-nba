@@ -360,6 +360,7 @@ cc-session-2026-10-28-bsd-join-aliases.md
 cc-session-2026-10-28-bsd-ws-frame-shape.md
 cc-session-2026-10-28-site-caps.md
 cc-session-2026-10-29-bsd-pitch-renderer.md
+cc-session-2026-10-29-identity-route-and-saturday-probe.md
 cc-session-2026-10-29-route-a-and-import-check.md
 cc-session-analytics-cron-p1.md
 cc-session-analytics-cron-p2.md
@@ -416,6 +417,7 @@ fpl-analytics-context-2026-07-15.md
 game-identity-resolver-discovery-2026-07-15.md
 gemini-model-comparison-2026-07-16.md
 hrd-relay-allowlist-2026-07-13.md
+identity-mismatches-gate-live-proof-20261029T1730Z.md
 imports-check-blindness-measure-20261029.md
 integrity-game-briefs-2026-07-16.md
 journalism-cron-utc-rollover-2026-07-16.md
