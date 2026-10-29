@@ -42,15 +42,20 @@ const MUTATIONS = [
     replace: '    const sk = sport;',
     expect: 'bucketOf keys its buckets by archiveSportToOddsKey' },
 
-  { name: 'M5  a fourth join site appears with no scoping at all',
+  { name: 'M5  a fifth join site appears with no scoping at all',
     anchor: '            const gapsOut = {};',
     replace: '            const _unscoped = findOddsForRow({ byPair: new Map(), vendorKeys: new Set() }, "a", "b");\n            const gapsOut = {};',
-    expect: 'three join sites, the census reach probe excluded by its call shape' },
+    expect: 'four join sites (three writers and the identity diagnostic), the census reach probe excluded by its call shape' },
 
   { name: 'M6  the census probe is rewritten into the shape the exclusion matches',
     anchor: 'const joins = findOddsForRow(present, name, REACH_CONTROL_B) != null;',
     replace: 'const joins = findOddsForRow(present, name, REACH_CONTROL_B, 0) != null;',
     expect: 'the census reach probe is present and is the excluded one' },
+
+  { name: 'M7  the identity diagnostic fetches one hardcoded sport and joins every row against it',
+    anchor: "await fetchSportOddsLive(env, sportKey, 'identityMismatches');",
+    replace: "await fetchSportOddsLive(env, 'americanfootball_ncaaf', 'identityMismatches');",
+    expect: 'fetches by variable, not a hardcoded sport' },
 ];
 
 let bad = 0;

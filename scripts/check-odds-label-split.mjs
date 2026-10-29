@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The three routes that used to spend under a cron's label, executed.
+ * The three routes that used to spend under a cron's label, executed (two of them now gated).
  *
  *   GET  /identity/mismatches       -> 'identityMismatches'   (was fetchSportOddsLive)
  *   GET  /archive/odds-backfill     -> 'archiveOddsBackfill'  (was fetchSportOddsHistorical)
@@ -71,7 +71,8 @@ const worker = (await import(pathToFileURL(INDEX).href)).default;
 // The routes under test and the cron label each one used to share.
 const ROUTES = [
   { label: 'identityMismatches',  cron: 'fetchSportOddsLive',
-    call: () => new Request('https://x.test/identity/mismatches?sports=MLB'),
+    // Gated since 2026-10-29 (FIELD_MCP_SECRET, as /admin/* checks it): this route sends the credential.
+    call: () => new Request('https://x.test/identity/mismatches?date=2026-11-05&sports=MLB', { headers: { Authorization: `Bearer ${MCP_SECRET}` } }),
     seed: { games: false } },
   { label: 'archiveOddsBackfill', cron: 'fetchSportOddsHistorical',
     // Gated since 2026-10-29 (FIELD_MCP_SECRET, as /admin/* checks it): this route sends the credential.
@@ -235,6 +236,9 @@ for (const route of ROUTES) {
     ['with no credential', () => new Request(url), {}],
     ['with a wrong credential', () => new Request(url, { headers: { Authorization: 'Bearer not-the-secret' } }), {}],
     ['with the RELAY secret, the published one', () => new Request(url, { headers: { Authorization: 'Bearer s' } }), {}],
+    ['with the RELAY secret in the header the relay reads it from (X-FIELD-Relay)', () => new Request(url, { headers: { 'X-FIELD-Relay': 's' } }), {}],
+    ['with the right secret and something after it', () => new Request(url, { headers: { Authorization: `Bearer ${MCP_SECRET}x` } }), {}],
+    ['with something before the right secret', () => new Request(url, { headers: { Authorization: `Bearer x${MCP_SECRET}` } }), {}],
     ['with a credential when the relay has no FIELD_MCP_SECRET', () => new Request(url, { headers: { Authorization: 'Bearer undefined' } }), { env: { FIELD_MCP_SECRET: undefined } }],
     ['with an empty header when the relay secret is the empty string', () => new Request(url, { headers: { Authorization: '' } }), { env: { FIELD_MCP_SECRET: '' } }],
   ];
@@ -246,6 +250,29 @@ for (const route of ROUTES) {
   check('gate: with the credential it answers 200 and spends under its own label', ok.status === 200 && (ok.after.sites.archiveOddsBackfill ?? 0) > 0, `status ${ok.status}, ${JSON.stringify(ok.after.sites)}`);
   const post = await world({ ...backfill, call: () => new Request(url, { method: 'POST' }) });
   check('gate: POST is gated the same as GET', post.status === 401 && post.vendor === 0, `status ${post.status}, ${post.vendor} calls`);
+}
+
+// ── THE SECOND GATED ROUTE, /identity/mismatches (Route B of the same CC-CMD, released with B1 of the CFB
+// Saturday CC-CMD on 2026-10-29). It spends credits per sport probed and answered anyone. Same cases as Route A. ──
+{
+  const ident = ROUTES[0];
+  const url = 'https://x.test/identity/mismatches?date=2026-11-05&sports=MLB';
+  const attempts = [
+    ['with no credential', () => new Request(url), {}],
+    ['with a wrong credential', () => new Request(url, { headers: { Authorization: 'Bearer not-the-secret' } }), {}],
+    ['with the RELAY secret, the published one', () => new Request(url, { headers: { Authorization: 'Bearer s' } }), {}],
+    ['with the RELAY secret in the header the relay reads it from (X-FIELD-Relay)', () => new Request(url, { headers: { 'X-FIELD-Relay': 's' } }), {}],
+    ['with the right secret and something after it', () => new Request(url, { headers: { Authorization: `Bearer ${MCP_SECRET}x` } }), {}],
+    ['with something before the right secret', () => new Request(url, { headers: { Authorization: `Bearer x${MCP_SECRET}` } }), {}],
+    ['with a credential when the relay has no FIELD_MCP_SECRET', () => new Request(url, { headers: { Authorization: 'Bearer undefined' } }), { env: { FIELD_MCP_SECRET: undefined } }],
+    ['with an empty header when the relay secret is the empty string', () => new Request(url, { headers: { Authorization: '' } }), { env: { FIELD_MCP_SECRET: '' } }],
+  ];
+  for (const [what, call, opts] of attempts) {
+    const g = await world({ ...ident, call }, opts);
+    check(`identity gate: ${what}: 401, the vendor never called, nothing moved`, g.status === 401 && g.vendor === 0 && unmoved(g), `status ${g.status}, ${g.vendor} calls, ${JSON.stringify({ before: g.before, after: g.after })}`);
+  }
+  const ok = await world(ident);
+  check('identity gate: with the credential it answers 200 and spends under its own label', ok.status === 200 && (ok.after.sites.identityMismatches ?? 0) > 0, `status ${ok.status}, ${JSON.stringify(ok.after.sites)}`);
 }
 
 // ── A REFUSAL BY OUR OWN GUARD IS NOT A VENDOR FAULT ─────────────────────────

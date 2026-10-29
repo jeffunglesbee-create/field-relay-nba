@@ -1,7 +1,7 @@
 {
- "written": "2026-10-17",
+ "written": "2026-10-29",
  "heads": {
-  "field-relay-nba": "5caec06"
+  "field-relay-nba": "8651e15"
  },
  "repos": {
   "field-relay-nba": {
@@ -173,7 +173,6 @@
      "field-relay-nba/src/index.js :: const targets  = (dateData.results || []).filter(e => {",
      "field-relay-nba/src/index.js :: const toScore = bfRows.results || [];",
      "field-relay-nba/src/index.js :: const types = q.results || [];",
-     "field-relay-nba/src/index.js :: d1_missing: (d1Res.results || []).length,",
      "field-relay-nba/src/index.js :: for (const r of (d1Res.results || [])) byType[r.brief_type] = { count: r.n, chars: r.chars };",
      "field-relay-nba/src/index.js :: for (const r of (d1Res.results || [])) {",
      "field-relay-nba/src/index.js :: for (const r of (p.results || []))",
@@ -181,8 +180,6 @@
      "field-relay-nba/src/index.js :: for (const r of (q.results || [])) {",
      "field-relay-nba/src/index.js :: for (const r of (rows.results || [])) allCandidates.push(r);",
      "field-relay-nba/src/index.js :: for (const r of (rows.results || [])) {",
-     "field-relay-nba/src/index.js :: for (const row of (d1Res.results || [])) {",
-     "field-relay-nba/src/index.js :: for (const row of (d1Res.results || [])) {",
      "field-relay-nba/src/index.js :: for (const row of (failRows.results || [])) {",
      "field-relay-nba/src/index.js :: for (const row of (ps.results || [])) {",
      "field-relay-nba/src/index.js :: for (const row of (rows.results || [])) {",
@@ -302,8 +299,8 @@
      "field-relay-nba/scripts/drama-backfill.mjs :: const body = await r.json().catch(() => ({}));",
      "field-relay-nba/scripts/mutate-ambient-alarm-failure.mjs :: replace: '        this.ctx.storage.setAlarm(Date.now() + delayMs).catch(() => {}); if (false) (e => {',",
      "field-relay-nba/scripts/mutate-ambient-alarm-failure.mjs :: { name: 'A1  the handler reverts to .catch(() => {}) — the defect as it shipped',",
-     "field-relay-nba/scripts/mutate-closing-odds-kickoff-guard.mjs :: replace: '                ).catch(() => {}); if (0) (e => {',",
      "field-relay-nba/scripts/mutate-closing-odds-kickoff-guard.mjs :: replace: '          ).catch(() => {}); if (0) (e => {',",
+     "field-relay-nba/scripts/mutate-closing-odds-kickoff-guard.mjs :: replace: '        ).catch(() => {}); if (0) (e => {',",
      "field-relay-nba/scripts/mutate-empty-catches.mjs :: 'export const f = () => { g().catch(() => {}) }'],",
      "field-relay-nba/scripts/probe-bundesliga-default-matchday-view.mjs :: await browser.close().catch(() => {});",
      "field-relay-nba/scripts/probe-bundesliga-default-matchday-view.mjs :: await btn.click({ timeout: 3000 }).catch(() => {});",
@@ -340,9 +337,7 @@
      "field-relay-nba/scripts/watch-run-clock-closing-stamps.mjs :: const b = await res.json().catch(() => ({}));"
     ],
     "?? 0": [
-     "field-relay-nba/scripts/empowerment-premises.mjs :: if (e.files.includes('stats.json') && (size.get(`bsd/${slug}/${id}/stats.json`) ?? 0) >= lab.SHELL_BYTES) nonShell.push({ slug, id, uploaded",
-     "field-relay-nba/scripts/mutate-odds-budget-batch.mjs :: const daily = db.prepare('SELECT used FROM odds_budget WHERE day=?').get('D')?.used ?? 0;",
-     "field-relay-nba/scripts/mutate-odds-budget-batch.mjs :: const sum = db.prepare('SELECT SUM(used) s FROM odds_budget_site WHERE day=?').get('D')?.s ?? 0;"
+     "field-relay-nba/scripts/empowerment-premises.mjs :: if (e.files.includes('stats.json') && (size.get(`bsd/${slug}/${id}/stats.json`) ?? 0) >= lab.SHELL_BYTES) nonShell.push({ slug, id, uploaded"
     ],
     "|| 0": [
      "field-relay-nba/src/budget-helpers.js :: for (const s of (siteRows?.results || [])) d1Sites[s.site] = Number(s.used) || 0;",

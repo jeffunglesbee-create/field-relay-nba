@@ -67,7 +67,7 @@ import { blankCommentsAndStrings } from './lib/blank-comments.mjs';
 // stub fetch serves the three routes' odds calls from memory, so the real guarded
 // calls in src/index.js can be run and the site row they charge read. It reaches
 // no network.
-// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs scripts/measure-odds-consumer-demand.mjs scripts/check-ambient-capture-write.mjs scripts/check-odds-label-split.mjs
+// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs scripts/measure-odds-consumer-demand.mjs scripts/check-ambient-capture-write.mjs scripts/check-odds-label-split.mjs scripts/check-identity-route-join.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
 // A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds was

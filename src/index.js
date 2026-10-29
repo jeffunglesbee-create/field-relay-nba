@@ -110,6 +110,7 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
+import { matchSlate, slateWindow } from './odds-name-match.js';
 import { joinBatch, eventDaysFor, BSD_SOCCER_SPORTS } from './bsd-game-join.js';
 import { getFieldDateKey } from './field-date.js';
 import { chargeOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_CHARGE_ORDER } from './budget-helpers.js';
@@ -15828,13 +15829,22 @@ export default {
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
-        // GET /identity/mismatches — diagnostic. For each requested sport,
-        // fetch current Odds-API events, query today's NULL-opening_odds
-        // games from D1, attempt resolveTeamKey matching, and return any
-        // unmatched pairs alongside what we *did* find on the Odds-API
-        // side so the alias map can be expanded. Costs 1 Odds-API credit
-        // per sport probed; hard-capped at 5 sports per call.
+        // GET /identity/mismatches?date=YYYY-MM-DD&sports=A,B — diagnostic, behind FIELD_MCP_SECRET. For each
+        // requested sport, fetch current Odds-API events, read the sport's rows for that date from BOTH games
+        // tables, and join the NULL-opening_odds ones the way the relay's own opening-line cron does
+        // (indexOddsByPair and findOddsForRow, with start_time). It reports beside that join: priceable (the
+        // joined rows the cron would write if it ran now), slate_matched (the slate matcher the CI backfill
+        // runs, which decides the whole slate at once), and the denominators d1_rows, d1_priced,
+        // d1_priced_late and odds_events_in_window. A join that works leaves NO unpriced rows, so d1_missing 0
+        // alone cannot tell "all priced" from "no rows"; the denominators can. Unmatched pairs are returned
+        // with their start_time and whether the game is finalized, so a game already played and gone from the
+        // live feed is not read as a join fault. Costs oddsCreditCost (3 credits) per sport probed; hard-capped
+        // at 5 sports per call and, under 'identityMismatches', at that label's own cap.
         if (pathname === '/identity/mismatches' && request.method === 'GET') {
+            // GATED 2026-10-29 (docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md TASK 1,
+            // Route B, released with B1 of the CFB Saturday CC-CMD): it spent billed credits for anyone.
+            if (!mcpBearerMatches(request.headers.get('Authorization'), env))
+                return new Response('Unauthorized', { status: 401, headers: CORS });
             if (!env.ARCHIVE_DB) {
                 return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
                     { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -15843,7 +15853,14 @@ export default {
                 return new Response(JSON.stringify({ ok: false, error: 'ODDS_API_KEY not configured' }),
                     { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
-            const date = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
+            // The date is REQUIRED and checked BEFORE any billed call. The default used to be the UTC day, which is not
+            // the archive's Eastern-day key, so a call without ?date= read the wrong day and every denominator below
+            // described it; and a garbage value cost a vendor call to learn nothing (review, 2026-10-29).
+            const date = url.searchParams.get('date');
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
             const sportParam = (url.searchParams.get('sports') || 'EPL,MLS,WNBA,MLB,La Liga').trim();
             const sports = sportParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
 
@@ -15869,29 +15886,56 @@ export default {
                         : { error: 'Odds-API fetch failed', sport_key: sportKey };
                     continue;
                 }
-                const oddsByKey = new Map();
-                // Per-sport set of the TEAM keys the vendor uses, kept so a
-                // substitution can be classified after the loop — see the
-                // cross-sport pass below.
-                const vendorTeamKeys = new Set();
-                for (const g of oddsGames) {
-                    const hk = resolveTeamKey(g.home_team), ak = resolveTeamKey(g.away_team);
-                    vendorTeamKeys.add(hk); vendorTeamKeys.add(ak);
-                    oddsByKey.set(`${hk}|${ak}`, { odds_home: g.home_team, odds_away: g.away_team });
+                // The relay cron's own join, not a private copy of it: the first version of this route
+                // joined on resolved pair keys alone and reported 0 of 80 on a slate the cron's join
+                // and the backfill's matcher both solve (docs/CC-CMD-2026-10-19-cfb-saturday-coverage-
+                // and-join-probe.md, Part B). The vendor team keys are kept so a substitution can be
+                // classified after the loop — see the cross-sport pass below.
+                const oddsIndex = indexOddsByPair(oddsGames);
+                vendorKeysBySport.set(sport, oddsIndex.vendorKeys);
+                // EVERY row of this sport on this date, from BOTH tables, as the cron and the backfill read them (a
+                // bowl game is a postseason row). One statement per table gives the denominators and the unpriced
+                // rows together, so they cannot disagree. late_minutes is read only where the blob is JSON.
+                const slateRows = [];
+                for (const table of ['regular_season_games', 'postseason_games']) {
+                    const got = await env.ARCHIVE_DB.prepare(
+                        `SELECT id, home, away, start_time, finalized_at, opening_odds IS NULL AS unpriced,
+                                CASE WHEN json_valid(opening_odds)
+                                     THEN json_extract(opening_odds, '$._kickoff.late_minutes') END AS late_minutes
+                           FROM ${table} WHERE date = ? AND sport = ?`
+                    ).bind(date, sport).all();
+                    for (const r of got.results) slateRows.push(r);
                 }
-                vendorKeysBySport.set(sport, vendorTeamKeys);
-                const d1Res = await env.ARCHIVE_DB.prepare(
-                    `SELECT id, home, away FROM regular_season_games
-                     WHERE date = ? AND sport = ? AND opening_odds IS NULL`
-                ).bind(date, sport).all();
+                const missingRows = slateRows.filter(r => r.unpriced === 1);
                 const matched = [], unmatched = [];
-                for (const row of (d1Res.results || [])) {
-                    const k = `${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`;
-                    if (oddsByKey.has(k)) matched.push({ d1: `${row.home} vs ${row.away}`, key: k });
-                    else unmatched.push({
-                        d1_home: row.home, d1_away: row.away, d1_key: k,
-                    });
+                let priceable = 0;
+                for (const row of missingRows) {
+                    const og = findOddsForRow(oddsIndex, row.home, row.away, row.start_time);
+                    if (!og) {
+                        unmatched.push({
+                            d1_home: row.home, d1_away: row.away,
+                            d1_key: `${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`,
+                            start_time: row.start_time, finalized: row.finalized_at != null,
+                        });
+                        continue;
+                    }
+                    matched.push(row.id);
+                    // Joined is not priced. The cron writes a line only for an unfinished game, whose event carries a
+                    // price, and not once the game has started by either clock (snapshotCronOdds). `priceable` is the
+                    // rows it would write if it ran now.
+                    // The capture instant is stated, not defaulted: the one call that may omit it is the cron's live fetch
+                    // (scripts/check-captured-at-explicit.mjs), and this reading writes nothing.
+                    const odds = extractOddsForGame(og, ODDS_PREFERRED_BOOK, new Date().toISOString());
+                    if (row.finalized_at == null && odds
+                        && kickoffMark(odds.captured_at, row.start_time).late_minutes === null
+                        && kickoffMark(odds.captured_at, og.commence_time).late_minutes === null) priceable++;
                 }
+                // What the CI backfill would do: it decides the WHOLE slate at once (priced rows included, which is
+                // what lets it force an initialism by elimination), so the whole slate is passed and only the
+                // unpriced rows' answers are counted.
+                const slate = matchSlate(slateRows, oddsGames, date);
+                let slateMatched = 0;
+                for (const row of missingRows) if (slate.byGameId.has(row.id)) slateMatched++;
                 // A D1 key that does not derive from its OWN display name is not a
                 // join problem — it is a wrong row. resolveTeamKey's alias map is
                 // sport-blind, so a CFB school resolves to a pro club of the same
@@ -15909,7 +15953,7 @@ export default {
                 // Accent-folded before comparing, so San José St -> sanjosest is
                 // correctly NOT flagged (CC-CMD-2026-09-13-team-key-sport-blind).
                 const substituted = [];
-                for (const row of (d1Res.results || [])) {
+                for (const row of missingRows) {
                     // ONE argument, exactly as the join above calls it. Passing a
                     // `sport` here would imply the resolver is sport-aware, and its
                     // not being sport-aware is the entire finding.
@@ -15924,14 +15968,25 @@ export default {
                 report.sports[sport] = {
                     sport_key: sportKey,
                     odds_events: oddsGames.length,
-                    d1_missing: (d1Res.results || []).length,
+                    // The denominators. d1_rows - d1_priced = d1_missing = matched + unmatched.length, by construction.
+                    d1_rows: slateRows.length,
+                    d1_priced: slateRows.length - missingRows.length,
+                    // Of the priced rows, those whose line was captured after kickoff (the _kickoff mark).
+                    d1_priced_late: slateRows.filter(r => r.unpriced === 0 && r.late_minutes != null).length,
+                    d1_missing: missingRows.length,
+                    // Vendor events that fall on this date or the next, the window matchSlate decides in: a feed that
+                    // lists the slate beside a date with no rows is a missing archive, not an off day.
+                    odds_events_in_window: slateWindow(oddsGames, date).length,
                     matched: matched.length,
+                    priceable,
+                    slate_matched: slateMatched,
                     // Names whose resolved key is not their own name. null would be
                     // wrong here: [] means checked and none, absent means not checked.
                     key_substituted: substituted,
                     unmatched,
-                    odds_sample: [...oddsByKey.entries()].slice(0, 6).map(([k, v]) =>
-                        ({ odds_home: v.odds_home, odds_away: v.odds_away, key: k })),
+                    odds_sample: oddsGames.slice(0, 6).map(g =>
+                        ({ odds_home: g.home_team, odds_away: g.away_team,
+                           key: `${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}` })),
                 };
             }
             // CLASSIFY THE SUBSTITUTIONS. A key that is not its own name is TWO

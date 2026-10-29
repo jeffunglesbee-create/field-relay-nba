@@ -238,6 +238,15 @@ jobs:
           node scripts/check-odds-label-split.mjs
           node scripts/mutate-odds-label-split.mjs
 
+      # /identity/mismatches is the diagnostic the Saturday probe reads. It joined on resolved pair keys
+      # alone and reported 0 of 80 on a slate the relay's own join solves 73 of and the backfill's
+      # matcher 80 of (2026-10-29, docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md,
+      # Part B). Run against the real 80-row slate, with the mutants.
+      - name: the identity diagnostic joins a slate the way the writers do and counts its rows
+        run: |
+          node scripts/check-identity-route-join.mjs
+          node scripts/mutate-identity-route-join.mjs
+
       # Review of Task 3: POST /debug/odds-budget-latency still prepared a statement
       # the change had removed and answered 500, and no gate noticed. Every
       # ODDS_BUDGET_SQL reference must name a statement that exists and bind as many

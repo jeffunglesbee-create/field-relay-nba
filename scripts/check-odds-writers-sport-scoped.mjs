@@ -70,8 +70,12 @@ allLines.forEach((line, i) => {
   sites.push({ line: i + 1, text: line.trim() });
 });
 
-eq('three join sites, the census reach probe excluded by its call shape',
-   sites.length, 3);
+// FOUR since 2026-10-29: the cron, the backfill, the /archive/game closing and the /identity/mismatches
+// diagnostic, which joins a sport's live payload against that sport's rows with the writers' own join
+// (docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, B1). It is held to the same data-path
+// rule below as the three writers, so it is counted, not excused.
+eq('four join sites (three writers and the identity diagnostic), the census reach probe excluded by its call shape',
+   sites.length, 4);
 eq('the census reach probe is present and is the excluded one',
    raw.split(PROBE_CALL).length - 1, 1);
 
