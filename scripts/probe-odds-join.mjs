@@ -38,77 +38,43 @@
 // the actual unmatched names for C2. It uses the relay's OWN ODDS_API_KEY
 // binding, so no key is needed here and none is read from env.
 //
-// COST: 1 Odds-API credit per sport, hard-capped at 5 by the route. Four sports
-// probed = 4 credits against a 20,000 plan (Rule 78). The route's own
-// consumeOddsCredit guard still applies.
+// COST: the relay's ledger estimate is oddsCreditCost 3 per fetchSportOddsLive call, so 12 per run for the four
+// sports (the provider's actual bill is unmeasured; the call is edge-cached for 900 s). The route is hard-capped at
+// 5 sports a call and charged to its own label, 'identityMismatches', cap 150 a day (Rule 78).
+//
+// CHANGED 2026-10-29 (docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, B1(a) and B2):
+//  - the route is behind FIELD_MCP_SECRET, so this script sends it and REFUSES to run without it;
+//  - the route joins the way the relay's writers do and reports d1_rows and d1_priced, so a join that works
+//    (every row already priced) is told apart from a date with no rows at all;
+//  - there is no default date. The scheduled run starts hours after its cron time and used to probe the UTC
+//    day that had just begun (all 7 scheduled artifacts, 2026-09-13 to 10-25, are dated Sundays). PROBE_DATE is required, and
+//    EXPECT_WEEKDAY=6 refuses a date that is not a Saturday;
+//  - a verdict that fails the run for CFB (a refusal: no rows at all though the feed lists the slate, an unreadable or
+//    inconsistent denominator, the vendor or our guard answering instead; or C2_JOIN, upcoming unpriced rows and
+//    nothing joined) exits non-zero, so the run is not green;
+//  - the secret is redacted from every message this script writes: the artifact is committed to main.
+// The reading of the report is scripts/lib/odds-join-probe.mjs, executed by scripts/check-odds-join-probe.mjs.
 
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { SPORTS, REQUIRED, classify, isRefusal, failsRun, weekdayOf } from './lib/odds-join-probe.mjs';
 
-const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
+// RELAY_URL and OUT_DIR are seams for scripts/check-odds-join-probe.mjs, which runs this file against a local server.
+const RELAY = (process.env.RELAY_URL || 'https://field-relay-nba.jeffunglesbee.workers.dev').replace(/\/$/, '');
+const OUT_DIR = process.env.OUT_DIR || 'outbox';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 
-// The four competitions the census showed at zero, plus MLS -- which is the
-// control: it is partial rather than zero, so it must come back with a nonzero
-// matched count. If MLS reads as a total miss too, the probe is measuring
-// itself rather than the data.
-const SPORTS = ['CFB', 'NFL', 'Bundesliga', 'MLS'];
+const fail = (msg) => { console.error(`PROBE REFUSED: ${msg}`); process.exit(1); };
+// An unset variable reads as the empty string, said once here (a collapse written inline is what the absence-collapse
+// ratchet counts); every caller below treats the empty string as "not given" and refuses.
+const envText = (name) => (typeof process.env[name] === 'string' ? process.env[name].trim() : '');
 
-const DATE = (process.env.PROBE_DATE || new Date().toISOString().slice(0, 10)).trim();
-if (!/^\d{4}-\d{2}-\d{2}$/.test(DATE)) {
-    console.error(`PROBE_DATE must be YYYY-MM-DD, got ${JSON.stringify(DATE)}`);
-    process.exit(1);
-}
-
-// Field names read from src/index.js:14935-14942, not assumed: `matched` is a
-// COUNT (matched.length), `unmatched` is the ARRAY, alongside odds_events and
-// d1_missing. An earlier draft of this probe read `matched` as an array; it
-// would have reported every sport as a shape failure.
-export function classify(e, date) {
-    if (!e) return 'ABSENT_FROM_REPORT';
-    // Our own guard declining the call (the route's cap, the day or the month) is not the
-    // vendor failing to serve, and C1 would send the reader after a cause that is ours.
-    if (e.guarded === true) return `C0_GUARDED: ${e.error}`;
-    if (e.error) return `C1_VENDOR: ${e.error}`;
-    const mt = typeof e.matched === 'number' ? e.matched : null;
-    const un = Array.isArray(e.unmatched) ? e.unmatched.length : null;
-    const ev = typeof e.odds_events === 'number' ? e.odds_events : null;
-    const d1 = typeof e.d1_missing === 'number' ? e.d1_missing : null;
-    if (mt === null || un === null || ev === null || d1 === null)
-        return `SHAPE_UNEXPECTED: ${JSON.stringify(Object.keys(e))}`;
-    if (d1 === 0) return `NO_ROWS: no NULL-opening rows on ${date} (vendor had ${ev} events)`;
-    if (ev === 0) return `C1_VENDOR: fetch ok but 0 events served for ${e.sport_key}`;
-    if (mt === 0) return `C2_JOIN: ${d1} D1 rows, ${ev} vendor events, 0 matched`;
-    return `COVERED: ${mt} matched of ${d1} rows (${ev} vendor events, ${un} unmatched)`;
-}
-
-// Rule 90: the classifier is what turns numbers into a CAUSE, so it is the part
-// most able to be confidently wrong. Each fixture targets a distinct verdict; a
-// classifier collapsed onto one branch fails here rather than in the write-up.
-// Runs every invocation -- no network, no cost.
-const FIXTURES = [
-    [{ error: 'Odds-API fetch failed', sport_key: 'americanfootball_ncaaf' },                 'C1_VENDOR'],
-    [{ error: 'odds credit guard declined this call', guarded: true, sport_key: 'x' },       'C0_GUARDED'],
-    [{ sport_key: 'x', odds_events: 0,  d1_missing: 5, matched: 0, unmatched: [] },           'C1_VENDOR'],
-    [{ sport_key: 'x', odds_events: 12, d1_missing: 5, matched: 0, unmatched: [1,2,3,4,5] },  'C2_JOIN'],
-    [{ sport_key: 'x', odds_events: 12, d1_missing: 5, matched: 4, unmatched: [1] },          'COVERED'],
-    [{ sport_key: 'x', odds_events: 12, d1_missing: 0, matched: 0, unmatched: [] },           'NO_ROWS'],
-    [{ sport_key: 'x', odds_events: 12, d1_missing: 5, matched: [4], unmatched: [1] },        'SHAPE_UNEXPECTED'],
-    [undefined,                                                                               'ABSENT_FROM_REPORT'],
-];
-{
-    const bad = FIXTURES.filter(([f, want]) => !classify(f, '2026-01-01').startsWith(want));
-    if (bad.length) {
-        console.error('CLASSIFIER SELF-TEST FAILED:');
-        for (const [f, want] of bad) console.error(`  wanted ${want}, got ${classify(f, '2026-01-01')}`);
-        process.exit(1);
-    }
-    const distinct = new Set(FIXTURES.map(([f]) => classify(f, '2026-01-01').split(':')[0]));
-    if (distinct.size < 5) {
-        console.error(`CLASSIFIER COLLAPSED: ${FIXTURES.length} fixtures gave only ${distinct.size} verdicts`);
-        process.exit(1);
-    }
-    console.log(`classifier self-test: ${FIXTURES.length}/${FIXTURES.length} fixtures, ${distinct.size} distinct verdicts`);
-}
+const DATE = envText('PROBE_DATE');
+if (!/^\d{4}-\d{2}-\d{2}$/.test(DATE)) fail(`PROBE_DATE must be YYYY-MM-DD and has no default, got ${JSON.stringify(DATE)}`);
+const WANT_DAY = envText('EXPECT_WEEKDAY');
+if (WANT_DAY !== '' && weekdayOf(DATE) !== Number(WANT_DAY))
+    fail(`PROBE_DATE ${DATE} is weekday ${weekdayOf(DATE)}, this run expects ${WANT_DAY} (0 = Sunday)`);
+const SECRET = envText('FIELD_MCP_SECRET');
+if (!SECRET) fail('FIELD_MCP_SECRET is not set: /identity/mismatches is gated and a probe without it measures nothing');
 
 const m = {
     probed_at: new Date().toISOString(),
@@ -116,36 +82,57 @@ const m = {
     sports_requested: SPORTS,
     http: null,
     report: null,
-    verdict: {},          // per sport: C1_VENDOR | C2_JOIN | COVERED | NO_ROWS
+    verdict: {},          // per sport: CODE: detail (see scripts/lib/odds-join-probe.mjs)
+    failed: [],           // the REQUIRED sports whose verdict fails the run (a refusal, or C2_JOIN)
     error: null,
 };
 
+// Node's header validation error quotes the whole Authorization value, and the artifact is committed to main.
+const redact = (text) => String(text).split(SECRET).join('[redacted]');
+
 const url = `${RELAY}/identity/mismatches?date=${DATE}&sports=${encodeURIComponent(SPORTS.join(','))}`;
 try {
-    const r = await fetch(url, { headers: { 'User-Agent': UA } });
+    const r = await fetch(url, { headers: { 'User-Agent': UA, Authorization: `Bearer ${SECRET}` } });
     m.http = r.status;
     const t = await r.text();
-    // The sandbox proxy answers 403 with an HTML body that JSON.parse would
-    // reject anyway, but a proxy page that happened to parse must not be read
-    // as a relay answer: require the response to echo the date we asked for.
-    let j = null;
-    try { j = JSON.parse(t); } catch (_) {
-        m.error = `non-JSON body (${t.length} bytes): ${t.slice(0, 200)}`;
-    }
-    if (j) {
-        if (j.date !== DATE) {
-            m.error = `body did not echo the requested date (got ${JSON.stringify(j.date)}) — not a relay answer`;
+    if (r.status === 401) m.error = 'HTTP 401: FIELD_MCP_SECRET did not match the relay\'s';
+    else if (r.status !== 200) m.error = `HTTP ${r.status}: ${t.slice(0, 200)}`;
+    else {
+        // The sandbox proxy answers 403 with an HTML body that JSON.parse would
+        // reject anyway, but a proxy page that happened to parse must not be read
+        // as a relay answer: require the response to echo the date we asked for.
+        let j = null;
+        try { j = JSON.parse(t); } catch (_) {
+            m.error = `non-JSON body (${t.length} bytes): ${t.slice(0, 200)}`;
+        }
+        // JSON null, false and 0 parse without error and are not a report: they used to skip this block and exit 0.
+        if (j === null || typeof j !== 'object') {
+            if (!m.error) m.error = `body is not a JSON object (${t.length} bytes): ${t.slice(0, 120)}`;
         } else {
-            m.report = j;
-            for (const sp of SPORTS) m.verdict[sp] = classify(j.sports?.[sp], DATE);
+            if (j.date !== DATE) {
+                m.error = `body did not echo the requested date (got ${JSON.stringify(j.date)}) — not a relay answer`;
+            } else {
+                m.report = j;
+                const now = Date.now();
+                for (const sp of SPORTS) m.verdict[sp] = classify(j.sports?.[sp], DATE, now);
+                m.failed = REQUIRED.filter(sp => failsRun(m.verdict[sp]));
+            }
         }
     }
-} catch (e) { m.error = String(e.message || e); }
+} catch (e) { m.error = redact(e.message || e); }
 
 const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-const out = `outbox/odds-join-probe-${stamp}.json`;
+mkdirSync(OUT_DIR, { recursive: true });
+const out = `${OUT_DIR}/odds-join-probe-${stamp}.json`;
 writeFileSync(out, JSON.stringify(m, null, 2) + '\n');
 console.log(JSON.stringify(m, null, 2));
 console.log(`\nwrote ${out}`);
-console.log(`\nprobed ${SPORTS.length} of ${SPORTS.length} requested sports on ${DATE} (Rule 91)`);
+// Rule 91: the denominators are COUNTS of what happened, not the length of the request list.
+const answered = SPORTS.filter(sp => m.report && m.report.sports && m.report.sports[sp] !== undefined).length;
+const measured = SPORTS.filter(sp => m.verdict[sp] !== undefined && !isRefusal(m.verdict[sp])).length;
+console.log(`\nrelay answered for ${answered} of ${SPORTS.length} requested sports on ${DATE}; ${measured} of them measured (verdict is not a refusal) (Rule 91)`);
 if (m.error) { console.error(`PROBE FAILED: ${m.error}`); process.exit(1); }
+if (m.failed.length) {
+    for (const sp of m.failed) console.error(`PROBE FAILED for ${sp}: ${m.verdict[sp]}`);
+    process.exit(1);
+}

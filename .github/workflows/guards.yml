@@ -247,6 +247,17 @@ jobs:
           node scripts/check-identity-route-join.mjs
           node scripts/mutate-identity-route-join.mjs
 
+      # The Saturday probe that reads that diagnostic could not fail on the property it existed for: CFB
+      # read NO_ROWS in all seven recorded artifacts, every run exited 0, and every scheduled run probed
+      # the Sunday. The classifier and the script are run against a local relay; the two workflows that
+      # call the script are read, and the date expression they compute is executed.
+      - name: the Saturday identity-join probe refuses what it cannot measure
+        run: |
+          node scripts/check-odds-join-probe.mjs
+          node scripts/mutate-odds-join-probe.mjs
+          node scripts/check-saturday-probe-workflow.mjs
+          node scripts/mutate-saturday-probe-workflow.mjs
+
       # Review of Task 3: POST /debug/odds-budget-latency still prepared a statement
       # the change had removed and answered 500, and no gate noticed. Every
       # ODDS_BUDGET_SQL reference must name a statement that exists and bind as many

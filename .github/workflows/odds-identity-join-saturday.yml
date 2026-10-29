@@ -10,8 +10,17 @@ name: Odds identity join — Saturday CFB slate
 # remember, this runs itself every Saturday evening UTC and leaves the slate
 # waiting in outbox/ for whoever executes the CC-CMD.
 #
-# Cost: 1 Odds-API credit per sport via /identity/mismatches, which uses the
-# relay's own key binding. CFB only — one credit (Rule 78).
+# Cost: four sports (CFB, NFL, Bundesliga, MLS) through /identity/mismatches, which uses the
+# relay's own key binding. The relay's ledger estimate is oddsCreditCost 3 per call, so 12 per
+# run, charged to 'identityMismatches' (cap 150 a day). The provider's actual bill per run is
+# unmeasured; the call is edge-cached for 900 s (Rule 78). This comment used to understate the
+# cost and to name one sport; the script has probed four since it was written.
+#
+# CHANGED 2026-10-29 (docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, B2):
+# the route is behind FIELD_MCP_SECRET, so the secret is passed; the date is computed here and
+# passed explicitly, because a scheduled run starts hours after its cron time (all seven so far
+# started 01:24Z to 02:51Z Sunday and probed the Sunday); EXPECT_WEEKDAY=6 makes the script
+# refuse any date that is not a Saturday; and a refusal for CFB fails the run.
 on:
   schedule:
     # 23:40 UTC Saturday — after the afternoon and most evening kickoffs have
@@ -20,7 +29,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'YYYY-MM-DD. Blank = today (UTC).'
+        description: 'YYYY-MM-DD, a Saturday. Blank = the US Eastern day six hours before this run starts.'
         required: false
         default: ''
 
@@ -40,8 +49,15 @@ jobs:
 
       - name: Probe the CFB identity join on a real Saturday slate
         env:
-          PROBE_DATE: ${{ inputs.date }}
-        run: node scripts/probe-odds-join.mjs
+          INPUT_DATE: ${{ inputs.date }}
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+          EXPECT_WEEKDAY: '6'
+        run: |
+          # The US Eastern day of the moment six hours ago: the Saturday slate whether the run starts at
+          # 23:40Z Saturday or, delayed, at 02:51Z Sunday. The archive keys games by their Eastern day.
+          export PROBE_DATE="${INPUT_DATE:-$(TZ=America/New_York date -d '6 hours ago' +%F)}"
+          echo "PROBE_DATE=$PROBE_DATE"
+          node scripts/probe-odds-join.mjs
 
       - name: Commit the slate
         if: always()

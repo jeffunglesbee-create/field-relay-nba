@@ -22,11 +22,11 @@ on:
   workflow_dispatch:
     inputs:
       probe_date:
-        description: 'YYYY-MM-DD to scope the H1/H2/change-log queries to. Blank = the probe default (2026-08-21).'
+        description: 'YYYY-MM-DD to scope the H1/H2/change-log queries to. Blank = the probe default (2026-08-21); the join probe, when blank, uses the US Eastern day six hours before the run starts.'
         required: false
         default: ''
       join_probe:
-        description: "Run the identity-join probe too (4 Odds-API credits). 'false' to skip."
+        description: "Run the identity-join probe too (about 12 ledger credits: oddsCreditCost 3 for each of 4 sports; it fails the run when CFB cannot be measured). 'false' to skip."
         required: false
         default: 'true'
 
@@ -55,13 +55,18 @@ jobs:
       # Distinguishes the two remaining structural causes of the CFB/NFL/
       # Bundesliga zero: the VENDOR not serving the key, versus the identity
       # join missing every pair. Uses the relay's OWN ODDS_API_KEY binding via
-      # GET /identity/mismatches -- no key is read here. 1 credit per sport,
-      # four sports, route-capped at five (Rule 78).
+      # GET /identity/mismatches -- no key is read here. oddsCreditCost 3 per sport
+      # in the relay's ledger, four sports, route-capped at five (Rule 78). The route
+      # is behind FIELD_MCP_SECRET since 2026-10-29, and the script has no default date.
       - name: Probe the odds identity join (CFB / NFL / Bundesliga / MLS)
         if: inputs.join_probe != 'false'
         env:
-          PROBE_DATE: ${{ inputs.probe_date }}
-        run: node scripts/probe-odds-join.mjs
+          INPUT_DATE: ${{ inputs.probe_date }}
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: |
+          export PROBE_DATE="${INPUT_DATE:-$(TZ=America/New_York date -d '6 hours ago' +%F)}"
+          echo "PROBE_DATE=$PROBE_DATE"
+          node scripts/probe-odds-join.mjs
 
       - name: Commit manifest
         if: always()
