@@ -31,11 +31,10 @@
   La Liga                   1        1
   Ligue 1                   1        1
   NFL                       1        1
-  PGA Tour                  1        0   GAP
+  PGA Tour                  1        2
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
   PASS  the archive returned rows for that date
-  FAIL  every seeded competition with fixtures reached the archive
-        → PGA Tour — 1 fixture(s) on ESPN pga, 0 rows in /context/date
+  PASS  every seeded competition with fixtures reached the archive
 
-FAIL  12/13 checks passed
+PASS  13/13 checks passed
