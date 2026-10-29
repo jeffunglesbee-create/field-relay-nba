@@ -3,7 +3,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba (`src/ambient-do.js`) executes the relay half; jubilant-bassoon needs no change if the payload keeps its name
 **Filed:** 2026-10-29, by CC, found while verifying `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`
-**Status:** Task 0 DONE 2026-10-29 (`outbox/bsd-request-budget-latest.json`, run 40962540855): the budget CANNOT be measured from the
+**Status:** BLOCKED on one owner decision. Task 0 DONE 2026-10-29 (`outbox/bsd-request-budget-latest.json`, run 40962540855): the budget CANNOT be measured from the
 vendor, which is the finding. Task 1 design decided below. The build waits on ONE owner decision, a daily cap for the new poll
 (recommended: 600). Blocked by: that number. Unblocked by: "use 600" or another figure. Nothing else.
 
