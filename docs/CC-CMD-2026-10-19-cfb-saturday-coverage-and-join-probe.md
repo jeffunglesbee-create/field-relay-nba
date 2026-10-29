@@ -4,7 +4,9 @@
 **Repo:** field-relay-nba (Part A, TASK A2 also touches jubilant-bassoon)
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** APPROVED 2026-10-29 ("cfb Saturday approved"). TASK A0 DONE except the job-log half of A0.2
+(`outbox/cfb-saturday-a0-20261029.md`). A1 and B1 are owner options with no pick yet. A2 does not depend on either
+(it changes readers, not what the backfill writes).
 **Filed by:** CC, while recording the CFB done condition (Rule 87.4). Its
 sibling is `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`, which covers
 pairs that are wrong. This one covers games the backfill never prices,
@@ -85,6 +87,22 @@ same snapshot serves every sport the backfill handles.
    with whether it checks `_kickoff`. The four above are the minimum, not the
    census.
 
+**A0 RESULTS, 2026-10-29** (0 credits; D1 SELECT only, plus a grep of both repos; full queries and tables in
+`outbox/cfb-saturday-a0-20261029.md`):
+
+1. **A0.1.** 2026-09-12 CFB: 80 rows, 67 priced (84%), 35 of the 42 rows kicking off before 22:00Z, all from one
+   capture at `11:55:36Z`, none after kickoff. The 10-19 reading reproduces.
+2. **A0.2, D1 half.** Unpriced finalized rows 2026-09-16 to 10-27: CFB 203 of 383, NHL 76 of 263, NBA 69 of 123, NFL 59 of
+   91. The early-kickoff loss is not CFB's alone (NFL 17Z: 40 of 47). NBA, NHL and NFL stopped losing games on 10-23
+   (1 of 40, 2 of 33, 1 of 13 unpriced since); CFB's join was met on 10-28, so its 26 of 51 unpriced since 10-23
+   predate it, and **2026-10-31 is the first CFB Saturday after it**. Cost of A1: (a) +30 credits per CFB date
+   (125 a week), (b) +30 per kickoff window, (c) 0.
+   **Open:** the backfill's per-sport `unmatched` counter in the job logs.
+3. **A0.3.** Eleven readers of `opening_odds`; rows 7 and 8 pass the column through, and none of the other nine checks
+   the after-kickoff mark on the opening line. The four named
+   above are rows 1, 3, 4 and 9; the census adds the cron's debrief block, the odds story (two sites), and two more
+   client readers. Relay half = six readers, client half = three (Rule 70).
+
 ### TASK A1 — decide the snapshot (OWNER DECISION)
 
 - (a) a second historical snapshot per sport-date before the first kickoff;
@@ -157,7 +175,8 @@ Task 3's done condition:
 
 ## Done condition (Rule 89 artifacts)
 
-1. **A0's three outputs are committed,** each with its denominator.
+1. **A0's three outputs are committed,** each with its denominator. (A0.1 and A0.3 and the D1 half of A0.2 are, in
+   `outbox/cfb-saturday-a0-20261029.md`; the job-log half of A0.2 is not.)
 2. **The owner's A1 and B1 decisions are recorded in this document.**
 3. **Each code change (A2, B2) has its proof:** a fixture red before and
    green after, a mutation, and one green deploy-path run. A2 also needs a

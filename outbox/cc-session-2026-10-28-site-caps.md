@@ -123,7 +123,7 @@ Decision 3: the cap numbers 400/2000/1800/300 stand.
 
 | commit | what | verified |
 |---|---|---|
-| `0e6a894` | `feat: odds guard - route labels split, refusal record in the charge batch` (one commit: the two changes share files and fakes, and one gates run covers both; it changes `chargeOdds`, so it had to land before 2026-11-08) | `gates.py` 145 of 147 on the rebased commit (the two environment-only failures: the BSD frame list HTTP 0, `RELAY_SHARED_SECRET` unset); Deploy RELAY Worker `40777339113`, Repo guards `40777339101`; live proof `<PROOF_ARTIFACT>` |
+| `0e6a894` | `feat: odds guard - route labels split, refusal record in the charge batch` (one commit: the two changes share files and fakes, and one gates run covers both; it changes `chargeOdds`, so it had to land before 2026-11-08) | `gates.py` 145 of 147 on the rebased commit (the two environment-only failures: the BSD frame list HTTP 0, `RELAY_SHARED_SECRET` unset); Deploy RELAY Worker `40777339113`, Repo guards `40777339101`; live proof `outbox/odds-refusal-live-proof-20261028T2217Z.md` |
 
 HEAD progression: `5dfaf6f` (start) -> `0e6a894` -> this close-out. Smoke does not apply (relay repo).
 

@@ -5,7 +5,10 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (spend reachable by anyone)
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** ROUTE A DONE 2026-10-29 (`1d55722`, Deploy RELAY Worker `40863046648`; proof
+`outbox/odds-backfill-gate-live-proof-20261029T1120Z.md`). ROUTE B HELD: waits on B1 of
+`docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`, an owner option with no pick. `/odds/*`
+(`oddsProxyRoute`) is uncapped and needs a number from the owner.
 **Filed by:** the Task 3 premise test of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`
 (workflow `wf_c984c219-a1f`, 2026-10-23), Rule 87.4.
 
@@ -107,3 +110,28 @@ rewrote the done condition so it can fail.
    (status code, not a body string). `by_site` for the route's label, read
    just before and just after the probe with no cron tick between, does not
    move.
+
+## Results
+
+### Route A, `/archive/odds-backfill`, 2026-10-29 (owner: "decisions approved")
+
+1. **TASK 0 re-run at dispatch:** no workflow, script or other repo calls the route; the callers are the MCP self-probe
+   allow-list (no credential) and two `curl` lines in an old CC-CMD. Nothing was added to the 10-23 list.
+2. **TASK 1 check red before, green after, mutation caught:** `scripts/check-odds-label-split.mjs` 68 of 68 on the real
+   worker (no credential, wrong credential, the published relay secret, unset and empty secrets: all 401, vendor stub
+   never called, no counter or ledger row moved; the right secret: 200 and one charge under `archiveOddsBackfill`);
+   `scripts/mutate-odds-label-split.mjs` 24 of 24, with L22 to L25 for the gate.
+3. **After deploy: HTTP 401, `Unauthorized`,** from the self-probe of `/archive/odds-backfill?date=2026-10-28`. `by_site`
+   for `archiveOddsBackfill` 0 before and 0 after, day used 449 before and after, month used 46323 before and after (table
+   and its limits in the proof). The authorized path (200 with `FIELD_MCP_SECRET`) was not run live; the check runs it.
+
+### Route B, `/identity/mismatches`: NOT gated
+
+The Saturday workflow `odds-identity-join-saturday.yml` sends no credential and would get 401 and exit 1. Route B is
+gated in the same commit as B2's outcome (either the workflow sends the secret, or B1(b) removes the workflow). B1 is
+the owner's.
+
+### `/odds/*`, `oddsProxyRoute`: neither gated nor capped
+
+Anonymous and uncapped, and it shares the day's 3,800 and the month's 85,000. Needs a cap number from the owner; none
+is invented here.
