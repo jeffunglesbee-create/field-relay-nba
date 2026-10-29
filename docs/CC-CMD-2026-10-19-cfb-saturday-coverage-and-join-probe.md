@@ -7,8 +7,8 @@
 **Status:** PARTIAL — approved 2026-10-29 ("cfb Saturday approved"). TASK A0 done except the job-log half of A0.2
 (`outbox/cfb-saturday-a0-20261029.md`). A1 decided: hold, read 2026-10-31. B1 decided: (a), redefined. B2 and B3 built and
 deployed (`89f047a`); their live proof is the 2026-10-31 scheduled run (done condition 4), read on 2026-11-01. A2 does not
-depend on A1 or B1 (it changes readers, not what the backfill writes); its relay half is built (six sites and the odds
-story, see TASK A2 below), its client half is not.
+depend on A1 or B1 (it changes readers, not what the backfill writes); it is built and deployed in both repos (relay `66a61d2`,
+client `26ee3239`; see TASK A2 below).
 **Filed by:** CC, while recording the CFB done condition (Rule 87.4). Its
 sibling is `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`, which covers
 pairs that are wrong. This one covers games the backfill never prices,
@@ -148,9 +148,21 @@ Every reader from A0.3 either goes through `selectLineOdds` or checks
   mutants, 23 caught (the first run caught 20; the three survivors were arguments swapped at two sites and a dropped plus
   sign, which the fixtures could not tell apart because the real rows carry equal opening and closing blobs and no positive
   spread; the check now states a distinct pair and a positive spread). Wired into `deploy.yml` and `guards.yml`.
-- **Not done here:** the client half. Rule 70 puts the relay first; the client matches after the relay deploys. The client half
-  is `buildOddsStory` and `buildOddsMovement` in jubilant-bassoon `src/debrief/index.ts` (row 11's consumers), not rows 9
-  and 10, which have no feed (`outbox/cfb-saturday-a0-20261029.md`, correction).
+
+**Client half, built 2026-10-29 (jubilant-bassoon `26ee3239`).** The live client readers of the opening blob are `buildOddsStory` and
+`buildOddsMovement` in `src/debrief/index.ts` (row 11's consumers), not rows 9 and 10, which have no feed (`/archive/query` reads the
+`briefs` table and no `/archive/upsets` route exists; `outbox/cfb-saturday-a0-20261029.md`, correction). Both layers return nothing
+when `opening._kickoff.late_minutes` is finite (`_openingCapturedLate`). The relay already served the mark in `opening_odds_parsed`
+(`GET /context/game/NHL_2026-09-29_e401891827` read live: `verified:false, late_minutes:55`), so the client did not wait on the
+relay deploy. Proof: client `scripts/check-opening-odds-late.mjs` runs the real exported layers on the three real `_kickoff` shapes
+and the unmarked case (5 openings x 2 layers + 2 through `buildDebrief`): 5 FAIL on the pre-change source, 0 after;
+`scripts/mutate-opening-odds-late.mjs` 9 of 9 caught.
+
+**Deploys and live proof.** Relay Deploy run 40930832200: success. Client deploy gate run 40932255038: success. The deployed page
+reports `window.SW_VERSION` 2026-10-29b and its served HTML carries `_openingCapturedLate` three times and the `late_minutes` read
+(browser session, 18:41Z). CONTRACTS.md identity check: red on the relay push for the 8 minutes between the two pushes (relay
+`main` had the new bullet, client `main` did not), green once the client landed (client run 40932254796; relay run 40930832186
+attempt 2). Session doc: `outbox/cc-session-2026-10-29-opening-odds-late.md`.
 
 ## Part B — the identity-join probe (CC-CMD-2026-09-11 Task 3)
 

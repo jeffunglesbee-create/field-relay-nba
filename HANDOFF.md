@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-29 (evening) — the sentences that say "opened" skip a line captured after kickoff
+
+**HEAD:** `37d9fee` → `66a61d2` (relay, deploy run 40930832200) · client `8044a686` → `26ee3239` (SW 2026-10-29b, deploy gate run 40932255038) · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-29-opening-odds-late.md
+
+TASK A2 of `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`. The CI backfill writes one snapshot into both odds
+columns, so a game that kicked off before the 23:59Z snapshot has an "opening" captured during it (priced openings carrying the late
+mark, 2026-09-16 to 2026-10-29: CFB 116 of 183, NHL 97 of 202, NBA 15 of 69, NFL 4 of 33). Every reader that printed "opened" took it as
+the open.
+
+- **Relay:** `knownLateOpening`, `debriefOddsLine`, `openingOddsParts` in `src/odds-consumer-rules.js`; both debrief blocks, the backfill
+  prompt, the slate annotation, the odds story and `lineMovement` skip a late opening. Stored data and response shapes unchanged.
+- **Client:** `buildOddsStory` and `buildOddsMovement` (`src/debrief/index.ts`) return nothing for a late opening. The relay already
+  served the mark inside `opening_odds_parsed` (read live), so the client did not wait on the relay deploy.
+- **The predicate is `late_minutes`,** not `verified: false`, which is also written for an unreadable kickoff.
+- **The census was wrong twice:** `lineMovement` was a twelfth reader, and client rows 9-10 (`_isUpset`, market consensus) have no feed
+  (`/archive/query` reads `briefs`; no `/archive/upsets` route). The live client readers are the two debrief layers.
+- **Proof:** relay check 67 / 23 mutants; client check 9 mutants; the gate run on the committed tree passed 152 of 154 (the two failures
+  are the standing env-only ones: BSD frame list HTTP 0, `RELAY_SHARED_SECRET` unset). A prose-site check and its mutants that read the old
+  inline text were rewritten for the helper, and `mutate-odds-consumer-wiring.mjs`, which no workflow ran, is now in `deploy.yml`.
+- **Open, recorded not fixed:** client `_consensusOverRate` takes `Number()` of an object (NaN); no feed, so it never runs.
+
 ## SESSION CLOSE-OUT — 2026-10-29 (17:40Z) — the identity route and the Saturday probe measure something
 
 **HEAD:** `aee34be` → `5c664f8`, `3f5dabf`, `89f047a` (deployed 17:29Z) → this close-out · **Branch:** main
