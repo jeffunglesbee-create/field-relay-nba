@@ -52,6 +52,12 @@ export const parseSSE = (text) => {
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
+/** Incidents that mark dead time, not an act by a side, and carry `side: null`. 3 of 3 seen: events 602347 at 38:04
+ *  (temporary_interruption) and 39:18 (gameon), recorded 2026-10-28, and 7314 at 57:47 (gameon), 2026-10-29. Found
+ *  because the first live run of the poll failed this very assertion; before that it had never met one. */
+export const DEAD_TIME = ['temporary_interruption', 'gameon']
+export const sideOk = (d) => ['home', 'away'].includes(d?.side) || (d?.side === null && DEAD_TIME.includes(d?.situation))
+
 /** The assertions over what came through the relay. Pure. */
 export const assess = ({ events, eventId, subscribeResponse }) => {
   const stats = events.filter((e) => e.event === 'bsd:stats')
@@ -72,8 +78,8 @@ export const assess = ({ events, eventId, subscribeResponse }) => {
     ['every bsd:ball coords is null or exactly an integer x and an integer y',
       balls.every((e) => e.data?.coords === null || (isObj(e.data?.coords) && Object.keys(e.data.coords).sort().join() === 'x,y' &&
         Number.isInteger(e.data.coords.x) && Number.isInteger(e.data.coords.y)))],
-    ['every bsd:ball names a side and carries a time object and a string commentary',
-      balls.every((e) => ['home', 'away'].includes(e.data?.side) && isObj(e.data?.time) && typeof e.data?.commentary === 'string')],
+    ['every bsd:ball names a side (null only on a dead-time marker) and carries a time object and a string commentary',
+      balls.every((e) => sideOk(e.data) && isObj(e.data?.time) && typeof e.data?.commentary === 'string')],
   ]
   return {
     checks: checks.map(([name, pass]) => ({ name, pass: Boolean(pass) })),
@@ -241,6 +247,10 @@ const selfTest = () => {
   ok('a bsd:ball whose coords carry an extra key fails', failing(A([stats(), ball({ coords: { x: 1, y: 2, z: 3 } })])).some((n) => n.includes('integer x')))
   ok('a bsd:ball with integer coords passes', failing(A([stats(), ball({ coords: { x: 72, y: 47 } })])).length === 0)
   ok('a bsd:ball without side fails', failing(A([stats(), ball({ side: undefined })])).some((n) => n.includes('names a side')))
+  ok('a null side on a corner fails (null is for dead time only)', failing(A([stats(), ball({ side: null })])).some((n) => n.includes('names a side')))
+  ok('a null side on a gameon marker passes (seen live, event 7314, 2026-10-29)', failing(A([stats(), ball({ side: null, situation: 'gameon' })])).length === 0)
+  ok('a null side on a temporary_interruption marker passes (recorded, event 602347)', failing(A([stats(), ball({ side: null, situation: 'temporary_interruption' })])).length === 0)
+  ok('a side that is neither home, away nor null fails even on gameon', failing(A([stats(), ball({ side: 'both', situation: 'gameon' })])).some((n) => n.includes('names a side')))
   ok('a bsd:ball with a non-string commentary fails', failing(A([stats(), ball({ commentary: 5 })])).some((n) => n.includes('string commentary')))
   ok('a bsd:ball with an extra key fails the key-set assertion', failing(A([stats(), ball({ watch: 1 })])).some((n) => n.includes('exactly the declared keys')))
   ok('an unparseable bsd:stats fails', failing(A([{ event: 'bsd:stats', data: null, unparseable: true }])).some((n) => n.includes('parseable')))

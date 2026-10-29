@@ -206,7 +206,7 @@ Producer: `_bsdOnFrame`, from a BSD WebSocket `livedata` frame. Same rules as ab
                            //   window is empty. x and y are integers (x 5 to 95, y 0 to 100 observed).
   situation:  string       // attack safe dangerous possession freekick shotofftarget throwin
                            //   substitution corner goal_kick card temporary_interruption gameon (seen)
-  side:       "home" | "away"
+  side:       "home" | "away" | null   // null on the dead-time markers temporary_interruption and gameon (3 of 3 seen)
   time:       object       // the minute the incident is STAMPED with, from the match clock it carries:
                            //   minute, second, display, period, injury_time, period_started_at_uts
   commentary: string
