@@ -78,7 +78,9 @@ export function pairGoals (eventId, shotmap, incidents) {
   for (const inc of incidents || []) {
     if (inc?.type !== 'goal') continue
     goals++
-    if (inc.goal_type === 'own') { unpaired.own_goal++; continue }
+    // The vendor's value is "ownGoal" (/bsd/contract frames[SEQ].ownGoal): `is_home` names the team
+    // CREDITED, the sequence belongs to the OTHER side, so it is in neither side's frame here.
+    if (/own/i.test(String(inc.goal_type ?? ''))) { unpaired.own_goal++; continue }
     const step = (inc.sequence || []).find(s => s?.event === 'goal')
     if (!step || !num(step.pos?.x) || !num(step.pos?.y)) { unpaired.no_sequence++; continue }
     const side = inc.is_home === true ? 'home' : 'away'
@@ -202,7 +204,7 @@ function selfTest () {
     { type: 'goal', minute: 75, is_home: true, goal_type: 'regular',
       sequence: [{ event: 'cross', pid: 1, pos: { x: 99, y: 99 } }, { event: 'goal', pid: 7392, pos: { x: 93.2, y: 46.2 } }] },
     { type: 'goal', minute: 43, is_home: false, goal_type: 'regular', sequence: [{ event: 'goal', pid: 5459, pos: { x: 2.7, y: 48.6 } }] },
-    { type: 'goal', minute: 50, is_home: true, goal_type: 'own', sequence: [{ event: 'goal', pid: 3, pos: { x: 1, y: 1 } }] },
+    { type: 'goal', minute: 50, is_home: true, goal_type: 'ownGoal', sequence: [{ event: 'goal', pid: 3, pos: { x: 1, y: 1 } }] },
     { type: 'goal', minute: 60, is_home: true, goal_type: 'regular' },
     { type: 'goal', minute: 70, is_home: true, goal_type: 'regular', sequence: [{ event: 'goal', pid: 8, pos: { x: 1, y: 1 } }] },
     { type: 'goal', minute: 20, is_home: true, goal_type: 'regular', sequence: [{ event: 'goal', pid: 9, pos: { x: 5, y: 5 } }] },
