@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (Part A, TASK A2 also touches jubilant-bassoon)
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** APPROVED 2026-10-29 ("cfb Saturday approved"). TASK A0 DONE except the job-log half of A0.2
+**Status:** PARTIAL — approved 2026-10-29 ("cfb Saturday approved"). TASK A0 done except the job-log half of A0.2
 (`outbox/cfb-saturday-a0-20261029.md`). A1 and B1 are owner options with no pick yet. A2 does not depend on either
 (it changes readers, not what the backfill writes).
 **Filed by:** CC, while recording the CFB done condition (Rule 87.4). Its

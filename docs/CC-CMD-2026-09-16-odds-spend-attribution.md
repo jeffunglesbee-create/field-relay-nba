@@ -496,6 +496,8 @@ What the split does NOT do, stated plainly because the first wording of this ove
   fetches for sports AmbientDO does not cover), so its 900 isolates `/archive/game` from the OTHER
   labels, not from them; and 900 is 1.0x the busiest day seen (10-22), against the 2x margin the four
   ratified caps were sized with. The owner's number to tune.
+**Ratified 2026-10-29:** the owner's "decisions approved" covered this number (open since 10-28 as "whether 900 is
+right"), and 900 stands. No change was ordered; it changes only by an owner order or a dated `siteExtra` grant, like the other caps.
 Gating the routes stays `docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md` TASK 1, still the
 owner's to release. Two consequences of the split were fixed in the same build: `GET /identity/mismatches`
 reported a refusal by our own guard as `Odds-API fetch failed` (the Saturday probe classifies that as the

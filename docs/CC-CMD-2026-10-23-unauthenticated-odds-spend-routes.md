@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (spend reachable by anyone)
 **Confidence gate:** >= 95 before any commit
-**Status:** ROUTE A DONE 2026-10-29 (`1d55722`, Deploy RELAY Worker `40863046648`; proof
+**Status:** PARTIAL — Route A DONE 2026-10-29 (`1d55722`, Deploy RELAY Worker `40863046648`; proof
 `outbox/odds-backfill-gate-live-proof-20261029T1120Z.md`). ROUTE B HELD: waits on B1 of
 `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`, an owner option with no pick. `/odds/*`
 (`oddsProxyRoute`) is uncapped and needs a number from the owner.

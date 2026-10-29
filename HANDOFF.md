@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-29 (11:50Z) — Route A gated, the CFB Saturday premises recorded, the import check made to read code
+
+**HEAD:** `171afc6` → `1d55722` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-29-route-a-and-import-check.md
+
+- **Route A is live.** `/archive/odds-backfill` answers 401 before it spends (FIELD_MCP_SECRET, fail closed; the published
+  RELAY_SHARED_SECRET is not accepted). Self-probe: HTTP 401 `Unauthorized`; `/budget/odds` identical before and after
+  (day 449, month 46323, `archiveOddsBackfill` 0). Proof: `outbox/odds-backfill-gate-live-proof-20261029T1120Z.md`; Deploy
+  RELAY Worker `40863046648`. Not run live: the authorized 200 (I do not hold the secret; the check runs it on the real
+  worker, 68 checks, 24 mutants).
+- **Route B (`/identity/mismatches`) is not gated** and `/odds/*` (`oddsProxyRoute`) is neither gated nor capped:
+  `docs/CC-CMD-2026-10-23-unauthenticated-odds-spend-routes.md` (Status PARTIAL). Route B waits on B1 below.
+- **`archiveGameClosing` 900 stands** (owner, "decisions approved"), recorded in the 09-16 CC-CMD.
+- **CFB Saturday CC-CMD approved; TASK A0 recorded** in `outbox/cfb-saturday-a0-20261029.md` (0 credits). Key figures:
+  CFB 203 of 383 finalized rows unpriced since 09-16; NBA, NHL and NFL stopped losing games on 10-23; CFB's join was met
+  10-28, so **2026-10-31 is the first CFB Saturday that can show whether the opening-line cron prices CFB before kickoff**.
+  Eleven `opening_odds` readers, none checking the after-kickoff mark on the opening line (A2). Open: A0.2's job-log
+  half. A1 and B1 are the owner's.
+- **The import check had been skipping 119,320 characters of `src/`** (106,014 of `src/index.js`) because its comment
+  stripper paired a slash-star inside a `//` comment or a string with a later close. Found when a comment of mine
+  containing `/admin/*` failed it. It now reads code through the shared `scripts/lib/blank-comments.mjs` and recognises
+  dynamic imports; **no import is missing** (0 unresolved on all 50 modules). Self-test 16 cases (9 of 16 on the old
+  check), 9 of 9 mutants, both in `deploy.yml`. `docs/CC-CMD-2026-10-29-imports-check-comment-stripper.md` DONE;
+  measurement in `outbox/imports-check-blindness-measure-20261029.md`.
+- **Wake still armed:** 2026-10-30T12:00Z reads the first closed full day (2026-10-29) for Task 3 and the refusal record.
+- **Owner decisions that remain, none blocking:** A1 and B1 of the CFB Saturday CC-CMD; the cap number for
+  `oddsProxyRoute`. **Unblocked, not yet built:** TASK A2 of the CFB Saturday CC-CMD (six relay readers and three client
+  readers, Rule 70).
+- **Process:** a comment containing a slash-star can break a regex-based gate; the gates run on a COMMITTED tree; the
+  close-out docs go through the doc-reading steps (citation ratchet, Status vocabulary) before the push.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-29 (03:55Z) — the BSD pitch draws a ball and shots, proven on the deployed page
 
 **HEAD:** `5dfaf6f` → `fd7f9d22` → this close-out · **Branch:** main

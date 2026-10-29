@@ -70,7 +70,7 @@ Mark = `_kickoff.late_minutes`, read through `knownPostKickoff` or `selectLineOd
 | 5 | odds story, `src/context-assembler.js:460-476` | closing only (`:466`); opening unchecked |
 | 6 | odds story view, `src/index.js:12092-12110` | closing only (`:12106`); opening unchecked |
 | 7 | `/context/game` response `opening:` and `has_odds`, `src/index.js:12851, 12882` | passthrough to the client, no prose |
-| 8 | `src/analytics-engine.js:822-826` | selects the column; its use is not read here |
+| 8 | `src/analytics-engine.js:822-826` | selects the column (`closing_odds, opening_odds, streams`); its use is not read here |
 | 9 | client `_isUpset` `src/legacy/field.js:11726` | **no** (0 references to `_kickoff` or `late_minutes` in the file) |
 | 10 | client derived stats `field.js:11780, 11811, 11835` | **no** |
 | 11 | client `oddsOutcome.opening` `field.js:2507` | **no** (reads the relay's raw `opening_odds_parsed`) |
