@@ -6,8 +6,8 @@
 //
 //   analytics-engine.js  winnerMoneylinePrice  upset finding at >= +200
 //   analytics-engine.js  scoreGame             tight line at |spread| < 3
-//   index.js 5637        buildGameCompletePrompt   prints "closed home X"
-//   index.js 9259        the cron debrief path     prints "closed home X"
+//   index.js            buildGameCompletePrompt   prints "closed home X" (through debriefOddsLine)
+//   index.js            the cron debrief path     prints "closed home X" (through debriefOddsLine)
 //   context-assembler.js buildOddsStoryContext     narrates the movement
 //
 // The sixth site, index.js's /odds-story debug route, carries the same guard so
@@ -28,6 +28,7 @@ const ok = (f, why) => {
 const AE = readFileSync('src/analytics-engine.js', 'utf8');
 const IX = readFileSync('src/index.js', 'utf8');
 const CA = readFileSync('src/context-assembler.js', 'utf8');
+const RU = readFileSync('src/odds-consumer-rules.js', 'utf8');
 
 // --- analytics-engine reads the shared rule, and holds no copy of it
 ok(() => /import\s*\{[^}]*winnerMoneylinePrice[^}]*\}\s*from\s*'\.\/odds-consumer-rules\.js'/.test(AE),
@@ -45,11 +46,18 @@ ok(() => /const ml = winnerMoneylinePrice\(g\);/.test(AE),
 ok(() => /const spread = lineSpread\(game\);/.test(AE),
    'the tight-line score still reads a spread');
 
-// --- the two prose sites
-const closeStr = IX.match(/const closeStr = [^\n]*/g) || [];
-ok(() => closeStr.length === 2, 'both debrief prose sites are present');
-ok(() => closeStr.every(l => l.includes('!knownPostKickoff(c)')),
-   'neither prose site prints a post-kickoff price as "closed"');
+// --- the two prose sites. Since 2026-10-29 both build the line through debriefOddsLine, which holds the one
+// closeStr; an inline copy of it in index.js is a second site that nothing here would guard.
+const proseCalls = IX.match(/= debriefOddsLine\(/g) || [];
+ok(() => proseCalls.length === 2, 'both debrief prose sites call debriefOddsLine');
+ok(() => (IX.match(/const closeStr = [^\n]*/g) || []).length === 0,
+   'no debrief prose site builds its own closed half in index.js');
+ok(() => /import\s*\{[^}]*debriefOddsLine[^}]*\}\s*from\s*'\.\/odds-consumer-rules\.js'/.test(IX),
+   'index.js imports debriefOddsLine from the rule module');
+const closeStr = RU.match(/const closeStr = [^\n]*/g) || [];
+ok(() => closeStr.length === 1, 'the shared debrief line builds the closed half once');
+ok(() => closeStr.every(l => l.includes('!knownPostKickoff(closing)')),
+   'the shared debrief line does not print a post-kickoff price as "closed"');
 ok(() => /import\s*\{[^}]*knownPostKickoff[^}]*\}\s*from\s*'\.\/odds-consumer-rules\.js'/.test(IX),
    'index.js imports the mark reader');
 

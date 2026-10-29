@@ -316,6 +316,13 @@ strings `'Z'` sorts above `':'`.
 - **`_kickoff` absent entirely** — written before 2026-09-14, when nothing
   checked. That is every row in the archive as of that date, and it is the
   honest answer for all of them. A consumer must not read absence as verified.
+- **The same mark on `opening_odds`** (2026-10-29). The CI backfill writes one snapshot into BOTH columns, so a finite
+  `late_minutes` on the OPENING blob means the "opening" was captured during the game; it is not an opening price. Priced
+  openings carrying it, 2026-09-16 to 2026-10-29: CFB 116 of 183, NHL 97 of 202, NBA 15 of 69, NFL 4 of 33. A consumer that
+  says "opened" must not print one. The test is a finite `late_minutes`, NOT `verified: false`, which is also written for a
+  kickoff nobody could read (an unreadable kickoff is unknown, not late). Relay: `knownLateOpening` in
+  `src/odds-consumer-rules.js` (debrief line, backfill prompt, slate annotation, odds story, `lineMovement`). Client:
+  `_openingCapturedLate` in `src/debrief/index.ts` (`buildOddsStory`, `buildOddsMovement`).
 
 Consumers may treat an unverified closing line as they choose; the relay states
 the fact and does not decide (Rule 60, ADR-002 pull-only).

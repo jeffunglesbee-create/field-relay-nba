@@ -107,3 +107,60 @@ export function lineSpread(game, opts) {
     const n = Number(spread);
     return Number.isFinite(n) ? n : null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THE OPENING LINE. Everything above is about the CLOSING price. The opening side was scoped out of
+// CC-CMD-2026-09-14 ("do not touch opening_odds"), so the readers that print "opened ..." took the blob
+// as it came. Measured 2026-10-29, regular_season_games from 2026-09-16, priced opening lines carrying
+// the late mark: CFB 116 of 183, NHL 97 of 202, NBA 15 of 69, NFL 4 of 33. The CI backfill and the
+// 23:59Z snapshot write the same blob into BOTH columns, so a game that kicked off before it was taken
+// has an "opening" captured during the game, and the sentence "opened -526" is then prose about an
+// in-play price (docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, A2).
+//
+// WHAT COUNTS AS KNOWN LATE. `late_minutes`, not `verified: false`. kickoffMark writes `verified: false`
+// for a line captured after kickoff AND for a kickoff nobody could read (`late_minutes: null`; 8 of the 13
+// MLS rows marked unverified since 2026-09-16 are the second kind). The second is unknown, not late, and
+// it stays (Rule 99). knownPostKickoff above is the closing readers' predicate and is left as it is.
+
+/** Is this blob KNOWN to have been captured at or after kickoff? True only when the mark carries the minutes. */
+export function knownLateOpening(odds) {
+    return lateMinutes(odds) !== null;
+}
+
+/**
+ * The debrief prompt's odds line, or null when there is nothing honest to say.
+ * An opening known to be late is not an opening, so no line; a closing known to be late is left off the line
+ * (an in-play price is not a close, and this is prose).
+ * @param {object|null} opening  parsed opening_odds
+ * @param {object|null} closing  parsed closing_odds
+ * @param {boolean} wentToOT
+ * @returns {string|null}
+ */
+export function debriefOddsLine(opening, closing, wentToOT) {
+    if (!opening || knownLateOpening(opening)) return null;
+    const signed = (n) => `${n > 0 ? '+' : ''}${n}`;
+    const oddsStr = opening.moneyline
+        ? `home ${signed(opening.moneyline.home)} / away ${signed(opening.moneyline.away)}`
+        : '';
+    const closeStr = (closing && closing.moneyline && !knownPostKickoff(closing))
+        ? `, closed home ${signed(closing.moneyline.home)} / away ${signed(closing.moneyline.away)}`
+        : '';
+    return ` Odds: opened ${oddsStr}${closeStr}.${wentToOT ? ' Went to OT.' : ''}`;
+}
+
+/**
+ * The fragments of a pre-game odds annotation ("opened +3", "ML a/b", "O/U 45"), from a PARSED opening blob.
+ * Empty when the opening is known late: the annotation says "opened", and a price from the game is not one.
+ * @param {object|null} odds
+ * @returns {string[]}
+ */
+export function openingOddsParts(odds) {
+    if (!odds || knownLateOpening(odds)) return [];
+    const parts = [];
+    if (odds.spread && typeof odds.spread.home === 'number') {
+        parts.push(`opened ${odds.spread.home > 0 ? '+' : ''}${odds.spread.home}`);
+    }
+    if (odds.moneyline) parts.push(`ML ${odds.moneyline.home}/${odds.moneyline.away}`);
+    if (odds.total && typeof odds.total.over === 'number') parts.push(`O/U ${odds.total.over}`);
+    return parts;
+}

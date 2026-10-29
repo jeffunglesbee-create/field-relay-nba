@@ -247,6 +247,14 @@ jobs:
           node scripts/check-identity-route-join.mjs
           node scripts/mutate-identity-route-join.mjs
 
+      # Every reader that prints an "opening" line took the blob as it came, and the CI backfill writes one
+      # blob into both columns, so a line captured during the game was reported as the open (2026-10-29,
+      # docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, Task A2). Run on six real blobs.
+      - name: the sentences that say opened skip a line captured after kickoff
+        run: |
+          node scripts/check-opening-odds-late.mjs
+          node scripts/mutate-opening-odds-late.mjs
+
       # The Saturday probe that reads that diagnostic could not fail on the property it existed for: CFB
       # read NO_ROWS in all seven recorded artifacts, every run exited 0, and every scheduled run probed
       # the Sunday. The classifier and the script are run against a local relay; the two workflows that

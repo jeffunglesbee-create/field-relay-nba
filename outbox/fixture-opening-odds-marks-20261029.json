@@ -1,0 +1,110 @@
+{
+ "captured_at": "2026-10-29",
+ "database": "field-archive cc49101c-0569-4d41-8e7a-be139cde4f26",
+ "table": "regular_season_games",
+ "method": "six D1 SELECTs by kind, date >= 2026-09-16, the first row by (date, id); blobs copied verbatim, nothing edited",
+ "denominators_2026-09-16_to_10-29": {
+  "CFB": {
+   "priced": 183,
+   "verified_false": 116,
+   "verified_true": 65,
+   "unmarked": 2
+  },
+  "NHL": {
+   "priced": 202,
+   "verified_false": 97,
+   "verified_true": 71,
+   "unmarked": 34
+  },
+  "NBA": {
+   "priced": 69,
+   "verified_false": 15,
+   "verified_true": 19,
+   "unmarked": 35
+  },
+  "NFL": {
+   "priced": 33,
+   "verified_false": 4,
+   "verified_true": 16,
+   "unmarked": 13
+  },
+  "MLS": {
+   "priced": 212,
+   "verified_false": 13,
+   "verified_false_without_late_minutes": 8,
+   "unmarked": 199
+  },
+  "MLB": {
+   "priced": 202,
+   "unmarked": 202
+  }
+ },
+ "rows": [
+  {
+   "kind": "cfb_late",
+   "id": "CFB_2026-09-17_e401858225",
+   "sport": "CFB",
+   "date": "2026-09-17",
+   "home": "Pitt",
+   "away": "Syracuse",
+   "start_time": "2026-09-17T23:30Z",
+   "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-09-17T23:55:14Z\",\"moneyline\":{\"home\":-526,\"away\":369},\"total\":{\"over\":43.5,\"under\":43.5},\"_kickoff\":{\"at\":\"2026-09-17T23:30Z\",\"verified\":false,\"late_minutes\":25}}",
+   "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-09-17T23:55:14Z\",\"moneyline\":{\"home\":-526,\"away\":369},\"total\":{\"over\":43.5,\"under\":43.5},\"_kickoff\":{\"at\":\"2026-09-17T23:30Z\",\"verified\":false,\"late_minutes\":25}}"
+  },
+  {
+   "kind": "cfb_verified",
+   "id": "CFB_2026-09-18_e401856811",
+   "sport": "CFB",
+   "date": "2026-09-18",
+   "home": "Texas Tech",
+   "away": "Houston",
+   "start_time": "2026-09-19T00:00Z",
+   "opening_odds": "{\"source\":\"fanduel\",\"captured_at\":\"2026-09-18T23:55:32Z\",\"moneyline\":{\"home\":-323,\"away\":255},\"total\":{\"over\":52.5,\"under\":52.5},\"_kickoff\":{\"at\":\"2026-09-19T00:00Z\",\"verified\":true,\"late_minutes\":null}}",
+   "closing_odds": "{\"source\":\"fanduel\",\"captured_at\":\"2026-09-18T23:55:32Z\",\"moneyline\":{\"home\":-323,\"away\":255},\"total\":{\"over\":52.5,\"under\":52.5},\"_kickoff\":{\"at\":\"2026-09-19T00:00Z\",\"verified\":true,\"late_minutes\":null}}"
+  },
+  {
+   "kind": "nhl_late",
+   "id": "NHL_2026-09-29_e401891827",
+   "sport": "NHL",
+   "date": "2026-09-29",
+   "home": "Maple Leafs",
+   "away": "Canadiens",
+   "start_time": "2026-09-29T23:00Z",
+   "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-09-29T23:55:13Z\",\"moneyline\":{\"home\":-120,\"away\":-110},\"total\":{\"over\":6.5,\"under\":6.5},\"_kickoff\":{\"at\":\"2026-09-29T23:00Z\",\"verified\":false,\"late_minutes\":55}}",
+   "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-09-29T23:55:13Z\",\"moneyline\":{\"home\":-120,\"away\":-110},\"total\":{\"over\":6.5,\"under\":6.5},\"_kickoff\":{\"at\":\"2026-09-29T23:00Z\",\"verified\":false,\"late_minutes\":55}}"
+  },
+  {
+   "kind": "mls_unreadable_kickoff",
+   "id": "2026-09-18-mls-mtl-clb",
+   "sport": "MLS",
+   "date": "2026-09-18",
+   "home": "CF Montréal",
+   "away": "Columbus Crew",
+   "start_time": null,
+   "opening_odds": "{\"source\":\"betrivers\",\"captured_at\":\"2026-09-18T23:55:28Z\",\"moneyline\":{\"home\":155,\"away\":145,\"draw\":265},\"total\":{\"over\":2.5,\"under\":2.5},\"_kickoff\":{\"at\":null,\"verified\":false,\"late_minutes\":null}}",
+   "closing_odds": "{\"source\":\"betrivers\",\"captured_at\":\"2026-09-18T23:55:28Z\",\"moneyline\":{\"home\":155,\"away\":145,\"draw\":265},\"total\":{\"over\":2.5,\"under\":2.5},\"_kickoff\":{\"at\":null,\"verified\":false,\"late_minutes\":null}}"
+  },
+  {
+   "kind": "mlb_unmarked",
+   "id": "MLB_2026-09-16_e401816960",
+   "sport": "MLB",
+   "date": "2026-09-16",
+   "home": "Guardians",
+   "away": "White Sox",
+   "start_time": "2026-09-16T17:00Z",
+   "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-09-16T10:02:13.597Z\",\"_oddsProof\":{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"},\"moneyline\":{\"home\":-180,\"away\":148},\"spread\":{\"home\":-1.5,\"away\":1.5,\"homePrice\":123,\"awayPrice\":-149},\"total\":{\"over\":8,\"under\":8}}",
+   "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-09-16T11:55:36Z\",\"_oddsProof\":{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"},\"moneyline\":{\"home\":-180,\"away\":148},\"spread\":{\"home\":-1.5,\"away\":1.5,\"homePrice\":124,\"awayPrice\":-149},\"total\":{\"over\":7.5,\"under\":7.5},\"_kickoff\":{\"at\":\"2026-09-16T17:00Z\",\"verified\":true,\"late_minutes\":null}}"
+  },
+  {
+   "kind": "nba_verified",
+   "id": "NBA_2026-10-20_e401909090",
+   "sport": "NBA",
+   "date": "2026-10-20",
+   "home": "Spurs",
+   "away": "Thunder",
+   "start_time": "2026-10-21T01:50Z",
+   "opening_odds": "{\"source\":\"fanduel\",\"captured_at\":\"2026-10-20T23:54:07Z\",\"moneyline\":{\"home\":-106,\"away\":-110},\"total\":{\"over\":230.5,\"under\":230.5},\"_kickoff\":{\"at\":\"2026-10-21T01:50Z\",\"verified\":true,\"late_minutes\":null}}",
+   "closing_odds": "{\"source\":\"fanduel\",\"captured_at\":\"2026-10-20T23:54:07Z\",\"moneyline\":{\"home\":-106,\"away\":-110},\"total\":{\"over\":230.5,\"under\":230.5},\"_kickoff\":{\"at\":\"2026-10-21T01:50Z\",\"verified\":true,\"late_minutes\":null}}"
+  }
+ ]
+}

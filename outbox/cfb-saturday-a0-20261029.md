@@ -75,6 +75,25 @@ Mark = `_kickoff.late_minutes`, read through `knownPostKickoff` or `selectLineOd
 | 10 | client derived stats `field.js:11780, 11811, 11835` | **no** |
 | 11 | client `oddsOutcome.opening` `field.js:2507` | **no** (reads the relay's raw `opening_odds_parsed`) |
 
+**Correction 2026-10-29 (A2 build).** Three things the census above got wrong or missed:
+
+- **A twelfth reader.** `findGame` builds `lineMovement` (`spreadOpen`, `spreadClose`, `moved`) from the opening blob with no
+  mark check. Same family as rows 1-6; fixed with them.
+- **The mark to test is `late_minutes`.** `verified: false` is also written when the kickoff time could not be read, so using
+  it would have blanked a line that was not late (one real MLS row in the fixture).
+- **Client rows 9 and 10 are dead consumers, and row 11 has the live ones.** Probed 2026-10-29: `GET /archive/query?limit=3`
+  returns rows from the `briefs` table (id, date, brief_type, sport, game_id, brief_text, model, quality_score; no odds, no
+  scores), and no `/archive/upsets` route exists in the relay (`grep -a "archive/upsets" src/*.js` finds nothing; already
+  recorded in `outbox/odds-american-readers-2026-10-20.md`). `_isUpset`, `_consensusFavoriteWonRate`, `_consensusOverRate`
+  and `computeMarketConsensus` therefore never see an `opening_odds`, and their panels stay hidden. The client readers of the
+  opening blob that run on live data are the two debrief layers fed by row 11: `buildOddsStory` (CHALK / UPSET / SWEAT / DRAW
+  from the opening moneyline) and `buildOddsMovement` ("Home line opened ...") in jubilant-bassoon `src/debrief/index.ts`.
+  The client half of A2 is those two; rows 9 and 10 are not edited (Rule 69, and a patch to a reader with no input cannot
+  be shown to do anything).
+- **Not fixed, recorded:** client `_consensusOverRate` computes `Number(g.opening_odds.total)` where `total` is an object, which
+  is `NaN` (all six real blobs in `outbox/fixture-opening-odds-marks-20261029.json` give `NaN`; with no feed it never runs).
+  It is a different defect from this CC-CMD's and is left alone (Rule 69).
+
 The four the CC-CMD named are rows 1, 3, 4 and 9. The census adds 2, 5, 6, 10 and 11 (and 7 and 8, which pass data
 through). The relay half (rows 1-6) is one repository; rows 9-11 are the cross-repo half (Rule 70).
 

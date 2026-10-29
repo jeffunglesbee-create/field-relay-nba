@@ -12,6 +12,8 @@
 // every nested field. Opening and closing may come from different sources;
 // that's expected and fine for movement computation.
 
+import { knownLateOpening } from './odds-consumer-rules.js';
+
 export function computeOddsStory(openingOdds, closingOdds) {
     if (!openingOdds || !closingOdds) return '';
 
@@ -23,6 +25,10 @@ export function computeOddsStory(openingOdds, closingOdds) {
         return '';
     }
     if (!open || !close) return '';
+    // "Opened X, closed Y" is a claim about movement BEFORE the game. An "opening" captured after kickoff is a
+    // price from the game, so there is no pre-game movement to narrate (docs/CC-CMD-2026-10-19-cfb-saturday-
+    // coverage-and-join-probe.md, A2). The closing side is the callers' guard (knownPostKickoff).
+    if (knownLateOpening(open)) return '';
 
     const parts = [];
 

@@ -9,7 +9,7 @@ import { stampKickoff, kickoffMark } from './odds-kickoff.js';
 import { forwardBsdFields } from './bsd-fields.js';
 // A closing line captured after kickoff is an in-play price. Prose must not
 // call it a close -- MEASURED 2026-09-14: 126 debrief rows would have.
-import { knownPostKickoff, parseOddsJSON } from './odds-consumer-rules.js';
+import { knownPostKickoff, parseOddsJSON, debriefOddsLine, openingOddsParts, knownLateOpening } from './odds-consumer-rules.js';
 export { GameDO };
 
 // ── Durable Object: UserDO (per-user FIELD state, June 11 2026) ─────────────
@@ -5711,19 +5711,9 @@ function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debr
     // dimension -- not a silent restore.
     if (debriefCtx.pre_game_brief)
       lines.push(` Pre-game: ${debriefCtx.pre_game_brief}`);
-    if (debriefCtx.opening_odds_parsed) {
-      const o = debriefCtx.opening_odds_parsed;
-      const c = debriefCtx.closing_odds_parsed;
-      const oddsStr = o.moneyline
-        ? `home ${o.moneyline.home > 0 ? '+' : ''}${o.moneyline.home} / away ${o.moneyline.away > 0 ? '+' : ''}${o.moneyline.away}`
-        : '';
-      // A price taken after kickoff is not a close, and this line is prose.
-      const closeStr = (c && c.moneyline && !knownPostKickoff(c))
-        ? `, closed home ${c.moneyline.home > 0 ? '+' : ''}${c.moneyline.home} / away ${c.moneyline.away > 0 ? '+' : ''}${c.moneyline.away}`
-        : '';
-      const otStr = debriefCtx.went_to_ot ? ' Went to OT.' : '';
-      lines.push(` Odds: opened ${oddsStr}${closeStr}.${otStr}`);
-    }
+    // A price taken after kickoff is neither a close nor an opening, and this line is prose (odds-consumer-rules.js).
+    const oddsLine = debriefOddsLine(debriefCtx.opening_odds_parsed, debriefCtx.closing_odds_parsed, debriefCtx.went_to_ot);
+    if (oddsLine) lines.push(oddsLine);
     if (debriefCtx.series_summary)
       lines.push(` Series: ${debriefCtx.series_summary}`);
     lines.push(' All sealed — this is post-game editorial, not live recommendation.');
@@ -7084,12 +7074,7 @@ function buildBackfillPrompt(date, games, seriesNarratives) {
     if (g.opening_odds) {
       try {
         const o = typeof g.opening_odds === 'string' ? JSON.parse(g.opening_odds) : g.opening_odds;
-        const oddsParts = [];
-        if (o.spread && typeof o.spread.home === 'number') {
-          oddsParts.push(`opened ${o.spread.home > 0 ? '+' : ''}${o.spread.home}`);
-        }
-        if (o.moneyline) oddsParts.push(`ML ${o.moneyline.home}/${o.moneyline.away}`);
-        if (o.total && typeof o.total.over === 'number') oddsParts.push(`O/U ${o.total.over}`);
+        const oddsParts = openingOddsParts(o);   // empty when the "opening" was captured after kickoff
         if (oddsParts.length) parts.push(`odds: ${oddsParts.join(', ')}`);
       } catch (e) { console.error("[BACKFILL-PROMPT] malformed odds JSON:", e.message); /* skip malformed odds JSON */ }
     }
@@ -7661,7 +7646,8 @@ async function findGame(env, id) {
         opening_odds_parsed: openingOdds,
         closing_odds_parsed: closingOdds,
         drama_arc_parsed:    dramaArc,
-        lineMovement: (openingOdds && closingOdds) ? {
+        // spreadOpen is an OPENING line: not one when it was captured after kickoff.
+        lineMovement: (openingOdds && closingOdds && !knownLateOpening(openingOdds)) ? {
             spreadOpen:  openingOdds.spread?.home ?? null,
             spreadClose: closingOdds.spread?.home ?? null,
             moved: (openingOdds.spread?.home ?? null) !== (closingOdds.spread?.home ?? null),
@@ -9090,13 +9076,7 @@ async function handleJournalismCycle(env, opts = {}) {
           if (!raw) continue;
           try {
             const odds = JSON.parse(raw);
-            const parts = [];
-            if (odds.spread && typeof odds.spread.home === 'number') {
-              const s = odds.spread.home;
-              parts.push(`opened ${s > 0 ? '+' : ''}${s}`);
-            }
-            if (odds.moneyline) parts.push(`ML ${odds.moneyline.home}/${odds.moneyline.away}`);
-            if (odds.total && typeof odds.total.over === 'number') parts.push(`O/U ${odds.total.over}`);
+            const parts = openingOddsParts(odds);   // empty when the "opening" was captured after kickoff
             if (parts.length) oddsAnnotations[i] = ` [ODDS: ${parts.join(', ')}]`;
           } catch (e) { console.error("[ODDS-ANNOTATIONS] malformed odds JSON:", e.message); /* skip malformed odds JSON */ }
         }
@@ -9527,15 +9507,9 @@ async function handleJournalismCycle(env, opts = {}) {
                     // buildGameCompletePrompt. Same ADR-002 PROHIBITED #3 issue; this
                     // is the cron path that actually wrote the observed row.
                     if (_dc.pre_game_brief)     _lines.push(` Pre-game: ${_dc.pre_game_brief}`);
-                    if (_dc.opening_odds_parsed) {
-                      const o = _dc.opening_odds_parsed;
-                      const c = _dc.closing_odds_parsed;
-                      const oddsStr  = o.moneyline ? `home ${o.moneyline.home > 0 ? '+' : ''}${o.moneyline.home} / away ${o.moneyline.away > 0 ? '+' : ''}${o.moneyline.away}` : '';
-                      // Same guard as buildGameCompletePrompt: an in-play price is not a close.
-                      const closeStr = (c && c.moneyline && !knownPostKickoff(c)) ? `, closed home ${c.moneyline.home > 0 ? '+' : ''}${c.moneyline.home} / away ${c.moneyline.away > 0 ? '+' : ''}${c.moneyline.away}` : '';
-                      const otStr    = _dc.went_to_ot ? ' Went to OT.' : '';
-                      _lines.push(` Odds: opened ${oddsStr}${closeStr}.${otStr}`);
-                    }
+                    // Same rule as buildGameCompletePrompt: an in-play price is neither a close nor an opening.
+                    const _oddsLine = debriefOddsLine(_dc.opening_odds_parsed, _dc.closing_odds_parsed, _dc.went_to_ot);
+                    if (_oddsLine) _lines.push(_oddsLine);
                     if (_dc.series_summary) _lines.push(` Series: ${_dc.series_summary}`);
                     _lines.push(' All sealed — this is post-game editorial, not live recommendation.');
                     _cronDebriefBlock = _lines.join('\n');

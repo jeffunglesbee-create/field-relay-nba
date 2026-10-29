@@ -6,8 +6,9 @@
 **Confidence gate:** >= 95 before any commit
 **Status:** PARTIAL — approved 2026-10-29 ("cfb Saturday approved"). TASK A0 done except the job-log half of A0.2
 (`outbox/cfb-saturday-a0-20261029.md`). A1 decided: hold, read 2026-10-31. B1 decided: (a), redefined. B2 and B3 built and
-deployed (`89f047a`); their live proof is the 2026-10-31 scheduled run (done condition 4), read on 2026-11-01. A2 is not
-built; it does not depend on A1 or B1 (it changes readers, not what the backfill writes).
+deployed (`89f047a`); their live proof is the 2026-10-31 scheduled run (done condition 4), read on 2026-11-01. A2 does not
+depend on A1 or B1 (it changes readers, not what the backfill writes); its relay half is built (six sites and the odds
+story, see TASK A2 below), its client half is not.
 **Filed by:** CC, while recording the CFB done condition (Rule 87.4). Its
 sibling is `docs/CC-CMD-2026-10-19-cfb-stage2-wrong-pair.md`, which covers
 pairs that are wrong. This one covers games the backfill never prices,
@@ -126,6 +127,30 @@ Every reader from A0.3 either goes through `selectLineOdds` or checks
   and the client consumer changes in the same plan.
 - **Proof:** each reader gets a fixture from a real 76-row blob (for example
   `CFB_2026-09-19_e401856802`), with a mutation (Rule 90).
+
+**Relay half, built 2026-10-29 (A0.3 rows 1-6, plus `lineMovement`, which the census had missed).**
+
+- **The predicate is `late_minutes`, not `verified: false`.** `kickoffMark` writes `verified: false` for a line captured
+  after kickoff and also for a kickoff nobody could read (`late_minutes: null`). One real MLS row of the second kind is in the
+  fixture; the check asserts the two predicates disagree on it. `knownLateOpening(odds)` is `lateMinutes(odds) !== null`.
+- **What changed.** `src/odds-consumer-rules.js` gained `knownLateOpening`, `debriefOddsLine` (the one sentence both debrief
+  sites now call) and `openingOddsParts` (the one "opened / ML / O/U" fragment list the backfill prompt and the slate
+  annotation now call). `computeOddsStory` returns `''` for a late opening, which covers both odds-story readers.
+  `findGame`'s `lineMovement` is not built from a late opening. Not changed: what any table stores, and the relay response
+  shape (`/context/game` still passes `opening` and its `_kickoff` through; the client decides).
+- **Size of the defect** (D1, 2026-09-16 to 2026-10-29, priced opening lines carrying the late mark): CFB 116 of 183, NHL 97
+  of 202, NBA 15 of 69, NFL 4 of 33. The CI backfill writes one blob into both columns, so a game that kicked off before the
+  23:59Z snapshot had an "opening" captured during it. `outbox/fixture-opening-odds-marks-20261029.json` holds six of those
+  rows verbatim (CFB, NBA, MLB unmarked, MLS unreadable kickoff, and the denominators).
+- **Proof.** `scripts/check-opening-odds-late.mjs` runs the helpers, `computeOddsStory`, the real `buildBackfillPrompt` and
+  the real source of the three sites that cannot be called whole, on those blobs: 67 of 67. Output for the non-late rows is
+  compared with strings frozen from the code before this change, byte for byte. `scripts/mutate-opening-odds-late.mjs`: 23
+  mutants, 23 caught (the first run caught 20; the three survivors were arguments swapped at two sites and a dropped plus
+  sign, which the fixtures could not tell apart because the real rows carry equal opening and closing blobs and no positive
+  spread; the check now states a distinct pair and a positive spread). Wired into `deploy.yml` and `guards.yml`.
+- **Not done here:** the client half. Rule 70 puts the relay first; the client matches after the relay deploys. The client half
+  is `buildOddsStory` and `buildOddsMovement` in jubilant-bassoon `src/debrief/index.ts` (row 11's consumers), not rows 9
+  and 10, which have no feed (`outbox/cfb-saturday-a0-20261029.md`, correction).
 
 ## Part B — the identity-join probe (CC-CMD-2026-09-11 Task 3)
 

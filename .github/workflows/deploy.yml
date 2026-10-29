@@ -227,6 +227,14 @@ jobs:
           node scripts/check-identity-route-join.mjs
           node scripts/mutate-identity-route-join.mjs
 
+      # Every reader that prints an "opening" line took the blob as it came, and the CI backfill writes one
+      # blob into both columns, so a line captured during the game was reported as the open (2026-10-29,
+      # docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, Task A2). Run on six real blobs.
+      - name: the sentences that say opened skip a line captured after kickoff
+        run: |
+          node scripts/check-opening-odds-late.mjs
+          node scripts/mutate-opening-odds-late.mjs
+
       # Review of Task 3: POST /debug/odds-budget-latency still prepared a statement
       # the change had removed and answered 500, and no gate noticed. Every
       # ODDS_BUDGET_SQL reference must name a statement that exists and bind as many
@@ -512,6 +520,7 @@ jobs:
         run: |
           node scripts/check-odds-consumer-rules.mjs
           node scripts/check-odds-consumer-wiring.mjs
+          node scripts/mutate-odds-consumer-wiring.mjs
 
       # Blocking. change_log is how this repo answers "who wrote this row" — a
       # whole task on 2026-09-14 reconstructed the authorship of 62 rows from

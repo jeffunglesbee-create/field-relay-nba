@@ -29,17 +29,29 @@ const MUTATIONS = [
     replace: "",
     expect: 'analytics-engine imports winnerMoneylinePrice from the rule module' },
 
-  { file: 'src/index.js',
-    name: 'W4  one prose site loses the guard, the other keeps it',
-    anchor: "      const closeStr = (c && c.moneyline && !knownPostKickoff(c))\n        ? `, closed home",
-    replace: "      const closeStr = (c && c.moneyline)\n        ? `, closed home",
-    expect: 'neither prose site prints a post-kickoff price as "closed"' },
+  { file: 'src/odds-consumer-rules.js',
+    name: 'W4  the shared debrief line loses the guard on its closed half',
+    anchor: "const closeStr = (closing && closing.moneyline && !knownPostKickoff(closing))",
+    replace: "const closeStr = (closing && closing.moneyline)",
+    expect: 'the shared debrief line does not print a post-kickoff price as "closed"' },
 
   { file: 'src/index.js',
-    name: 'W5  the cron debrief path loses the guard',
-    anchor: "      const closeStr = (c && c.moneyline && !knownPostKickoff(c)) ? `, closed home",
-    replace: "      const closeStr = (c && c.moneyline) ? `, closed home",
-    expect: 'neither prose site prints a post-kickoff price as "closed"' },
+    name: 'W5  the cron debrief path goes back to building its own line',
+    anchor: "const _oddsLine = debriefOddsLine(_dc.opening_odds_parsed, _dc.closing_odds_parsed, _dc.went_to_ot);",
+    replace: "const _oddsLine = ` Odds: opened ${_dc.opening_odds_parsed.moneyline ? 'x' : ''}, closed ${_dc.closing_odds_parsed ? _dc.closing_odds_parsed.moneyline.home : ''}.`;",
+    expect: 'both debrief prose sites call debriefOddsLine' },
+
+  { file: 'src/index.js',
+    name: 'W5b buildGameCompletePrompt goes back to an inline closed half',
+    anchor: "const oddsLine = debriefOddsLine(debriefCtx.opening_odds_parsed, debriefCtx.closing_odds_parsed, debriefCtx.went_to_ot);",
+    replace: "const c = debriefCtx.closing_odds_parsed; const closeStr = (c && c.moneyline) ? ', closed' : ''; const oddsLine = ` Odds: opened${closeStr}.`;",
+    expect: 'no debrief prose site builds its own closed half in index.js' },
+
+  { file: 'src/index.js',
+    name: 'W5c the debriefOddsLine import is dropped',
+    anchor: "import { knownPostKickoff, parseOddsJSON, debriefOddsLine, openingOddsParts, knownLateOpening } from './odds-consumer-rules.js';",
+    replace: "import { knownPostKickoff, parseOddsJSON, openingOddsParts, knownLateOpening } from './odds-consumer-rules.js';",
+    expect: 'index.js imports debriefOddsLine from the rule module' },
 
   { file: 'src/index.js',
     name: 'W6  the debug route drifts from the prompt',
@@ -86,7 +98,7 @@ for (const m of MUTATIONS) {
   } else console.log(`  caught  ${m.name}\n          by "${m.expect}" (${red.length} red)`);
 }
 
-for (const f of ['src/analytics-engine.js', 'src/index.js', 'src/context-assembler.js'])
+for (const f of ['src/analytics-engine.js', 'src/index.js', 'src/context-assembler.js', 'src/odds-consumer-rules.js'])
   execFileSync('node', ['--check', f]);
-console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; all three sources restored and parsing`);
+console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; all four sources restored and parsing`);
 process.exit(bad ? 1 : 0);
