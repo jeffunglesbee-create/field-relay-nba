@@ -1,21 +1,21 @@
 {
-  "startedAt": "2026-10-28T18:52:56.885Z",
+  "startedAt": "2026-10-29T23:46:10.560Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "polls": 1,
-  "state": "verified",
-  "coverage": "7 bsd:stats, 5 bsd:ball, 8 other SSE events over 150 s from 1 event (602352, DFB Pokal) through the deployed relay",
+  "state": "assertions-failed",
+  "coverage": "8 bsd:stats, 7 bsd:ball, 13 other SSE events over 200 s from 1 event (7314, Brasileirão Serie A) through the deployed relay",
   "event": {
-    "id": 602352,
-    "league_id": 43,
-    "league_name": "DFB Pokal",
+    "id": 7314,
+    "league_id": 9,
+    "league_name": "Brasileirão Serie A",
     "period": "2nd_half",
-    "current_minute": 91,
+    "current_minute": 51,
     "live_websocket": true,
     "websocket_plus": true
   },
   "subscribeResponse": {
     "ok": true,
-    "subscribed": "602352"
+    "subscribed": "7314"
   },
   "checks": [
     {
@@ -64,390 +64,272 @@
     },
     {
       "name": "every bsd:ball names a side and carries a time object and a string commentary",
-      "pass": true
+      "pass": false
     }
   ],
   "counts": {
-    "stats": 7,
-    "ball": 5,
-    "other": 8
+    "stats": 8,
+    "ball": 7,
+    "other": 13
+  },
+  "pollState": "poll-verified",
+  "pollCounts": {
+    "statsWithShotmapArray": 2,
+    "shotsSeen": 44
+  },
+  "bsdPoll": {
+    "cap": 600,
+    "intervalMs": 60000,
+    "freshMs": 180000,
+    "day": "2026-10-29",
+    "calls": 3,
+    "stopped": null,
+    "capReachedAt": null,
+    "last": {
+      "id": "7314",
+      "kind": "ok",
+      "status": 200,
+      "at": 1793317754031
+    },
+    "timerArmed": true,
+    "shotmapsCached": [
+      {
+        "id": "7314",
+        "shots": 22,
+        "at": 1793317754031
+      }
+    ]
   },
   "sample": [
     {
-      "event": "bsd:stats",
+      "event": "bsd:ball",
       "data": {
-        "type": "bsd:stats",
-        "id": "602352",
+        "type": "bsd:ball",
+        "id": "7314",
+        "uts": 1793317571,
+        "coords": {
+          "x": 31,
+          "y": 74
+        },
+        "situation": "freekick",
+        "side": "away",
         "time": {
-          "minute": 92,
-          "second": null,
-          "display": null,
-          "period": "2T",
-          "injury_time": null,
-          "period_started_at_uts": null,
-          "status": "2nd_half",
-          "kickoff_at": "2026-10-28T17:00:00+00:00"
-        },
-        "score": {
-          "home": 2,
-          "away": 0
-        },
-        "stats": {
-          "home": {
-            "duels": 46,
-            "fouls": 12,
-            "passes": 562,
-            "crosses": {
-              "value": 3,
-              "total": 10,
-              "pct": 30
-            },
-            "punches": 0,
-            "tackles": 8,
-            "dribbles": {
-              "value": 11,
-              "total": 23,
-              "pct": 48
-            },
-            "throw_ins": 25,
-            "clearances": 19,
-            "free_kicks": 8,
-            "goal_kicks": 2,
-            "long_balls": {
-              "value": 27,
-              "total": 60,
-              "pct": 45
-            },
-            "recoveries": 49,
-            "big_chances": 3,
-            "tackles_won": 75,
-            "total_saves": 4,
-            "total_shots": 10,
-            "aerial_duels": {
-              "value": 7,
-              "total": 15,
-              "pct": 47
-            },
-            "corner_kicks": 2,
-            "dispossessed": 4,
-            "ground_duels": {
-              "value": 27,
-              "total": 59,
-              "pct": 46
-            },
-            "yellow_cards": 2,
-            "blocked_shots": 6,
-            "interceptions": 6,
-            "total_tackles": 8,
-            "average_rating": 7.81,
-            "accurate_passes": 479,
-            "ball_possession": 53,
-            "shots_on_target": 2,
-            "goalkeeper_saves": 4,
-            "shots_inside_box": 7,
-            "shots_off_target": 2,
-            "final_third_phase": {
-              "value": 55,
-              "total": 92,
-              "pct": 60
-            },
-            "shots_outside_box": 3,
-            "big_chances_missed": 1,
-            "big_chances_scored": 2,
-            "final_third_entries": 55,
-            "errors_lead_to_a_shot": 0,
-            "fouled_in_final_third": 2,
-            "touches_in_penalty_area": 18,
-            "attack": 61,
-            "ball_safe": 63,
-            "dangerous_attack": 26,
-            "attack_pct": 24,
-            "ball_safe_pct": 48,
-            "dangerous_attack_pct": 28,
-            "pass_accuracy_pct": 85.2,
-            "red_cards": null,
-            "offsides": null,
-            "xg": 1.04
-          },
-          "away": {
-            "duels": 54,
-            "fouls": 8,
-            "passes": 494,
-            "crosses": {
-              "value": 4,
-              "total": 15,
-              "pct": 27
-            },
-            "punches": 1,
-            "tackles": 17,
-            "dribbles": {
-              "value": 5,
-              "total": 7,
-              "pct": 71
-            },
-            "throw_ins": 14,
-            "clearances": 19,
-            "free_kicks": 12,
-            "goal_kicks": 5,
-            "long_balls": {
-              "value": 23,
-              "total": 45,
-              "pct": 51
-            },
-            "recoveries": 42,
-            "big_chances": 1,
-            "tackles_won": 82,
-            "total_saves": 0,
-            "total_shots": 8,
-            "aerial_duels": {
-              "value": 8,
-              "total": 15,
-              "pct": 53
-            },
-            "corner_kicks": 3,
-            "dispossessed": 5,
-            "ground_duels": {
-              "value": 33,
-              "total": 59,
-              "pct": 56
-            },
-            "yellow_cards": 4,
-            "blocked_shots": 3,
-            "interceptions": 8,
-            "total_tackles": 17,
-            "average_rating": 6.7,
-            "accurate_passes": 419,
-            "ball_possession": 47,
-            "shots_on_target": 4,
-            "goalkeeper_saves": 0,
-            "shots_inside_box": 7,
-            "shots_off_target": 1,
-            "final_third_phase": {
-              "value": 75,
-              "total": 110,
-              "pct": 68
-            },
-            "shots_outside_box": 1,
-            "big_chances_missed": 1,
-            "big_chances_scored": 0,
-            "final_third_entries": 63,
-            "errors_lead_to_a_shot": 1,
-            "fouled_in_final_third": 0,
-            "touches_in_penalty_area": 22,
-            "attack": 60,
-            "ball_safe": 51,
-            "dangerous_attack": 25,
-            "attack_pct": 28,
-            "ball_safe_pct": 52,
-            "dangerous_attack_pct": 20,
-            "pass_accuracy_pct": 84.8,
-            "red_cards": null,
-            "offsides": null,
-            "xg": 1.08
-          }
-        },
-        "shotmap": null,
-        "momentum": null
-      }
-    },
-    {
-      "event": "bsd:stats",
-      "data": {
-        "type": "bsd:stats",
-        "id": "602352",
-        "time": {
-          "minute": 94,
-          "second": 20,
-          "display": "94:20",
+          "minute": 52,
+          "second": 41,
+          "display": "52:41",
           "period": 2,
-          "injury_time": null,
-          "period_started_at_uts": 1793210704,
-          "status": "2nd_half",
-          "kickoff_at": "2026-10-28T17:00:00+00:00"
+          "injury_time": 0,
+          "period_started_at_uts": 1793317152
         },
-        "score": {
-          "home": 2,
-          "away": 0
-        },
-        "stats": {
-          "home": {
-            "duels": 46,
-            "fouls": 12,
-            "passes": 562,
-            "crosses": {
-              "value": 3,
-              "total": 10,
-              "pct": 30
-            },
-            "punches": 0,
-            "tackles": 8,
-            "dribbles": {
-              "value": 11,
-              "total": 23,
-              "pct": 48
-            },
-            "throw_ins": 25,
-            "clearances": 19,
-            "free_kicks": 8,
-            "goal_kicks": 2,
-            "long_balls": {
-              "value": 27,
-              "total": 60,
-              "pct": 45
-            },
-            "recoveries": 49,
-            "big_chances": 3,
-            "tackles_won": 75,
-            "total_saves": 4,
-            "total_shots": 10,
-            "aerial_duels": {
-              "value": 7,
-              "total": 15,
-              "pct": 47
-            },
-            "corner_kicks": 2,
-            "dispossessed": 4,
-            "ground_duels": {
-              "value": 27,
-              "total": 59,
-              "pct": 46
-            },
-            "yellow_cards": 2,
-            "blocked_shots": 6,
-            "interceptions": 6,
-            "total_tackles": 8,
-            "average_rating": 7.81,
-            "accurate_passes": 479,
-            "ball_possession": 53,
-            "shots_on_target": 2,
-            "goalkeeper_saves": 4,
-            "shots_inside_box": 7,
-            "shots_off_target": 2,
-            "final_third_phase": {
-              "value": 55,
-              "total": 92,
-              "pct": 60
-            },
-            "shots_outside_box": 3,
-            "big_chances_missed": 1,
-            "big_chances_scored": 2,
-            "final_third_entries": 55,
-            "errors_lead_to_a_shot": 0,
-            "fouled_in_final_third": 2,
-            "touches_in_penalty_area": 18,
-            "attack": 61,
-            "ball_safe": 63,
-            "dangerous_attack": 26,
-            "attack_pct": 24,
-            "ball_safe_pct": 48,
-            "dangerous_attack_pct": 28,
-            "pass_accuracy_pct": 85.2,
-            "red_cards": null,
-            "offsides": null,
-            "xg": 1.04
-          },
-          "away": {
-            "duels": 54,
-            "fouls": 8,
-            "passes": 494,
-            "crosses": {
-              "value": 4,
-              "total": 15,
-              "pct": 27
-            },
-            "punches": 1,
-            "tackles": 17,
-            "dribbles": {
-              "value": 5,
-              "total": 7,
-              "pct": 71
-            },
-            "throw_ins": 14,
-            "clearances": 19,
-            "free_kicks": 12,
-            "goal_kicks": 5,
-            "long_balls": {
-              "value": 23,
-              "total": 45,
-              "pct": 51
-            },
-            "recoveries": 42,
-            "big_chances": 1,
-            "tackles_won": 82,
-            "total_saves": 0,
-            "total_shots": 8,
-            "aerial_duels": {
-              "value": 8,
-              "total": 15,
-              "pct": 53
-            },
-            "corner_kicks": 3,
-            "dispossessed": 5,
-            "ground_duels": {
-              "value": 33,
-              "total": 59,
-              "pct": 56
-            },
-            "yellow_cards": 4,
-            "blocked_shots": 3,
-            "interceptions": 8,
-            "total_tackles": 17,
-            "average_rating": 6.7,
-            "accurate_passes": 419,
-            "ball_possession": 47,
-            "shots_on_target": 4,
-            "goalkeeper_saves": 0,
-            "shots_inside_box": 7,
-            "shots_off_target": 1,
-            "final_third_phase": {
-              "value": 75,
-              "total": 110,
-              "pct": 68
-            },
-            "shots_outside_box": 1,
-            "big_chances_missed": 1,
-            "big_chances_scored": 0,
-            "final_third_entries": 63,
-            "errors_lead_to_a_shot": 1,
-            "fouled_in_final_third": 0,
-            "touches_in_penalty_area": 22,
-            "attack": 60,
-            "ball_safe": 51,
-            "dangerous_attack": 25,
-            "attack_pct": 28,
-            "ball_safe_pct": 52,
-            "dangerous_attack_pct": 20,
-            "pass_accuracy_pct": 84.8,
-            "red_cards": null,
-            "offsides": null,
-            "xg": 1.08
-          }
-        },
-        "shotmap": null,
-        "momentum": null
+        "commentary": "Cruzeiro go for goal from the free kick."
       }
     },
     {
       "event": "bsd:ball",
       "data": {
         "type": "bsd:ball",
-        "id": "602352",
-        "uts": 1793213605,
+        "id": "7314",
+        "uts": 1793317577,
         "coords": {
-          "x": 33,
-          "y": 75
+          "x": 31,
+          "y": 74
         },
-        "situation": "attack",
+        "situation": "freekick",
         "side": "away",
         "time": {
-          "minute": 90,
-          "second": 0,
-          "display": "90:00",
+          "minute": 52,
+          "second": 41,
+          "display": "52:41",
           "period": 2,
-          "injury_time": 3,
-          "period_started_at_uts": 1793210704
+          "injury_time": 0,
+          "period_started_at_uts": 1793317152
         },
-        "commentary": "Schalke bring it forward."
+        "commentary": "Cruzeiro fling one into the box."
+      }
+    },
+    {
+      "event": "bsd:stats",
+      "data": {
+        "type": "bsd:stats",
+        "id": "7314",
+        "time": {
+          "minute": 53,
+          "second": 25,
+          "display": "53:25",
+          "period": 2,
+          "injury_time": null,
+          "period_started_at_uts": 1793317152,
+          "status": "2nd_half",
+          "kickoff_at": "2026-10-29T22:30:00+00:00"
+        },
+        "score": {
+          "home": 0,
+          "away": 1
+        },
+        "stats": {
+          "home": {
+            "duels": 48,
+            "fouls": 5,
+            "passes": 290,
+            "crosses": {
+              "value": 1,
+              "total": 10,
+              "pct": 10
+            },
+            "tackles": 9,
+            "dribbles": {
+              "value": 6,
+              "total": 8,
+              "pct": 75
+            },
+            "offsides": 1,
+            "big_saves": 2,
+            "throw_ins": 22,
+            "clearances": 17,
+            "free_kicks": 3,
+            "goal_kicks": 9,
+            "long_balls": {
+              "value": 11,
+              "total": 25,
+              "pct": 44
+            },
+            "recoveries": 24,
+            "big_chances": 1,
+            "high_claims": 0,
+            "tackles_won": 67,
+            "total_saves": 5,
+            "total_shots": 9,
+            "aerial_duels": {
+              "value": 6,
+              "total": 10,
+              "pct": 60
+            },
+            "corner_kicks": 2,
+            "dispossessed": 10,
+            "ground_duels": {
+              "value": 18,
+              "total": 40,
+              "pct": 45
+            },
+            "hit_woodwork": 1,
+            "yellow_cards": 1,
+            "blocked_shots": 4,
+            "interceptions": 5,
+            "total_tackles": 9,
+            "average_rating": 6.68,
+            "expected_goals": 0.74,
+            "accurate_passes": 241,
+            "ball_possession": 48,
+            "goals_prevented": 1.1,
+            "shots_on_target": 1,
+            "goalkeeper_saves": 5,
+            "shots_inside_box": 6,
+            "shots_off_target": 4,
+            "final_third_phase": {
+              "value": 46,
+              "total": 54,
+              "pct": 85
+            },
+            "shots_outside_box": 3,
+            "big_chances_missed": 1,
+            "big_chances_scored": 0,
+            "final_third_entries": 18,
+            "fouled_in_final_third": 0,
+            "touches_in_penalty_area": 11,
+            "expected_goals_on_target": 0.04,
+            "attack": 50,
+            "ball_safe": 46,
+            "dangerous_attack": 20,
+            "attack_pct": 27,
+            "ball_safe_pct": 59,
+            "dangerous_attack_pct": 14,
+            "pass_accuracy_pct": 83.1,
+            "red_cards": null,
+            "xg": 0.74
+          },
+          "away": {
+            "duels": 52,
+            "fouls": 3,
+            "passes": 312,
+            "crosses": {
+              "value": 3,
+              "total": 12,
+              "pct": 25
+            },
+            "tackles": 12,
+            "dribbles": {
+              "value": 6,
+              "total": 9,
+              "pct": 67
+            },
+            "offsides": 1,
+            "big_saves": 0,
+            "throw_ins": 15,
+            "clearances": 11,
+            "free_kicks": 5,
+            "goal_kicks": 3,
+            "long_balls": {
+              "value": 22,
+              "total": 35,
+              "pct": 63
+            },
+            "recoveries": 35,
+            "big_chances": 5,
+            "high_claims": 1,
+            "tackles_won": 75,
+            "total_saves": 1,
+            "total_shots": 13,
+            "aerial_duels": {
+              "value": 4,
+              "total": 10,
+              "pct": 40
+            },
+            "corner_kicks": 2,
+            "dispossessed": 6,
+            "ground_duels": {
+              "value": 22,
+              "total": 40,
+              "pct": 55
+            },
+            "hit_woodwork": 1,
+            "yellow_cards": 2,
+            "blocked_shots": 1,
+            "interceptions": 9,
+            "total_tackles": 12,
+            "average_rating": 7.07,
+            "expected_goals": 2.33,
+            "accurate_passes": 267,
+            "ball_possession": 52,
+            "goals_prevented": 0.04,
+            "shots_on_target": 6,
+            "goalkeeper_saves": 1,
+            "shots_inside_box": 8,
+            "shots_off_target": 6,
+            "final_third_phase": {
+              "value": 67,
+              "total": 94,
+              "pct": 71
+            },
+            "shots_outside_box": 5,
+            "big_chances_missed": 4,
+            "big_chances_scored": 1,
+            "final_third_entries": 43,
+            "fouled_in_final_third": 1,
+            "touches_in_penalty_area": 20,
+            "expected_goals_on_target": 2.1,
+            "attack": 53,
+            "ball_safe": 45,
+            "dangerous_attack": 30,
+            "attack_pct": 37,
+            "ball_safe_pct": 33,
+            "dangerous_attack_pct": 30,
+            "pass_accuracy_pct": 85.6,
+            "red_cards": null,
+            "xg": 2.34
+          }
+        },
+        "shotmap": null,
+        "momentum": null
       }
     }
   ]
