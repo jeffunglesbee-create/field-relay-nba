@@ -3,7 +3,10 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** jubilant-bassoon executes it (`src/legacy/field.js` only; never `index.html`'s script block)
 **Filed:** 2026-10-29, by CC, found while verifying `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`
-**Status:** FILED, not started. Blocked by: nothing that waits on a person. One placement decision, stated below with a recommendation.
+**Status:** DONE 2026-10-29, the recommended option (map INTO the inset rectangle, keep the margin). Renderer jubilant-bassoon `8d0496e`
+(SW 2026-10-29a, smoke 1066 / 0 failed, deploy gate run 40906714683); probe `70a5228`; proof: the committed manifest
+`jubilant-bassoon/outbox/bsd-pitch-probe-manifest-2026-10-29T16-03-02.json` (run 40907485456, green again at 16:00:44, run 40907094464)
+and its screenshot. Session doc: `outbox/cc-session-2026-10-29-bsd-pitch-renderer.md` (Part 2).
 
 ---
 
@@ -62,3 +65,12 @@ require both to go false. Smoke assertion on the helper. SW_VERSION bumped in bo
 1. `outbox/bsd-pitch-probe-manifest-latest.json` on main has `pass: true` with the new booleans true.
 2. `node smoke.js index.html` shows 0 failed; SW_VERSION equal in `index.html` and `sw.js`.
 3. The committed screenshot shows the away goal inside the goal line (read the PNG).
+
+**Result (2026-10-29, both runs):** `pass: true`, `failing: []`. Drawn rectangle `x 18, y 12, w 324, h 216` on a 360 x 240 canvas. The
+away goal (pitch x = 2.7) is at `cx 26.748`, `r 9.76`: its centre is 8.7 px inside the goal line (`awayShotCentreInsideGoalLine`) and
+the circle clears the canvas edge by 17 px (`awayShotNotClipped`; it was at `cx 9.72`, outside the line and cut, before). A ball
+at pitch x = 5 is at `cx 34.2`, which is `18 + 324 * 0.05` (`ballAtFivePercentIsInside`; it sat on the line at `cx 18` before). The
+ball at the served example (72, 47) is at `251.28, 126.48`, the formula's value to 0.01 px. Two booleans were added to the
+CC-CMD's two after the first local mutation run showed a margin applied to ONE axis only slipped past the vendor-placement
+check (a goal near the centre line has almost no y error): `homeShotAtTransform` and `awayShotAtTransform`, the served
+sharedPitch formulas applied to the record to 0.01 px.

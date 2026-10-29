@@ -1,5 +1,23 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-29 (16:05Z) — the BSD pitch plots inside its own lines
+
+**HEAD:** `c44c02a8` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-29-bsd-pitch-renderer.md (Part 2)
+
+`docs/CC-CMD-2026-10-29-bsd-pitch-inset.md`: **DONE** ("build the inset"). The client maps the ball and the shots into the rectangle its
+lines are drawn in (jubilant-bassoon `8d0496e`, probe `70a5228`, SW 2026-10-29a, deploy gate 40906714683). No relay change. Proof:
+`jubilant-bassoon/outbox/bsd-pitch-probe-manifest-2026-10-29T16-03-02.json` (run 40907485456, green twice): the recorded away goal is
+inside the goal line and not clipped, a ball at pitch x = 5 sits 5% in, and an exact-transform check on both shots. Reader on recorded
+payloads, not a live match.
+
+- **A mutation found a hole in the probe:** a margin applied to x only was not caught by the shot booleans (a goal near the centre line has
+  almost no y error and the vendor-placement check has a pitch unit of slack). Fixed with two exact booleans; the same mutation now fails five.
+- **CONTRACTS.md** gained "Where the client draws it" (both copies identical).
+- **Still filed, not built:** `docs/CC-CMD-2026-10-29-bsd-live-shot-source.md` (blocked by the unmeasured BSD request budget).
+- **Wake still armed:** 2026-11-03T18:00Z, the weather first-call count.
+
+---
 ## SESSION CLOSE-OUT — 2026-10-29 (11:50Z) — Route A gated, the CFB Saturday premises recorded, the import check made to read code
 
 **HEAD:** `171afc6` → `1d55722` → this close-out · **Branch:** main

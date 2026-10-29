@@ -100,10 +100,35 @@ over the pitch. Green on 03:51:47 and 03:53:57.
 ## Filed (BUILD-ON-A: searched by content first, nothing existing covered either)
 
 - `docs/CC-CMD-2026-10-29-bsd-pitch-inset.md`: the pitch lines are drawn 5% inside the canvas and everything is
-  plotted to the canvas edge, so a goal at x = 2.7 sits outside the goal line and is clipped. Unblocked; a placement
-  decision, with a recommendation.
+  plotted to the canvas edge, so a goal at x = 2.7 sits outside the goal line and is clipped. BUILT the same day: Part 2.
 - `docs/CC-CMD-2026-10-29-bsd-live-shot-source.md`: 0 of 170 recorded event frames carry `shotmap`, so a live match
   draws a ball and no shots. Blocked by Task 0, the BSD request budget, which is unmeasured.
+
+## Part 2 — the inset (docs/CC-CMD-2026-10-29-bsd-pitch-inset.md, DONE)
+
+User: "build the inset". Client commits `8d0496e` (renderer) and `70a5228` (probe); no relay change.
+
+- **What:** `_bsdToCanvas(x, y, W, H)` maps pitch coordinates INTO the rectangle the lines are drawn in, for the ball and the
+  shots, and the rectangle and halfway line are drawn from the same `BSD_PITCH_INSET` (0.05) constant, so the two cannot
+  drift. The margin stays: it is what stops a large circle at the goal line being clipped. SW_VERSION `2026-10-29a`
+  (ET had rolled to the 29th). Smoke 1066 / 0 failed (A_BSD_15; five source mutations each caught). I also corrected my own
+  comment on `_bsdShotPoint`, which still carried the first run's counts (123 / 71) instead of the final (121 / 69).
+- **Proof:** `jubilant-bassoon/outbox/bsd-pitch-probe-manifest-2026-10-29T16-03-02.json`, run 40907485456, green again
+  at 16:00:44 (run 40907094464). The probe now reads the drawn `<rect>` out of the SVG and judges position against it, not
+  against a constant of its own. The recorded away goal (x = 2.7) is at `cx 26.7` against a goal line at 18 (was 9.7, outside
+  it and cut by the canvas edge); a ball at pitch x = 5, delivered on a third connection, is at `cx 34.2` = `18 + 324 * 0.05`
+  (was ON the line).
+- **Mutation, and one miss found by it:** against a local build and a stand-in relay, reverting the helper for both, for the
+  ball only, and for the shots only each failed the booleans they target. The fourth case, the margin applied to x only,
+  was NOT caught by the shot booleans: a goal near the centre line has almost no y error, and the vendor-placement check
+  has a pitch unit of slack (the vendor's feeds differ by up to 0.5). The ball booleans caught it, but a shots-only
+  y fault would have passed. Added `homeShotAtTransform` / `awayShotAtTransform` (the served `sharedPitch` formulas
+  applied to the record, 0.01 px); the x-only margin then fails five booleans.
+- **Process:** the client's 21 pre-deploy steps ran on a clean worktree before the push this time (0 not ok), and the
+  cross-repo ratchet by hand. Nothing went red.
+- **Limits:** Chromium only; recorded payloads over the page's real SSE path, not a live match; the margin is a constant,
+  so a probe cannot tell a changed margin from the right one (it judges consistency with the drawn rect; the smoke
+  assertion pins the value).
 
 ## Carry-forwards
 

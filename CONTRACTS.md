@@ -235,6 +235,11 @@ Producer: `_bsdOnFrame`, from a BSD WebSocket `livedata` frame. Same rules as ab
   feeds the page's own EventSource this payload (the served `frameShapes.livedata.example` verbatim) and reads
   the SVG back; it proves the reader, not a live match. Owned by
   `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`.
+- **Where the client draws it.** The pitch lines are a rectangle inset 5% from the canvas on every side, and the ball
+  and the shots are mapped INTO that rectangle: `cx = W * (0.05 + 0.9 * x / 100)`, `cy = H * (0.05 + 0.9 * (100 - y) / 100)`
+  (y inverted for the screen). `/bsd/contract` `toScreenSVG` describes a pitch that fills its canvas; apply it to the
+  rectangle, not to the canvas. Until 2026-10-29 the ball and shots were mapped to the whole canvas, 5% outside the drawn
+  goal line (`docs/CC-CMD-2026-10-29-bsd-pitch-inset.md`).
 - **Incident types seen** (`situation`, 392 frames): safe, attack, dangerous, possession, freekick, shotontarget,
   throwin, shotofftarget, goal_kick, goalkeeper_saved, substitution, goal, card, corner, temporary_interruption,
   gameon, possible_event. Restarts (`freekick`, `throwin`, `goal_kick`, `corner`) and the dead-time markers
