@@ -112,7 +112,7 @@ jobs:
       # cannot run here -- it needs the deployed archive -- and runs daily in
       # seed-coverage.yml against a PAST date.
       - name: Every fetchable competition is declared, none silently absent
-        run: node scripts/check-seed-coverage.mjs --self-test && node scripts/check-seed-coverage.mjs
+        run: node scripts/check-seed-coverage.mjs --self-test && node scripts/mutate-seed-coverage.mjs && node scripts/check-seed-coverage.mjs
 
       # The seed table declares a label; detectSportClass has to recognise it,
       # and nothing connected those two. An unclassified label does not get NO

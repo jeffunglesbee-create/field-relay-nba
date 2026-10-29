@@ -51,8 +51,23 @@ export function cronLeagues (src) {
   const i = src.indexOf('  const LEAGUES = [')
   if (i < 0) return []
   const blk = src.slice(i, src.indexOf('\n  ];', i))
-  return [...blk.matchAll(/\{sport:'([^']+)',\s*league:'([^']+)',\s*label:'([^']+)'/g)]
-    .map(m => ({ sport: m[1], league: m[2], label: m[3] }))
+  return [...blk.matchAll(/\{sport:'([^']+)',\s*league:'([^']+)',\s*label:'([^']+)'([^}]*)\}/g)]
+    .map(m => ({ sport: m[1], league: m[2], label: m[3], individual: /\bindividual:\s*true\b/.test(m[4]) }))
+}
+
+// What counts as "this competition reached the archive".
+//
+// A team competition is archived as sport=<label> by the catch-up path. An individual-competitor one (golf) is NOT:
+// scripts/check-individual-sports-not-archived.mjs forbids the sport=<label> row, which was a category error (the top
+// two players presented as two sides, names null), and the golf-aware path writes sport=<ESPN sport>, league=<label>
+// instead. Counting sport=<label> for golf passed on the defective rows and failed once they stopped: seed-coverage.yml
+// went red 2026-10-26 to 10-29 on 'PGA Tour — 1 fixture(s) on ESPN pga, 0 rows in /context/date' while D1 held golf
+// rows for every day 10-22 to 10-27 and a sport='PGA Tour' row for 10-22 only.
+// The category-error row must NOT count for an individual competition, or a regression of that fix would read as coverage.
+export function archivedCount (games, row) {
+  return games.filter(g => row.individual
+    ? g.sport === row.sport && g.league === row.label
+    : g.sport === row.label).length
 }
 export function integrityLeagues (src) {
   const i = src.indexOf('const LEAGUES_LOCAL = [')
@@ -87,6 +102,9 @@ const V2_LEAGUES = {
   check('the cron parser reads a row that carries a fourth field (individual:true)',
     c.length === 2 && c[1].label === 'PGA Tour',
     'the golf row has a trailing flag; a regex anchored on the closing brace misses it')
+  check('the cron parser reads the individual flag, and only where it is set',
+    c[1].individual === true && c[0].individual === false,
+    `golf=${c[1].individual} mlb=${c[0].individual}`)
   check('the V2 parser reads every entry', v.length === 3, `${v.length}`)
   check('the LEAGUES_LOCAL parser reads its rows', l.length === 1, `${l.length}`)
   const seeded = new Set(c.map(r => r.league))
@@ -111,6 +129,23 @@ const V2_LEAGUES = {
     'golf is archived through a golf-aware path; individual:true is not an exclusion')
   check('the LEAGUES_LOCAL drift is visible on the fixture',
     c.filter(r => !l.includes(r.league)).length === 1)
+  // archivedCount: golf is archived as sport=golf, league=PGA Tour.
+  const golfRow = c[1], mlbRow = c[0]
+  check('golf-aware rows (sport=golf, league=PGA Tour) count for an individual competition',
+    archivedCount([{ sport: 'golf', league: 'PGA Tour' }, { sport: 'golf', league: 'PGA Tour' }], golfRow) === 2)
+  check('the category-error row (sport=PGA Tour) does NOT count for an individual competition',
+    archivedCount([{ sport: 'PGA Tour', league: 'PGA Tour' }], golfRow) === 0,
+    'check-individual-sports-not-archived.mjs forbids that row; counting it hides a regression of that fix')
+  check("another tour's golf row does not count for the PGA Tour",
+    archivedCount([{ sport: 'golf', league: 'LPGA' }], golfRow) === 0)
+  check('a team competition is still counted by its label',
+    archivedCount([{ sport: 'MLB', league: 'MLB' }, { sport: 'MLB', league: 'MLB' }], mlbRow) === 2)
+  check("...and not by the ESPN sport name, which no team row carries",
+    archivedCount([{ sport: 'baseball', league: 'MLB' }], mlbRow) === 0)
+  check('the live half counts through archivedCount, not a second inline rule',
+    readFileSync(new URL(import.meta.url), 'utf8').includes(['archive:', 'archivedCount(games, r)'].join(' ')),
+    'a source-text assertion: the live half needs the network and cannot run here. The needle is built from parts so ' +
+    'that this line does not contain it, or the assertion could never fail')
   console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'}  ${pass}/${pass + fail} self-test(s)\n`)
   process.exit(fail === 0 ? 0 : 1)
 }
@@ -227,16 +262,13 @@ if (process.argv.includes('--live')) {
     `games is ${Array.isArray(ctx.games) ? 'an array' : typeof ctx.games} — ` +
     'the shape changed, and every "gap" below is this check misreading it')
 
-  const archived = new Map()
-  for (const g of games) archived.set(g.sport, (archived.get(g.sport) || 0) + 1)
-
   const espnDate = date.replace(/-/g, '')
   const rows = []
   for (const r of cron) {
     const u = `${ESPN}/${r.sport}/${r.league}/scoreboard?dates=${espnDate}`
     let n = null
     try { const j = await (await fetch(u)).json(); n = (j.events || []).length } catch { /* n stays null */ }
-    rows.push({ ...r, espn: n, archive: archived.get(r.label) || 0 })
+    rows.push({ ...r, espn: n, archive: archivedCount(games, r) })
   }
 
   // A competition ESPN could not be asked about is NOT evidence of a gap.

@@ -255,6 +255,14 @@ jobs:
           node scripts/check-opening-odds-late.mjs
           node scripts/mutate-opening-odds-late.mjs
 
+      # seed-coverage.yml went red 2026-10-26 to 10-29 on 'PGA Tour: 1 fixture on ESPN, 0 rows': the check counted
+      # sport=<label> rows, which for golf was the category-error row the archive no longer writes. Golf is archived
+      # as sport=golf, league=<label>. The self-test and six mutations hold that rule.
+      - name: the seed-coverage archive rule counts golf the way the archive writes it, and can fail
+        run: |
+          node scripts/check-seed-coverage.mjs --self-test
+          node scripts/mutate-seed-coverage.mjs
+
       # The Saturday probe that reads that diagnostic could not fail on the property it existed for: CFB
       # read NO_ROWS in all seven recorded artifacts, every run exited 0, and every scheduled run probed
       # the Sunday. The classifier and the script are run against a local relay; the two workflows that
