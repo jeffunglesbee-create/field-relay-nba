@@ -170,6 +170,28 @@ function _cors() {
     };
 }
 
+// ── BSD stats poll constants (begin) ──────────────────────────────────────
+// docs/CC-CMD-2026-10-29-bsd-live-shot-source.md. A live match carries no shot: 0 of 170 recorded WebSocket
+// `event` frames have a `shotmap`. The vendor's REST /stats/ does, so this DO polls it, once a minute per match
+// somebody activated, and puts the vendor's array into the next bsd:stats payload unchanged (Rule 47).
+//
+// NOTHING ABOUT BSD'S ALLOWANCE CAN BE READ (outbox/bsd-request-budget-latest.json, 2026-10-29: no rate-limit
+// header of any name on 6 calls; the vendor's own pages say "none", "7,500 a day" and "100 a day"), so the poll
+// carries its own measurement and its own stop:
+//   - BSD_POLL_DAILY_CAP, the owner's number ("use 600", 2026-10-29): 5 matches subscribed for their whole 115
+//     minutes is 575. Counted per UTC day, PERSISTED BEFORE each request, so a restart cannot buy a call twice.
+//   - the first 429 (or 401/402/403) stops polling for the rest of that UTC day.
+//   - one Analytics Engine datapoint per attempt, index BSD_POLL_INDEX, so the relay's BSD demand is countable.
+//   - only an event whose WebSocket is still delivering frames is polled; a stale subscription costs nothing.
+const BSD_POLL_INTERVAL_MS = 60_000;
+const BSD_POLL_DAILY_CAP = 600;
+const BSD_POLL_FRESH_MS = 180_000;
+const BSD_POLL_TIMEOUT_MS = 10_000;
+const BSD_POLL_INDEX = 'bsd-stats-poll';
+const BSD_POLL_STORAGE_KEY = 'bsd_poll';
+const BSD_POLL_BASE = 'https://sports.bzzoiro.com';
+// ── BSD stats poll constants (end) ────────────────────────────────────────
+
 export class AmbientDO {
     constructor(ctx, env) {
         this.ctx = ctx;
@@ -213,6 +235,13 @@ export class AmbientDO {
         this._bsdSubscribed   = new Set();
         this._bsdReconnectTimer = null;
         this._bsdToken        = null;
+        // BSD stats poll (see BSD_POLL_* above). eventId -> ms of the last livedata/event frame.
+        this._bsdLastFrameAt  = new Map();
+        // eventId -> { shotmap, at, pending }. `pending` is true until one bsd:stats has carried the array.
+        this._bsdShot         = new Map();
+        this._bsdPollTimer    = null;
+        this._bsdPollBusy     = false;
+        this._bsdPollState    = null;   // { day, calls, stopped, capReachedAt, last }, loaded from storage once
         // DIAGNOSTIC, docs/CC-CMD-2026-10-21-closing-capture-calls-18x-its-need.md
         // TASK 0. Read only through GET /ambient/state?diag=1. Nothing below
         // changes what a poll does; it records what the poll and the restore saw.
@@ -272,6 +301,7 @@ export class AmbientDO {
                 // than assume it's also working.
                 bsdSocketState: this._bsdSocket ? this._bsdSocket.readyState : null,
                 bsdSubscribed:  Array.from(this._bsdSubscribed || []),
+                bsdPoll:        await this._bsdPollView(),
                 ts: Date.now(),
             }), { headers: _cors() });
         }
@@ -1289,6 +1319,7 @@ export class AmbientDO {
             if (frame.type !== 'livedata' && frame.type !== 'event') return;
             const eventId = String(frame.event_id || '');
             if (!eventId) return;
+            this._bsdNoteFrame(eventId);
             const payload = frame.type === 'livedata'
                 ? { type: 'bsd:ball', id: eventId, uts: frame.uts,
                     // FIXED 2026-07-03: real, confirmed gap (A6) -- the
@@ -1342,15 +1373,34 @@ export class AmbientDO {
                     // recorded event frames carry no shotmap or momentum key
                     // (keys: type, event_id, home, away, score, time, stats,
                     // websocket_plus); these stay null until a frame has one.
-                    shotmap: frame.shotmap || null,
+                    // 2026-10-29: the shotmap now comes from the REST poll (_bsdPollOne), handed over ONCE per
+                    // poll so it is not re-sent with every event frame to every client; a frame that carries
+                    // its own is forwarded as before. null means "nothing new", never "no shots".
+                    shotmap: this._bsdShotmapOnce(eventId) ?? (frame.shotmap || null),
                     momentum: frame.momentum || null }
             // Fan out via existing _broadcast — clients filter frames locally by id
             this._broadcast(payload.type, payload);
         } catch (_) {}
     }
 
+    _bsdNoteFrame(eventId) {
+        this._bsdLastFrameAt.set(eventId, Date.now());
+    }
+
+    // The polled array for an event, once. Returns null when there is none or it has already been sent.
+    _bsdShotmapOnce(eventId) {
+        const s = this._bsdShot.get(eventId);
+        if (!s || !s.pending) return null;
+        s.pending = false;
+        return s.shotmap;
+    }
+
     async _bsdSubscribe(eventId) {
         this._bsdSubscribed.add(String(eventId));
+        // A client that activates later gets the cached array on the next stats frame, not at the next poll.
+        const cached = this._bsdShot.get(String(eventId));
+        if (cached) cached.pending = true;
+        this._bsdPollStart();
         if (this._bsdSocket?.readyState === 1) {
             try {
                 this._bsdSocket.send(JSON.stringify({ action: 'subscribe', event_id: Number(eventId) }));
@@ -1360,6 +1410,9 @@ export class AmbientDO {
 
     async _bsdUnsubscribe(eventId) {
         this._bsdSubscribed.delete(String(eventId));
+        this._bsdShot.delete(String(eventId));
+        this._bsdLastFrameAt.delete(String(eventId));
+        if (this._bsdSubscribed.size === 0) this._bsdPollStop();
         if (this._bsdSocket?.readyState === 1) {
             try {
                 this._bsdSocket.send(JSON.stringify({ action: 'unsubscribe', event_id: Number(eventId) }));
@@ -1370,6 +1423,129 @@ export class AmbientDO {
             this._bsdSocket = null;
         }
     }
+
+    // ── BSD stats poll (begin) ────────────────────────────────────────────
+    _bsdPollStart() {
+        if (this._bsdPollTimer) return;
+        this._bsdPollTimer = setTimeout(() => this._bsdPollTick(), BSD_POLL_INTERVAL_MS);
+    }
+
+    _bsdPollStop() {
+        if (this._bsdPollTimer) clearTimeout(this._bsdPollTimer);
+        this._bsdPollTimer = null;
+    }
+
+    // One tick: do a round, then arm the next while anything is still subscribed. A round that throws is logged
+    // and spends nothing it did not count first.
+    async _bsdPollTick() {
+        this._bsdPollTimer = null;
+        try {
+            if (!this._bsdPollBusy && this._bsdSubscribed.size > 0) {
+                this._bsdPollBusy = true;
+                try { await this._bsdPollRound(); } finally { this._bsdPollBusy = false; }
+            }
+        } catch (e) {
+            console.error('[AmbientDO] BSD stats poll round failed:', e?.message || e);
+        } finally {
+            if (this._bsdSubscribed.size > 0) this._bsdPollStart();
+        }
+    }
+
+    async _bsdPollLoad() {
+        if (this._bsdPollState) return this._bsdPollState;
+        const s = await this.ctx.storage.get(BSD_POLL_STORAGE_KEY);
+        const ok = s && typeof s.day === 'string' && Number.isFinite(s.calls);
+        this._bsdPollState = ok ? s : { day: null, calls: 0, stopped: null, capReachedAt: null, last: null };
+        return this._bsdPollState;
+    }
+
+    async _bsdPollRound() {
+        const st = await this._bsdPollLoad();
+        const now = Date.now();
+        const day = new Date(now).toISOString().slice(0, 10);
+        if (st.day !== day) { st.day = day; st.calls = 0; st.stopped = null; st.capReachedAt = null; }
+        if (st.stopped) return;
+        for (const id of [...this._bsdSubscribed]) {
+            const seen = this._bsdLastFrameAt.get(id);
+            if (seen === undefined || now - seen > BSD_POLL_FRESH_MS) continue;   // not streaming: nothing to poll
+            // No token means no request, so it is not a call and does not spend the cap.
+            if (!this._bsdToken) { this._bsdPollRecord('no-token', id, null, st.calls); break; }
+            if (st.calls >= BSD_POLL_DAILY_CAP) {
+                if (!st.capReachedAt) {
+                    st.capReachedAt = now;
+                    await this.ctx.storage.put(BSD_POLL_STORAGE_KEY, st);
+                    this._bsdPollRecord('cap-reached', id, null, st.calls);
+                }
+                break;
+            }
+            st.calls++;
+            await this.ctx.storage.put(BSD_POLL_STORAGE_KEY, st);   // counted and stored BEFORE the request is made
+            await this._bsdPollOne(id, st);
+            if (st.stopped) break;
+        }
+    }
+
+    async _bsdPollOne(id, st) {
+        let kind;
+        let status = null;
+        try {
+            const r = await fetch(`${BSD_POLL_BASE}/api/v2/events/${encodeURIComponent(id)}/stats/`, {
+                headers: { Authorization: `Token ${this._bsdToken}`, 'User-Agent': 'FIELD/1.0', Accept: 'application/json' },
+                signal: AbortSignal.timeout(BSD_POLL_TIMEOUT_MS),
+            });
+            status = r.status;
+            if (r.status === 429 || r.status === 401 || r.status === 402 || r.status === 403) {
+                // Stopped for the rest of this UTC day whatever Retry-After says: the cap and the day are the budget.
+                kind = `stopped-${r.status}`;
+                st.stopped = { day: st.day, reason: String(r.status), retryAfter: r.headers.get('retry-after'), at: Date.now() };
+            } else if (!r.ok) {
+                kind = 'http-error';
+            } else {
+                const body = await r.json();
+                if (Array.isArray(body?.shotmap)) {
+                    // The vendor's array, unchanged. [] is "no shots yet", and is stored as [].
+                    this._bsdShot.set(id, { shotmap: body.shotmap, at: Date.now(), pending: true });
+                    kind = 'ok';
+                } else {
+                    kind = 'no-shotmap-array';   // absent is not empty: nothing is stored
+                }
+            }
+        } catch (e) {
+            kind = 'fetch-error';
+            console.error('[AmbientDO] BSD stats poll failed:', e?.message || e);
+        }
+        st.last = { id, kind, status, at: Date.now() };
+        if (st.stopped) await this.ctx.storage.put(BSD_POLL_STORAGE_KEY, st);
+        this._bsdPollRecord(kind, id, status, st.calls);
+    }
+
+    // Telemetry: one datapoint per attempt. Rule 5: a failure here never breaks the poll or the fan-out.
+    _bsdPollRecord(kind, id, status, calls) {
+        try {
+            if (!this.env?.JQ_ANALYTICS) return;
+            this.env.JQ_ANALYTICS.writeDataPoint({
+                indexes: [BSD_POLL_INDEX],
+                blobs: [kind, String(id), String(status ?? 'none')],
+                doubles: [1, calls],
+            });
+        } catch (e) {
+            console.error('[AmbientDO] BSD poll datapoint failed:', e?.message || e);
+        }
+    }
+
+    // What /ambient/state reports. Reads storage so a fresh instance is not mistaken for "no polls today".
+    async _bsdPollView() {
+        try {
+            const st = await this._bsdPollLoad();
+            return { cap: BSD_POLL_DAILY_CAP, intervalMs: BSD_POLL_INTERVAL_MS, freshMs: BSD_POLL_FRESH_MS,
+                     day: st.day, calls: st.calls, stopped: st.stopped, capReachedAt: st.capReachedAt, last: st.last,
+                     timerArmed: this._bsdPollTimer !== null,
+                     shotmapsCached: [...this._bsdShot.entries()].map(([id, v]) => ({ id, shots: v.shotmap.length, at: v.at })) };
+        } catch (e) {
+            return { error: String(e?.message || e) };
+        }
+    }
+    // ── BSD stats poll (end) ──────────────────────────────────────────────
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────

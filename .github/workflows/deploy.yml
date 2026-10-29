@@ -345,7 +345,7 @@ jobs:
           node scripts/check-empty-catches.mjs --self-test
           node scripts/check-empty-catches.mjs src scripts \
             --baseline=112 \
-            --require=src/ambient-do.js:347 \
+            --require=src/ambient-do.js:377 \
             --control
           node scripts/mutate-empty-catches.mjs
 
@@ -898,6 +898,18 @@ jobs:
           node scripts/check-bsd-ws-fanout.mjs
           node scripts/bsd-contract-verify.mjs --self-test
           node scripts/bsd-contract-verify.mjs --source-notes
+
+      # docs/CC-CMD-2026-10-29-bsd-live-shot-source.md. AmbientDO polls BSD's REST /stats/ once a minute per
+      # activated match so a live match gets a shotmap, against an allowance nobody can read
+      # (outbox/bsd-request-budget-latest.json). This runs the REAL constants and methods against a fake clock,
+      # storage, fetch and Analytics Engine and a recorded /stats/ body: the cap of 600 binds exactly and is stored
+      # before the request, 429/401/402/403 stop the day, absent is not empty, one datapoint per attempt. The
+      # mutation half breaks the real source 47 ways and the check's own anchors 3, baseline first.
+      - name: the BSD stats poll spends only what it counted first, and stops itself
+        run: |
+          node scripts/check-bsd-stats-poll.mjs --self-test
+          node scripts/mutate-bsd-stats-poll.mjs
+          node scripts/check-bsd-stats-poll.mjs
 
       # THE REGISTRY THE SIX GUARDS ABOVE WERE EACH WRITTEN INSTEAD OF. Every one
       # of them was authored after an incident and covers exactly one edge, and

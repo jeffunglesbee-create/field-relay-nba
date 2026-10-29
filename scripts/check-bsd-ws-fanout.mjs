@@ -63,6 +63,10 @@ export const replay = (body, raw) => {
   const out = []
   const Cls = new Function(`return class { ${body} }`)()
   const host = new Cls()
+  // The state the constructor gives the real object. The poll's own behaviour is checked in
+  // scripts/check-bsd-stats-poll.mjs; here an empty cache is the state of a match nobody polled yet.
+  host._bsdLastFrameAt = new Map()
+  host._bsdShot = new Map()
   host._broadcast = (type, payload) => out.push({ type, payload })
   host._bsdOnFrame(raw)
   return out

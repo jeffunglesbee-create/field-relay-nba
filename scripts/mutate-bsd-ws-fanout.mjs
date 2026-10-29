@@ -21,7 +21,7 @@ const SOURCE_MUTATIONS = [
   ['bsd:stats goes back to frame.minute / frame.period', 'time: frame.time, score: frame.score, stats: frame.stats,', 'minute: frame.minute, period: frame.period, score: frame.score, stats: frame.stats,'],
   ['bsd:stats drops the time object', 'time: frame.time, score: frame.score, stats: frame.stats,', 'score: frame.score, stats: frame.stats,'],
   ['bsd:stats drops the score', 'time: frame.time, score: frame.score, stats: frame.stats,', 'time: frame.time, stats: frame.stats,'],
-  ['bsd:stats drops a present shotmap', 'shotmap: frame.shotmap || null,', 'shotmap: null,'],
+  ['bsd:stats drops a present shotmap', 'shotmap: this._bsdShotmapOnce(eventId) ?? (frame.shotmap || null),', 'shotmap: this._bsdShotmapOnce(eventId),'],
   ['bsd:stats drops a present momentum', 'momentum: frame.momentum || null }', 'momentum: null }'],
   ['bsd:stats carries a computed extra key', 'momentum: frame.momentum || null }', 'momentum: frame.momentum || null, drama: 1 }'],
   ['bsd:ball drops side', 'side: frame.side, time: frame.time, commentary: frame.commentary }', 'time: frame.time, commentary: frame.commentary }'],
