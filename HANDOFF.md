@@ -1,5 +1,22 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-29 (22:15Z) — the BSD request budget cannot be read from the vendor
+
+**HEAD:** `bc16168e` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-29-bsd-pitch-renderer.md (Part 3)
+
+"measure the BSD budget": `scripts/bsd-request-budget.mjs` (run 40962540855, `outbox/bsd-request-budget-latest.json`, verdict `NO-HEADER`).
+**One free football token sees no rate-limit header of any name**: 23 header names on 6 calls, the 2026-10-10 finding stands (I suspected it had
+missed the bare `RateLimit` name the vendor documents; it had not). BSD's pages disagree on the allowance (none / 7,500 / 100 a day); only
+10 requests/second per IP appears twice. BSD answers from its own cache (HIT/STALE 5 of 5). Today: 63 events, 26 tracked, assumed peak 9.
+
+- **Decision, not built:** `docs/CC-CMD-2026-10-29-bsd-live-shot-source.md`. Poll `/stats/` once a minute per subscribed event, hard cap 600 a day
+  counted in the DO, stop for the UTC day on the first 429, one Analytics Engine datapoint per poll. **The cap is the owner's number: reply
+  "use 600" (or another figure) and the build is mechanical.**
+- **The relay's own BSD demand is uncounted:** 33 call sites, 22 user-triggered. The poll's datapoints would be the first measurement.
+- **Wake still armed:** 2026-11-03T18:00Z, the weather first-call count.
+
+---
 ## SESSION CLOSE-OUT — 2026-10-29 (evening) — the sentences that say "opened" skip a line captured after kickoff
 
 **HEAD:** `37d9fee` → `66a61d2` (relay, deploy run 40930832200) · client `8044a686` → `26ee3239` (SW 2026-10-29b, deploy gate run 40932255038) · **Branch:** main

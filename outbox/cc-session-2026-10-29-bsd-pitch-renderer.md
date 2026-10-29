@@ -130,6 +130,27 @@ User: "build the inset". Client commits `8d0496e` (renderer) and `70a5228` (prob
   so a probe cannot tell a changed margin from the right one (it judges consistency with the drawn rect; the smoke
   assertion pins the value).
 
+## Part 3 — the BSD request budget (docs/CC-CMD-2026-10-29-bsd-live-shot-source.md, Task 0 DONE, Task 1 DECIDED)
+
+User: "measure the BSD budget". Relay commit `scripts/bsd-request-budget.mjs` + `bsd-request-budget.yml` + a guards.yml step; run 40962540855.
+
+- **Premise tested before building (Rule 100).** The 2026-10-10 session said no rate-limit header exists, from 16 calls that looked for eight
+  names. BSD's pricing page documents `RateLimit` and `RateLimit-Policy`, which none of the eight match, so the absence might have been a miss of
+  the name. The script captures EVERY header. Result: **the 2026-10-10 finding stands**, now for all 23 header names the 6 calls returned.
+  Nothing rate-shaped is served to this free football token. The budget cannot be read from the vendor.
+- **The vendor's own pages disagree** (all fetched today): "Rate limits: None" (pricing.md), "7,500 per day" and "100 req/day" on the same
+  page (/pricing/), "10 requests/second per IP" plus "daily quotas in the RateLimit headers" (llms.txt). Only the 10 req/s figure appears on
+  more than one page. Recorded in the CC-CMD as claims with their date.
+- **Measured:** BSD answers from a cache of its own (HIT or STALE on 5 of 5); 63 events today, 26 tracked, peak concurrency 9 ASSUMING 115-minute
+  occupancy. 33 BSD call sites in the relay, 22 user-triggered in `/bsd/`, 11 in helpers; none counted.
+- **Decision (Task 1):** poll `/stats/` once a minute per event with a connected subscriber, hard cap 600 a day, stop for the UTC day on the first
+  429, one Analytics Engine datapoint per poll so the relay's BSD demand is countable at last. NOT BUILT: the cap is quota policy on an allowance
+  nobody can read, so it is the owner's number. Reply "use 600" and the build is mechanical (the replay check and its mutation are specified).
+- **Rule 90 on the new tool:** 22 self-tests, a 5-case mutation harness, and a source-mutation battery of 11 anchors, 10 caught and 1 an
+  equivalent mutant (`Number(\d+) || 0`: a matched digit string is never falsy except a real zero).
+- **What would have gone wrong with the original plan:** the CC-CMD said to read the limit from the response headers and write it into an artifact.
+  The artifact would have been empty, or, worse, filled from the pricing page's 7,500 as if measured.
+
 ## Carry-forwards
 
 The weather first-call wake (2026-11-03T18:00Z, `trig_01H7eoLwoZqWDj2q53XC1S8x`) is unchanged and not part of this.
