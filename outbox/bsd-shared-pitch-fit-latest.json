@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T02:56:51.195Z",
+  "generated_at": "2026-10-29T03:06:19.650Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "hypothesis": {
     "home": "rotate",
@@ -16,10 +16,10 @@
     "events": 40,
     "eventsAvailable": 80,
     "goalIncidents": 126,
-    "paired": 123,
+    "paired": 121,
     "unpaired": {
       "no_sequence": 0,
-      "own_goal": 0,
+      "own_goal": 2,
       "no_record": 1,
       "ambiguous": 2
     },
@@ -27,15 +27,15 @@
   },
   "fit": {
     "home": {
-      "n": 71,
-      "separable": 60,
-      "exact": 71,
+      "n": 69,
+      "separable": 59,
+      "exact": 69,
       "widest": 0,
       "fits": {
         "identity": 0,
         "flipX": 7,
         "flipY": 0,
-        "rotate": 71
+        "rotate": 69
       },
       "hypothesis": "rotate",
       "misfits": []
@@ -899,20 +899,6 @@
     },
     {
       "event": 211170,
-      "minute": 83,
-      "side": "home",
-      "pid": 29935,
-      "shared": {
-        "x": 96.8,
-        "y": 50.5
-      },
-      "rest": {
-        "x": 3.2,
-        "y": 49.5
-      }
-    },
-    {
-      "event": 211170,
       "minute": 78,
       "side": "away",
       "pid": 28085,
@@ -1721,20 +1707,6 @@
       "rest": {
         "x": 11.5,
         "y": 50
-      }
-    },
-    {
-      "event": 605038,
-      "minute": 87,
-      "side": "home",
-      "pid": 8464,
-      "shared": {
-        "x": 99.2,
-        "y": 47
-      },
-      "rest": {
-        "x": 0.8,
-        "y": 53
       }
     },
     {
