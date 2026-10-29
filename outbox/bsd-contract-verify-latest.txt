@@ -27,18 +27,22 @@ PASS  the empty-window case is declared separately, with null coords
 PASS  the livedata note says the window is newest first and that coords is its first element
 PASS  the livedata note states the half-time frame of reference and the limit of that evidence
 PASS  the stats note tells a reader to accept both period types
+PASS  sharedPitch: the HOME side is rotated (home attacks x = 100 on the shared pitch)
+PASS  sharedPitch: the AWAY side is left as it is
+PASS  sharedPitch names its orientation and says it is the OTHER one from mirrorAway
+PASS  sharedPitch carries the measurement it rests on (>= 100 paired goals)
 
   588245 (finished, websocket_plus false): HTTP 200 empty=false X-AvgPos-State=null
-  604465 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
+  5390 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
 PASS  an empty finished event names a state, not a bare {}
 PASS  ...and that state is NOT in-play
 PASS  a live event that is empty reads in-play
   state coverage: 2 of 2 states exercised
 
-COVERAGE: 28 assertions over the live /bsd/contract response,
+COVERAGE: 32 assertions over the live /bsd/contract response,
 revision 2026-10-16-1. Source is not consulted — this is the served object.
 
-PASS: 28/28
+PASS: 32/32
 === bsd coordinate frames  fixture=scripts/fixtures/bsd-223324-coordinates.json  event=223324
   shots in capture        : 32
   discriminating (l/r)    : 21   skipped (centre/unlabelled): 11
