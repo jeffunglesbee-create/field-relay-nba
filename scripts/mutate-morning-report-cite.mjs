@@ -10,11 +10,14 @@
 // The mutations fall in groups: the facts the relay prints (M1-M10), the prompt (M11-M20), the
 // parser (M21-M44), the paragraph (M45-M56), and the sentence the relay writes about a game
 // (S1-S53: which kind a row is, the sport table and its thresholds, the overtime rule, the number
-// words, the wording of each phrasing, and the rule that no model word reaches a game line).
+// words, the wording of each phrasing, and the rule that no model word reaches a game line), then
+// the verifier of a stored morning (V1-V17, against scripts/lib/morning-report-verify.mjs): each of its
+// findings has to disappear from the check's red lines when the verifier stops making it.
 import { readFileSync, writeFileSync, copyFileSync, unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const FILE = 'src/morning-report.js';
+const MODULE = 'src/morning-report.js';
+const VERIFY = 'scripts/lib/morning-report-verify.mjs';
 const CHECK = 'scripts/check-morning-report-cite.mjs';
 
 const GRID = 'oracle, every margin from 0 to 144 in each family';
@@ -676,10 +679,97 @@ const MUTATIONS = [
     anchor: 'parts.push(sentence ? `${fact} ${sentence}` : fact);',
     replace: 'parts.push(sentence ? `${fact} ${sentence} ${parsed.open ?? \'\'}` : fact);',
     expect: PRINTED },
+
+  // ── the verifier of a stored morning (scripts/lib/morning-report-verify.mjs) ──────────────────────────
+  { name: 'V1  a wrong number in a sentence is no longer reported', file: VERIFY,
+    anchor: 'if (why) problems.push(`${p.id} ${p.fact} ${why}`);',
+    replace: 'void why;',
+    expect: 'verifier, a margin in a sentence changed' },
+
+  { name: 'V2  the phrasing turn is always the first', file: VERIFY,
+    anchor: 'const phrasing = sr ? (used[sr.kind] = (used[sr.kind] ?? -1) + 1) : null;',
+    replace: 'const phrasing = sr ? 0 : null;',
+    expect: 'verifier, 2026-10-27: the morning the module composes is verified' },
+
+  { name: 'V3  the headline is no longer required first', file: VERIFY,
+    anchor: 'if (!before.startsWith(wantHead)) problems.push(',
+    replace: 'if (false) problems.push(',
+    expect: 'verifier, the headline left out' },
+
+  { name: 'V4  a digit in the open or close line is allowed', file: VERIFY,
+    anchor: 'if (/\\p{N}/u.test(text)) return',
+    replace: 'if (false) return',
+    expect: 'verifier, a digit in the open line' },
+
+  { name: 'V5  a slate name in the open or close line is allowed', file: VERIFY,
+    anchor: 'if (name) return',
+    replace: 'if (false) return',
+    expect: 'verifier, a slate name in the close line' },
+
+  { name: 'V6  the sixty-word limit is dropped', file: VERIFY,
+    anchor: 'if (words(text) > MAX_LINE_WORDS) return',
+    replace: 'if (false) return',
+    expect: 'verifier, a close line over sixty words' },
+
+  { name: 'V7  a line with no full stop is allowed', file: VERIFY,
+    anchor: 'if (!TERMINAL.test(text)) return',
+    replace: 'if (false) return',
+    expect: 'verifier, an open line with no full stop' },
+
+  { name: 'V8  a fact line missing from the text is no longer reported', file: VERIFY,
+    anchor: 'if (at < 0) { problems.push(',
+    replace: 'if (at < 0) { [].push(',
+    expect: 'verifier, a score in a fact line changed' },
+
+  { name: 'V9  a game cited twice is no longer reported', file: VERIFY,
+    anchor: 'if (seen.has(id)) { problems.push(`${id}: cited twice`); continue; }',
+    replace: 'if (seen.has(id)) { continue; }',
+    expect: 'verifier, a game cited twice' },
+
+  { name: 'V10 a cited game that is not in the rows is no longer reported', file: VERIFY,
+    anchor: "if (!row) { problems.push(`${id}: cited, but there is no such game in the day's rows`); continue; }",
+    replace: 'if (!row) { continue; }',
+    expect: 'verifier, a cited game that is not in the rows' },
+
+  { name: 'V11 the word count of the row is no longer compared', file: VERIFY,
+    anchor: "if (typeof v.word_count === 'number' && v.word_count !== words(text)) problems.push(",
+    replace: 'if (false) problems.push(',
+    expect: "verifier, word_count that is not the text's" },
+
+  { name: 'V12 the last game\'s sentence is accepted without being compared', file: VERIFY,
+    anchor: 'if (verifySentence(p.sr.fam, p.sr.hi, p.sr.lo, p.sr.ot, cand, p.phrasing) === null) {',
+    replace: 'if (true) {',
+    expect: "verifier, the last game's sentence removed" },
+
+  { name: 'V13 spacing between games is no longer checked', file: VERIFY,
+    anchor: 'if (!/^ \\S.* $|^ $/.test(region)) {',
+    replace: 'if (false) {',
+    expect: 'verifier, two spaces where one belongs' },
+
+  { name: 'V14 a sentence after an event row is allowed', file: VERIFY,
+    anchor: 'if (between) problems.push(',
+    replace: 'if (false) problems.push(',
+    expect: "verifier, a sentence after an event row's fact line is flagged" },
+
+  { name: 'V15 a degraded row loses its reason', file: VERIFY,
+    anchor: "if (v.degraded === true) return { status: 'not-composed', reason:",
+    replace: "if (false) return { status: 'not-composed', reason:",
+    expect: 'verifier, a degraded row has nothing to verify and says why' },
+
+  { name: 'V16 a night with no game loses its reason', file: VERIFY,
+    anchor: 'if (v.degraded === false && v.no_games === true) return',
+    replace: 'if (false) return',
+    expect: 'verifier, a night with no game has nothing to verify' },
+
+  { name: 'V17 an empty cited list passes for a composed morning', file: VERIFY,
+    anchor: '|| v.cited.length === 0)',
+    replace: ')',
+    expect: 'verifier, a row that does not record a composed morning' },
 ];
 
 let bad = 0;
 for (const m of MUTATIONS) {
+  const FILE = m.file ?? MODULE;
   const BAK = `${FILE}.mutbak`;
   const before = readFileSync(FILE, 'utf8');
   const hits = before.split(m.anchor).length - 1;
@@ -693,7 +783,7 @@ for (const m of MUTATIONS) {
   copyFileSync(FILE, BAK);
   writeFileSync(FILE, after);
   let out = '', code = 0;
-  try { out = execFileSync('node', [CHECK], { encoding: 'utf8' }); }
+  try { out = execFileSync('node', [CHECK], { encoding: 'utf8', env: { ...process.env, MR_CHECK_NO_SPAWN: '1' } }); }
   catch (e) { code = e.status ?? 1; out = `${e.stdout || ''}${e.stderr || ''}`; }
   finally { copyFileSync(BAK, FILE); unlinkSync(BAK); }
   const red = out.split('\n').filter(l => l.startsWith('FAIL'));
@@ -704,6 +794,6 @@ for (const m of MUTATIONS) {
   } else console.log(`  caught  ${m.name}\n          by "${m.expect}" (${red.length} red)`);
 }
 
-execFileSync('node', ['--check', FILE]);
-console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; ${FILE} restored and parsing`);
+for (const f of new Set(MUTATIONS.map((m) => m.file ?? MODULE))) execFileSync('node', ['--check', f]);
+console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; ${[...new Set(MUTATIONS.map((m) => m.file ?? MODULE))].join(' and ')} restored and parsing`);
 process.exit(bad ? 1 : 0);

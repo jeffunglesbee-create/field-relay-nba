@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-30 (21:50Z) — the relay writes the sentence about each game in the Morning Report
+
+**HEAD:** `b25cb617` → `b6c46113` (deployed 21:40Z, run 41131995398) → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-30-morning-report-task4.md (task: docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 4)
+
+- **Task 4 built and live (`b6c46113`; relay Worker version `c91c0747`, 21:40:38Z), 35 minutes after the owner's order at 16:59 ET.** This supersedes the 17:35Z close-out's "Open, the owner's call: Task 4" bullet.
+  The model answers `pick:`, `open:` and `close:`. For each pick the relay prints `Winner n, Loser n.` and one sentence it writes from the row: the margin class by sport, "after overtime" only when `went_to_ot` is 1 or true, a level or scoreless result; three phrasings per kind, handed out in turn. Golf, AFL, IPL, PGA Tour and unnamed sports print the fact line only. No word of the model's reaches a game line. Row outcomes are unchanged.
+- **Checked against a second statement of the spec.** `scripts/lib/morning-report-oracle.mjs` has its own sport table, thresholds, number words and wording. In CI on `b6c46113`: cite check 107 assertions and 127 mutations, degraded check 43 and 32, both caught for their stated reasons.
+- **Replay 4 on the production model, 11 dates:** composed 11 of 11, nothing dropped, 44 picks; the 43 relay sentences all equal the oracle's for their rows, the 44th is a golf row. The false overtime of replay 3 (Kraken 5, Maple Leafs 4) now reads "A narrow one-goal win." What is left is the model's: 11 of 11 closes begin "We look forward", 4 of 11 opens say "unexpected".
+- **New: `node scripts/verify-morning-report.mjs YYYY-MM-DD`** checks a stored morning against its rows (exit 0 verified, 1 defects, 2 nothing to verify). Local: 145 assertions, 144 mutations; CI runs them at the next deploy that touches `src/`.
+- **STAGED, with its wake:** the first morning written by this code. Blocked by: the cron, Sat 2026-10-31 09:00Z. Unblocked by: that run writing the row for 2026-10-30. Verify: `node scripts/verify-morning-report.mjs 2026-10-30` exits 0, or exits 2 with the reason on the row. Scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` runs it at 09:15Z, reads the open and close lines for stock wording, makes no recompute (Rule 78), and appends the result to the task document.
+- **Open, the owner's call:** the close line. The relay could write it from a few fixed lines chosen by date; the model would then only pick games and write the open line.
+- **Seen, not fixed:** the stored `truth_is` rows for 2026-10-23, 2026-10-25 and 2026-10-28 still carry the draw-as-win headline; the tie fix changes new rows only.
+- **Seen, not investigated:** `field_pick` is the 57-character pass line on 19 of 19 days it has a row.
+
 ## SESSION CLOSE-OUT — 2026-10-30 (17:35Z) — the Morning Report cites games by id: the relay writes every team name and score
 
 **HEAD:** `719fc0eb` → `95871f13` (deployed 17:27Z, run 41097629436) → this close-out · **Branch:** main

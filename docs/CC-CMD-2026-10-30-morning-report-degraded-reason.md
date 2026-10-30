@@ -3,7 +3,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba (`src/morning-report.js`, `src/analytics-engine.js`); jubilant-bassoon and field-laboratory need no change, the field is still one paragraph of text
 **Filed:** 2026-10-30, by CC, from the question "why is the late brief a template?"
-**Status:** IN PROGRESS 2026-10-30. Task 1 (record the reason) is in `719fc0eb`. Task 2 (the replay) has run and its result is below. Task 3: the owner chose option 4 at 12:12 ET; it is built and live (`7f2549bc`, `a211e14f`, `95871f13`; Worker version `42b46f92`, 2026-10-30T17:27Z). Complete when the first morning written by the new code (the 2026-10-31 09:00Z cron, the row for 2026-10-30) has been read against the games. Task 4 (close the sentence channel) is proposed and is the owner's call.
+**Status:** IN PROGRESS 2026-10-30. Task 1 (record the reason) is in `719fc0eb`. Task 2 (the replay) has run and its result is below. Task 3: the owner chose option 4 at 12:12 ET; it is built and live (`7f2549bc`, `a211e14f`, `95871f13`; Worker version `42b46f92`, 2026-10-30T17:27Z). Task 4: the owner ordered it at 16:59 ET; built and live (`b6c46113`; Worker version `c91c0747`, 2026-10-30T21:40Z), with the command that checks a stored morning against its rows. Complete when the first morning written by the new code (the 2026-10-31 09:00Z cron, the row for 2026-10-30) has been read against the games.
 
 ---
 
@@ -110,7 +110,7 @@ The template is a degraded output, and "No fallbacks, only fixes" applies to it.
 
 In CI on the deploy of C: the degraded check 42 of 42 assertions and 32 of 32 mutations caught, the cite check 70 of 70 and 50 of 50, the tie check 12 of 12 and 6 of 6.
 
-**The contract** (`src/morning-report.js`). The model is shown each completed game as `g1 | NHL | final 5-2, margin 3, total 7`, with `, went to overtime` when the row says so, `ended level 1-1` for a draw, and `event update, no score` for an event row (golf). It is shown no team name. Phase 3's game is left out of the list, because its headline is printed already. It answers with lines `open:`, `gN:` and `close:`. The relay prints Phase 3's headline, the open line, then for each pick `Winner score, Loser score.` (winner first; on a tie the away team first; an event row as `Event (round): note`) followed by the model's sentence, then the close line.
+**The contract** (`src/morning-report.js`; superseded by Task 4 for what the model answers: it now answers `pick:`, `open:` and `close:`. This is the contract that ran from 17:27Z to 21:40Z on 2026-10-30). The model is shown each completed game as `g1 | NHL | final 5-2, margin 3, total 7`, with `, went to overtime` when the row says so, `ended level 1-1` for a draw, and `event update, no score` for an event row (golf). It is shown no team name. Phase 3's game is left out of the list, because its headline is printed already. It answers with lines `open:`, `gN:` and `close:`. The relay prints Phase 3's headline, the open line, then for each pick `Winner score, Loser score.` (winner first; on a tie the away team first; an event row as `Event (round): note`) followed by the model's sentence, then the close line.
 
 A model line is dropped, and recorded by key and reason, never by text, when it contains a digit (`digit`); contains a team or event name from the whole night's slate, as a whole case-sensitive word of 3 or more characters (`team-name`); is over 60 words (`too-long`); has no terminal punctuation (`unterminated`); cites an id that is not in the list (`unknown-id`) or one already used (`duplicate-id`); is a second open or close (`duplicate-open`, `duplicate-close`); is beyond the fifth pick (`over-limit`); or is not in the form (`unrecognized-line`). Nothing in the module looks for a score in prose or decides whether prose is true.
 
@@ -146,7 +146,7 @@ The one false fact: 2026-10-28, Kraken 5, Maple Leafs 4. The sentence said "This
 
 What the three runs show: names, scores and the form hold in all 33 answers (composed 11 of 11 in each, against 53 template mornings of 107 under the guard). The failure that is left moves with the prompt: forbidding the side words and the comparatives (revision 1) removed them and the model filled the sentences with how the game went; forbidding that (revision 2) cut the markers from 31 to 15 and left a false overtime. The prompt is a request; nothing in the contract can enforce it without reading the prose.
 
-**What option 4 did not close**
+**What option 4 did not close** (kept as it stood when option 4 shipped. Task 4 closed items 1, 2 and 4 for the game lines and narrowed item 3 to the open and close lines; items 5 and 6 stand.)
 
 1. The sentence about each game is still written by the model, and carries claims about the game's shape (above). By decision nothing reads it for truth: a check that reads prose can be wrong in both directions, which is what the guard was.
 2. Number words are not machine-checked in the relay. The offline check found no wrong number in 87 lines (replays 2 and 3).
@@ -155,20 +155,80 @@ What the three runs show: names, scores and the form hold in all 33 answers (com
 5. A night whose only completed game is Phase 3's gets `no_games` and the template. Never seen: all 22 days 2026-10-08..29 had 11 or more citable games.
 6. The open and close lines repeat across days. Replay 3: 9 of 11 closes begin "We look forward", 9 of 11 mention a sunrise, dawn or new day, 7 of 11 opens say "unexpected outcomes". Replays 1 and 2 repeat as well (7 of 11 closes begin "We carry the" in replay 1; 6 of 11 begin "May the quiet" in replay 2). The same prompt gives the same answer, so the repetition comes from the prompt and the slate.
 
-## Task 4 — close the sentence channel (proposed, the owner's call)
+## Task 4 — the relay writes the sentence about each game (built)
 
-Option 4 moved names and scores out of the model's hands. The sentence it writes about each game is still a channel for claims the row cannot back, and three prompts on the same 11 days show the failure moving: side claims, then game-flow narrative, then fewer markers and one false overtime. Each revision costs a suite run, a deploy (about 11 minutes) and a replay, and 11 observations cannot show that a rate has reached zero.
+The owner ordered it at 16:59 ET ("Task 4"), on the proposal that stood here. Built and live as `b6c46113`: deploy run 41131995398 green (21:34:01Z to 21:41:49Z), relay Worker version `c91c0747-5da4-44b8-90e6-3e1291d34ebc` deployed 2026-10-30T21:40:38Z, `/health` RELAY OK at 21:42:47Z. About 35 minutes from the order to the push, against the 100 estimated. The command that checks a stored morning against its rows (`scripts/verify-morning-report.mjs`) is in the commit with this text.
 
-Proposal: the relay writes the sentence for each game from the row it prints the score from: the sport, the margin class (thresholds per sport), `went_to_ot` (when true), a level result and the total class, from a small set of fixed phrasings. The model keeps what only it can do: choose which games to feature (`pick: g3, g7, g1`) and write the open and close lines, which name no game and no team and are held to the rules above. No game sentence is then model-written, so none can be false.
+**The contract now.** The model is shown the same list as before (`g1 | NHL | final 5-2, margin 3, total 7`, with `, went to overtime` when the row says so, and no team name; Phase 3's game is left out). It answers three lines: `pick:` the ids of the games to feature, most important first (the first five known ids are kept); `open:` one sentence; `close:` one sentence. The relay prints Phase 3's headline, the open line, then for each pick `Winner n, Loser n.` followed by one sentence the relay writes from the game's row, then the close line. A pick line is read as a list of known ids and nothing else, so no word of the model's reaches a game line. The open and close lines are held to the rules in Task 3 (no digit, no name from the night's slate, 60 words, a full stop). New drop reasons: `unrecognized-pick` (a word on the pick line that is not an id, recorded once per line) and `duplicate-pick` (a second `pick:` line); the retired per-game `gN:` form is `unrecognized-line`. The keys on a row's `dropped` are `pick`, `open`, `close` and the ids. Row outcomes are unchanged.
 
-What it costs: the game lines lose the model's voice. Replay 3 printed "Rangers 5, Ducks 2. The victors displayed a commanding presence on the ice during this hockey encounter."; this would print "Rangers 5, Ducks 2. A three-goal win." The open and close lines stay generic. About 100 minutes: the phrase function and its thresholds, the form and the parser, the check and its mutations, the suite, one deploy and one replay.
+**The sentence** (`resultShape` and `resultSentence` in `src/morning-report.js`). The sport label gives a family, the unit of score and the word for play past regulation. The kind of result comes from the two scores and `went_to_ot`, tested in this order:
 
-Not needed before Saturday. The first morning under the current design is read by the check in the done conditions below.
+| kind | when | phrasings, in the order they are handed out (hockey, 5-2 shown as 3) |
+|---|---|---|
+| `scoreless` | 0-0 | Neither side scored. / A scoreless finish. / Not a score on the board for either side. |
+| `level-ot` | level, row says overtime | Level after overtime. / Overtime could not separate the sides. / All square after overtime. |
+| `level` | level | Finished level. / All square at the end. / Neither side finished ahead. |
+| `win-ot` | row says overtime | A one-goal win after overtime. / Won by one goal after overtime. / It went to overtime, and one goal separated the sides. |
+| `shutout` | the loser scored 0 | A four-goal shutout. / The losing side was held scoreless. / Four goals to nothing. |
+| `wide` | margin at or over the family's wide threshold | A lopsided four-goal win. / Won by a wide margin of four goals. / Four goals clear at the end. |
+| `narrow` | margin at or under the family's narrow threshold | A narrow one-goal win. / Won narrowly, by one goal. / Just one goal between the sides at the end. |
+| `win` | any other | A three-goal win. / Won by three goals. / Three goals separated the sides. |
+
+| family | labels | unit | past regulation | narrow at or under | lopsided at or over |
+|---|---|---|---|---|---|
+| hockey | NHL | goal | overtime | 1 | 4 |
+| soccer | EPL, MLS, La Liga, Serie A, Bundesliga, Ligue 1, FIFA World Cup, the UEFA Champions, Europa and Europa Conference Leagues and their qualifying rounds, EFL Championship, League One, League Two, Cup and Trophy | goal | extra time | 1 | 3 |
+| basketball | NBA, WNBA, wnba | point | overtime | 3 | 20 |
+| baseball | MLB | run | extra innings | 1 | 6 |
+| gridiron | NFL, CFB, CFL, UFL | point | overtime | 3 | 21 |
+| fact line only | AFL, IPL, PGA Tour, golf, and any label the table does not name | | | | |
+
+Three phrasings per kind are handed out in turn within one report, per kind, so two plain wins in one report read differently. "After overtime", "extra time" and "extra innings" are printed only when the row's `went_to_ot` is `1` or `true`; `0`, NULL, missing and anything else say nothing, and no sentence claims regulation. A score that is not a whole, non-negative number gets no sentence. The row's own sport word is used (goals, points, runs), and number words are spelled out ("An eleven-point win.", "A lopsided twenty-one-point win.").
+
+**How it was checked.** `scripts/lib/morning-report-oracle.mjs` states the spec a second time, with its own sport table, thresholds, number words and the wording of every phrasing, and imports nothing from `src/`, so a change in the module disagrees with it. `check-morning-report-cite.mjs` runs the module against it over every declared label × score × overtime flag, every margin from 0 to 144 in each family, the edges of both classes, 400 random slates with canary tokens (no word of the model's reaches a game line) and the two real slates in the Task 3 fixtures; it also asserts that every sport label the archive declares has a decision. Rule 90: `mutate-morning-report-cite.mjs` breaks the module 127 ways (the kind order, the overtime rule, each threshold, the number words, the articles, each phrasing, the rotation, the parser) and requires the check to go red for the stated reason each time; `mutate-morning-report-degraded.mjs` breaks Phase 5 32 ways. In CI on `b6c46113`: cite check 107 of 107 and 127 of 127 mutations, degraded check 43 of 43 and 32 of 32, tie check 12 of 12 and 6 of 6. Measured on the saved context of 2026-10-08..29: 908 scored rows, 901 with both team names, and all 901 get a sentence; no label is unmapped. (Rows with no score, such as golf, are not in that count and print as a fact line.)
+
+Share of rows by kind in those 901 (the classes are wording, set by reading these margins; a different cut changes the word and not the truth): hockey 160 rows, narrow 19%, lopsided 14%, overtime 24%; basketball 132, narrow 9%, lopsided 22%, overtime 7%; gridiron 235, narrow 23%, lopsided 21%; soccer 357, narrow 23%, lopsided 9%, level 20%, shutout 33%; baseball 17.
+
+**The verifier.** `node scripts/verify-morning-report.mjs YYYY-MM-DD` reads `/analytics/morning_report/<date>`, `/context/date/<date>` and `/analytics/truth_is/<date>` (three GETs, no LLM call) and checks the stored morning against the rows with the same oracle. For each game the row cites, the text must hold exactly the fact line and exactly the sentence the spec has for that row, in the phrasing its turn calls for; before the first game it must hold Phase 3's headline and an open line, after the last the close line, and nothing else; the open and close lines are checked for a digit, a slate name, length and a full stop; `word_count` must equal the text's. Exit 0 verified, 1 defects (each names the game and the text), 2 nothing to verify (a degraded morning names its reason; a night with no game; no row), 64 usage, 70 a route or saved answer could not be read. `--dir DIR` reads three saved route answers instead of the network. A difference can be a row finalised after the 09:00Z cron (a `went_to_ot` filled in later); the finding says which game, so `finalized_at` can be read beside it. The check pins the library with 21 tampered mornings (a number, "after overtime", a score, a team, a phrasing out of turn, a sentence removed or added, two games swapped, a digit or a slate name in the open or close line, a missing headline, a wrong `word_count`) and 17 mutations of the library, and pins the command's exit codes through `--dir`. Local result for the commit with this text: 145 assertions, 144 mutations caught. CI runs them from the next deploy that touches `src/`; this commit changes scripts only.
+
+**What the production model did.** Replay 4 (run 41132004691, 2026-10-30T21:34Z, commit `a1d85a64`; the same 11 dates, one sample each, `gemini-3.1-flash-lite` answered all 11). Every printed fact line, descriptor and sentence was then compared with the game's row from the saved context, with the oracle: 44 picks, 43 with a relay sentence and all 43 equal the oracle's sentence for the row, the 44th a golf row printed as its fact line. A tampered copy of the same file (24 sentences altered: a number word, "after overtime" turned into "in regulation", an article) is flagged on 24 of 24.
+
+| | replay 3: the model wrote each game's sentence (live prompt, run 41097656905) | replay 4: the relay writes it |
+|---|---|---|
+| composed | 11 of 11 | 11 of 11 |
+| picks printed | 44 | 44 (4 per day) |
+| lines dropped | 0 | 0 |
+| answers naming a slate team or event | 0 | 0 |
+| a digit in a model line | 0 | 0 |
+| sentences about a game written by the model | 44 | 0 |
+| game sentences that disagree with their row | 1 of 44 (Kraken 5, Maple Leafs 4: "required an extra period"; the row and ESPN 401892599 have no overtime) | 0 of 43 |
+| game lines with a flow, crowd or conduct marker | 15 of 44 | 0 (there is no model text in a game line) |
+| open and close lines with such a marker (the same list) | 0 of 22 | 1 of 22 ("the cycle of effort begins once again", not about a game) |
+| opens saying "unexpected" | 7 of 11 | 4 of 11 |
+| closes beginning "We look forward" | 9 of 11 | 11 of 11 |
+| closes mentioning light, dawn, sunrise, sun, morning or a new day | 9 of 11 | 7 of 11 |
+| words in the composed morning | | 77 to 102 |
+
+The kinds the model's picks fell in (43 sentences): overtime win 19, plain win 12, narrow 8, level 2, lopsided 1, shutout 1. 19 of the 43 picks were overtime games; overtime games are 48 of the 901 scored rows (5%) in 2026-10-08..29.
+
+The same game on the same date, before and after. 2026-10-28, replay 3: "Kraken 5, Maple Leafs 4. This hockey match required an extra period before the winning side finally emerged victorious." Replay 4: "Kraken 5, Maple Leafs 4. A narrow one-goal win." 2026-10-29, replay 4: "Mammoth 4, Penguins 3. A one-goal win after overtime. Islanders 4, Wild 3. Won by one goal after overtime. Kings 6, Senators 5. It went to overtime, and one goal separated the sides."
+
+**What the voice costs.** The game lines are now the score and a statement of the result. "Rangers 5, Ducks 2. The victors displayed a commanding presence on the ice during this hockey encounter." (replay 3) reads "Rangers 5, Ducks 2. A three-goal win." A plain win's sentence restates the margin. That is the trade the proposal named.
+
+**What Task 4 did not close**
+
+1. The open and close lines are still the model's, and nothing reads them for truth. They are generic by construction: 11 of 11 closes begin "We look forward", and 4 of 11 opens say "unexpected" (on a night whose Phase 3 type is `convergence` that follows the gloss the prompt gives; on 10-29, type `none`, the open was "The gentle stillness of the evening"). Another prompt revision would move the stock phrase, as the three before it moved the others, and 11 observations cannot show a rate. If the repetition matters, the relay can write the close line too (a few fixed lines chosen by date), which closes the last channel and drops the close from the model's task. That is the owner's call.
+2. The class thresholds (narrow, lopsided) are wording set from 22 days of margins. "Lopsided" for 21 points in the NFL or 20 in the NBA is a choice.
+3. `went_to_ot` is filled only for NBA, NHL, MLB, WNBA, EPL and MLS in 2026-10-08..29. For other leagues an overtime game prints as its margin alone ("A narrow one-point win."), true and incomplete. No sentence claims regulation.
+4. AFL, IPL, PGA Tour, golf and any label the table does not name print the fact line only. An unmapped label fails the declared-label test in the check, so a new league is a decision made in the module, not a silent gap.
+5. Rows stored before 2026-10-31 09:00Z keep the sentences the model wrote.
+6. A night whose only completed game is Phase 3's still gets `no_games` and the template (never seen; all 22 days had 11 or more citable games).
+7. Replay 4 shows the model followed the form on 11 of 11 days; it cannot show a rate. What the relay writes is checked by construction and by the oracle, not sampled.
 
 ## Done conditions
 
 1. Deployed. Met: push C live 2026-10-30T17:27:31Z, relay Worker version `42b46f92`.
 2. The replay has been run and its numbers are in this document. Met (three runs).
 3. A fix is chosen with the owner and shipped. Met: option 4.
-4. The first morning written by the new code is read against the games. `GET /analytics/morning_report/2026-10-30`, written by the 2026-10-31 09:00Z cron (05:00 ET; daylight time ends 2026-11-01), has `value.degraded` false with `cited` non-empty, or a `degraded_reason`. Each `Winner n, Loser n.` pair in `brief_text` equals the row in `/context/date/2026-10-30`. Each model sentence is read for a claim its row cannot back: overtime on a row whose `went_to_ot` is 0 or NULL, a margin or total that is not the row's, how the game went. Scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` reads it at 09:15Z and appends the result here. No recompute (Rule 78).
-5. Task 4 is decided, or closed with a reason, by the owner.
+4. The first morning written by the new code is read against the games. Run `node scripts/verify-morning-report.mjs 2026-10-30` (Node 22; with `--dir` on three saved route answers if its fetch cannot reach the relay). The row is written by the 2026-10-31 09:00Z cron (05:00 ET; daylight time ends 2026-11-01). Exit 0: every game the report cites is printed as exactly the fact line and the sentence the oracle has for its row, and the open and close lines follow the form. Exit 1: the findings name the game and the text. Exit 2: nothing to verify, with the reason on the row (`degraded_reason`, `no_games`). The open and close lines are read for stock wording. Scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` runs it at 09:15Z and appends the result here. No recompute (Rule 78).
+5. Task 4 is decided, or closed with a reason, by the owner. Met: ordered 2026-10-30 16:59 ET, built and live 21:40Z. What it left open is the list above; closing this document is the owner's.

@@ -26,12 +26,19 @@
 //
 // docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3 option 4 and Task 4.
 // Rule 90: mutation-tested by scripts/mutate-morning-report-cite.mjs.
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import {
   selectRecapGames, citableGames, buildMorningReportPrompt, parseMorningReportLines, composeMorningReport,
   slateNamesOf, prepareMorningReport, finishMorningReport, resultShape, resultSentence, sportFamily,
   MR_MAX_PICKS, MR_MAX_LINE_WORDS, MR_MAX_TOKENS, NO_SENTENCE_LABELS,
 } from '../src/morning-report.js';
+import {
+  SPEC, SPEC_NONE, REP, specKind, verifySentence, specFamily, specRow, specFact,
+} from './lib/morning-report-oracle.mjs';
+import { verifyMorning } from './lib/morning-report-verify.mjs';
 
 process.on('uncaughtException', (e) => { console.log(`FAIL  the check crashed — ${e.message}`); process.exit(1); });
 
@@ -46,95 +53,8 @@ const ok = (f, why) => {
 
 const game = (o) => ({ id: `${o.sport}:${o.away}@${o.home}`, sport: 'NBA', note: null, went_to_ot: null, ...o });
 
-// ══ THE ORACLE ═══════════════════════════════════════════════════════════════
-// A second statement of the spec, written out separately from the module on purpose. The sentence
-// the relay writes about a game has to be true of the row, and nothing in the module can vouch for
-// itself: if both read the same table, a wrong threshold would agree with itself. So this holds
-// its own table of sports, its own thresholds and its own number words, and its own text for every
-// phrasing; a phrasing is accepted only if it matches the text the oracle has for the kind THE
-// ORACLE says the row is, and every number, unit and overtime noun in it is then read back and
-// compared with the row.
-const SPEC = {
-  hockey:     { unit: 'goal',  over: 'overtime',      narrow: 1, wide: 4,  labels: ['NHL'] },
-  soccer:     { unit: 'goal',  over: 'extra time',    narrow: 1, wide: 3,  labels: [
-    'EPL', 'MLS', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'FIFA World Cup',
-    'UEFA Champions League', 'UEFA Europa League', 'UEFA Europa Conference League',
-    'UEFA Champions League Qualifying', 'UEFA Europa League Qualifying', 'UEFA Europa Conference League Qualifying',
-    'EFL Championship', 'EFL League One', 'EFL League Two', 'EFL Cup', 'EFL Trophy'] },
-  basketball: { unit: 'point', over: 'overtime',      narrow: 3, wide: 20, labels: ['NBA', 'WNBA', 'wnba'] },
-  baseball:   { unit: 'run',   over: 'extra innings', narrow: 1, wide: 6,  labels: ['MLB'] },
-  gridiron:   { unit: 'point', over: 'overtime',      narrow: 3, wide: 21, labels: ['NFL', 'CFB', 'CFL', 'UFL'] },
-};
-const SPEC_NONE = ['AFL', 'IPL', 'PGA Tour', 'golf'];
-const REP = { hockey: 'NHL', soccer: 'EPL', basketball: 'NBA', baseball: 'MLB', gridiron: 'NFL' };
-
-const SPEC_ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve',
-  'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
-const SPEC_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
-function wordToNum(w) {
-  if (/^[0-9]+$/.test(w)) return Number(w);
-  if (SPEC_ONES.includes(w)) return SPEC_ONES.indexOf(w);
-  const m = /^(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:-(one|two|three|four|five|six|seven|eight|nine))?$/.exec(w);
-  return m ? SPEC_TENS[m[1]] + (m[2] ? SPEC_ONES.indexOf(m[2]) : 0) : NaN;
-}
-
-// What kind of result a row is, by the spec's own rules, in the spec's own order.
-function specKind(fam, hi, lo, ot) {
-  const margin = hi - lo, t = SPEC[fam];
-  if (margin === 0) return hi === 0 ? 'scoreless' : ot ? 'level-ot' : 'level';
-  if (ot) return 'win-ot';
-  if (lo === 0) return 'shutout';
-  if (margin >= t.wide) return 'wide';
-  if (margin <= t.narrow) return 'narrow';
-  return 'win';
-}
-
-// The wording of every phrasing, three per kind, in the order they are handed out.
-//   {N} number word  {NC} number word, capitalised  {U} unit  {US} unit, plural unless the number is one
-//   {OV} the sport's word for play past regulation  {OVC} the same, capitalised  {AN} "A" or "An"
-const SPEC_TEXT = {
-  'scoreless': ['Neither side scored.', 'A scoreless finish.', 'Not a score on the board for either side.'],
-  'level-ot':  ['Level after {OV}.', '{OVC} could not separate the sides.', 'All square after {OV}.'],
-  'level':     ['Finished level.', 'All square at the end.', 'Neither side finished ahead.'],
-  'win-ot':    ['{AN} {N}-{U} win after {OV}.', 'Won by {N} {US} after {OV}.', 'It went to {OV}, and {N} {US} separated the sides.'],
-  'shutout':   ['{AN} {N}-{U} shutout.', 'The losing side was held scoreless.', '{NC} {US} to nothing.'],
-  'wide':      ['A lopsided {N}-{U} win.', 'Won by a wide margin of {N} {US}.', '{NC} {US} clear at the end.'],
-  'narrow':    ['A narrow {N}-{U} win.', 'Won narrowly, by {N} {US}.', 'Just {N} {US} between the sides at the end.'],
-  'win':       ['{AN} {N}-{U} win.', 'Won by {N} {US}.', '{NC} {US} separated the sides.'],
-};
-const NUMBER_RE = `(?:${[...SPEC_ONES, ...Object.keys(SPEC_TENS).map(t => `${t}(?:-(?:one|two|three|four|five|six|seven|eight|nine))?`)].join('|')}|[0-9]+)`;
-const SLOT_RE = {
-  N: `(?<N>${NUMBER_RE})`, NC: '(?<NC>[A-Z][a-z]+(?:-[a-z]+)?|[0-9]+)',
-  U: '(?<U>goal|point|run)', US: '(?<US>goals?|points?|runs?)',
-  OV: '(?<OV>overtime|extra time|extra innings)', OVC: '(?<OVC>Overtime|Extra time|Extra innings)', AN: '(?<AN>An?)',
-};
-const REGEX_OF = new Map();   // one compiled regex per phrasing: the grids below ask about a hundred thousand sentences
-const specRegex = (tpl) => {
-  if (!REGEX_OF.has(tpl)) REGEX_OF.set(tpl, new RegExp('^' + tpl.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{(\w+)\}/g, (_, k) => SLOT_RE[k]) + '$'));
-  return REGEX_OF.get(tpl);
-};
-
-// null when `sentence` is exactly what the spec writes for this row as phrasing number `variant`
-// (0, 1, 2, then round again); otherwise the reason it is not.
-function verifySentence(fam, hi, lo, ot, sentence, variant) {
-  const kind = specKind(fam, hi, lo, ot);
-  const tpl = SPEC_TEXT[kind][variant % 3];
-  const m = specRegex(tpl).exec(sentence);
-  if (!m) return `${kind} phrasing ${variant % 3} should read "${tpl}", got "${sentence}"`;
-  const g = m.groups || {}, t = SPEC[fam], margin = hi - lo;
-  if ('N' in g && wordToNum(g.N) !== margin) return `says ${g.N}, margin is ${margin}`;
-  if ('NC' in g && (wordToNum(g.NC.toLowerCase()) !== margin || g.NC[0] !== g.NC[0].toUpperCase())) return `says ${g.NC}, margin is ${margin}`;
-  if ('U' in g && g.U !== t.unit) return `unit ${g.U}, sport scores ${t.unit}s`;
-  if ('US' in g && g.US !== (margin === 1 ? t.unit : `${t.unit}s`)) return `unit ${g.US}, margin ${margin} of ${t.unit}s`;
-  if ('OV' in g && g.OV !== t.over) return `says ${g.OV}, the sport says ${t.over}`;
-  if ('OVC' in g && g.OVC !== t.over[0].toUpperCase() + t.over.slice(1)) return `says ${g.OVC}, the sport says ${t.over}`;
-  if ('AN' in g) {
-    const word = (m.groups.N);
-    const wantAn = /^(?:eight|eleven|eighteen|eighty)/.test(word);
-    if (g.AN !== (wantAn ? 'An' : 'A')) return `"${g.AN} ${word}" is the wrong article`;
-  }
-  return null;
-}
+// The oracle (a second statement of the spec, with its own sport table, thresholds, number words and wording)
+// lives in scripts/lib/morning-report-oracle.mjs and imports nothing from src/.
 
 // ── the oracle against the module: every label, then a big grid ────────────
 const OT_FLAGS = [null, undefined, 0, false, 1, true, '1', '0', 2];
@@ -648,6 +568,10 @@ for (let seed = 1; seed <= 400; seed++) {
     if (slate.some(nm => new RegExp(`(?<![A-Za-z])${nm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z])`).test(rest))) bad = 'a slate name of the model\'s reached the paragraph';
     if (!composed.cited.every(id => recap.some(g => g.id === id))) bad = 'cited is not a list of real games';
     if (!t.startsWith(endWith(headline))) bad = 'the headline is not first';
+    // The stored-morning verifier (the command that reads tomorrow's 09:00Z row) finds nothing wrong with it.
+    const vm = verifyMorning({ value: { degraded: false, cited: composed.cited, word_count: t.split(/\s+/).filter(Boolean).length },
+      briefText: t, rows, headline, slateNames: slate });
+    if (vm.status !== 'verified') bad = `the verifier faults a report the module composed: ${vm.problems[0]}`;
   }
   if (bad) { propFails++; if (propFails <= 3) console.log(`FAIL  property, seed ${seed}: ${bad}`); }
 }
@@ -704,6 +628,140 @@ for (const date of ['2026-10-27', '2026-10-29']) {
   const cit = citableGames(selectRecapGames(fx.ctx), { excludeGameId: fx.truth.game_id });
   ok(() => !cit.some(c => c.fact === 'Canadiens 2, Blues 0') && cit.some(c => c.fact === 'Sabres 2, Sharks 0'),
     '2026-10-27: the truth game (Canadiens 2, Blues 0) is out of the list, the other 2-0 is in');
+}
+
+// ── the stored morning, checked against its rows (scripts/verify-morning-report.mjs) ────────────────
+// A verifier that only ever says "verified" proves nothing, so each case below breaks one thing in a morning the
+// module composed and requires the verifier to name that thing (Rule 90 for the verifier itself).
+{
+  const O1 = 'A calm evening with a few results worth a second look.', C1 = 'Tomorrow brings another chance for something unexpected.';
+  const day = (date, wanted) => {
+    const fx = JSON.parse(readFileSync(new URL(`./fixtures/morning-report-slate-${date}.json`, import.meta.url), 'utf8'));
+    const cit = citableGames(selectRecapGames(fx.ctx), { excludeGameId: fx.truth.game_id });
+    const slate = slateNamesOf(fx.ctx);
+    const parsed = parseMorningReportLines([`open: ${O1}`, `pick: ${wanted.map((f) => cit.find((c) => c.fact === f).id).join(', ')}`, `close: ${C1}`].join('\n'), cit, slate);
+    const c = composeMorningReport({ headline: fx.truth.headline, parsed });
+    const rows = [...fx.ctx.games.regular, ...fx.ctx.games.postseason];
+    const base = { value: { degraded: false, cited: c.cited, word_count: c.text.split(/\s+/).length }, briefText: c.text, rows, headline: fx.truth.headline, slateNames: slate };
+    return { fx, c, rows, base };
+  };
+  const d27 = day('2026-10-27', ['Celtics 125, Nets 124', 'Devils 5, Stars 1', 'Panthers 5, Jets 1', 'Sabres 2, Sharks 0']);
+  const d29 = day('2026-10-29', ['Dream 80, Valkyries 69', 'Lightning 6, Jets 4', 'Grizzlies 124, Trail Blazers 103', 'Blues 4, Bruins 1']);
+  for (const [date, d] of [['2026-10-27', d27], ['2026-10-29', d29]]) {
+    const r = verifyMorning(d.base);
+    ok(() => r.status === 'verified' && r.problems.length === 0 && r.picks.length === 4 && r.open === O1 && r.close === C1
+        && r.picks.every((p) => p.sentence),
+      `verifier, ${date}: the morning the module composes is verified, game by game, with its open and close lines read back (${r.problems.join(' | ')})`);
+  }
+  ok(() => {
+    const r = verifyMorning(d27.base);
+    return r.picks.map((p) => `${p.kind}/${p.phrasing}`).join() === 'win-ot/0,wide/0,wide/1,shutout/0';
+  }, 'verifier, 2026-10-27: it works out the phrasing turn itself (the second lopsided game is in the second phrasing)');
+
+  // A fault must be reported as itself: each case names the text it expects to find in a problem.
+  const T = d27.c.text, U = d29.c.text;
+  const cases = [
+    ['a margin in a sentence changed', { briefText: U.replace('An eleven-point win.', 'A ten-point win.') }, d29, 'says ten, margin is 11'],
+    ['"after overtime" taken off a sentence', { briefText: T.replace('A one-point win after overtime.', 'A one-point win.') }, d27, 'Celtics 125, Nets 124'],
+    ['"in regulation" said of an overtime game', { briefText: T.replace('A one-point win after overtime.', 'A one-point win in regulation.') }, d27, 'Celtics 125, Nets 124'],
+    ['a score in a fact line changed', { briefText: U.replace('Dream 80, Valkyries 69.', 'Dream 80, Valkyries 79.') }, d29, 'Dream 80, Valkyries 69.'],
+    ['a team in a fact line changed', { briefText: U.replace('Blues 4, Bruins 1.', 'Bruins 4, Blues 1.') }, d29, 'Blues 4, Bruins 1.'],
+    ['a true sentence in the wrong turn', { briefText: U.replace('An eleven-point win.', 'Won by eleven points.') }, d29, 'phrasing 0'],
+    ['a true sentence of the wrong kind', { briefText: T.replace('A lopsided four-goal win.', 'A narrow four-goal win.') }, d27, 'Devils 5, Stars 1'],
+    ['a game\'s sentence removed', { briefText: U.replace(' An eleven-point win.', '') }, d29, 'Dream 80, Valkyries 69.'],
+    ['the last game\'s sentence removed', { briefText: U.replace(' Three goals separated the sides.', '') }, d29, 'Blues 4, Bruins 1.'],
+    ['text added between two games', { briefText: U.replace('Won by two goals.', 'Won by two goals. Meanwhile, elsewhere.') }, d29, 'Lightning 6, Jets 4.'],
+    ['two games swapped', { briefText: U.replace('Dream 80, Valkyries 69. An eleven-point win. Lightning 6, Jets 4. Won by two goals.', 'Lightning 6, Jets 4. Won by two goals. Dream 80, Valkyries 69. An eleven-point win.') }, d29, 'is not in the text after the previous game'],
+    ['the headline left out', { briefText: U.replace(d29.fx.truth.headline + ' ', '') }, d29, 'does not begin with Phase 3'],
+    ['a digit in the open line', { briefText: U.replace(O1, 'A night of 3 results worth a second look.') }, d29, 'open line has a digit'],
+    ['a slate name in the close line', { briefText: U.replace(C1, 'The Dream again tomorrow, perhaps.') }, d29, 'close line names "Dream"'],
+    ['an open line with no full stop', { briefText: U.replace(O1, 'A calm evening of results') }, d29, 'open line has no closing full stop'],
+    ['a close line over sixty words', { briefText: U.replace(C1, Array(61).fill('tomorrow').join(' ') + '.') }, d29, 'close line is 61 words'],
+    ['a cited game that is not in the rows', { value: { ...d29.base.value, cited: [...d29.base.value.cited, 'NHL_9999-01-01_nope'] } }, d29, 'no such game in the day'],
+    ['a game cited twice', { value: { ...d29.base.value, cited: [...d29.base.value.cited, d29.base.value.cited[0]] } }, d29, 'cited twice'],
+    ['the cited order reversed', { value: { ...d29.base.value, cited: [...d29.base.value.cited].reverse() } }, d29, 'is not in the text after the previous game'],
+    ['word_count that is not the text\'s', { value: { ...d29.base.value, word_count: 3 } }, d29, 'value.word_count is 3'],
+    ['two spaces where one belongs', { briefText: U.replace('Dream 80, Valkyries 69. An eleven-point win.', 'Dream 80, Valkyries 69.  An eleven-point win.') }, d29, 'single spaces'],
+  ];
+  for (const [what, change, d, needle] of cases) {
+    const r = verifyMorning({ ...d.base, ...change });
+    ok(() => r.status === 'defects' && r.problems.some((x) => x.includes(needle)),
+      `verifier, ${what}: it is flagged, and the finding names ${JSON.stringify(needle)} (${r.status}: ${r.problems.join(' | ') || 'no problem found'})`);
+  }
+  // The command itself, from saved route answers (no network): its exit code is what a scheduled reader acts on.
+  // The mutation harness sets MR_CHECK_NO_SPAWN: it breaks the module and the library, which the cases above
+  // read directly, and a process per case would make each of its hundred and forty-four runs slower.
+  if (process.env.MR_CHECK_NO_SPAWN) console.log('note  the command\'s own cases are skipped (MR_CHECK_NO_SPAWN is set)');
+  else {
+    const CLI = fileURLToPath(new URL('./verify-morning-report.mjs', import.meta.url));
+    const run = (dir, ...extra) => {
+      try { return { code: 0, out: execFileSync(process.execPath, [CLI, '2026-10-27', '--dir', dir, ...extra], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }) }; }
+      catch (e) { return { code: e.status, out: `${e.stdout || ''}${e.stderr || ''}` }; }
+    };
+    const save = (dir, mr, ctxBody = { ok: true, games: d27.fx.ctx.games }) => {
+      if (mr) writeFileSync(`${dir}/morning_report.json`, JSON.stringify(mr));
+      writeFileSync(`${dir}/context.json`, JSON.stringify(ctxBody));
+      writeFileSync(`${dir}/truth_is.json`, JSON.stringify({ ok: true, data: { value: { headline: d27.fx.truth.headline } } }));
+    };
+    const row = (text, value) => ({ ok: true, data: { id: 'morning_report_2026-10-27', value, brief_text: text, created_at: '2026-10-28 09:00:10' } });
+    const tmp = mkdtempSync(`${tmpdir()}/mr-verify-`);
+    try {
+      const A = `${tmp}/a`, B = `${tmp}/b`, C = `${tmp}/c`, D = `${tmp}/d`;
+      for (const x of [A, B, C, D]) execFileSync('mkdir', [x]);
+      save(A, row(d27.base.briefText, d27.base.value));
+      const good = run(A);
+      ok(() => good.code === 0 && good.out.includes('VERIFIED  4 game(s)') && good.out.includes('Celtics 125, Nets 124. A one-point win after overtime.'),
+        `verifier command: a faithful morning exits 0 and prints each game (${good.code}: ${good.out.slice(-200)})`);
+      save(B, row(d27.base.briefText.replace('A lopsided four-goal win.', 'A lopsided five-goal win.'), d27.base.value));
+      const bad = run(B);
+      ok(() => bad.code === 1 && bad.out.includes('DEFECTS (1)') && bad.out.includes('says five, margin is 4'),
+        `verifier command: a wrong sentence exits 1 and names it (${bad.code}: ${bad.out.slice(-200)})`);
+      save(C, row('Quiet night across the slate for 2026-10-27. Tomorrow brings another set.', { degraded: true, degraded_reason: 'bad-structure', structure: { recognized: 3, dropped: [] } }));
+      const deg = run(C);
+      ok(() => deg.code === 2 && deg.out.includes('NOTHING TO VERIFY') && deg.out.includes('bad-structure'),
+        `verifier command: a degraded morning exits 2 and says why (${deg.code}: ${deg.out.slice(-160)})`);
+      save(D, null);
+      const none = run(D);
+      ok(() => none.code === 2 && none.out.includes('no morning_report row'), `verifier command: no row exits 2 (${none.code}: ${none.out.slice(-120)})`);
+      const gone = run(`${tmp}/nowhere`);
+      ok(() => gone.code === 70, `verifier command: a saved answer that cannot be read exits 70 (${gone.code})`);
+      let usage = 0; try { execFileSync(process.execPath, [CLI], { stdio: 'ignore' }); } catch (e) { usage = e.status; }
+      ok(() => usage === 64, `verifier command: no date exits 64 (${usage})`);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }
+
+  // A row that says something else: the same text against a row finalised differently.
+  const rowsOt = d27.rows.map((g) => (g.id === d27.base.value.cited[0] ? { ...g, went_to_ot: 0 } : g));
+  ok(() => verifyMorning({ ...d27.base, rows: rowsOt }).problems.some((x) => x.includes('Celtics 125, Nets 124')),
+    'verifier, a game whose row says it did not go to overtime: "after overtime" printed for it is flagged');
+  const rowsMissingScore = d27.rows.map((g) => (g.id === d27.base.value.cited[1] ? { ...g, home_score: 6 } : g));
+  ok(() => verifyMorning({ ...d27.base, rows: rowsMissingScore }).status === 'defects',
+    'verifier, a game whose row has a different score from the printed one: flagged');
+
+  // Rows with nothing to verify say so, and do not pass for verified.
+  const v0 = (value) => verifyMorning({ ...d27.base, value });
+  ok(() => v0({ degraded: true, degraded_reason: 'bad-structure', structure: { recognized: 3, dropped: [] } }).status === 'not-composed'
+      && v0({ degraded: true, degraded_reason: 'bad-structure' }).reason.includes('bad-structure')
+      && v0({ degraded: true, degraded_reason: 'prose-empty', proxy_failure: 'http-500' }).status === 'not-composed',
+    'verifier, a degraded row has nothing to verify and says why');
+  ok(() => v0({ degraded: false, no_games: true }).status === 'not-composed' && v0({ degraded: false, no_games: true }).reason.startsWith('no_games'),
+    'verifier, a night with no game has nothing to verify');
+  ok(() => v0({ word_count: 11, stars: 4 }).status === 'not-composed' && v0(undefined).status === 'not-composed' && v0(null).status === 'not-composed'
+      && v0({ degraded: false, cited: [] }).status === 'not-composed',
+    'verifier, a row that does not record a composed morning (no degraded key, no value, an empty cited list) is not called verified');
+  // A fact-line-only row (golf) takes no sentence, and a sentence put after it is flagged.
+  const golf = { id: 'golf_x', sport: 'golf', home: 'Bermuda Championship', away: 'R4', home_score: -16, away_score: null, note: 'Smotherman -16', went_to_ot: null };
+  const nba = { id: 'nba_x', sport: 'NBA', home: 'Celtics', away: 'Nets', home_score: 125, away_score: 124, went_to_ot: 1 };
+  const gv = (text, rows = [golf, nba], cited = ['golf_x', 'nba_x']) => verifyMorning({ value: { degraded: false, cited }, briefText: text, rows, headline: null, slateNames: ['Celtics', 'Nets'] });
+  ok(() => gv(`${O1} Bermuda Championship (R4): Smotherman -16. Celtics 125, Nets 124. A one-point win after overtime. ${C1}`).status === 'verified',
+    'verifier, an event row is printed as its fact line alone, with no sentence, and the morning is verified');
+  ok(() => gv(`${O1} Bermuda Championship (R4): Smotherman -16. A narrow one-point win. Celtics 125, Nets 124. A one-point win after overtime. ${C1}`)
+      .problems.some((x) => x.includes('writes no sentence for this row')),
+    'verifier, a sentence after an event row\'s fact line is flagged');
+  ok(() => {
+    const r = gv(`Celtics 125, Nets 124. A one-point win after overtime. Bermuda Championship (R4): Smotherman -16. ${C1}`, [golf, nba], ['nba_x', 'golf_x']);
+    return r.status === 'verified' && r.close === C1 && r.picks[1].sentence === null;
+  }, 'verifier, an event row as the last game: the text after its fact line is read as the close line');
 }
 
 console.log(`${n - fails}/${n} assertions pass`);
