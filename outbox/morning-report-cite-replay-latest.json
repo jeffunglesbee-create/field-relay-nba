@@ -1,0 +1,508 @@
+{
+  "ts": "2026-10-30T16:52:23.160Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "max_tokens": 320,
+  "samples_per_date": 1,
+  "proxy_calls_enabled": true,
+  "dates": [
+    {
+      "date": "2026-10-19",
+      "fetched_at": "2026-10-30T16:52:23.163Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 101,
+          "raw_lines": 5,
+          "recognized_lines": 5,
+          "picks": [
+            "g1",
+            "g2",
+            "g6"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 113,
+          "cited": [
+            "NHL_2026-10-19_e401892535",
+            "NHL_2026-10-19_e401892536",
+            "WNBA_2026-10-19_e401918306"
+          ],
+          "raw": "open: It is a beautiful morning to reflect on the rare and remarkable feats that unfolded across the sporting landscape yesterday.\ng1: This hockey contest concluded with a margin of three goals and a combined total of seven scores.\ng2: The home side secured a narrow victory in this hockey match that featured a total of five goals.\ng6: The visiting squad dominated this basketball game by fourteen points as the two sides combined for one hundred forty-four points.\nclose: May the quiet wisdom gained from these performances inspire a sense of renewed purpose as we look toward the next day.",
+          "text": "Monza shut out Cagliari 4-0. It is a beautiful morning to reflect on the rare and remarkable feats that unfolded across the sporting landscape yesterday. Rangers 5, Ducks 2. This hockey contest concluded with a margin of three goals and a combined total of seven scores. Flyers 3, Avalanche 2. The home side secured a narrow victory in this hockey match that featured a total of five goals. Dream 79, Valkyries 65. The visiting squad dominated this basketball game by fourteen points as the two sides combined for one hundred forty-four points. May the quiet wisdom gained from these performances inspire a sense of renewed purpose as we look toward the next day."
+        }
+      ],
+      "inputs": {
+        "recap_games": 11,
+        "citable": 10,
+        "night_stars": true,
+        "truth_type": "rare_event",
+        "truth_headline": "Monza shut out Cagliari 4-0.",
+        "stored_morning_report": "The truth is that Monza dismantled Cagliari 4-0, proving that clinical precision remains the most beautiful language in sports. While the night lacked high-stakes drama, the Rangers secured a steady 5-2 victory over the Ducks, and the Maple Leafs held firm against the Sharks in a 3-1 win. Meanwhile, Spurs showcased their dominance on the pitch by dispatching Coventry 3-1. Though the evening was quiet, these performances remind us that consistency is the quiet engine of greatness. As we move forward, we carry the lesson that even on nights without fireworks, the steady pursuit of excellence is what truly defines a champion’s journey.",
+        "prompt_chars": 1884
+      }
+    },
+    {
+      "date": "2026-10-20",
+      "fetched_at": "2026-10-30T16:52:27.737Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 94,
+          "raw_lines": 5,
+          "recognized_lines": 5,
+          "picks": [
+            "g1",
+            "g4",
+            "g15"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 115,
+          "cited": [
+            "NBA_2026-10-20_e401909088",
+            "NHL_2026-10-20_e401892539",
+            "UEFA Champions League_2026-10-20_e401915403"
+          ],
+          "raw": "open: The evening unfolded with a beautiful rhythm as many unexpected outcomes graced the hardwood and the ice.\ng1: This basketball contest concluded with a margin of eight points and a combined total of two hundred thirty-four.\ng4: Hockey fans witnessed a thrilling overtime finish that saw a one goal margin and a total of seven points.\ng15: The soccer match ended in a balanced draw with both sides scoring two goals for a total of four.\nclose: We carry the warmth of these hard-fought battles into the promise of a brand new day.",
+          "text": "3 unusual finishes — led by AS Roma shut out S Bratislava 4-0. The evening unfolded with a beautiful rhythm as many unexpected outcomes graced the hardwood and the ice. Pistons 121, Celtics 113. This basketball contest concluded with a margin of eight points and a combined total of two hundred thirty-four. Sharks 4, Canadiens 3. Hockey fans witnessed a thrilling overtime finish that saw a one goal margin and a total of seven points. Slavia Prague 2, Fenerbahce 2. The soccer match ended in a balanced draw with both sides scoring two goals for a total of four. We carry the warmth of these hard-fought battles into the promise of a brand new day."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 16,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "3 unusual finishes — led by AS Roma shut out S Bratislava 4-0.",
+        "stored_morning_report": "The truth is that the night belonged to the unexpected, highlighted by AS Roma delivering a dominant 4-0 shutout against S Bratislava that reminded us how quickly momentum can shift on the pitch. Elsewhere, the Pistons secured a gritty 121-113 victory over the Celtics, proving that even the most established giants are vulnerable when the opposition plays with heart. Meanwhile, PSG showcased incredible offensive firepower in a thrilling 4-2 win against Barcelona, keeping fans on the edge of their seats until the final whistle. As we move forward, these results serve as a gentle reminder that every game offers a fresh opportunity for greatness to emerge from the shadows.",
+        "prompt_chars": 2206
+      }
+    },
+    {
+      "date": "2026-10-21",
+      "fetched_at": "2026-10-30T16:52:31.929Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 107,
+          "raw_lines": 5,
+          "recognized_lines": 5,
+          "picks": [
+            "g1",
+            "g6",
+            "g11"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 127,
+          "cited": [
+            "NBA_2026-10-21_e401909834",
+            "NBA_2026-10-21_e401909839",
+            "NHL_2026-10-21_e401892550"
+          ],
+          "raw": "open: It is truly a marvel to witness how the rhythm of competition brings such unexpected balance to our shared sporting landscape.\ng1: This basketball contest concluded with a seven point margin and a total of two hundred fifty seven points scored.\ng6: The home side secured a narrow victory in this basketball game with a margin of three points and two hundred forty three total points.\ng11: This hockey match ended with a margin of two goals and a total of four goals scored by both sides.\nclose: We carry the lessons learned from these diverse outcomes into the promise of a fresh day of play.",
+          "text": "6 unusual finishes — led by Raptors routed Bulls 135-92 — 43-point margin. It is truly a marvel to witness how the rhythm of competition brings such unexpected balance to our shared sporting landscape. Hawks 132, Magic 125. This basketball contest concluded with a seven point margin and a total of two hundred fifty seven points scored. Pacers 123, Pelicans 120. The home side secured a narrow victory in this basketball game with a margin of three points and two hundred forty three total points. Flyers 3, Sabres 1. This hockey match ended with a margin of two goals and a total of four goals scored by both sides. We carry the lessons learned from these diverse outcomes into the promise of a fresh day of play."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 15,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "6 unusual finishes — led by Raptors routed Bulls 135-92 — 43-point margin.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-21. Tomorrow brings another set.",
+        "prompt_chars": 2148
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "fetched_at": "2026-10-30T16:52:35.909Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 120,
+          "raw_lines": 6,
+          "recognized_lines": 6,
+          "picks": [
+            "g1",
+            "g3",
+            "g7",
+            "g11"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 142,
+          "cited": [
+            "NBA_2026-10-22_e401909093",
+            "NHL_2026-10-22_e401892553",
+            "NHL_2026-10-22_e401892557",
+            "NHL_2026-10-22_e401892561"
+          ],
+          "raw": "open: It is truly a marvel to witness how the rhythm of competition unfolds across so many different arenas tonight.\ng1: This basketball contest concluded with a margin of eight points and a combined total of two hundred and twenty.\ng3: The visitors claimed victory in this hockey match by a single goal as the two sides combined for nine total scores.\ng7: This hockey game required overtime to decide a winner after the teams finished with a total of five goals.\ng11: An intense hockey battle went to overtime before the final margin of one goal pushed the total to eleven.\nclose: We carry the lessons learned from these hard-fought battles into the promise of a brand new day.",
+          "text": "22 unusual finishes — led by Bruins shut out Predators 6-0. It is truly a marvel to witness how the rhythm of competition unfolds across so many different arenas tonight. 76ers 114, Cavaliers 106. This basketball contest concluded with a margin of eight points and a combined total of two hundred and twenty. Maple Leafs 5, Rangers 4. The visitors claimed victory in this hockey match by a single goal as the two sides combined for nine total scores. Kings 3, Islanders 2. This hockey game required overtime to decide a winner after the teams finished with a total of five goals. Oilers 6, Hurricanes 5. An intense hockey battle went to overtime before the final margin of one goal pushed the total to eleven. We carry the lessons learned from these hard-fought battles into the promise of a brand new day."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 15,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "22 unusual finishes — led by Bruins shut out Predators 6-0.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-22. Tomorrow brings another set.",
+        "prompt_chars": 2138
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "fetched_at": "2026-10-30T16:52:39.882Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 100,
+          "raw_lines": 5,
+          "recognized_lines": 5,
+          "picks": [
+            "g10",
+            "g4",
+            "g16"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 121,
+          "cited": [
+            "NBA_2026-10-23_e401909849",
+            "NBA_2026-10-23_e401909843",
+            "MLB_2026-10-23_e401908042"
+          ],
+          "raw": "open: The rhythm of the evening reminds us that every contest holds its own unique and quiet beauty.\ng10: This basketball game was the closest of the night with a margin of one and a total of two hundred thirty-nine.\ng4: The home side dominated this basketball game by a margin of forty-seven points with a total of two hundred nine.\ng16: The visitors secured a narrow victory in this baseball game with a margin of one and a total of five.\nclose: We look forward to seeing how these lessons of persistence and grace unfold in the coming days.",
+          "text": "3 unusual finishes — led by Málaga beat Alavés 1-1 as a +500 underdog. The rhythm of the evening reminds us that every contest holds its own unique and quiet beauty. Jazz 120, Pelicans 119. This basketball game was the closest of the night with a margin of one and a total of two hundred thirty-nine. Hawks 128, Hornets 81. The home side dominated this basketball game by a margin of forty-seven points with a total of two hundred nine. Brewers 3, Rays 2. The visitors secured a narrow victory in this baseball game with a margin of one and a total of five. We look forward to seeing how these lessons of persistence and grace unfold in the coming days."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 16,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "3 unusual finishes — led by Málaga beat Alavés 1-1 as a +500 underdog.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-23. Tomorrow brings another set.",
+        "prompt_chars": 2152
+      }
+    },
+    {
+      "date": "2026-10-24",
+      "fetched_at": "2026-10-30T16:52:45.465Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 98,
+          "raw_lines": 5,
+          "recognized_lines": 5,
+          "picks": [
+            "g8",
+            "g10",
+            "g16"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 123,
+          "cited": [
+            "NBA_2026-10-24_e401909859",
+            "NHL_2026-10-24_e401892566",
+            "NHL_2026-10-24_e401892572"
+          ],
+          "raw": "open: The rhythm of the evening reminds us that every contest carries a unique and beautiful story of human perseverance.\ng8: This basketball game required an extra period to decide the winner with a combined total of two hundred seventy-six points.\ng10: The hockey match concluded with a narrow margin of one goal and a total of nine points scored.\ng16: This final hockey game went to overtime and finished with a margin of one goal and a total of three.\nclose: We carry the lessons learned from these hard-fought battles into the promise of a new day.",
+          "text": "36 unusual finishes — led by Aston Villa beat Man City 2-1 as a +370 underdog. The rhythm of the evening reminds us that every contest carries a unique and beautiful story of human perseverance. Nuggets 141, Pelicans 135. This basketball game required an extra period to decide the winner with a combined total of two hundred seventy-six points. Ducks 5, Flyers 4. The hockey match concluded with a narrow margin of one goal and a total of nine points scored. Blue Jackets 2, Golden Knights 1. This final hockey game went to overtime and finished with a margin of one goal and a total of three. We carry the lessons learned from these hard-fought battles into the promise of a new day."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 16,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "36 unusual finishes — led by Aston Villa beat Man City 2-1 as a +370 underdog.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-24. Tomorrow brings another set.",
+        "prompt_chars": 2203
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "fetched_at": "2026-10-30T16:52:50.087Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 104,
+          "raw_lines": 5,
+          "recognized_lines": 5,
+          "picks": [
+            "g1",
+            "g2",
+            "g9"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 128,
+          "cited": [
+            "golf_2026-10-25_butterfieldbermudachampionship_r3",
+            "NBA_2026-10-25_e401909861",
+            "NHL_2026-10-25_e401892578"
+          ],
+          "raw": "open: It is truly a marvel to witness how the rhythm of competition brings such unexpected balance to our shared sporting landscape.\ng1: This professional golf tournament continues to unfold with grace as the field navigates the course toward a final resolution.\ng2: The basketball contest concluded with a nine point margin and a combined total of two hundred fifty five points scored.\ng9: This hockey match was decided by a single goal with a total of five points recorded by both sides.\nclose: We carry the lessons of these unpredictable outcomes into the next day with hearts full of anticipation and quiet resolve.",
+          "text": "24 unusual finishes — led by Troyes beat Toulouse 0-0 as a +450 underdog. It is truly a marvel to witness how the rhythm of competition brings such unexpected balance to our shared sporting landscape. Butterfield Bermuda Championship (R3): Austin Smotherman -16. This professional golf tournament continues to unfold with grace as the field navigates the course toward a final resolution. Lakers 132, Jazz 123. The basketball contest concluded with a nine point margin and a combined total of two hundred fifty five points scored. Panthers 3, Blackhawks 2. This hockey match was decided by a single goal with a total of five points recorded by both sides. We carry the lessons of these unpredictable outcomes into the next day with hearts full of anticipation and quiet resolve."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 16,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "24 unusual finishes — led by Troyes beat Toulouse 0-0 as a +450 underdog.",
+        "stored_morning_report": "The truth is that 24 unusual finishes defined this evening, headlined by Troyes defying the odds as a +450 underdog in a scoreless draw against Toulouse. Elsewhere, the Timberwolves showcased their dominance with a resounding 117-94 victory over the Raptors, while the Stars overwhelmed the Islanders in a high-scoring 6-3 NHL clash. Meanwhile, Bournemouth stunned the football world by securing a clinical 3-0 win against Man United. As we look ahead, these unpredictable outcomes remind us that every possession and every whistle carries the potential to rewrite the narrative, proving that resilience and tactical precision remain the true cornerstones of greatness in our sporting landscape.",
+        "prompt_chars": 2118
+      }
+    },
+    {
+      "date": "2026-10-26",
+      "fetched_at": "2026-10-30T16:52:54.946Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 95,
+          "raw_lines": 5,
+          "recognized_lines": 5,
+          "picks": [
+            "g3",
+            "g12",
+            "g4"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 117,
+          "cited": [
+            "NBA_2026-10-26_e401909869",
+            "NHL_2026-10-26_e401892584",
+            "NBA_2026-10-26_e401909870"
+          ],
+          "raw": "open: It is truly a marvel to witness how the rhythm of competition unfolds across so many different arenas tonight.\ng3: This basketball contest required an extra period to decide a winner with a total of two hundred fifty-two points.\ng12: The hockey match was the closest of the evening and needed overtime to settle the final score of seven.\ng4: The home side dominated the basketball court to secure a victory with a margin of thirty-five points.\nclose: May the wisdom gained from these varied outcomes guide our expectations for the excitement arriving tomorrow.",
+          "text": "4 unusual finishes — led by Mavericks beat Heat 113-109 as a +220 underdog. It is truly a marvel to witness how the rhythm of competition unfolds across so many different arenas tonight. Cavaliers 127, Timberwolves 125. This basketball contest required an extra period to decide a winner with a total of two hundred fifty-two points. Red Wings 4, Oilers 3. The hockey match was the closest of the evening and needed overtime to settle the final score of seven. Celtics 134, Bulls 99. The home side dominated the basketball court to secure a victory with a margin of thirty-five points. May the wisdom gained from these varied outcomes guide our expectations for the excitement arriving tomorrow."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 15,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "4 unusual finishes — led by Mavericks beat Heat 113-109 as a +220 underdog.",
+        "stored_morning_report": "The truth is that even the quietest nights hold hidden magic, as evidenced by the Mavericks overcoming the odds to topple the Heat 113-109 as +220 underdogs. Elsewhere, the Cavaliers narrowly edged the Timberwolves 127-125 in a high-octane display of skill, while Austin Smotherman maintained his composure to finish at -16 and secure victory at the Butterfield Bermuda Championship. Though the schedule lacked late-game drama, these performances remind us that every possession carries weight and every athlete is striving for greatness. We carry forward the lesson that resilience often rewards the persistent, setting the stage for more inspired competition as the new week begins.",
+        "prompt_chars": 2134
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "fetched_at": "2026-10-30T16:52:59.022Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 116,
+          "raw_lines": 6,
+          "recognized_lines": 6,
+          "picks": [
+            "g1",
+            "g2",
+            "g6",
+            "g14"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 141,
+          "cited": [
+            "golf_2026-10-27_butterfieldbermudachampionship_r4",
+            "NBA_2026-10-27_e401909877",
+            "NHL_2026-10-27_e401892585",
+            "NHL_2026-10-27_e401892594"
+          ],
+          "raw": "open: The rhythm of the evening reminds us that even the most familiar patterns can surprise us with unexpected grace.\ng1: This golf event continues to unfold with quiet anticipation as the participants navigate the course with great focus.\ng2: This basketball game required an extra period to decide the winner by a single point in a high scoring affair.\ng6: Hockey fans witnessed a thrilling contest that pushed into overtime before the visitors secured a one goal victory.\ng14: The ice saw a high scoring hockey battle that needed extra time to settle a one goal difference.\nclose: We carry the lessons of these hard fought contests into the promise of a brand new day.",
+          "text": "4 unusual finishes — led by Canadiens shut out Blues 2-0. The rhythm of the evening reminds us that even the most familiar patterns can surprise us with unexpected grace. Butterfield Bermuda Championship (R4): Austin Smotherman -16. This golf event continues to unfold with quiet anticipation as the participants navigate the course with great focus. Celtics 125, Nets 124. This basketball game required an extra period to decide the winner by a single point in a high scoring affair. Blue Jackets 4, Flyers 3. Hockey fans witnessed a thrilling contest that pushed into overtime before the visitors secured a one goal victory. Canucks 6, Ducks 5. The ice saw a high scoring hockey battle that needed extra time to settle a one goal difference. We carry the lessons of these hard fought contests into the promise of a brand new day."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 15,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "4 unusual finishes — led by Canadiens shut out Blues 2-0.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-27. Tomorrow brings another set.",
+        "prompt_chars": 2135
+      }
+    },
+    {
+      "date": "2026-10-28",
+      "fetched_at": "2026-10-30T16:53:03.191Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 122,
+          "raw_lines": 6,
+          "recognized_lines": 6,
+          "picks": [
+            "g10",
+            "g16",
+            "g6",
+            "g5"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 147,
+          "cited": [
+            "NBA_2026-10-28_e401909890",
+            "NHL_2026-10-28_e401892599",
+            "NBA_2026-10-28_e401909886",
+            "NBA_2026-10-28_e401909885"
+          ],
+          "raw": "open: The evening unfolded with a beautiful display of unexpected outcomes that remind us how unpredictable sports can truly be.\ng10: This basketball contest required an extra period to decide the winner, finishing with a total of two hundred twenty-eight points.\ng16: The hockey match was the closest of the night, ending with a single goal margin and nine total goals scored.\ng6: The home side secured a victory in this basketball game, which featured a high total of two hundred sixty points.\ng5: One side dominated this basketball matchup, winning by thirty points and reaching a total of two hundred twenty-eight points.\nclose: We look forward to seeing how these surprising results influence the momentum of the games scheduled for tomorrow.",
+          "text": "16 unusual finishes — led by Cincinnati beat Miami 2-2 as a +360 underdog. The evening unfolded with a beautiful display of unexpected outcomes that remind us how unpredictable sports can truly be. Spurs 117, Jazz 111. This basketball contest required an extra period to decide the winner, finishing with a total of two hundred twenty-eight points. Kraken 5, Maple Leafs 4. The hockey match was the closest of the night, ending with a single goal margin and nine total goals scored. Knicks 133, Bulls 127. The home side secured a victory in this basketball game, which featured a high total of two hundred sixty points. Raptors 129, Magic 99. One side dominated this basketball matchup, winning by thirty points and reaching a total of two hundred twenty-eight points. We look forward to seeing how these surprising results influence the momentum of the games scheduled for tomorrow."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 16,
+        "night_stars": true,
+        "truth_type": "convergence",
+        "truth_headline": "16 unusual finishes — led by Cincinnati beat Miami 2-2 as a +360 underdog.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-28. Tomorrow brings another set.",
+        "prompt_chars": 2174
+      }
+    },
+    {
+      "date": "2026-10-29",
+      "fetched_at": "2026-10-30T16:53:07.081Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "raw_words": 119,
+          "raw_lines": 6,
+          "recognized_lines": 6,
+          "picks": [
+            "g1",
+            "g2",
+            "g5",
+            "g12"
+          ],
+          "has_open": true,
+          "has_close": true,
+          "dropped": [],
+          "raw_slate_names": [],
+          "raw_has_digit": true,
+          "composed": true,
+          "composed_words": 138,
+          "cited": [
+            "NBA_2026-10-29_e401909893",
+            "NBA_2026-10-29_e401909894",
+            "NHL_2026-10-29_e401892602",
+            "NHL_2026-10-29_e401892608"
+          ],
+          "raw": "open: A gentle rhythm defined the evening as athletes across the globe showcased their enduring dedication to the craft.\ng1: This basketball contest remained tight throughout the night with a final margin of three and a total of two hundred twenty-five points.\ng2: The home side secured a decisive basketball victory by twelve points while the total score reached two hundred fifty-two.\ng5: Hockey fans witnessed a thrilling overtime battle that concluded with a single goal margin and seven total scores.\ng12: This high-scoring hockey match provided constant excitement as the victors won by one goal with thirteen total points recorded.\nclose: We carry the lessons learned from these quiet moments into the promise of a brand new day.",
+          "text": "Quiet night. The truth is, sometimes that's the story. A gentle rhythm defined the evening as athletes across the globe showcased their enduring dedication to the craft. Hawks 114, Cavaliers 111. This basketball contest remained tight throughout the night with a final margin of three and a total of two hundred twenty-five points. Pelicans 132, Kings 120. The home side secured a decisive basketball victory by twelve points while the total score reached two hundred fifty-two. Mammoth 4, Penguins 3. Hockey fans witnessed a thrilling overtime battle that concluded with a single goal margin and seven total scores. Sabres 7, Ducks 6. This high-scoring hockey match provided constant excitement as the victors won by one goal with thirteen total points recorded. We carry the lessons learned from these quiet moments into the promise of a brand new day."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "citable": 16,
+        "night_stars": true,
+        "truth_type": "none",
+        "truth_headline": "Quiet night. The truth is, sometimes that's the story.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-29. Tomorrow brings another set.",
+        "prompt_chars": 2167
+      }
+    }
+  ],
+  "summary": {
+    "samples": 11,
+    "answered": 11,
+    "no_text": {},
+    "composed": 11,
+    "not_composed": 0,
+    "with_open": 11,
+    "with_close": 11,
+    "picks_total": 37,
+    "dropped_by_reason": {},
+    "raw_answers_naming_a_slate_team": 0,
+    "raw_answers_with_a_digit": 11,
+    "composed_words": [
+      113,
+      115,
+      127,
+      142,
+      121,
+      123,
+      128,
+      117,
+      141,
+      147,
+      138
+    ],
+    "models": {
+      "gemini-3.1-flash-lite": 11
+    }
+  }
+}
