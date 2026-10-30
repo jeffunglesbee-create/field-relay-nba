@@ -546,6 +546,18 @@ jobs:
       - name: No raw drama number in generated prose
         run: node scripts/check-no-drama-number-in-prompts.mjs
 
+      # The Morning Report writes one template, "Quiet night across the slate", for two
+      # different causes: the proxy returned nothing, or it returned text and the team-name
+      # guard threw it away. Until 2026-10-30 the row did not say which, and phase 5 counted as
+      # completed on both. This runs the real recomputeMorningReport against a mocked proxy and
+      # D1 and pins the record on the row, then breaks the code nineteen ways and requires the
+      # check to go red for the stated reason each time (Rule 90).
+      # docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md
+      - name: the Morning Report template says why it was written
+        run: |
+          node scripts/check-morning-report-degraded.mjs
+          node scripts/mutate-morning-report-degraded.mjs
+
       # ask 2: brief_type must be gated on finality and single-sourced. A fifth
       # write site pasting the 'game_recap' literal back in, or the enqueue
       # dropping isFinal, both silently restore the pre-fix behaviour.

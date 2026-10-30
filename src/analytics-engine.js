@@ -395,7 +395,13 @@ async function writeRunStatus(env, status) {
 // Claude Haiku 4.5 (fallback). Returns the joined text or null on failure.
 // `env` is passed in: this is a module-level function, and the shared secret
 // now comes from the Worker binding rather than a compiled-in literal.
-async function callProxy(env, promptText, { maxTokens = 250 } = {}) {
+//
+// callProxyDetailed (2026-10-30) is the same request with the reason a null came
+// back kept instead of dropped: `failure` is 'http-<status>', 'bad-json' or
+// 'no-text', and null when text came back. `model` is the X-FIELD-Model header the
+// proxy sets (null if absent). callProxy delegates to it and returns only the text,
+// so every existing call site is unchanged. A thrown fetch still throws.
+export async function callProxyDetailed(env, promptText, { maxTokens = 250 } = {}) {
     const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
         method: 'POST',
         headers: {
@@ -408,14 +414,20 @@ async function callProxy(env, promptText, { maxTokens = 250 } = {}) {
             messages: [{ role: 'user', content: promptText }],
         }),
     });
-    if (!resp.ok) return null;
+    const model = resp.headers.get('X-FIELD-Model');
+    if (!resp.ok) return { text: null, failure: `http-${resp.status}`, model };
     const data = await resp.json().catch(() => null);
-    if (!data) return null;
-    return (data.content || [])
+    if (!data) return { text: null, failure: 'bad-json', model };
+    const text = (data.content || [])
         .filter(c => c.type === 'text')
         .map(c => c.text)
         .join('')
         .trim() || null;
+    return { text, failure: text ? null : 'no-text', model };
+}
+
+async function callProxy(env, promptText, opts) {
+    return (await callProxyDetailed(env, promptText, opts)).text;
 }
 
 // ── Phase 3: The Truth Is ──────────────────────────────────────────────────
@@ -570,16 +582,23 @@ async function runPhase3TruthIs(env, date, ctx) {
 // One paragraph (80-120 words) synthesising Night Stars + Truth Is + top
 // recaps. Stored in KV under field:morning_report:{date} (48h TTL) AND in
 // analytics_output for historical browsing.
-async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
+//
+// The recap selection, the prompt and the team-name guard below are pure and exported
+// (2026-10-30), so scripts/check-morning-report-degraded.mjs and
+// scripts/probe-morning-report-guard-replay.mjs run THIS code rather than a copy of it.
+export function selectRecapGames(ctx) {
     const games = ctx
         ? [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])]
         : [];
 
     // One-line recap per game. Keep prompt tight — Gemini handles ~250 words
     // of context comfortably, beyond that it tends to enumerate.
-    const recapGames = games
+    return games
         .filter(g => g.note || (typeof g.home_score === 'number' && typeof g.away_score === 'number'))
         .slice(0, 16);
+}
+
+export function buildMorningReportPrompt(date, { stars, truthIs, recapGames }) {
     const recapLines = recapGames
         .map(g => {
             // Score must be explicitly bound to each team name, not a bare
@@ -653,45 +672,61 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         `location, or league qualifier in front of a team name unless that ` +
         `exact qualifier appears in ALL RESULTS above -- if you're unsure ` +
         `which city or league a team belongs to, do not guess or add one.`;
+    return prompt;
+}
 
-    const prose = await callProxy(env, prompt, { maxTokens: 250 });
-    // Structural guard, added alongside the prompt instruction above (2026-07-15,
-    // real live incident -- see comment above). REVISED same day after a
-    // second real, live occurrence survived the first version of this guard:
-    // ctx.games (fetchContextGraph / /context/date/{date}, the REAL data
-    // this function actually consumes -- confirmed live, NOT assumed from
-    // /v2/games's fuller shape, which was this dispatch's first, wrong
-    // assumption) stores team names as BARE MASCOTS ONLY ("Sun", "Fire"),
-    // never a city-qualified full name ("Connecticut Sun", "Portland
-    // Fire"). A simple "is the real team's name present" check is
-    // structurally unable to catch this bug: "Fire" (correct) and "Chicago
-    // Fire" (real incident's wrong substitution) both trivially contain the
-    // substring "Fire". Since the data never supplies a city, there is no
-    // way to verify a city-qualified reference is CORRECT either (we can't
-    // tell "Connecticut Sun" is right from data alone) -- so, matching this
-    // repo's established fail-safe convention (uncertain -> treat as risk,
-    // e.g. _bsdEventIsLive), ANY invented city/qualifier immediately before
-    // a real team's bare mascot is treated as suspect and rejected, not
-    // just outright name swaps. A team is "present" if its bare mascot
-    // appears (optionally as "the <mascot>" shorthand) with no fabricated
-    // qualifier immediately before it.
-    const teamPresent = (prose, name) => {
-        if (!name) return true; // nothing to check
-        if (prose.includes(name)) return true;
-        const lastWord = name.trim().split(/\s+/).pop();
-        return lastWord ? prose.includes(`the ${lastWord}`) : false;
-    };
-    const hasFabricatedQualifier = (prose, mascot) => {
-        if (!mascot) return false;
-        const esc = mascot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // A capitalized word immediately before the mascot that isn't "The"
-        // -- e.g. "Chicago Fire" when the real team is bare "Fire".
-        const re = new RegExp(`\\b(?!The\\b)([A-Z][a-zA-Z']*)\\s+${esc}\\b`);
-        return re.test(prose);
-    };
-    const teamNameSubstitutionDetected = recapGames.some(g => {
-        if (typeof g.home_score !== 'number' || typeof g.away_score !== 'number') return false;
-        if (!prose) return false;
+// Structural guard, added alongside the prompt instruction above (2026-07-15,
+// real live incident -- see comment above). REVISED same day after a
+// second real, live occurrence survived the first version of this guard:
+// ctx.games (fetchContextGraph / /context/date/{date}, the REAL data
+// this function actually consumes -- confirmed live, NOT assumed from
+// /v2/games's fuller shape, which was this dispatch's first, wrong
+// assumption) stores team names as BARE MASCOTS ONLY ("Sun", "Fire"),
+// never a city-qualified full name ("Connecticut Sun", "Portland
+// Fire"). A simple "is the real team's name present" check is
+// structurally unable to catch this bug: "Fire" (correct) and "Chicago
+// Fire" (real incident's wrong substitution) both trivially contain the
+// substring "Fire". Since the data never supplies a city, there is no
+// way to verify a city-qualified reference is CORRECT either (we can't
+// tell "Connecticut Sun" is right from data alone) -- so, matching this
+// repo's established fail-safe convention (uncertain -> treat as risk,
+// e.g. _bsdEventIsLive), ANY invented city/qualifier immediately before
+// a real team's bare mascot is treated as suspect and rejected, not
+// just outright name swaps. A team is "present" if its bare mascot
+// appears (optionally as "the <mascot>" shorthand) with no fabricated
+// qualifier immediately before it.
+
+const teamPresent = (prose, name) => {
+    if (!name) return true; // nothing to check
+    if (prose.includes(name)) return true;
+    const lastWord = name.trim().split(/\s+/).pop();
+    return lastWord ? prose.includes(`the ${lastWord}`) : false;
+};
+
+// The text that tripped the qualifier rule ("Bay Lightning"), or null. This was
+// `hasFabricatedQualifier`, a boolean from `re.test`; a match is truthy and no match is
+// null, so every decision taken from it is unchanged. The text is what lets the stored
+// record say WHICH qualifier fired.
+const fabricatedQualifierMatch = (prose, mascot) => {
+    if (!mascot) return null;
+    const esc = mascot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // A capitalized word immediately before the mascot that isn't "The"
+    // -- e.g. "Chicago Fire" when the real team is bare "Fire".
+    const re = new RegExp(`\\b(?!The\\b)([A-Z][a-zA-Z']*)\\s+${esc}\\b`);
+    const m = re.exec(prose);
+    return m ? m[0] : null;
+};
+
+// Every recap game the prose gets wrong by the guard's rules, in recap order; [] when
+// none, and [] when there is no prose at all (an empty answer is the proxy failing and is
+// recorded as 'prose-empty', not as a guard finding). This was an inline
+// `recapGames.some(...)` until 2026-10-30; `.length > 0` is the same decision, and the
+// entries say which game, which rule and which text.
+export function teamNameSubstitutions(prose, recapGames) {
+    if (!prose) return [];
+    const found = [];
+    for (const g of recapGames) {
+        if (typeof g.home_score !== 'number' || typeof g.away_score !== 'number') continue;
         // Check both score orders -- the prompt's own recapLines always uses
         // away-home order, but prose narration naturally leads with whichever
         // team the sentence is about (often the winner), which can flip the
@@ -701,15 +736,33 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         // away-first-only version of this check silently failed to match).
         const awayFirst = `${g.away_score}-${g.home_score}`;
         const homeFirst = `${g.home_score}-${g.away_score}`;
-        if (!prose.includes(awayFirst) && !prose.includes(homeFirst)) return false;
-        const missingTeam = !teamPresent(prose, g.home) || !teamPresent(prose, g.away);
-        const fabricatedQualifier = hasFabricatedQualifier(prose, g.home) || hasFabricatedQualifier(prose, g.away);
-        return missingTeam || fabricatedQualifier;
-    });
-    if (teamNameSubstitutionDetected) {
+        if (!prose.includes(awayFirst) && !prose.includes(homeFirst)) continue;
+        const missingTeam = [g.home, g.away].filter(name => !teamPresent(prose, name));
+        const qualifier = fabricatedQualifierMatch(prose, g.home) || fabricatedQualifierMatch(prose, g.away);
+        if (missingTeam.length > 0 || qualifier) {
+            found.push({
+                sport: g.sport,
+                away: g.away,
+                home: g.home,
+                score: awayFirst,
+                missing_team: missingTeam,
+                fabricated_qualifier: qualifier,
+            });
+        }
+    }
+    return found;
+}
+
+async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
+    const recapGames = selectRecapGames(ctx);
+    const prompt = buildMorningReportPrompt(date, { stars, truthIs, recapGames });
+
+    const { text: prose, failure: proxyFailure } = await callProxyDetailed(env, prompt, { maxTokens: 250 });
+    const substitutions = teamNameSubstitutions(prose, recapGames);
+    if (substitutions.length > 0) {
         console.error('[ANALYTICS] morning_report rejected: real score present with a missing or fabricated-qualifier team name for that game');
     }
-    const briefText = (prose && !teamNameSubstitutionDetected)
+    const briefText = (prose && substitutions.length === 0)
         ? prose
         : `Quiet night across the slate for ${date}. Tomorrow brings another set.`;
 
@@ -726,14 +779,34 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         console.error('[ANALYTICS] morning_report KV put failed:', e.message);
     }
 
+    // WHY the template, when it was written (2026-10-30). Until now the row read the same
+    // whether the proxy answered nothing or the answer was thrown away, and
+    // analytics_runs.errors stayed [] either way -- phase 5 "completes" on both paths.
+    //   prose-empty      no text came back; proxy_failure says how (http-<status>, bad-json, no-text).
+    //   team-name-guard  text came back and the guard above rejected it; guard.first names
+    //                    the game, the missing team(s) or the qualifier text that tripped it.
+    // The rejected prose itself is NOT stored: GET /analytics/morning_report/{date} serves
+    // this value publicly, and the prose is what the guard judged fabricated.
+    // `degraded` is the flag /analytics/degraded and session_health already read
+    // (JSON_EXTRACT(value,'$.degraded')), so a template morning now shows up in the
+    // needs_manual_recompute bucket. It is false, not absent, on a good morning: a row
+    // without the key was written before this. circadian_late is deliberately not marked --
+    // it is PURE, so the degraded sweep would re-copy the same template every day.
+    const degradedReason = !prose ? 'prose-empty' : (substitutions.length > 0 ? 'team-name-guard' : null);
+    const outcome = degradedReason === null
+        ? { degraded: false }
+        : degradedReason === 'prose-empty'
+            ? { degraded: true, degraded_reason: degradedReason, proxy_failure: proxyFailure }
+            : { degraded: true, degraded_reason: degradedReason, guard: { offenders: substitutions.length, first: substitutions[0] } };
+
     await writeAnalyticsOutput(env, {
         date,
         feature: 'morning_report',
         sport: null,
-        value: { word_count: briefText.split(/\s+/).filter(Boolean).length, stars: stars?.stars || null },
+        value: { word_count: briefText.split(/\s+/).filter(Boolean).length, stars: stars?.stars || null, ...outcome },
         briefText,
     });
-    return { aiCalls: prose ? 1 : 0, briefText };
+    return { aiCalls: prose ? 1 : 0, briefText, outcome };
 }
 
 // Manual, single-purpose recompute for morning_report alone (2026-07-15,
@@ -765,7 +838,7 @@ export async function recomputeMorningReport(env, date) {
 
     const ctx = await fetchContextGraph(env, date);
     const r = await runPhase5MorningReport(env, date, { stars, truthIs, ctx });
-    return { before, after: r.briefText, aiCalls: r.aiCalls };
+    return { before, after: r.briefText, aiCalls: r.aiCalls, outcome: r.outcome };
 }
 
 // ── Phase 9: FIELD's Pick (TODAY) ──────────────────────────────────────────
