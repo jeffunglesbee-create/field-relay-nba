@@ -19,10 +19,10 @@ const MUTATIONS = [
     replace: "? { degraded_reason: 'prose-empty', proxy_failure: proxyFailure }",
     expect: 'an HTTP failure is recorded as degraded' },
 
-  { name: 'M2  a morning with no usable line is no longer marked degraded',
+  { name: 'M2  a morning with no usable pick is no longer marked degraded',
     anchor: "? { degraded: true, degraded_reason: 'bad-structure', structure:",
     replace: "? { degraded_reason: 'bad-structure', structure:",
-    expect: 'a morning with no usable line is recorded as degraded' },
+    expect: 'a morning with no usable pick is recorded as degraded' },
 
   { name: 'M3  a missing context is no longer marked degraded',
     anchor: "? { degraded: true, degraded_reason: 'no-context' }",
@@ -44,10 +44,10 @@ const MUTATIONS = [
     replace: 'return { aiCalls: 1, briefText, outcome };',
     expect: 'an empty answer counts no AI call' },
 
-  { name: 'M7  an answer with no usable line stops counting its AI call',
+  { name: 'M7  an answer with no usable pick stops counting its AI call',
     anchor: 'return { aiCalls: prose ? 1 : 0, briefText, outcome };',
     replace: 'return { aiCalls: composed ? 1 : 0, briefText, outcome };',
-    expect: 'an answer with no usable line still counts its AI call' },
+    expect: 'an answer with no usable pick still counts its AI call' },
 
   { name: 'M8  the model is asked for a morning when there is no game to cite',
     anchor: 'if (prepared.citable.length > 0) {',
@@ -87,12 +87,12 @@ const MUTATIONS = [
   { name: 'M15 dropped lines are no longer recorded on a good morning',
     anchor: ', ...(dropped.length > 0 ? { dropped } : {}) };',
     replace: ' };',
-    expect: 'a dropped line is recorded by key and reason on a good morning' },
+    expect: 'is recorded by key and reason on a good morning' },
 
-  { name: 'M16 bad-structure loses its list of dropped lines',
+  { name: 'M16 bad-structure loses its list of dropped ids',
     anchor: 'structure: { recognized: finished.parsed.recognized, dropped } }',
     replace: 'structure: { recognized: finished.parsed.recognized } }',
-    expect: 'bad-structure names the lines it dropped and why' },
+    expect: 'bad-structure names the ids it dropped and why' },
 
   { name: 'M17 the model\'s answer is stored in the public value of a bad-structure row',
     anchor: 'structure: { recognized: finished.parsed.recognized, dropped } }',

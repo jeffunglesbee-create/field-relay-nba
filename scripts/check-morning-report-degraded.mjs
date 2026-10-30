@@ -6,21 +6,22 @@
 // the row was identical whatever the cause and phase 5 counted as completed on every path
 // (analytics_runs.errors stayed [] while 16 of the 22 mornings 2026-10-08..29 were the
 // template). Since 2026-10-30 the row says why, and the paragraph is no longer the model's:
-// src/morning-report.js has the model cite games by id and has the relay print every team name
-// and score. scripts/check-morning-report-cite.mjs pins that contract on the pure functions;
+// src/morning-report.js has the model pick games by id and write only an open and a close line,
+// and has the relay print every team name, every score and the sentence about each game.
+// scripts/check-morning-report-cite.mjs pins that contract on the pure functions;
 // THIS pins the phase around it, through the real recomputeMorningReport -- the exported
 // entry that reads night_stars / truth_is from D1, fetches the context graph, calls the proxy
 // and writes the row -- against a mocked proxy, a mocked relay and a mocked D1.
 //
 // The record, on the row itself:
-//   degraded:false                      a morning that printed game lines
+//   degraded:false                      a morning that printed games
 //                                       + cited [game ids], + dropped [{key,reason}] when the
-//                                       model's answer had lines the contract refused
+//                                       model's answer had lines or ids the contract refused
 //   degraded:false, no_games            the night has no completed game; the template is accurate
 //   degraded:true, no-context           the context graph was unreadable (Phase 1 failed)
 //   degraded:true, prose-empty          + proxy_failure  http-<status> | bad-json | no-text
 //   degraded:true, bad-structure        + structure {recognized, dropped}: text came back and no
-//                                       game line in it followed the contract
+//                                       pick in it followed the contract
 // and the one arithmetic the 2026-10-30 diagnosis rests on: an answer that came back counts its
 // AI call (aiCalls 1) whether or not a line survived; an empty one does not (aiCalls 0); a night
 // with nothing to cite makes no call at all.
@@ -60,26 +61,32 @@ const CTX = { ok: true, date: DATE, games: { regular: GAMES, postseason: [] } };
 const STARS = { stars: 3, totalGames: 33, dramaGames: 4, closeGames: 6, walkoffs: 0 };
 const TRUTH = { type: 'none', headline: "Quiet night. The truth is, sometimes that's the story." };
 
-// An answer in the form the prompt asks for. None of these lines has a digit or a name from the slate.
+// An answer in the form the prompt asks for: the games to feature, an opening sentence and a closing
+// one. None of these lines has a digit or a name from the slate.
 const OPEN = 'A calm evening with a few results worth a second look.';
-const A1 = 'Hockey supplied the loudest finish of the night as the winners pulled clear.';
-const A2 = 'A tight basketball game that stayed in doubt until the final minute.';
-const A3 = 'The winners controlled this basketball game from the opening minutes.';
 const CLOSE = 'Tomorrow brings another chance for something unexpected.';
-const GOOD = [`open: ${OPEN}`, `g1: ${A1}`, `g2: ${A2}`, `g3: ${A3}`, `close: ${CLOSE}`].join('\n');
-// What the relay prints from it: the headline, the open line, then each fact beside its sentence.
-const BRIEF_GOOD = [TRUTH.headline, OPEN, `Lightning 6, Jets 4. ${A1}`, `Hawks 114, Cavaliers 111. ${A2}`,
-  `Dream 80, Valkyries 69. ${A3}`, CLOSE].join(' ');
+const GOOD = [`open: ${OPEN}`, 'pick: g1, g2, g3', `close: ${CLOSE}`].join('\n');
+// What the relay prints from it: the headline, the open line, then each picked game's fact and the
+// sentence the relay writes about that result from the row, then the close line. The sentences are
+// worked out by hand from the rows above: 6-4 is a plain two-goal win; 114-111 is three points,
+// narrow in basketball; 80-69 is a plain eleven-point win and the second plain win in the report, so
+// it takes the second phrasing of its kind.
+const S_LIGHTNING = 'A two-goal win.';
+const S_HAWKS = 'A narrow three-point win.';
+const S_DREAM = 'Won by eleven points.';
+const BRIEF_GOOD = [TRUTH.headline, OPEN, `Lightning 6, Jets 4. ${S_LIGHTNING}`, `Hawks 114, Cavaliers 111. ${S_HAWKS}`,
+  `Dream 80, Valkyries 69. ${S_DREAM}`, CLOSE].join(' ');
 
-// Lines the contract refuses: a digit, a name from tonight's slate, an id that is not in the list,
-// an unfinished sentence. Each is distinctive so "it is not stored" can be searched for.
+// Lines the contract refuses: a digit, a name from tonight's slate, an id that is not in the list, a word
+// on the pick line that is not an id. Each is distinctive so "it is not stored" can be searched for.
 const L_DIGIT = 'Won by 3 points in a tense game that nobody will forget soon.';
 const L_NAME = 'The Dream pulled away late in a game that felt decided early.';
-const L_UNKNOWN = 'A thrilling baseball game in a place nobody expected to see one.';
-const L_NAME2 = 'The Lightning beat the Jets in a game that stayed tense.';
-const L_CUT = 'A tense game that stayed in doubt until the very last';
-const WITH_DROPS = [`open: ${OPEN}`, `g1: ${A1}`, `g2: ${L_DIGIT}`, `g3: ${L_NAME}`, `g9: ${L_UNKNOWN}`, `close: ${CLOSE}`].join('\n');
-const NO_USABLE = [`open: ${OPEN}`, `g1: ${L_NAME2}`, `g2: ${L_DIGIT}`, `g3: ${L_CUT}`, `close: ${CLOSE}`].join('\n');
+const STRAY = 'unforgettable';
+const L_OLD_FORM = 'A tense game that stayed in doubt until the final minute.';
+const WITH_DROPS = [`open: ${L_DIGIT}`, `pick: g1, g9, ${STRAY}, g2`, `close: ${L_NAME}`].join('\n');
+const NO_USABLE = [`open: ${OPEN}`, 'pick: g9, g12', `close: ${CLOSE}`].join('\n');
+// The retired form (a sentence for each game): nothing in it is a pick, so nothing is printed.
+const OLD_FORM = [`open: ${OPEN}`, `g1: ${L_OLD_FORM}`, `g2: ${L_OLD_FORM}`, `close: ${CLOSE}`].join('\n');
 // The model ignores the form and writes a paragraph, with a team and a score in it.
 const FREE_PROSE = 'Quiet in Tampa until the Lightning beat the Jets 6-4, and the Hawks edged the Cavaliers 114-111.';
 
@@ -149,7 +156,7 @@ async function run(proxy, { ctxBody = CTX, truth = TRUTH } = {}) {
   ok(() => !('degraded_reason' in v) && !('structure' in v) && !('proxy_failure' in v) && !('dropped' in v) && !('no_games' in v),
     'a good morning carries no reason fields');
   ok(() => r.row.brief === BRIEF_GOOD,
-    'a good morning prints the headline, then the open line, then each fact beside the model\'s sentence');
+    'a good morning prints the headline, the open line, each picked game\'s fact and the relay\'s sentence about it, then the close line');
   ok(() => r.kv.length === 1 && r.kv[0][0] === `field:morning_report:${DATE}` && r.kv[0][1] === BRIEF_GOOD,
     'a good morning stores the same text in D1 and in KV');
   ok(() => JSON.stringify(v.cited) === JSON.stringify(['NHL_2026-10-29_a', 'NBA_2026-10-29_b', 'WNBA_2026-10-29_c']),
@@ -166,39 +173,51 @@ async function run(proxy, { ctxBody = CTX, truth = TRUTH } = {}) {
     'phase 5 sends the prepared prompt');
 }
 
-// ── lines the contract refuses, in an answer that still has a usable line ───
+// ── lines and ids the contract refuses, in an answer that still has a usable pick ──
 {
   const r = await run(textReply(WITH_DROPS));
   const v = r.row.value;
   ok(() => v.degraded === false && JSON.stringify(v.dropped) === JSON.stringify([
-      { key: 'g2', reason: 'digit' }, { key: 'g3', reason: 'team-name' }, { key: 'g9', reason: 'unknown-id' }]),
-    'a dropped line is recorded by key and reason on a good morning');
-  ok(() => r.row.brief === [TRUTH.headline, OPEN, `Lightning 6, Jets 4. ${A1}`, CLOSE].join(' '),
-    'a good morning with dropped lines still prints the lines that followed the contract, and only those');
-  ok(() => ![L_DIGIT, L_NAME, L_UNKNOWN, 'Won by', 'pulled away late'].some(t => r.row.raw.includes(t) || r.row.brief.includes(t)),
+      { key: 'open', reason: 'digit' }, { key: 'g9', reason: 'unknown-id' }, { key: 'pick', reason: 'unrecognized-pick' },
+      { key: 'close', reason: 'team-name' }]),
+    'a dropped line, id or word is recorded by key and reason on a good morning');
+  ok(() => r.row.brief === [TRUTH.headline, `Lightning 6, Jets 4. ${S_LIGHTNING}`, `Hawks 114, Cavaliers 111. ${S_HAWKS}`].join(' '),
+    'a good morning with dropped lines still prints the games that were picked, and only what followed the contract');
+  ok(() => ![L_DIGIT, L_NAME, STRAY, 'Won by', 'pulled away late'].some(t => r.row.raw.includes(t) || r.row.brief.includes(t)),
     'the dropped text is not stored, in the value or the brief (the value is served publicly)');
-  ok(() => r.logged.length === 1 && r.logged[0].includes('dropped lines') && r.logged[0].includes('g2:digit')
-      && r.logged[0].includes('g3:team-name') && r.logged[0].includes('g9:unknown-id') && !r.logged[0].includes('Won by'),
+  ok(() => r.logged.length === 1 && r.logged[0].includes('dropped lines') && r.logged[0].includes('open:digit')
+      && r.logged[0].includes('g9:unknown-id') && r.logged[0].includes('pick:unrecognized-pick') && r.logged[0].includes('close:team-name')
+      && !r.logged[0].includes('Won by') && !r.logged[0].includes(STRAY),
     'dropped lines are logged once, by key and reason, without their text');
   ok(() => r.result.aiCalls === 1, 'an answer with dropped lines counts its AI call');
 }
 
-// ── no line followed the contract ───────────────────────────────────────────
+// ── no pick followed the contract ───────────────────────────────────────────
 {
   const r = await run(textReply(NO_USABLE));
   const v = r.row.value;
   ok(() => v.degraded === true && v.degraded_reason === 'bad-structure' && !('proxy_failure' in v) && !('cited' in v),
-    'a morning with no usable line is recorded as degraded, reason bad-structure');
-  ok(() => v.structure.recognized === 5 && JSON.stringify(v.structure.dropped) === JSON.stringify([
-      { key: 'g1', reason: 'team-name' }, { key: 'g2', reason: 'digit' }, { key: 'g3', reason: 'unterminated' }]),
-    'bad-structure names the lines it dropped and why');
+    'a morning with no usable pick is recorded as degraded, reason bad-structure');
+  ok(() => v.structure.recognized === 3 && JSON.stringify(v.structure.dropped) === JSON.stringify([
+      { key: 'g9', reason: 'unknown-id' }, { key: 'g12', reason: 'unknown-id' }]),
+    'bad-structure names the ids it dropped and why');
   ok(() => r.row.brief === TEMPLATE && r.kv[0][1] === TEMPLATE,
-    'a morning with no usable line writes the template, in D1 and in KV (text unchanged)');
-  ok(() => r.result.aiCalls === 1, 'an answer with no usable line still counts its AI call');
-  ok(() => r.logged.length === 1 && r.logged[0].includes('no usable game line') && r.logged[0].includes('g1:team-name'),
-    'a morning with no usable line is logged once, by key and reason');
-  ok(() => ![L_NAME2, L_DIGIT, L_CUT, 'Lightning beat'].some(t => r.row.raw.includes(t)),
+    'a morning with no usable pick writes the template, in D1 and in KV (text unchanged)');
+  ok(() => r.result.aiCalls === 1, 'an answer with no usable pick still counts its AI call');
+  ok(() => r.logged.length === 1 && r.logged[0].includes('no usable game line') && r.logged[0].includes('g9:unknown-id'),
+    'a morning with no usable pick is logged once, by key and reason');
+  // The words of THIS answer (its open and close lines), not of another one: a check for text the answer
+  // never held would pass whether or not the value stored it.
+  ok(() => ![OPEN, CLOSE].some(t => r.row.raw.includes(t)) && !r.row.brief.includes('g12'),
     'the answer text is not stored in the value (it is served publicly)');
+}
+{
+  const r = await run(textReply(OLD_FORM));
+  const v = r.row.value;
+  ok(() => v.degraded === true && v.degraded_reason === 'bad-structure' && v.structure.recognized === 2
+      && JSON.stringify(v.structure.dropped) === JSON.stringify([{ key: null, reason: 'unrecognized-line' }, { key: null, reason: 'unrecognized-line' }])
+      && r.row.brief === TEMPLATE && !r.row.raw.includes(L_OLD_FORM),
+    'an answer in the retired form (a sentence for each game) is bad-structure and prints no model sentence about a game');
 }
 {
   const r = await run(textReply(FREE_PROSE));
@@ -254,7 +273,7 @@ async function run(proxy, { ctxBody = CTX, truth = TRUTH } = {}) {
   const r = await run(textReply(GOOD), { truth: { ...TRUTH, game_id: GAMES[0].id } });
   const prompt = r.sent[0].body.messages[0].content;
   ok(() => prompt.includes('g1 | NBA | final 114-111') && !prompt.includes('g5 |')
-      && r.row.brief.includes(`Hawks 114, Cavaliers 111. ${A1}`) && !r.row.brief.includes('Lightning 6, Jets 4'),
+      && r.row.brief.includes(`Hawks 114, Cavaliers 111. ${S_HAWKS}`) && !r.row.brief.includes('Lightning 6, Jets 4'),
     'the truth game is printed once: as Phase 3\'s headline, not again as a cited game');
 }
 

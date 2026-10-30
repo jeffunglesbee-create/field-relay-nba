@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// Replays the Morning Report (Phase 5) under the cite-by-id contract against the real
+// Replays the Morning Report (Phase 5) under the pick / open / close contract against the real
 // proxy. READ-ONLY: nothing is written to D1 or KV.
 //
-// WHY. src/morning-report.js makes the model cite games by id and has the relay write every
-// name and score (docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3 option 4).
+// WHY. src/morning-report.js has the model choose which games to feature (`pick:`) and write the
+// opening and closing sentence (`open:`, `close:`). The relay writes everything about a game: the
+// team names, the score and the one sentence about the result, all from the game's row
+// (docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3 option 4, then Task 4).
 // Whether the production model (gemini-3.1-flash-lite behind field-claude-proxy) FOLLOWS that
 // contract is a fact about a service the sandbox cannot call: reading the prompt does not
 // tell you. This asks, once per date, with the prompt built by the production function from
@@ -14,8 +16,14 @@
 // What it measures, beyond "did a paragraph come out":
 //   - how many of the model's lines broke which rule (digit, team-name, unknown-id, ...),
 //     counted from the RAW answer before any line is dropped;
-//   - every slate name and every digit found in the raw answer, so a model that ignores
-//     "never write a name" shows up even where the parser would have dropped the line;
+//   - every slate name found in the raw answer, and every digit found in its open and close
+//     lines (a pick line is a list of ids such as g12 and carries digits by design), so a model
+//     that ignores "never write a name" shows up even where the parser would have dropped it;
+//   - for each pick, the row's descriptor, the fact line and the sentence the relay wrote, kept
+//     so each sentence can be checked against its row afterwards;
+//   - how many open and close lines carry the markers the three earlier replays counted in the
+//     model's per-game lines (words that say how a game went), and how many opens say a result
+//     was unexpected;
 //   - whether a paragraph was composed, how long it is, and how many games it cites.
 // Raw answers and composed paragraphs are kept in the output so they can be READ.
 //
@@ -50,13 +58,33 @@ const PACE_MS = 2500;
 const nextDay = (d) => new Date(Date.parse(`${d}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
 const words = (s) => s.split(/\s+/).filter(Boolean).length;
 
-// The labels (g1:, g12:) carry digits by design; the contract is about what follows them.
-const bodyOf = (raw) => raw.split(/\r?\n/).map(l => l.replace(/^\s*(?:open|close|g[0-9]{1,3})\s*:/i, ''));
-// Words the 2026-10-30 prompt rules forbid or discourage. Counted for the reader of the result, never used to
+// A labelled line is `open:`, `close:` or `pick:`. A pick line is a list of ids (g1, g12), which
+// carry digits by design, so digits, names and wording are measured on the prose: the open and
+// close lines and any line the model wrote without a label.
+const LABEL = /^\s*(open|close|picks?)\s*:\s*/i;
+const linesOf = (raw) => raw.split(/\r?\n/).filter(l => l.trim()).map(l => {
+  const m = LABEL.exec(l);
+  return m ? { label: m[1].toLowerCase().replace(/s$/, ''), body: l.slice(m[0].length) } : { label: null, body: l };
+});
+const proseOf = (raw) => linesOf(raw).filter(l => l.label !== 'pick');
+const bodyOf = (raw) => proseOf(raw).map(l => l.body);
+// Words the prompt rules forbid or discourage. Counted for the reader of the result, never used to
 // drop a line: the contract does not judge prose (src/morning-report.js).
 const WATCH = ['home', 'visitor', 'host', 'closest', 'biggest', 'rhythm', 'tapestry', 'marvel', 'lessons', 'hard-fought', 'hard fought',
   'brand new day', 'quiet hours', 'spark', 'secured', 'comeback', 'exhibition', 'classic', 'throughout', 'until the', 'pull(?:ed|ing)? away',
   'traded', 'trading', 'remained', 'maintained', 'tense', 'tight'];
+// The one fixed list of markers the three earlier replays applied to the model's per-game lines
+// (words that describe how a game went), applied here to the open and close lines so the counts
+// can be put side by side. Counted for the reader; never used to drop a line.
+const FLOW = {
+  timing: /\b(throughout|until the|from the (very )?(first|start|opening|outset)|early on|to the end|until the end|duration of|final (moments|buzzer|whistle|out))\b/i,
+  course: /\b(traded|trading|pull(ed|ing)? away|maintained|controlled the pace|mounted|surged|rallied|comeback|battled|remained (tense|tight|competitive|undecided))\b/i,
+  conduct: /\b(poise|composure|resolve|focus(ed)?|tension|tense|tight(ly)?|thrilling|exhilarating|intense|intensity|spirited|relentless|effort)\b/i,
+  audience: /\b(spectators|fans|observers|crowd|engaged)\b/i,
+  label: /\b(exhibition|classic|rivalry)\b/i,
+};
+// A claim about what was expected: the one fact the prompt tells the model it does not have.
+const UNEXPECTED = /\bunexpected/i;
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 async function getJson(url) {
@@ -115,6 +143,7 @@ for (const date of DATES) {
   };
   console.log(`${date}  citable ${prepared.citable.length}/${prepared.recapGames.length}  truth ${rec.inputs.truth_type}  stored: ${String(bundle.morning_report).slice(0, 50)}`);
   if (!SECRET) continue;
+  const byId = new Map(prepared.citable.map(c => [c.id, c]));
 
   for (let i = 1; i <= SAMPLES; i++) {
     if (Date.now() > DEADLINE) { out.truncated = true; break; }
@@ -123,6 +152,7 @@ for (const date of DATES) {
     // Measured on the RAW answer: what the model did before any line was dropped.
     const raw = res.text || '';
     const slateHits = prepared.slateNames.filter(nm => new RegExp(`(?<![A-Za-z])${escapeRe(nm)}(?![A-Za-z])`).test(raw));
+    const proseLines = proseOf(raw).filter(l => l.label === 'open' || l.label === 'close');
     const s = {
       sample: i,
       model: res.model,
@@ -130,22 +160,34 @@ for (const date of DATES) {
       raw_words: words(raw),
       raw_lines: raw ? raw.split(/\r?\n/).filter(l => l.trim()).length : 0,
       recognized_lines: parsed.recognized,
-      picks: parsed.picks.map(p => p.entry.id),
+      pick_ids: parsed.picks.map(p => p.entry.id),
       has_open: Boolean(parsed.open),
       has_close: Boolean(parsed.close),
       dropped: parsed.dropped,
       raw_slate_names: slateHits,
       raw_body_has_digit: bodyOf(raw).some(b => /\p{N}/u.test(b)),
       watch_hits: WATCH.filter(w => bodyOf(raw).some(b => new RegExp(`\\b${w}`, 'i').test(b))),
+      prose_lines: proseLines.map(l => ({
+        label: l.label,
+        words: words(l.body),
+        flow: Object.keys(FLOW).filter(k => FLOW[k].test(l.body)),
+        unexpected: UNEXPECTED.test(l.body),
+        starts_we_look_forward: /^we look forward/i.test(l.body.trim()),
+      })),
       composed: Boolean(composed),
       composed_words: composed ? words(composed.text) : 0,
       cited: composed ? composed.cited : [],
+      // What the relay printed for each pick, with the descriptor the model was shown for it, so the
+      // sentence can be checked against the game's row afterwards.
+      picks: composed ? composed.games.map(g => ({
+        id: g.id, game_id: g.gameId, descriptor: byId.get(g.id)?.descriptor ?? null, fact: g.fact, sentence: g.sentence,
+      })) : [],
       raw,
       text: composed ? composed.text : null,
     };
     rec.samples.push(s);
     const verdict = res.failure ? `NO TEXT (${res.failure})`
-      : composed ? `composed ${s.composed_words}w, ${s.picks.length} games${parsed.dropped.length ? `, dropped ${parsed.dropped.map(d => `${d.key ?? '-'}:${d.reason}`).join(' ')}` : ''}`
+      : composed ? `composed ${s.composed_words}w, ${s.pick_ids.length} games${parsed.dropped.length ? `, dropped ${parsed.dropped.map(d => `${d.key ?? '-'}:${d.reason}`).join(' ')}` : ''}`
       : `NOT COMPOSED  dropped ${parsed.dropped.map(d => `${d.key ?? '-'}:${d.reason}`).join(' ') || 'none'}`;
     console.log(`  #${i}  ${String(res.model)}  ${verdict}${slateHits.length ? `  SLATE NAMES IN RAW: ${slateHits.join(', ')}` : ''}`);
     await new Promise(r => setTimeout(r, PACE_MS));
@@ -155,6 +197,8 @@ for (const date of DATES) {
 // ── summary ─────────────────────────────────────────────────────────────────
 const all = out.dates.flatMap(d => d.samples.map(s => ({ date: d.date, ...s })));
 const tally = (arr) => arr.reduce((m, k) => (m[k] = (m[k] || 0) + 1, m), {});
+const prose = all.flatMap(s => s.prose_lines);
+const picks = all.flatMap(s => s.picks);
 out.summary = {
   samples: all.length,
   answered: all.filter(s => !s.failure).length,
@@ -163,11 +207,18 @@ out.summary = {
   not_composed: all.filter(s => !s.failure && !s.composed).length,
   with_open: all.filter(s => s.has_open).length,
   with_close: all.filter(s => s.has_close).length,
-  picks_total: all.reduce((a, s) => a + s.picks.length, 0),
+  picks_total: all.reduce((a, s) => a + s.pick_ids.length, 0),
+  picks_with_a_relay_sentence: picks.filter(p => p.sentence).length,
+  picks_with_the_fact_line_only: picks.filter(p => !p.sentence).length,
   dropped_by_reason: tally(all.flatMap(s => s.dropped.map(d => d.reason))),
   raw_answers_naming_a_slate_team: all.filter(s => s.raw_slate_names.length).length,
-  raw_answers_with_a_digit_in_a_body: all.filter(s => s.raw_body_has_digit).length,
-  watch_words_in_bodies: tally(all.flatMap(s => s.watch_hits)),
+  raw_answers_with_a_digit_in_a_prose_line: all.filter(s => s.raw_body_has_digit).length,
+  prose_lines: prose.length,
+  prose_lines_with_a_flow_marker: prose.filter(l => l.flow.length).length,
+  flow_markers_by_kind: tally(prose.flatMap(l => l.flow)),
+  opens_saying_unexpected: prose.filter(l => l.label === 'open' && l.unexpected).length,
+  closes_starting_we_look_forward: prose.filter(l => l.label === 'close' && l.starts_we_look_forward).length,
+  watch_words_in_prose: tally(all.flatMap(s => s.watch_hits)),
   composed_words: all.filter(s => s.composed).map(s => s.composed_words),
   models: tally(all.map(s => s.model).filter(Boolean)),
 };

@@ -592,14 +592,16 @@ async function runPhase3TruthIs(env, date, ctx) {
 // historical browsing.
 //
 // THE CONTRACT (src/morning-report.js, 2026-10-30). The model is shown games under ids g1,
-// g2, ... WITHOUT team names and writes one sentence of commentary for each game it picks.
-// The relay prints every team name and every score from the data, and prints Phase 3's
-// headline first. Nothing below reads the model's prose to decide whether it is true: a line
-// that breaks the contract (a digit, a team name from tonight's slate, an unknown or repeated
-// id) is dropped and recorded by reason, never by text. This replaced a guard that searched
-// the prose for scores and team names and threw accurate prose away on 2 of 4 replayed days
+// g2, ... WITHOUT team names and answers three lines: `pick:` the ids of the games to feature,
+// `open:` one sentence and `close:` one sentence. The relay prints Phase 3's headline first,
+// then for each pick the team names and the score and ONE SENTENCE ABOUT THE RESULT, all
+// written from the game's row (Task 4: no sentence about a game is the model's). Nothing below
+// reads the model's prose to decide whether it is true: an open or close line that breaks the
+// form (a digit, a team name from tonight's slate), and a pick that is not a known id, is
+// dropped and recorded by reason, never by text. This replaced a guard that searched the prose
+// for scores and team names and threw accurate prose away on 2 of 4 replayed days
 // (outbox/morning-report-guard-replay-latest.json).
-// docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3, option 4.
+// docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3, option 4, and Task 4.
 async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
     const prepared = prepareMorningReport(date, { stars, truthIs, ctx });
 
