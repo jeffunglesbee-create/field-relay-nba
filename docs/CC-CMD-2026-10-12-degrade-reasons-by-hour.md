@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (instrument) — one field added to a counter that already exists
-**Status:** PARTIAL — Task 1 built 2026-10-30 (the counter carries `by_hour`; the pairing watch prints it). Task 2 and
+**Status:** PARTIAL — Task 1 built and deployed 2026-10-30 (`190eb14`, Deploy RELAY Worker run 41088801910: the counter carries `by_hour`; the pairing watch prints it). Task 2 and
 done conditions 1 to 3 need a closed day with degrade events after the deploy, which cannot be produced on demand (see
 "Done conditions, as of 2026-10-30"). Filed rather than deferred, per Rule 87.4, by
 `docs/CC-CMD-2026-10-11-d1-overload-degrades.md`, which could not attribute
@@ -69,7 +69,7 @@ Two things the document did not know: the VOID window of the CFL experiment (202
 `reconcileOddsCredit` and the wrappers, not `_countDegradeOpen`, and this landed before it either way; and
 `Object.keys` enumerates `'10'..'23'` before `'00'..'09'`, so the watch sorts the hours explicitly.
 
-## Task 1 — built 2026-10-30
+## Task 1 — built 2026-10-30 (`190eb14`)
 
 - `src/budget-helpers.js`: `bumpHour` (pure, exported) and `D1_OVERLOAD_MARK`; `_countDegradeOpen` takes ONE instant for the day
   key, the hour and `last`, and writes `by_hour` in the object it already wrote. `chargeOdds` and its call site are untouched.

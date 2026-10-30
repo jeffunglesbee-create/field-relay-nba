@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-30 (16:40Z) — the degrade counter files each event under its UTC hour
+
+**HEAD:** `8893c14` → `190eb14` (deployed 16:29Z, run 41088801910) → this close-out `9a74143` · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-30-degrade-by-hour.md
+
+- `odds:degraded:<date>` now carries `by_hour: { 'HH': { events, overload } }` in the write it already made (one put per degrade, asserted); the pairing watch prints it under the closed-day section and never fails on it. Real `chargeOdds` check 27 assertions / 12 mutants; watch self-test 136 / 46 mutants.
+- `docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md` was 18 days old (owner: do not assume it is current). Two claims were stale: the watch fails on an unreadable degrade block (so `by_hour` is a separate informational verdict), and the `gh api` run-listing is unavailable here.
+- Not met, and cannot be by a push: its three done conditions need a closed day with degrade events after 16:29Z. Wake `trig_0161cHqx3qRLq7hs7T1bWx5P` (2026-10-31T18:00Z) reads 2026-10-30 and re-arms daily until a day has events. Status PARTIAL.
+
 ## SESSION CLOSE-OUT — 2026-10-30 (15:50Z) — the Morning Report template says why it was written, and the replay found why
 
 **HEAD:** `e7bb7830` → `719fc0eb` → this close-out · **Branch:** main
