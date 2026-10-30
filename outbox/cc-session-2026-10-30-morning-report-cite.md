@@ -54,3 +54,4 @@ Automated: scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` reads it at 2026-10-31
 2. `field_pick` is the 57-character pass line on 19 of 19 days it has a row. Seen, not investigated.
 3. The cause of the other 14 template mornings of the 22 (the replay explained 2). The guard is gone, so a template morning from now on carries its reason on the row.
 4. The limits in "What option 4 did not close" in the task document: number words are not machine-checked, a name outside the slate is not detectable, `went_to_ot` NULL reads as silence, the open and close lines repeat across days.
+5. The stored `truth_is` rows for 2026-10-23, 2026-10-25 and 2026-10-28 still carry the draw-as-win headline (read from `/analytics/truth_is/{date}` on 2026-10-30). The tie fix changes new rows only; no recompute was fired.

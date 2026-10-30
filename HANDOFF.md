@@ -13,6 +13,7 @@
 - **Measured on the production model, 3 replays of 11 days.** Composed 11 of 11 each time; no slate name and no digit in any sentence. Lines carrying a game-flow, crowd or conduct marker: 31 of 43 (revision 1), 15 of 44 (live). 1 false fact in 87 sentences: an overtime claimed for Kraken 5, Maple Leafs 4, a regulation final per ESPN and the row. The sentence the model writes about each game is the channel that is left.
 - **Open, the owner's call: Task 4.** The relay writes each game's sentence from the row; the model picks the games and writes the open and close lines. About 100 minutes. Not needed before Saturday.
 - **STAGED, with its wake:** the first morning written by this code. Blocked by: the cron, Sat 2026-10-31 09:00Z. Unblocked by: that run writing the row for 2026-10-30. Verify: `curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/analytics/morning_report/2026-10-30?x=1"` shows `data.value.degraded` false with `cited`, or the reason; each score pair in `brief_text` matches `/context/date/2026-10-30`. Scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` reads it at 09:15Z, makes no recompute (Rule 78), and appends the result to the task document.
+- **Seen, not fixed:** the stored `truth_is` rows for 2026-10-23, 2026-10-25 and 2026-10-28 still carry the draw-as-win headline. The tie fix changes new rows only; no recompute was fired.
 - **Seen, not investigated:** `field_pick` is the 57-character pass line on 19 of 19 days it has a row.
 
 ---
