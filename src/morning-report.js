@@ -128,10 +128,12 @@ export function buildMorningReportPrompt(date, { stars, truthIs, citable }) {
         `- Never write a digit. Spell every number out as a word.\n` +
         `- You are told only the sport, the margin, the total and whether it went to overtime. You are not told ` +
         `which side was at home, who scored or how the game unfolded, so never say home, away, visitors, hosts, ` +
-        `comeback or late drama. Never compare one game with another ("closest", "biggest", "best", "only"). ` +
+        `comeback or late drama, and never describe how a game went: not tense, tight, close throughout, pulling away, ` +
+        `trading goals, early, late or until the final buzzer. Do not call a game an exhibition or a classic. ` +
+        `Never compare one game with another ("closest", "biggest", "best", "only"). ` +
         `Do not invent streaks, records, injuries, series, players or storylines.\n` +
-        `- Vary your wording from line to line. Avoid stock phrases such as "rhythm of", "marvel", "lessons", ` +
-        `"hard-fought", "brand new day" and "secured".\n` +
+        `- Vary your wording from line to line. Avoid stock phrases such as "rhythm of", "tapestry", "marvel", ` +
+        `"lessons", "hard-fought", "brand new day", "quiet hours", "spark" and "secured".\n` +
         `- Every line is one complete sentence of 10 to 25 words and ends with a full stop.\n\n` +
         `NIGHT STARS: ${starLine}\n` +
         `THE TRUTH IS (the relay prints it above your text; do not repeat it): ${truthGloss}\n\n` +

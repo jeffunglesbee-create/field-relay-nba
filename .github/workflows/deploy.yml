@@ -579,6 +579,17 @@ jobs:
           node scripts/check-morning-report-cite.mjs
           node scripts/mutate-morning-report-cite.mjs
 
+      # Phase 3's headline names a winner, and a tie has none. detectAnomalies gave every draw to the away side
+      # ("Troyes beat Toulouse 0-0 as a +450 underdog", a 0-0 counted as a shutout) and Phase 5 now prints that
+      # headline as written. Three real draw rows (2026-10-23..28) must yield no finding, an underdog home winner and
+      # an underdog away winner must be untouched, and "N unusual finishes" counts decisive games only. Then it
+      # breaks the rule 6 ways and requires the check to go red for the stated reason each time (Rule 90).
+      # docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md
+      - name: a drawn game is not a finding (Phase 3 names a winner)
+        run: |
+          node scripts/check-truth-is-ties.mjs
+          node scripts/mutate-truth-is-ties.mjs
+
       # ask 2: brief_type must be gated on finality and single-sourced. A fifth
       # write site pasting the 'game_recap' literal back in, or the enqueue
       # dropping isFinal, both silently restore the pre-fix behaviour.

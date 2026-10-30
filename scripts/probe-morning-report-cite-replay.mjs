@@ -54,7 +54,9 @@ const words = (s) => s.split(/\s+/).filter(Boolean).length;
 const bodyOf = (raw) => raw.split(/\r?\n/).map(l => l.replace(/^\s*(?:open|close|g[0-9]{1,3})\s*:/i, ''));
 // Words the 2026-10-30 prompt rules forbid or discourage. Counted for the reader of the result, never used to
 // drop a line: the contract does not judge prose (src/morning-report.js).
-const WATCH = ['home', 'away', 'visitor', 'host', 'closest', 'biggest', 'rhythm', 'marvel', 'lessons', 'hard-fought', 'hard fought', 'brand new day', 'secured', 'comeback'];
+const WATCH = ['home', 'visitor', 'host', 'closest', 'biggest', 'rhythm', 'tapestry', 'marvel', 'lessons', 'hard-fought', 'hard fought',
+  'brand new day', 'quiet hours', 'spark', 'secured', 'comeback', 'exhibition', 'classic', 'throughout', 'until the', 'pull(?:ed|ing)? away',
+  'traded', 'trading', 'remained', 'maintained', 'tense', 'tight'];
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 async function getJson(url) {

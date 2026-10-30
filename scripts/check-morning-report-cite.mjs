@@ -105,6 +105,8 @@ ok(() => P.includes('Do not repeat the score, the margin or the total')
   && P.includes('You are not told which side was at home')
   && P.includes('Never compare one game with another'),
   'the prompt does not let the model restate a score, say who was at home, or compare games');
+ok(() => P.includes('never describe how a game went') && P.includes('Do not call a game an exhibition'),
+  'the prompt does not let the model describe how a game went (it is given no play-by-play)');
 ok(() => !P.includes('"the visitors"') && !P.includes('"the home side"') && !P.includes('closest game of the night'),
   'the prompt offers no wording the model cannot back (2026-10-30 replay: "the home side", "closest of the night")');
 ok(() => buildMorningReportPrompt('d', { stars: null, truthIs: null, citable: [] }).includes('(no completed games)')

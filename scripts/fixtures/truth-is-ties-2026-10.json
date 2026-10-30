@@ -1,0 +1,77 @@
+{
+  "_about": "Real rows from /context/date (2026-10-23..28), trimmed to what detectAnomalies reads. ties: a drawn game given to the away side as the \"winner\" by Phase 3 until 2026-10-30. decisive: an underdog home winner and an underdog away winner, which the tie fix must leave alone.",
+  "ties": [
+    {
+      "id": "Ligue 1_2026-10-25_e401876423",
+      "sport": "Ligue 1",
+      "league": "Ligue 1",
+      "date": "2026-10-25",
+      "home": "Toulouse",
+      "away": "Troyes",
+      "home_score": 0,
+      "away_score": 0,
+      "note": null,
+      "drama_arc": "[52,52,52,52,52,52,52,52,52,52,52,52,52,52,57,57,62,62,70]",
+      "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-25T10:01:25.943Z\",\"_oddsProof\":{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"},\"moneyline\":{\"home\":-190,\"away\":500,\"draw\":350}}",
+      "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-25T16:05:14.993Z\",\"moneyline\":{\"home\":-175,\"away\":450,\"draw\":330},\"_kickoff\":{\"at\":\"2026-10-25T16:15Z\",\"verified\":true,\"late_minutes\":null}}"
+    },
+    {
+      "id": "MLS_2026-10-28_e761908",
+      "sport": "MLS",
+      "league": "MLS",
+      "date": "2026-10-28",
+      "home": "Miami",
+      "away": "Cincinnati",
+      "home_score": 2,
+      "away_score": 2,
+      "note": null,
+      "drama_arc": "[52,52,52,52,52,52,52,52,52,52,52,52,52,37,37,42,42,62,62,47,70]",
+      "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-28T10:00:51.001Z\",\"_oddsProof\":{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"},\"moneyline\":{\"home\":-205,\"away\":400,\"draw\":380}}",
+      "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-28T23:20:07.509Z\",\"moneyline\":{\"home\":-190,\"away\":360,\"draw\":380},\"_kickoff\":{\"at\":\"2026-10-28T23:30Z\",\"verified\":true,\"late_minutes\":null}}"
+    },
+    {
+      "id": "La Liga_2026-10-23_e401882836",
+      "sport": "La Liga",
+      "league": "La Liga",
+      "date": "2026-10-23",
+      "home": "Alavés",
+      "away": "Málaga",
+      "home_score": 1,
+      "away_score": 1,
+      "note": null,
+      "drama_arc": "[52,52,52,52,52,52,52,52,52,37,37,37,37,37,37,42,42,47,62]",
+      "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-23T10:01:37.420Z\",\"_oddsProof\":{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"},\"moneyline\":{\"home\":-165,\"away\":500,\"draw\":285}}",
+      "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-23T18:50:02.226Z\",\"moneyline\":{\"home\":-160,\"away\":500,\"draw\":280},\"_kickoff\":{\"at\":\"2026-10-23T19:00Z\",\"verified\":true,\"late_minutes\":null}}"
+    }
+  ],
+  "decisive": {
+    "home_winner": {
+      "id": "Serie A_2026-10-10_e401874947",
+      "sport": "Serie A",
+      "league": "Serie A",
+      "date": "2026-10-10",
+      "home": "Genoa",
+      "away": "Fiorentina",
+      "home_score": 2,
+      "away_score": 1,
+      "note": null,
+      "drama_arc": "null",
+      "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-10T10:03:36.962Z\",\"_oddsProof\":{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"},\"moneyline\":{\"home\":215,\"away\":125,\"draw\":215}}",
+      "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-10T11:55:36Z\",\"_oddsProof\":{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"},\"moneyline\":{\"home\":215,\"away\":125,\"draw\":215},\"_kickoff\":{\"at\":\"2026-10-10T13:00Z\",\"verified\":true,\"late_minutes\":null}}"
+    },
+    "away_winner": {
+      "id": "NFL_2026-10-08_e401872980",
+      "sport": "NFL",
+      "league": "NFL",
+      "date": "2026-10-08",
+      "home": "Cowboys",
+      "away": "Buccaneers",
+      "home_score": 16,
+      "away_score": 24,
+      "note": null,
+      "drama_arc": "null",
+      "opening_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-08T23:54:47Z\",\"moneyline\":{\"home\":-526,\"away\":400},\"total\":{\"over\":49.5,\"under\":49.5},\"_kickoff\":{\"at\":\"2026-10-09T00:15Z\",\"verified\":true,\"late_minutes\":null}}",
+      "closing_odds": "{\"source\":\"draftkings\",\"captured_at\":\"2026-10-08T23:54:47Z\",\"moneyline\":{\"home\":-526,\"away\":400},\"total\":{\"over\":49.5,\"under\":49.5},\"_kickoff\":{\"at\":\"2026-10-09T00:15Z\",\"verified\":true,\"late_minutes\":null}}"
+    }
+  }
+}

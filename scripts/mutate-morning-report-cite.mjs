@@ -260,6 +260,14 @@ const MUTATIONS = [
     anchor: 'Say "the winners", "the losers", ',
     replace: 'Say "the winners", "the visitors", ',
     expect: 'the prompt offers no wording the model cannot back' },
+
+  // The second replay (same 11 days, after the first fix): no side words left, but 43 game lines still told
+  // how the games went ("remained tight until the final buzzer", "traded goals throughout") with nothing
+  // in the input to say so, and called basketball games exhibitions.
+  { name: 'M50 the prompt stops forbidding a description of how a game went',
+    anchor: 'and never describe how a game went: not tense, tight, close throughout, pulling away, ',
+    replace: 'and ',
+    expect: 'the prompt does not let the model describe how a game went' },
 ];
 
 let bad = 0;

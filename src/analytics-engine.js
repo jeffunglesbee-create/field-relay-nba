@@ -453,10 +453,17 @@ function blowoutThreshold(sport) {
     return 20; // generic ceiling
 }
 
-function detectAnomalies(games) {
+// Exported (2026-10-30) so scripts/check-truth-is-ties.mjs runs THIS function.
+export function detectAnomalies(games) {
     const findings = [];
     for (const g of games) {
         if (typeof g.home_score !== 'number' || typeof g.away_score !== 'number') continue;
+        // Every finding below names a winner ("X beat Y", "X shut out Y"). A tie has none. Until
+        // 2026-10-30 a tie was given to the away side (winner = home > away ? home : away), so the
+        // headline for 2026-10-25 read "Troyes beat Toulouse 0-0 as a +450 underdog", a 0-0 counted as
+        // a shutout, and a drawn game was one of "N unusual finishes". Phase 5 now prints this headline
+        // as written, so the false sentence would have been the first one of the morning report.
+        if (g.home_score === g.away_score) continue;
         const margin = Math.abs(g.home_score - g.away_score);
         const winner = g.home_score > g.away_score ? g.home : g.away;
         const loser  = g.home_score > g.away_score ? g.away : g.home;
