@@ -1,5 +1,21 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-30 (17:35Z) — the Morning Report cites games by id: the relay writes every team name and score
+
+**HEAD:** `719fc0eb` → `95871f13` (deployed 17:27Z, run 41097629436) → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-30-morning-report-cite.md (task: docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3 and Task 4)
+
+- **Built and live, in three pushes each deployed green (`7f2549bc`, `a211e14f`, `95871f13`; Worker version `42b46f92`).** The owner chose option 4 at 12:12 ET, which supersedes the 15:50Z close-out's "Open, the owner's call: the fix" bullet.
+  Phase 5 no longer asks the model for a paragraph. It shows games under ids with the sport, margin, total and overtime flag and no team name; the model answers `open:`, `gN:`, `close:`; the relay prints Phase 3's headline, then `Winner n, Loser n.` ahead of each model sentence.
+  A line with a digit, a name from the night's slate, over 60 words, no full stop, a bad id or beyond the fifth pick is dropped and recorded by key and reason, never text (the route is public). The team-name guard, its probe and its workflow are deleted.
+  Row: `degraded` false with `cited` (and `dropped`), false with `no_games`, or true with `no-context`, `prose-empty` or `bad-structure`. Degraded check 42 assertions / 32 mutations, cite check 70 / 50, both in the deploy.
+- **Phase 3 named a winner for a draw.** `detectAnomalies` gave every tie to the away side. Stored rows: "Málaga beat Alavés 1-1" (10-23), "Troyes beat Toulouse 0-0" (10-25), "Cincinnati beat Miami 2-2" (10-28). Over the 22 days 2026-10-08..29, 9 change and 5 led with a draw described as a win. Fixed; `check-truth-is-ties.mjs` 12 assertions / 6 mutations in the deploy.
+- **Measured on the production model, 3 replays of 11 days.** Composed 11 of 11 each time; no slate name and no digit in any sentence. Lines carrying a game-flow, crowd or conduct marker: 31 of 43 (revision 1), 15 of 44 (live). 1 false fact in 87 sentences: an overtime claimed for Kraken 5, Maple Leafs 4, a regulation final per ESPN and the row. The sentence the model writes about each game is the channel that is left.
+- **Open, the owner's call: Task 4.** The relay writes each game's sentence from the row; the model picks the games and writes the open and close lines. About 100 minutes. Not needed before Saturday.
+- **STAGED, with its wake:** the first morning written by this code. Blocked by: the cron, Sat 2026-10-31 09:00Z. Unblocked by: that run writing the row for 2026-10-30. Verify: `curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/analytics/morning_report/2026-10-30?x=1"` shows `data.value.degraded` false with `cited`, or the reason; each score pair in `brief_text` matches `/context/date/2026-10-30`. Scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` reads it at 09:15Z, makes no recompute (Rule 78), and appends the result to the task document.
+- **Seen, not investigated:** `field_pick` is the 57-character pass line on 19 of 19 days it has a row.
+
+---
 ## SESSION CLOSE-OUT — 2026-10-30 (16:40Z) — the degrade counter files each event under its UTC hour
 
 **HEAD:** `8893c14` → `190eb14` (deployed 16:29Z, run 41088801910) → this close-out `9a74143` · **Branch:** main

@@ -42,3 +42,7 @@ Automated: scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` reads it at 2026-10-31
 2. A manual `POST /analytics/morning-report/recompute?date=2026-10-29` (one LLM call, relay secret, overwrites the template row, needs a `circadian-late` recompute after) was not fired: Rule 78.
 3. `field_pick` is the 57-character pass line on 19 of 19 days it has a row. Seen, not investigated.
 4. The cause of the other 14 template mornings.
+
+## Update, same day
+
+Carry-forward 1 was decided: the owner chose option 4 at 12:12 ET and it is built and live. `scripts/probe-morning-report-guard-replay.mjs`, its workflow and the team-name guard were removed in that work. See `outbox/cc-session-2026-10-30-morning-report-cite.md`.
