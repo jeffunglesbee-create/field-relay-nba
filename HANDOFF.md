@@ -58,7 +58,7 @@ landed (`45bbe898`): 0 of 27 mornings before, 53 of 107 since. Nothing recorded 
 
 - 2026-10-29 closed at `used 1184` of 3800, `by_site_sum 1184`, `unaccounted 0`; no cap refused (highest 15%), `refusals []`, 0 rows in `odds_budget_refusal`; D1 daily = sum of site rows = route; new labels: `archiveGameClosing` 30, `identityMismatches` 0, `archiveOddsBackfill` 0.
 - `degraded_open` 5 events / 30 credits, all "D1 DB is overloaded", last 16:04:03Z, under the 13 budget; unattributed by hour (the open `degrade-reasons-by-hour` CC-CMD got the data point).
-- Open: the pairing watch's `refusals, closed day 2026-10-29` line (not published yet); a wake at 2026-10-30T18:00Z appends it.
+- The pairing watch's `refusals, closed day 2026-10-29  : none` was read at 18:01Z (log of 16:55Z): D1 5 overloads, 10 path events against 13, `within`, PASS. Nothing open.
 
 ## SESSION CLOSE-OUT — 2026-10-29 (00:05Z) — a live match now gets shots: the stats poll, capped at 600, verified live
 

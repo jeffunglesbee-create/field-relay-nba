@@ -25,11 +25,9 @@ field-relay-nba: docs only. Reads were taken at origin/main as of 2026-10-30T12:
   2026-10-28 live proof, not by a day of real demand.
 - Not attributed: the hour and site of the 5 D1 overloads. The relay keeps no per-event record; the open
   `docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md` is the instrument and received this data point.
-- Not yet readable: the pairing watch's `refusals, closed day 2026-10-29` line.
+- Read at 18:01Z, after this document was first written: the pairing watch's `refusals, closed day 2026-10-29  : none` and its D1 block (5 overloads, 10 path events against the budget of 13, `within`), from `outbox/odds-pairing-rate-20261030T165531Z.log`.
 
-## Carry-forward, with its automation
+## Carry-forward
 
-The pairing watch (11:00Z cron, measured GitHub delay 104 to 405 minutes) publishes its closed-day-2026-10-29 log by about 17:45Z. A wake at
-2026-10-30T18:00Z reads the newest `outbox/odds-pairing-rate-*.log` and appends its `refusals, closed day 2026-10-29` line to the result
-section above. Unblocked by: that log existing on origin/main. Verify: it must print `refusals, closed day 2026-10-29  : none`, or name
-the capped site and hour.
+None. The one open item (the pairing watch's closed-day line) was read at 2026-10-30T18:01Z by the wake that was armed for it, and is recorded in
+`docs/CC-CMD-2026-09-16-odds-spend-attribution.md`, "Task 3 live day 1".

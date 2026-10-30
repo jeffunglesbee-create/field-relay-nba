@@ -596,7 +596,8 @@ made to produce this.
 
 **`degraded_open`: 5 events, 30 credits, all one reason:** `charge: D1_ERROR: D1 DB is overloaded. Requests queued for too long.`
 (5 of 5), last at 2026-10-29T16:04:03Z. Not the reason the wake flags as a defect ("charge: odds budget batch: the refusal"), so the
-refusal record and the decision did not disagree. 5 is under the watch's budget of 13 a day. The numbers at 18:34Z on 10-29 and at
+refusal record and the decision did not disagree. The watch's budget of 13 counts PATH events, and a one-batch overload counts 2, so the
+5 events read as 10 against 13 (`within`). The numbers at 18:34Z on 10-29 and at
 12:01Z on 10-30 are identical, so no event followed the 16:04Z one. **Not attributed:** the relay keeps a histogram (events, credits,
 reasons, last), not the hour or the site of each event; the instrument that would is `docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md`
 (OPEN, got this data point). No cause is claimed here.
@@ -608,6 +609,8 @@ caller is not identifiable from them. `identityMismatches` 0 and `archiveOddsBac
 **What was and was not observed:** no cap refused, so the real refusal is still not observed live. The highest cap use was 15%
 (`getWCPregameLambdas`). No cap number was changed.
 
-**Open, one item:** the pairing watch's line `refusals, closed day 2026-10-29` is not readable yet. The watch runs from an 11:00Z cron
-and GitHub's measured delay is 104 to 405 minutes, so its log for the closed day publishes between about 12:45Z and 17:45Z. A wake at
-2026-10-30T18:00Z reads `outbox/odds-pairing-rate-*.log` (newest) and appends the line here.
+**The pairing watch, read 2026-10-30T18:01Z** (`outbox/odds-pairing-rate-20261030T165531Z.log`, published 16:55Z, header names closed day 2026-10-29; it ran after the
+`by_hour` deploy and so carries the new line): `refusals, closed day 2026-10-29  : none`. D1 overload block for that day: `degraded_open :
+within`, `D1 overloads : 5`, `path events : 10` (budget 13), `all degrade events : 5`, `month-batch reason : 0`. Verdict line: PASS. This
+agrees with the route and with D1 above: no cap refused, the 5 events are the 5 overloads. Item 3 of the wake is closed; nothing about
+Task 3 live day 1 is open.

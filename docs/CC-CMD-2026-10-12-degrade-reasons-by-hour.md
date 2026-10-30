@@ -86,8 +86,10 @@ Two things the document did not know: the VOID window of the CFL experiment (202
 1. **Not yet observable.** Needs a closed day that has at least one degrade-open event after the deploy. 2026-10-29 had 5 (all before
    16:05Z, none after) and carries no map: it predates the field. Verify when one exists:
    `GET /budget/odds?date=<day>` then `daily.degraded_open.by_hour` is an object whose per-hour `events` sum to `daily.degraded_open.events`.
-2. **Met in the watch's tests:** it prints the map, prints `not-reported` (not zero) on the real 2026-10-29 record, and mutations B1, B2
-   and B9 turn those red. **Not yet seen on a live log**, for the reason in 1.
+2. **Met in the watch's tests, and half-seen live.** It prints the map, prints `not-reported` (not zero) on the real 2026-10-29 record, and
+   mutations B1, B2 and B9 turn those red. The `not-reported` half was then observed on a live log: `outbox/odds-pairing-rate-20261030T165531Z.log` (16:55Z on 2026-10-30, after
+   the deploy) printed `by hour (UTC) : not-reported — … this is NOT zero` for closed day 2026-10-29. The `reported` and `partial` prints are
+   not yet seen live, for the reason in 1.
 3. **Not met.** Needs 1, then the day's `by_hour` laid against that day's workflow runs. A wake reads the newest closed pairing-watch log
    daily until one has events after the deploy.
 
@@ -102,6 +104,6 @@ Two things the document did not know: the VOID window of the CFL experiment (202
 ## Data points
 
 - **2026-10-29:** 5 degrade-opens, 30 credits, all `charge: D1_ERROR: D1 DB is overloaded. Requests queued for too long.`, last at
-  16:04:03Z, none after (`GET /budget/odds?date=2026-10-29` read 2026-10-30T12:01Z; 18:34Z on the day read the same 5). Under the
-  watch's budget of 13. The hour of each is unknown; this is the figure `by_hour` would split. Recorded in
+  16:04:03Z, none after (`GET /budget/odds?date=2026-10-29` read 2026-10-30T12:01Z; 18:34Z on the day read the same 5). Read as
+  10 path events against the watch's budget of 13 (a one-batch overload counts 2): `within`. The hour of each is unknown; this is the figure `by_hour` would split. Recorded in
   `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`, "Task 3 live day 1".
