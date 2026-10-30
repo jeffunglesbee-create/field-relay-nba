@@ -1,5 +1,22 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-29 (00:05Z) — a live match now gets shots: the stats poll, capped at 600, verified live
+
+**HEAD:** `fac1e851` → `0f5dcede` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-29-bsd-pitch-renderer.md (Part 4)
+
+"use 600": `docs/CC-CMD-2026-10-29-bsd-live-shot-source.md` is **DONE**. AmbientDO polls BSD `/stats/` once a minute per activated, still-streaming match and hands
+the vendor's shotmap to the next bsd:stats, once. Cap 600 a day stored before each request; 429/401/402/403 stop the day; one Analytics Engine datapoint per attempt;
+`/ambient/state` reports `bsdPoll`. **Verified live** on event 7314 (Brasileirao): `outbox/bsd-fanout-live-verify-latest.json`, run 40976350727, `state verified` and
+`pollState poll-verified`, 26 shots per array. 20 scenarios / 72 assertions against the real code, 50 of 50 mutations caught.
+
+- **Found by the live run, fixed or recorded:** a deploy leaves the old Durable Object running for about five minutes (probe `diag.instanceStartedAt`, not the deploy time);
+  `side` is **null on `gameon` and `temporary_interruption`** (3 of 3), which CONTRACTS.md, the served note and the verifier all denied; the empty-catch ratchet pins a LINE
+  (`ambient-do.js:377`), so editing above it needs a re-pin in deploy.yml and guards.yml.
+- **Bounded, not closed:** `/ambient/bsd/subscribe` is unauthenticated; anyone can spend the 600.
+- **Wake still armed:** 2026-11-03T18:00Z, the weather first-call count.
+
+---
 ## SESSION CLOSE-OUT — 2026-10-29 (22:15Z) — the BSD request budget cannot be read from the vendor
 
 **HEAD:** `bc16168e` → this close-out · **Branch:** main

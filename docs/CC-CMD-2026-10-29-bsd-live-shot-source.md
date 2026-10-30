@@ -3,9 +3,10 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba (`src/ambient-do.js`) executes the relay half; jubilant-bassoon needs no change if the payload keeps its name
 **Filed:** 2026-10-29, by CC, found while verifying `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`
-**Status:** BLOCKED on one owner decision. Task 0 DONE 2026-10-29 (`outbox/bsd-request-budget-latest.json`, run 40962540855): the budget CANNOT be measured from the
-vendor, which is the finding. Task 1 design decided below. The build waits on ONE owner decision, a daily cap for the new poll
-(recommended: 600). Blocked by: that number. Unblocked by: "use 600" or another figure. Nothing else.
+**Status:** DONE 2026-10-29. Task 0: `outbox/bsd-request-budget-latest.json` (run 40962540855), the budget cannot be read from the vendor. Cap: the owner said "use 600". Built:
+relay `af644f66` (poll), `a8fcfe42` (verifier), deployed by Deploy RELAY Worker 40973653503. VERIFIED LIVE on event 7314 (Brasileirao, 2026-10-29) by
+`outbox/bsd-fanout-live-verify-latest.json` (run 40976350727): `state verified`, `pollState poll-verified`, two bsd:stats carried the vendor's shotmap array
+(26 shots each). Session doc: `outbox/cc-session-2026-10-29-bsd-pitch-renderer.md` (Part 4).
 
 ---
 
@@ -80,7 +81,7 @@ DECIDED 2026-10-29. Because neither the allowance nor the current spend can be r
 3. On the first `429`, stop polling for the rest of the UTC day and honour `Retry-After`. The documented ceiling of 10 requests/second per IP is
    not approached: peak 9 events is 0.15 requests/second.
 4. Every poll is one Analytics Engine datapoint (`bsd-stats-poll`), so the relay's own BSD demand becomes countable for the first time.
-5. The cap is the owner's number. Everything else is mechanical.
+5. The cap is the owner's number. Everything else is mechanical. (Said: 600, 2026-10-29.)
 
 Original recommendation, kept: AmbientDO polls
 `/api/v2/events/{id}/stats/` once per subscribed live event every 60 s (one call shared by every client, not one per
@@ -99,5 +100,9 @@ first: remove the merge and require the check to go red), plus the existing `bsd
 1. MET, as a finding: `outbox/bsd-request-budget-latest.json` exists on main, dated, with every header seen. It carries no limit and no
    steady-state rate because the vendor serves neither to this token; the artifact says `NO-HEADER` and `--check` re-derives it.
 2. MET. The decision is written above and in the session doc (Part 3) with the arithmetic.
-3. If built: `node scripts/check-bsd-ws-fanout.mjs` replays a `/stats/` body and the produced `bsd:stats.shotmap` is
-   the vendor's array, byte for byte; its mutation is caught.
+3. MET (built). The REAL constants and methods run against a fake clock, storage, fetch and Analytics Engine and the recorded 32-shot /stats/ body
+   (`scripts/check-bsd-stats-poll.mjs`, 20 scenarios, 72 assertions): the produced `bsd:stats.shotmap` is the vendor's array, byte for byte, once; the cap
+   binds at 600 and is stored before the request; 429/401/402/403 stop the day. Broken 47 ways in the source and 3 in the check, each caught
+   (`scripts/mutate-bsd-stats-poll.mjs`, none unapplied, none that fails to parse). The existing fan-out check's 42 mutations still pass.
+4. MET live: the premise the poll was built on, that a LIVE /stats/ carries the same `shotmap` key a finished one does, is confirmed: 22 shots at the 51st
+   minute of event 7314 (run 40975336128) and 26 at the 60th (run 40976350727), in the shape the client reads (`pos{x,y}`, boolean `home`).

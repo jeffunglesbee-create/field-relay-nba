@@ -151,6 +151,41 @@ User: "measure the BSD budget". Relay commit `scripts/bsd-request-budget.mjs` + 
 - **What would have gone wrong with the original plan:** the CC-CMD said to read the limit from the response headers and write it into an artifact.
   The artifact would have been empty, or, worse, filled from the pricing page's 7,500 as if measured.
 
+## Part 4 — the live shot poll (docs/CC-CMD-2026-10-29-bsd-live-shot-source.md, DONE)
+
+User: "use 600". Relay commits `af644f66` (poll, checks, gate wiring), `a8fcfe42` (live verifier), `6618a28b` and `babc8d56` (the `side: null` finding below), `0f5dcede` (the served stats note).
+
+- **What:** AmbientDO polls `GET /api/v2/events/{id}/stats/` once a minute for each match somebody activated whose WebSocket delivered a frame in the last
+  180 s, and hands the vendor's `shotmap` array to the next `bsd:stats` once. Cap 600 a day, counted and STORED before each request, reset at 00:00Z. The first
+  429, 401, 402 or 403 stops the UTC day. One Analytics Engine datapoint per attempt. `/ambient/state` reports `bsdPoll`. No client change: it already reads
+  `data.shotmap`.
+- **Checked:** `scripts/check-bsd-stats-poll.mjs` extracts the REAL constants and methods and runs 20 scenarios (72 assertions) against a fake clock, storage,
+  fetch and Analytics Engine and the recorded 32-shot /stats/ body. `mutate-bsd-stats-poll.mjs` breaks the source 47 ways and the check 3: 50 caught, none
+  unapplied, and every source mutation is refused if it does not even parse (a syntax error would "catch" it for the wrong reason). Two of my own
+  scenarios were wrong on first run (a stale frame in the collection; a non-numeric id that the WebSocket path can never produce), fixed in the test, not the code.
+- **Verified live** on event 7314 (Brasileirao, Atletico Mineiro v Cruzeiro, 2026-10-29): run 40976350727, `state verified` (12 assertions) and `pollState
+  poll-verified`: two bsd:stats carried the vendor's array, 26 shots each, records in the shape the client reads. The DO's own account: `calls 9`, `last kind ok
+  status 200`, `stopped null`, 27 shots cached. **The premise the poll rested on, that a LIVE /stats/ carries the `shotmap` key, had no live evidence when it was
+  built; it has now.**
+- **The count survives a restart, observed:** the next deploy (the `side` note, babc8d56) restarted the Durable Object at 00:18:31Z, and `/ambient/state` read
+  `bsdPoll.day 2026-10-29, calls 9, last {7314, ok, 200}` straight after: restored from storage, not zero. The in-memory cache was empty (`shotmapsCached []`) and the
+  timer unarmed until the next subscription, as designed. The day roll (09 -> the 30th) happens at the next poll round.
+- **Three things the live run found that no recorded frame had shown:**
+  1. **A Durable Object keeps running its old code after a deploy.** Deploy RELAY Worker finished 23:41Z; `/ambient/state` had no `bsdPoll` and
+     `diag.instanceStartedAt` read 22:13Z until 23:45:56Z, five minutes later (Cloudflare: code updates reach Durable Objects "eventually consistent, typically seconds to
+     minutes"). A live probe straight after a deploy reads the old object.
+  2. **`side` is null on dead-time markers.** The first live run failed one fan-out assertion on a bsd:ball with `situation: gameon` and `side: null`. The recorded
+     2026-10-28 frames already held two (602347 at 38:04 temporary_interruption, 39:18 gameon); the 392-frame census called `side` home|away and nobody had looked.
+     3 of 3 dead-time markers carry null. The verifier first kept no evidence of which frame broke it (fixed: it keeps the window's ball payloads on a failure), then
+     the assertion, CONTRACTS.md and the served `/bsd/contract` note were corrected.
+  3. **A pinned line number moved.** The empty-catch ratchet requires a bare catch at `src/ambient-do.js:347`; my 30 added lines moved it to 377. Caught by the local
+     deploy-step run, not by CI. Re-pinned in deploy.yml and guards.yml.
+- **Known and bounded:** `POST /ambient/bsd/subscribe` is unauthenticated, so anyone can subscribe a live tracked match and spend the cap (a handful of matches burn
+  600 in about an hour). The cap is the bound, and the loss is shots for the rest of the UTC day, not BSD quota beyond 600. The unauthenticated-routes CC-CMD already names
+  the class; this adds one more spender to it.
+- **Process:** the full deploy pre-step list (115 steps) ran on a clean worktree named `field-relay-nba` before the push. It found one real failure. Two later runs reused a
+  step list generated BEFORE a workflow edit and reported the old failure again; the list is now regenerated before every run.
+
 ## Carry-forwards
 
 The weather first-call wake (2026-11-03T18:00Z, `trig_01H7eoLwoZqWDj2q53XC1S8x`) is unchanged and not part of this.

@@ -172,9 +172,10 @@ is not the match it activated: AmbientDO fans every subscribed match out to ever
   stats:    { home: {...}, away: {...} }   // nested per side; the key count DIFFERS BY MATCH (43 per
                          //   side on event 602466; 36 to 39 on two DFB Pokal matches); throw_ins,
                          //   free_kicks, goal_kicks, corner_kicks, fouls are CUMULATIVE counts where present
-  shotmap:  null         // null: none of 170 recorded frames carries the key. Its WebSocket type is
-                         //   unobserved (the REST route serves an array). So NO shot is drawn during a live
-                         //   match; shots draw for a finished game, from R2. docs/CC-CMD-2026-10-29-bsd-live-shot-source.md
+  shotmap:  array | null // null = nothing new, on most frames: none of 170 recorded WebSocket event frames
+                         //   carries the key. An ARRAY is the vendor's REST /stats/ shotmap, unchanged, handed
+                         //   over ONCE per poll (and again after a (re)subscribe); [] means no shots yet.
+                         //   Records are the shotmap shape below (pos{x,y,z}, home, xg, ...).
   momentum: null         // as shotmap
 }
 ```
@@ -183,6 +184,17 @@ is not the match it activated: AmbientDO fans every subscribed match out to ever
 - `time.period`, over the 107 recorded event frames (3 matches, 2026-10-28): a string on 66 (`"1T"` 32,
   `"2T"` 33, `"HT"` 1) with `second` and `display` null; the number `1` or `2` on 40 (20 each), with a real
   `second` and `display`; the number `31` on 1, with `second` null. A reader must accept both types.
+- **Where a live match's shots come from (2026-10-29).** The WebSocket never carries them, so AmbientDO polls the REST
+  `GET /api/v2/events/{id}/stats/` once a minute for each match somebody activated whose WebSocket is still streaming
+  (a frame in the last 180 s), and puts the vendor's `shotmap` array into the next `bsd:stats`. Nothing about BSD's
+  allowance can be read (no rate-limit header of any name on 6 calls; the vendor's pages say none, 7,500 and 100 a
+  day: `outbox/bsd-request-budget-latest.json`), so the poll stops itself: a hard cap of **600 calls per UTC day**
+  (the owner's number), counted and stored BEFORE each request and reset at 00:00Z; the first 429, 401, 402 or 403
+  stops it for the rest of the day; one Analytics Engine datapoint per attempt (index `bsd-stats-poll`).
+  `GET /ambient/state` reports `bsdPoll`: `{cap, intervalMs, freshMs, day, calls, stopped, capReachedAt, last,
+  timerArmed, shotmapsCached[]}`. **Verified live** on event 7314 (Brasileirão, 2026-10-29): a bsd:stats carried a
+  26-shot array through the deployed relay (`outbox/bsd-fanout-live-verify-latest.json`, run 40976350727). Anyone can
+  POST `/ambient/bsd/subscribe` for a live tracked match, so an anonymous caller can spend the cap: the cap is the bound.
 - **Placing a shotmap record on the ball's pitch** (client, `_bsdShotPoint`). A record is `pos{x,y,z}`, `home`,
   `xg`: no top-level `x`, `y` or `team`. `pos` is target-goal-relative per team; the ball is on ONE shared pitch
   (home attacks x = 100). `/bsd/contract` `transformReference.sharedPitch`: home `x = 100 - x; y = 100 - y`,
