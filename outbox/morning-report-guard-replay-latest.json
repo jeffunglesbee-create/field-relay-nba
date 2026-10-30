@@ -1,0 +1,454 @@
+{
+  "ts": "2026-10-30T12:16:07.140Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "samples_per_date": 3,
+  "proxy_calls_enabled": true,
+  "dates": [
+    {
+      "date": "2026-10-26",
+      "fetched_at": "2026-10-30T12:16:07.143Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": false,
+          "offenders": [],
+          "prose": "The truth is that even on a quiet night of twenty games, the unexpected still finds a way to shine, led by the Mavericks overcoming the Heat as a +220 underdog in a rare 113-109 upset. While the Celtics dominated the Bulls with a 134-99 blowout and the Cavaliers narrowly edged the Timberwolves 127-125, the lack of late-game drama reminds us that consistency is the true hallmark of greatness. As we move forward into the new week, we carry the wisdom that every underdog victory serves as a gentle nudge to never underestimate the power of persistence, no matter how quiet the scoreboard may seem."
+        },
+        {
+          "sample": 2,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": false,
+          "offenders": [],
+          "prose": "The truth is that even on a quiet night of twenty games, the unexpected still finds a way to shine, led by the Mavericks overcoming the Heat as a +220 underdog in a rare 113-109 upset. While the Celtics dominated the Bulls with a 134-99 blowout and the Cavaliers narrowly edged the Timberwolves 127-125, the lack of late-game drama reminds us that consistency is the true hallmark of greatness. As we move forward into the new week, we carry the wisdom that every underdog victory serves as a gentle nudge to never underestimate the power of persistence, no matter how quiet the scoreboard may seem."
+        },
+        {
+          "sample": 3,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": false,
+          "offenders": [],
+          "prose": "The truth is that even on a quiet night of twenty games, the unexpected still finds a way to shine, led by the Mavericks overcoming the Heat as a +220 underdog in a rare 113-109 upset. While the Celtics dominated the Bulls with a 134-99 blowout and the Cavaliers narrowly edged the Timberwolves 127-125, the lack of late-game drama reminds us that consistency is the true hallmark of greatness. As we move forward into the new week, we carry the wisdom that every underdog victory serves as a gentle nudge to never underestimate the power of persistence, no matter how quiet the scoreboard may seem."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "night_stars": true,
+        "truth_headline": "4 unusual finishes — led by Mavericks beat Heat 113-109 as a +220 underdog.",
+        "stored_morning_report": "The truth is that even the quietest nights hold hidden magic, as evidenced by the Mavericks overcoming the odds to topple the Heat 113-109 as +220 underdogs. Elsewhere, the Cavaliers narrowly edged the Timberwolves 127-125 in a high-octane display of skill, while Austin Smotherman maintained his composure to finish at -16 and secure victory at the Butterfield Bermuda Championship. Though the schedule lacked late-game drama, these performances remind us that every possession carries weight and every athlete is striving for greatness. We carry forward the lesson that resilience often rewards the persistent, setting the stage for more inspired competition as the new week begins.",
+        "prompt_chars": 1589
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "fetched_at": "2026-10-30T12:16:16.678Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": true,
+          "offenders": [
+            {
+              "sport": "NHL",
+              "away": "Devils",
+              "home": "Stars",
+              "score": "5-1",
+              "missing_team": [
+                "Stars",
+                "Devils"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Panthers",
+              "home": "Jets",
+              "score": "5-1",
+              "missing_team": [
+                "Jets",
+                "Panthers"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Sabres",
+              "home": "Sharks",
+              "score": "2-0",
+              "missing_team": [
+                "Sharks",
+                "Sabres"
+              ],
+              "fabricated_qualifier": null
+            }
+          ],
+          "prose": "The truth is that the night belonged to the unexpected, highlighted by the Canadiens shutting out the Blues 2-0 in a defensive masterclass that defied the evening's scoring trends. Elsewhere, the Celtics edged the Nets in a thrilling 125-124 victory, while Austin Smotherman claimed the Butterfield Bermuda Championship at 16-under par, proving that precision remains the ultimate equalizer in sports. These moments remind us that whether on the ice, the court, or the green, every contest offers a fresh chance for greatness to emerge. As we move forward, we carry the lesson that resilience and composure are the true architects of victory in any arena.",
+          "retry": {
+            "model": "gemini-3.1-flash-lite",
+            "failure": null,
+            "words": 107,
+            "rejected": true,
+            "offenders": [
+              {
+                "sport": "NHL",
+                "away": "Senators",
+                "home": "Golden Knights",
+                "score": "1-4",
+                "missing_team": [
+                  "Golden Knights",
+                  "Senators"
+                ],
+                "fabricated_qualifier": null
+              }
+            ],
+            "prose": "The Truth Is, four unusual finishes defined this evening, headlined by the Canadiens shutting out the Blues 2-0 in a display of defensive mastery. Elsewhere, the Celtics edged the Nets 124-125 in a thrilling contest, while the Devils asserted their dominance over the Stars with a decisive 5-1 victory. Meanwhile, the Panthers showcased their offensive depth by defeating the Jets 5-1, and the Sabres blanked the Sharks 2-0. With twenty-eight games providing eleven close encounters, the spirit of competition remains vibrant and unpredictable. As we look toward the next slate of action, we carry forward the resilience and tactical brilliance displayed by these athletes across every arena."
+          }
+        },
+        {
+          "sample": 2,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": true,
+          "offenders": [
+            {
+              "sport": "NHL",
+              "away": "Devils",
+              "home": "Stars",
+              "score": "5-1",
+              "missing_team": [
+                "Stars",
+                "Devils"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Panthers",
+              "home": "Jets",
+              "score": "5-1",
+              "missing_team": [
+                "Jets",
+                "Panthers"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Sabres",
+              "home": "Sharks",
+              "score": "2-0",
+              "missing_team": [
+                "Sharks",
+                "Sabres"
+              ],
+              "fabricated_qualifier": null
+            }
+          ],
+          "prose": "The truth is that the night belonged to the unexpected, highlighted by the Canadiens shutting out the Blues 2-0 in a defensive masterclass that defied the evening's scoring trends. Elsewhere, the Celtics edged the Nets in a thrilling 125-124 victory, while Austin Smotherman claimed the Butterfield Bermuda Championship at 16-under par, proving that precision remains the ultimate equalizer in sports. These moments remind us that whether on the ice, the court, or the green, every contest offers a fresh chance for greatness to emerge. As we move forward, we carry the lesson that resilience and composure are the true architects of victory in any arena.",
+          "retry": {
+            "model": "gemini-3.1-flash-lite",
+            "failure": null,
+            "words": 107,
+            "rejected": true,
+            "offenders": [
+              {
+                "sport": "NHL",
+                "away": "Senators",
+                "home": "Golden Knights",
+                "score": "1-4",
+                "missing_team": [
+                  "Golden Knights",
+                  "Senators"
+                ],
+                "fabricated_qualifier": null
+              }
+            ],
+            "prose": "The Truth Is, four unusual finishes defined this evening, headlined by the Canadiens shutting out the Blues 2-0 in a display of defensive mastery. Elsewhere, the Celtics edged the Nets 124-125 in a thrilling contest, while the Devils asserted their dominance over the Stars with a decisive 5-1 victory. Meanwhile, the Panthers showcased their offensive depth by defeating the Jets 5-1, and the Sabres blanked the Sharks 2-0. With twenty-eight games providing eleven close encounters, the spirit of competition remains vibrant and unpredictable. As we look toward the next slate of action, we carry forward the resilience and tactical brilliance displayed by these athletes across every arena."
+          }
+        },
+        {
+          "sample": 3,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": true,
+          "offenders": [
+            {
+              "sport": "NHL",
+              "away": "Devils",
+              "home": "Stars",
+              "score": "5-1",
+              "missing_team": [
+                "Stars",
+                "Devils"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Panthers",
+              "home": "Jets",
+              "score": "5-1",
+              "missing_team": [
+                "Jets",
+                "Panthers"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Sabres",
+              "home": "Sharks",
+              "score": "2-0",
+              "missing_team": [
+                "Sharks",
+                "Sabres"
+              ],
+              "fabricated_qualifier": null
+            }
+          ],
+          "prose": "The truth is that the night belonged to the unexpected, highlighted by the Canadiens shutting out the Blues 2-0 in a defensive masterclass that defied the evening's scoring trends. Elsewhere, the Celtics edged the Nets in a thrilling 125-124 victory, while Austin Smotherman claimed the Butterfield Bermuda Championship at 16-under par, proving that precision remains the ultimate equalizer in sports. These moments remind us that whether on the ice, the court, or the green, every contest offers a fresh chance for greatness to emerge. As we move forward, we carry the lesson that resilience and composure are the true architects of victory in any arena.",
+          "retry": {
+            "model": "gemini-3.1-flash-lite",
+            "failure": null,
+            "words": 107,
+            "rejected": true,
+            "offenders": [
+              {
+                "sport": "NHL",
+                "away": "Senators",
+                "home": "Golden Knights",
+                "score": "1-4",
+                "missing_team": [
+                  "Golden Knights",
+                  "Senators"
+                ],
+                "fabricated_qualifier": null
+              }
+            ],
+            "prose": "The Truth Is, four unusual finishes defined this evening, headlined by the Canadiens shutting out the Blues 2-0 in a display of defensive mastery. Elsewhere, the Celtics edged the Nets 124-125 in a thrilling contest, while the Devils asserted their dominance over the Stars with a decisive 5-1 victory. Meanwhile, the Panthers showcased their offensive depth by defeating the Jets 5-1, and the Sabres blanked the Sharks 2-0. With twenty-eight games providing eleven close encounters, the spirit of competition remains vibrant and unpredictable. As we look toward the next slate of action, we carry forward the resilience and tactical brilliance displayed by these athletes across every arena."
+          }
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "night_stars": true,
+        "truth_headline": "4 unusual finishes — led by Canadiens shut out Blues 2-0.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-27. Tomorrow brings another set.",
+        "prompt_chars": 1553
+      }
+    },
+    {
+      "date": "2026-10-28",
+      "fetched_at": "2026-10-30T12:16:34.448Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 106,
+          "rejected": false,
+          "offenders": [],
+          "prose": "The truth is that sixteen unusual finishes redefined the landscape last night, led by the stunning upset where the Cincinnati beat the Miami as a +360 underdog. Elsewhere, the Rockets dominated the Bucks in a lopsided 132-100 victory, while the Warriors narrowly edged the Timberwolves 119-114 in a high-stakes battle. The Maple Leafs and Kraken provided the night’s most gripping theater, concluding in a narrow 5-4 decision. As we look toward the horizon, these unexpected outcomes remind us that resilience and momentum are fleeting treasures. We carry forward the wisdom that no lead is ever truly safe and every underdog possesses the potential to rewrite history."
+        },
+        {
+          "sample": 2,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 106,
+          "rejected": false,
+          "offenders": [],
+          "prose": "The truth is that sixteen unusual finishes redefined the landscape last night, led by the stunning upset where the Cincinnati beat the Miami as a +360 underdog. Elsewhere, the Rockets dominated the Bucks in a lopsided 132-100 victory, while the Warriors narrowly edged the Timberwolves 119-114 in a high-stakes battle. The Maple Leafs and Kraken provided the night’s most gripping theater, concluding in a narrow 5-4 decision. As we look toward the horizon, these unexpected outcomes remind us that resilience and momentum are fleeting treasures. We carry forward the wisdom that no lead is ever truly safe and every underdog possesses the potential to rewrite history."
+        },
+        {
+          "sample": 3,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 106,
+          "rejected": false,
+          "offenders": [],
+          "prose": "The truth is that sixteen unusual finishes redefined the landscape last night, led by the stunning upset where the Cincinnati beat the Miami as a +360 underdog. Elsewhere, the Rockets dominated the Bucks in a lopsided 132-100 victory, while the Warriors narrowly edged the Timberwolves 119-114 in a high-stakes battle. The Maple Leafs and Kraken provided the night’s most gripping theater, concluding in a narrow 5-4 decision. As we look toward the horizon, these unexpected outcomes remind us that resilience and momentum are fleeting treasures. We carry forward the wisdom that no lead is ever truly safe and every underdog possesses the potential to rewrite history."
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "night_stars": true,
+        "truth_headline": "16 unusual finishes — led by Cincinnati beat Miami 2-2 as a +360 underdog.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-28. Tomorrow brings another set.",
+        "prompt_chars": 1544
+      }
+    },
+    {
+      "date": "2026-10-29",
+      "fetched_at": "2026-10-30T12:16:43.701Z",
+      "samples": [
+        {
+          "sample": 1,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": true,
+          "offenders": [
+            {
+              "sport": "NHL",
+              "away": "Blackhawks",
+              "home": "Red Wings",
+              "score": "1-4",
+              "missing_team": [
+                "Red Wings",
+                "Blackhawks"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Bruins",
+              "home": "Blues",
+              "score": "1-4",
+              "missing_team": [
+                "Blues",
+                "Bruins"
+              ],
+              "fabricated_qualifier": null
+            }
+          ],
+          "prose": "The truth is, sometimes a quiet night is the perfect canvas for steady, reliable excellence. The Dream showcased their poise in an 80-69 victory over the Valkyries, while the Lightning displayed true grit by overcoming the Jets in a high-scoring 6-4 affair. Meanwhile, the Grizzlies reminded us of their offensive potential with a dominant 124-103 performance against the Trail Blazers. These results highlight the beauty of consistency and the quiet confidence required to compete at the highest level. As we move forward, we carry the lesson that even the most uneventful evenings provide the necessary foundation for the greatness we anticipate in the days ahead.",
+          "retry": {
+            "model": "gemini-3.1-flash-lite",
+            "failure": null,
+            "words": 106,
+            "rejected": false,
+            "offenders": [],
+            "prose": "The truth is, sometimes a quiet night is exactly what the soul needs to appreciate the rhythm of the game. While the scoreboard remained steady, the Hawks edged the Cavaliers in a narrow 114-111 victory, and the Pelicans secured a 132-120 win over the Kings. On the ice, the Red Wings dominated the Blackhawks 4-1, while the Blues held firm in a 4-1 triumph over the Bruins. These performances remind us that even without late-game dramatics, excellence is always unfolding on the court and the rink. As we move into the next cycle, we carry forward the steady confidence that consistency is the foundation of greatness."
+          }
+        },
+        {
+          "sample": 2,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": true,
+          "offenders": [
+            {
+              "sport": "NHL",
+              "away": "Blackhawks",
+              "home": "Red Wings",
+              "score": "1-4",
+              "missing_team": [
+                "Red Wings",
+                "Blackhawks"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Bruins",
+              "home": "Blues",
+              "score": "1-4",
+              "missing_team": [
+                "Blues",
+                "Bruins"
+              ],
+              "fabricated_qualifier": null
+            }
+          ],
+          "prose": "The truth is, sometimes a quiet night is the perfect canvas for steady, reliable excellence. The Dream showcased their poise in an 80-69 victory over the Valkyries, while the Lightning displayed true grit by overcoming the Jets in a high-scoring 6-4 affair. Meanwhile, the Grizzlies reminded us of their offensive potential with a dominant 124-103 performance against the Trail Blazers. These results highlight the beauty of consistency and the quiet confidence required to compete at the highest level. As we move forward, we carry the lesson that even the most uneventful evenings provide the necessary foundation for the greatness we anticipate in the days ahead.",
+          "retry": {
+            "model": "gemini-3.1-flash-lite",
+            "failure": null,
+            "words": 106,
+            "rejected": false,
+            "offenders": [],
+            "prose": "The truth is, sometimes a quiet night is exactly what the soul needs to appreciate the rhythm of the game. While the scoreboard remained steady, the Hawks edged the Cavaliers in a narrow 114-111 victory, and the Pelicans secured a 132-120 win over the Kings. On the ice, the Red Wings dominated the Blackhawks 4-1, while the Blues held firm in a 4-1 triumph over the Bruins. These performances remind us that even without late-game dramatics, excellence is always unfolding on the court and the rink. As we move into the next cycle, we carry forward the steady confidence that consistency is the foundation of greatness."
+          }
+        },
+        {
+          "sample": 3,
+          "model": "gemini-3.1-flash-lite",
+          "failure": null,
+          "words": 105,
+          "rejected": true,
+          "offenders": [
+            {
+              "sport": "NHL",
+              "away": "Blackhawks",
+              "home": "Red Wings",
+              "score": "1-4",
+              "missing_team": [
+                "Red Wings",
+                "Blackhawks"
+              ],
+              "fabricated_qualifier": null
+            },
+            {
+              "sport": "NHL",
+              "away": "Bruins",
+              "home": "Blues",
+              "score": "1-4",
+              "missing_team": [
+                "Blues",
+                "Bruins"
+              ],
+              "fabricated_qualifier": null
+            }
+          ],
+          "prose": "The truth is, sometimes a quiet night is the perfect canvas for steady, reliable excellence. The Dream showcased their poise in an 80-69 victory over the Valkyries, while the Lightning displayed true grit by overcoming the Jets in a high-scoring 6-4 affair. Meanwhile, the Grizzlies reminded us of their offensive potential with a dominant 124-103 performance against the Trail Blazers. These results highlight the beauty of consistency and the quiet confidence required to compete at the highest level. As we move forward, we carry the lesson that even the most uneventful evenings provide the necessary foundation for the greatness we anticipate in the days ahead.",
+          "retry": {
+            "model": "gemini-3.1-flash-lite",
+            "failure": null,
+            "words": 106,
+            "rejected": false,
+            "offenders": [],
+            "prose": "The truth is, sometimes a quiet night is exactly what the soul needs to appreciate the rhythm of the game. While the scoreboard remained steady, the Hawks edged the Cavaliers in a narrow 114-111 victory, and the Pelicans secured a 132-120 win over the Kings. On the ice, the Red Wings dominated the Blackhawks 4-1, while the Blues held firm in a 4-1 triumph over the Bruins. These performances remind us that even without late-game dramatics, excellence is always unfolding on the court and the rink. As we move into the next cycle, we carry forward the steady confidence that consistency is the foundation of greatness."
+          }
+        }
+      ],
+      "inputs": {
+        "recap_games": 16,
+        "night_stars": true,
+        "truth_headline": "Quiet night. The truth is, sometimes that's the story.",
+        "stored_morning_report": "Quiet night across the slate for 2026-10-29. Tomorrow brings another set.",
+        "prompt_chars": 1521
+      }
+    }
+  ],
+  "summary": {
+    "samples": 12,
+    "answered": 12,
+    "no_text": {},
+    "accepted": 6,
+    "rejected": 6,
+    "rejected_by_date": {
+      "2026-10-27": 3,
+      "2026-10-29": 3
+    },
+    "qualifiers": {},
+    "missing_teams": {
+      "Stars": 3,
+      "Devils": 3,
+      "Jets": 3,
+      "Panthers": 3,
+      "Sharks": 3,
+      "Sabres": 3,
+      "Red Wings": 3,
+      "Blackhawks": 3,
+      "Blues": 3,
+      "Bruins": 3
+    },
+    "models": {
+      "gemini-3.1-flash-lite": 12
+    },
+    "retried": 6,
+    "retry_accepted": 3,
+    "retry_still_rejected": 3,
+    "retry_no_text": 0
+  }
+}
