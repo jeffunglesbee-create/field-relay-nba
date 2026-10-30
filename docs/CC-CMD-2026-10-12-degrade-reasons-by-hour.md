@@ -56,3 +56,10 @@ ran in them. Record it in this document.
    `not-reported`, not as zero.
 3. One day's overloads laid against that day's runs, in this document, with the
    hours named.
+
+## Data points while OPEN
+
+- **2026-10-29:** 5 degrade-opens, 30 credits, all `charge: D1_ERROR: D1 DB is overloaded. Requests queued for too long.`, last at
+  16:04:03Z, none after (`GET /budget/odds?date=2026-10-29` read 2026-10-30T12:01Z; 18:34Z on the day read the same 5). Under the
+  watch's budget of 13. The hour of each is unknown; this is the figure `by_hour` would split. Recorded in
+  `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`, "Task 3 live day 1".

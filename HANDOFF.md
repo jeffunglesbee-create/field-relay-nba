@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-30 (12:15Z) — Task 3 live day 1: the per-site caps held on 2026-10-29
+
+**HEAD:** `e38d51b` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-30-task3-live-day1.md (result: docs/CC-CMD-2026-09-16-odds-spend-attribution.md, "Task 3 live day 1")
+
+- 2026-10-29 closed at `used 1184` of 3800, `by_site_sum 1184`, `unaccounted 0`; no cap refused (highest 15%), `refusals []`, 0 rows in `odds_budget_refusal`; D1 daily = sum of site rows = route; new labels: `archiveGameClosing` 30, `identityMismatches` 0, `archiveOddsBackfill` 0.
+- `degraded_open` 5 events / 30 credits, all "D1 DB is overloaded", last 16:04:03Z, under the 13 budget; unattributed by hour (the open `degrade-reasons-by-hour` CC-CMD got the data point).
+- Open: the pairing watch's `refusals, closed day 2026-10-29` line (not published yet); a wake at 2026-10-30T18:00Z appends it.
+
 ## SESSION CLOSE-OUT — 2026-10-29 (00:05Z) — a live match now gets shots: the stats poll, capped at 600, verified live
 
 **HEAD:** `fac1e851` → `0f5dcede` → this close-out · **Branch:** main
