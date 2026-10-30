@@ -1,5 +1,30 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-30 (15:50Z) — the Morning Report template says why it was written, and the replay found why
+
+**HEAD:** `e7bb7830` → `719fc0eb` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-10-30-morning-report-degraded.md (task: docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md)
+
+"Why is the late brief a template?" 16 of the 22 mornings 2026-10-08..29 read `Quiet night across the slate for ${date}. Tomorrow brings another set.` It began 2026-07-15, the day the team-name guard
+landed (`45bbe898`): 0 of 27 mornings before, 53 of 107 since. Nothing recorded the cause: `analytics_runs.errors` is `[]`, no `morning_report` row carried a `degraded` key (0 of 134), and the Worker's
+`console.error` is not kept.
+
+- **Built and deployed (`719fc0eb`, run 41053986527, version `2b9aa701`, live 12:21Z):** `morning_report.value` carries `degraded` (false on a good morning) and, on a template morning, `degraded_reason`
+  (`prose-empty` with `proxy_failure`, or `team-name-guard` with `guard.first`: the game, the score, the missing team or the qualifier text). It appears in `/analytics/degraded` (`needs_manual_recompute`) and
+  `session_health`. `circadian_late` is not marked: it is PURE, so the sweep would re-copy the template daily. The rejected prose is not stored; the route is public. Unchanged: the template text, KV,
+  `aiCalls`, the guard's decision (0 differences in 9,000 generated cases against the previous code). `check-morning-report-degraded.mjs` (40 assertions) and `mutate-morning-report-degraded.mjs`
+  (19 mutations, each caught for its stated reason) run in deploy.yml before the deploy.
+- **The replay found the cause (run 41054042599, `outbox/morning-report-guard-replay-latest.json`).** The proxy answered 12 of 12. The guard rejected accurate prose on 10-27 and 10-29, and no sample was rejected
+  for a city. Its score test is `prose.includes("5-1")`, a plain substring: hockey 5-1 and 4-1 are found inside the basketball scores 125-124 and 124-103, and a 2-0 matches a second game with the same score;
+  the guard then asks for the teams of a game nobody wrote about. A corrective retry was accepted on 3 of 6 and fails on 10-27 for the same reason. The three samples per date are identical, so these are 4
+  observations; the other 14 template mornings are unexplained.
+- **Open, the owner's call: the fix.** Four candidates in the task document; recommended: find a score as a whole number and count it as explained when any game with that score has its teams named.
+  A manual `POST /analytics/morning-report/recompute?date=2026-10-29` (one LLM call, the relay secret, overwrites the template row, needs a `circadian-late` recompute after) was not fired: Rule 78.
+- **Seen, not investigated:** `field_pick` is the 57-character pass line on 19 of 19 days it has a row.
+- **STAGED, with its wake:** the `degraded` key on a real row. The first cron with the new code is Sat 2026-10-31 09:00Z; scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` reads it at 09:15Z. Verify:
+  `curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/analytics/morning_report/2026-10-30?x=1"` shows `data.value.degraded`, with its reason when true.
+
+---
 ## SESSION CLOSE-OUT — 2026-10-30 (12:15Z) — Task 3 live day 1: the per-site caps held on 2026-10-29
 
 **HEAD:** `e38d51b` → this close-out · **Branch:** main
