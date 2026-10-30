@@ -7,8 +7,9 @@
 
 "use 600": `docs/CC-CMD-2026-10-29-bsd-live-shot-source.md` is **DONE**. AmbientDO polls BSD `/stats/` once a minute per activated, still-streaming match and hands
 the vendor's shotmap to the next bsd:stats, once. Cap 600 a day stored before each request; 429/401/402/403 stop the day; one Analytics Engine datapoint per attempt;
-`/ambient/state` reports `bsdPoll`. **Verified live** on event 7314 (Brasileirao): `outbox/bsd-fanout-live-verify-latest.json`, run 40976350727, `state verified` and
-`pollState poll-verified`, 26 shots per array. 20 scenarios / 72 assertions against the real code, 50 of 50 mutations caught.
+`/ambient/state` reports `bsdPoll`. **Verified live** on event 7314 (Brasileirao): `outbox/bsd-fanout-live-verify-latest.json` at `d78d51dd`, run 40976350727, `state verified` and
+`pollState poll-verified`, 26 shots per array. 20 scenarios / 72 assertions against the real code, 50 of 50 mutations caught. The UTC day roll was then observed live
+on 2026-10-30 (run 40993024320, event 602470, artifact `07a0c78a`): `bsdPoll` went from `day 2026-10-29, calls 9` to `day 2026-10-30, calls 1` at the first round.
 
 - **Found by the live run, fixed or recorded:** a deploy leaves the old Durable Object running for about five minutes (probe `diag.instanceStartedAt`, not the deploy time);
   `side` is **null on `gameon` and `temporary_interruption`** (3 of 3), which CONTRACTS.md, the served note and the verifier all denied; the empty-catch ratchet pins a LINE

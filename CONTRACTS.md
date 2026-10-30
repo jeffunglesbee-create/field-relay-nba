@@ -193,7 +193,7 @@ is not the match it activated: AmbientDO fans every subscribed match out to ever
   stops it for the rest of the day; one Analytics Engine datapoint per attempt (index `bsd-stats-poll`).
   `GET /ambient/state` reports `bsdPoll`: `{cap, intervalMs, freshMs, day, calls, stopped, capReachedAt, last,
   timerArmed, shotmapsCached[]}`. **Verified live** on event 7314 (Brasileirão, 2026-10-29): a bsd:stats carried a
-  26-shot array through the deployed relay (`outbox/bsd-fanout-live-verify-latest.json`, run 40976350727). Anyone can
+  26-shot array through the deployed relay (`outbox/bsd-fanout-live-verify-latest.json` at `d78d51dd`, run 40976350727). Anyone can
   POST `/ambient/bsd/subscribe` for a live tracked match, so an anonymous caller can spend the cap: the cap is the bound.
 - **Placing a shotmap record on the ball's pitch** (client, `_bsdShotPoint`). A record is `pos{x,y,z}`, `home`,
   `xg`: no top-level `x`, `y` or `team`. `pos` is target-goal-relative per team; the ball is on ONE shared pitch

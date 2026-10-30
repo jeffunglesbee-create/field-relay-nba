@@ -170,6 +170,11 @@ User: "use 600". Relay commits `af644f66` (poll, checks, gate wiring), `a8fcfe42
 - **The count survives a restart, observed:** the next deploy (the `side` note, babc8d56) restarted the Durable Object at 00:18:31Z, and `/ambient/state` read
   `bsdPoll.day 2026-10-29, calls 9, last {7314, ok, 200}` straight after: restored from storage, not zero. The in-memory cache was empty (`shotmapsCached []`) and the
   timer unarmed until the next subscription, as designed. The day roll (09 -> the 30th) happens at the next poll round.
+  **Day roll observed live, 2026-10-30:** `/ambient/state` read `day 2026-10-29, calls 9` at 02:39Z with nothing subscribed. Run 40993024320 (event 602470,
+  Categoría Primera A, second half) subscribed; the first round at 02:41:23Z left `day 2026-10-30, calls 1, stopped null, last {602470, ok, 200}`, 9 shots cached. The run
+  ended `state verified`, `pollState poll-verified`, `statsWithShotmapArray 3`, `shotsSeen 31`, `bsdPoll` `day 2026-10-30, calls 3` (artifact commit `07a0c78a`). That
+  run overwrote `outbox/bsd-fanout-live-verify-latest.json`, so the event 7314 result is cited by its artifact commit `d78d51dd`. The view does not roll the day: until a
+  round runs, `/ambient/state` reports the last day polled.
 - **Three things the live run found that no recorded frame had shown:**
   1. **A Durable Object keeps running its old code after a deploy.** Deploy RELAY Worker finished 23:41Z; `/ambient/state` had no `bsdPoll` and
      `diag.instanceStartedAt` read 22:13Z until 23:45:56Z, five minutes later (Cloudflare: code updates reach Durable Objects "eventually consistent, typically seconds to

@@ -5,8 +5,8 @@
 **Filed:** 2026-10-29, by CC, found while verifying `docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md`
 **Status:** DONE 2026-10-29. Task 0: `outbox/bsd-request-budget-latest.json` (run 40962540855), the budget cannot be read from the vendor. Cap: the owner said "use 600". Built:
 relay `af644f66` (poll), `a8fcfe42` (verifier), deployed by Deploy RELAY Worker 40973653503. VERIFIED LIVE on event 7314 (Brasileirao, 2026-10-29) by
-`outbox/bsd-fanout-live-verify-latest.json` (run 40976350727): `state verified`, `pollState poll-verified`, two bsd:stats carried the vendor's shotmap array
-(26 shots each). Session doc: `outbox/cc-session-2026-10-29-bsd-pitch-renderer.md` (Part 4).
+`outbox/bsd-fanout-live-verify-latest.json` at artifact commit `d78d51dd` (run 40976350727; `latest` has since been overwritten by run 40993024320): `state verified`, `pollState poll-verified`, two bsd:stats carried the vendor's shotmap array
+(26 shots each). The UTC day roll was then observed live on 2026-10-30 (done condition 5). Session doc: `outbox/cc-session-2026-10-29-bsd-pitch-renderer.md` (Part 4).
 
 ---
 
@@ -106,3 +106,9 @@ first: remove the merge and require the check to go red), plus the existing `bsd
    (`scripts/mutate-bsd-stats-poll.mjs`, none unapplied, none that fails to parse). The existing fan-out check's 42 mutations still pass.
 4. MET live: the premise the poll was built on, that a LIVE /stats/ carries the same `shotmap` key a finished one does, is confirmed: 22 shots at the 51st
    minute of event 7314 (run 40975336128) and 26 at the 60th (run 40976350727), in the shape the client reads (`pos{x,y}`, boolean `home`).
+5. MET live, 2026-10-30: the UTC day roll. `/ambient/state` read `bsdPoll.day 2026-10-29, calls 9` at 02:39Z with nothing subscribed (`bsdSubscribed []`,
+   `timerArmed false`); the roll lives only in `_bsdPollRound`, so it waits for a round. Run 40993024320 (`bsd-fanout-live-verify.yml`, event 602470,
+   Categoría Primera A, Atlético Nacional v Independiente Santa Fe, second half; verifier started 02:40:20Z) left `day 2026-10-30, calls 1, stopped null` after its
+   first round at 02:41:23Z. It ended `state verified`, `pollState poll-verified`, `statsWithShotmapArray 3`, `shotsSeen 31`, `bsdPoll` `day 2026-10-30, calls 3`;
+   artifact commit `07a0c78a`. The view does not roll the day itself: between midnight and the next subscribed round `/ambient/state` reports the last day
+   polled, which is what its `day` field is for.
