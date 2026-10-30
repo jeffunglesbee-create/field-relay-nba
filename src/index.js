@@ -9684,7 +9684,9 @@ const BSD_WS_STATS_NOTE =
     'Of 170 recorded event frames (4 matches, 2026-10-28): time.period is a string on 97 ("1T" 47, "2T" 49, "HT" 1) ' +
     'with second and display null; the number 1 or 2 on 72 (40 and 32), with a real second and display; the number 31 ' +
     'on 1, with second null. A reader must accept both types. shotmap and momentum are null: none of the 170 carries ' +
-    'either key. stats is nested per side and its key count differs by match and grows within one: 43 per side on ' +
+    'either key. AmbientDO now fills shotmap itself from the vendor\'s REST /stats/ (2026-10-29: polled once a minute ' +
+    'per activated match, capped at 600 a day): an ARRAY on the first bsd:stats after each poll and null otherwise, ' +
+    '[] meaning no shots yet; momentum stays null. stats is nested per side and its key count differs by match and grows within one: 43 per side on ' +
     'event 602466, 36 to 41 on the other three. Do not read it as a fixed key set. Every event frame also carries ' +
     'websocket_plus.';
 

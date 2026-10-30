@@ -81,6 +81,8 @@ export const assertions = (c) => [
     && /Only one second half has been measured/.test(c?.frameShapes?.livedata?.note ?? '')],
   ['the stats note tells a reader to accept both period types',
     /accept both types/.test(c?.frameShapes?.stats?.note ?? '')],
+  ['the stats note says when shotmap is an array (the poll), so the null example is not read as "never"',
+    /an ARRAY on the first bsd:stats after each poll/.test(c?.frameShapes?.stats?.note ?? '')],
   // The shot placement on the pitch the ball is drawn on, measured 2026-10-29 by an exact join of goal
   // incidents to shotmap records (outbox/bsd-shared-pitch-fit-latest.json). docs/CC-CMD-2026-10-28-bsd-pitch-renderer-fields.md.
   ['sharedPitch: the HOME side is rotated (home attacks x = 100 on the shared pitch)',
@@ -123,7 +125,7 @@ function selfTest () {
       avgPosition: { example: { n: 46, name: 'Cleiton' }, n: 'A COUNT, exact definition UNCONFIRMED' },
       incidentSequence: { example: { gk: { x: 5.4 } } },
       stats: { example: { type: 'bsd:stats', id: '1', time: { minute: 47, period: 2 }, score: { home: 0, away: 0 } },
-               note: 'A reader must accept both types.' },
+               note: 'A reader must accept both types. an ARRAY on the first bsd:stats after each poll' },
       livedata: { example: { type: 'bsd:ball', id: '1', coords: { x: 72, y: 47 }, side: 'away', time: { minute: 45 }, commentary: 'x' },
                   exampleWithoutCoordinates: { type: 'bsd:ball', id: '2', coords: null },
                   note: 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. BSD does not flip the frame at half time. Only one second half has been measured.' },
@@ -158,6 +160,7 @@ function selfTest () {
     ['the newest-first statement dropped from the note', c => { c.frameShapes.livedata.note = 'coords is the first element. BSD does not flip the frame at half time. Only one second half has been measured.' }],
     ['the second-half caveat dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. BSD does not flip the frame at half time.' }],
     ['the half-time frame statement dropped from the note', c => { c.frameShapes.livedata.note = 'a SLIDING WINDOW, NEWEST FIRST; coords is its first element or null. Only one second half has been measured.' }],
+    ['the poll sentence dropped from the stats note', c => { c.frameShapes.stats.note = 'A reader must accept both types.' }],
     ['the stats note emptied (the 2026-10-28 damage, as served)', c => { c.frameShapes.stats.note = ' +      +      + ' }],
     ['sharedPitch: home and away swapped (the contract mirrorAway orientation)', c => { const sp = c.transformReference.sharedPitch; [sp.home, sp.away] = [sp.away, sp.home] }],
     ['sharedPitch: away given a y flip', c => { c.transformReference.sharedPitch.away = 'x = x; y = 100 - y' }],
@@ -176,7 +179,7 @@ function selfTest () {
     check(`MUTATION applied and caught: ${name}`, applied && caught)
   }
   // the source-note reader
-  const goodSrc = `const BSD_WS_LIVEDATA_NOTE =\n  '${'x'.repeat(300)} INCIDENT NEWEST FIRST; coords is its first element. ' +\n  'ONE shared pitch, BSD does not flip the frame at half time. Only one second half has been measured. Coverage varies by match.';\n\nconst BSD_WS_STATS_NOTE =\n  '${'y'.repeat(340)} A reader must accept both types. shotmap and momentum are null. The key count differs by match.';\n\nexport default {`
+  const goodSrc = `const BSD_WS_LIVEDATA_NOTE =\n  '${'x'.repeat(300)} INCIDENT NEWEST FIRST; coords is its first element. ' +\n  'ONE shared pitch, BSD does not flip the frame at half time. Only one second half has been measured. Coverage varies by match.';\n\nconst BSD_WS_STATS_NOTE =\n  '${'y'.repeat(340)} A reader must accept both types. shotmap and momentum are null. an ARRAY on the first bsd:stats after each poll. The key count differs by match.';\n\nexport default {`
   check('the source-note reader passes a well-formed pair of constants', noteProblems(goodSrc).length === 0)
   const damaged = goodSrc.replace(/const BSD_WS_STATS_NOTE =[\s\S]*?;\n/, `const BSD_WS_STATS_NOTE =\n  ' +                                    +                                    +                                    + ' +\n  '+                                    +                                    +';\n`)
   check('MUTATION applied and caught: the 2026-10-28 damage (a note of spaces and plus signs)', damaged !== goodSrc && noteProblems(damaged).length > 0)
@@ -205,7 +208,7 @@ export const NOTE_RULES = {
     [/does not flip the frame/, 'states the half-time frame of reference'], [/Only one second half has been measured/, 'states the limit of the second-half evidence'],
     [/Coverage varies by match/, 'states that coverage varies by match'], [/INCIDENT/, 'says a livedata frame is an incident']],
   BSD_WS_STATS_NOTE: [[/accept both types/, 'tells a reader to accept both period types'], [/shotmap and momentum are null/, 'states shotmap and momentum are null'],
-    [/differs by match/, 'states the stats key count differs by match']],
+    [/differs by match/, 'states the stats key count differs by match'], [/an ARRAY on the first bsd:stats after each poll/, 'says when shotmap is an array']],
 }
 export const noteProblems = (src) => {
   const out = []
