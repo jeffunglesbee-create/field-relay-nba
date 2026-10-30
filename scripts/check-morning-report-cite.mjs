@@ -23,7 +23,6 @@ import {
   selectRecapGames, citableGames, buildMorningReportPrompt, parseMorningReportLines, composeMorningReport,
   slateNamesOf, prepareMorningReport, finishMorningReport, MR_MAX_PICKS, MR_MAX_LINE_WORDS, MR_MAX_TOKENS,
 } from '../src/morning-report.js';
-import { selectRecapGames as engineSelectRecapGames } from '../src/analytics-engine.js';
 
 process.on('uncaughtException', (e) => { console.log(`FAIL  the check crashed — ${e.message}`); process.exit(1); });
 
@@ -53,7 +52,6 @@ const game = (o) => ({ id: `${o.sport}:${o.away}@${o.home}`, sport: 'NBA', note:
     'selectRecapGames keeps a game with two numeric scores or a note, and skips one with only one score');
   ok(() => selectRecapGames(null).length === 0 && selectRecapGames({}).length === 0 && selectRecapGames({ games: {} }).length === 0,
     'selectRecapGames of no context is empty');
-  ok(() => engineSelectRecapGames === selectRecapGames, 'the engine re-exports the same selectRecapGames (one source)');
 }
 
 // ── citableGames: what the relay prints, from the row ────────────────────────
@@ -103,6 +101,12 @@ ok(() => P.includes('g1: <one sentence about that game>') && P.includes('g2: <on
   'the form shows the first two real ids');
 ok(() => P.includes('The relay prints every team name') && P.includes('Never write a digit') && P.includes('open:') && P.includes('close:'),
   'the prompt says who writes the facts and what the answer looks like');
+ok(() => P.includes('Do not repeat the score, the margin or the total')
+  && P.includes('You are not told which side was at home')
+  && P.includes('Never compare one game with another'),
+  'the prompt does not let the model restate a score, say who was at home, or compare games');
+ok(() => !P.includes('"the visitors"') && !P.includes('"the home side"') && !P.includes('closest game of the night'),
+  'the prompt offers no wording the model cannot back (2026-10-30 replay: "the home side", "closest of the night")');
 ok(() => buildMorningReportPrompt('d', { stars: null, truthIs: null, citable: [] }).includes('(no completed games)')
   && buildMorningReportPrompt('d', { stars: null, truthIs: null, citable: [] }).includes('not available tonight')
   && buildMorningReportPrompt('d', { stars: null, truthIs: null, citable: [] }).includes('unrated'),

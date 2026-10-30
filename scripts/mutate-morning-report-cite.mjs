@@ -237,6 +237,29 @@ const MUTATIONS = [
     anchor: 'export const MR_MAX_TOKENS = 320;',
     replace: 'export const MR_MAX_TOKENS = 250;',
     expect: 'the answer is allowed 320 tokens' },
+
+  // The 2026-10-30 replay (outbox/morning-report-cite-replay-latest.json, first run): the model wrote
+  // "the home side" and "the closest of the night" about games it was given no side or ranking for,
+  // because the first prompt offered those words as examples. These four put each cause back.
+  { name: 'M46 the prompt lets the model restate the score',
+    anchor: 'Do not repeat the score, the margin or the total. ',
+    replace: '',
+    expect: 'the prompt does not let the model restate a score' },
+
+  { name: 'M47 the prompt stops saying the model is not told who was at home',
+    anchor: 'which side was at home, who scored or how the game unfolded, so never say home, away, visitors, hosts, ',
+    replace: '',
+    expect: 'the prompt does not let the model restate a score' },
+
+  { name: 'M48 the prompt stops forbidding comparisons between games',
+    anchor: 'Never compare one game with another ("closest", "biggest", "best", "only"). ',
+    replace: '',
+    expect: 'the prompt does not let the model restate a score' },
+
+  { name: 'M49 the prompt offers "the visitors" as wording again',
+    anchor: 'Say "the winners", "the losers", ',
+    replace: 'Say "the winners", "the visitors", ',
+    expect: 'the prompt offers no wording the model cannot back' },
 ];
 
 let bad = 0;

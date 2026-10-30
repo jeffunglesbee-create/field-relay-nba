@@ -49,6 +49,12 @@ const PACE_MS = 2500;
 
 const nextDay = (d) => new Date(Date.parse(`${d}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
 const words = (s) => s.split(/\s+/).filter(Boolean).length;
+
+// The labels (g1:, g12:) carry digits by design; the contract is about what follows them.
+const bodyOf = (raw) => raw.split(/\r?\n/).map(l => l.replace(/^\s*(?:open|close|g[0-9]{1,3})\s*:/i, ''));
+// Words the 2026-10-30 prompt rules forbid or discourage. Counted for the reader of the result, never used to
+// drop a line: the contract does not judge prose (src/morning-report.js).
+const WATCH = ['home', 'away', 'visitor', 'host', 'closest', 'biggest', 'rhythm', 'marvel', 'lessons', 'hard-fought', 'hard fought', 'brand new day', 'secured', 'comeback'];
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 async function getJson(url) {
@@ -127,7 +133,8 @@ for (const date of DATES) {
       has_close: Boolean(parsed.close),
       dropped: parsed.dropped,
       raw_slate_names: slateHits,
-      raw_has_digit: /\p{N}/u.test(raw),
+      raw_body_has_digit: bodyOf(raw).some(b => /\p{N}/u.test(b)),
+      watch_hits: WATCH.filter(w => bodyOf(raw).some(b => new RegExp(`\\b${w}`, 'i').test(b))),
       composed: Boolean(composed),
       composed_words: composed ? words(composed.text) : 0,
       cited: composed ? composed.cited : [],
@@ -157,7 +164,8 @@ out.summary = {
   picks_total: all.reduce((a, s) => a + s.picks.length, 0),
   dropped_by_reason: tally(all.flatMap(s => s.dropped.map(d => d.reason))),
   raw_answers_naming_a_slate_team: all.filter(s => s.raw_slate_names.length).length,
-  raw_answers_with_a_digit: all.filter(s => s.raw_has_digit).length,
+  raw_answers_with_a_digit_in_a_body: all.filter(s => s.raw_body_has_digit).length,
+  watch_words_in_bodies: tally(all.flatMap(s => s.watch_hits)),
   composed_words: all.filter(s => s.composed).map(s => s.composed_words),
   models: tally(all.map(s => s.model).filter(Boolean)),
 };

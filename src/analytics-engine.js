@@ -18,7 +18,7 @@
 // the heaviest favourite on the card. The same measurement found 0 real upsets
 // lost, so the rule costs no finding it did not invent.
 import { winnerMoneylinePrice, lineSpread } from './odds-consumer-rules.js';
-import { selectRecapGames } from './morning-report.js';
+import { prepareMorningReport, finishMorningReport, MR_MAX_TOKENS } from './morning-report.js';
 
 const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11', 'phase12', 'phase13'];
 const STATUS_KV_KEY = 'field:analytics:status';
@@ -580,183 +580,38 @@ async function runPhase3TruthIs(env, date, ctx) {
 }
 
 // ── Phase 5: Morning Report ────────────────────────────────────────────────
-// One paragraph (80-120 words) synthesising Night Stars + Truth Is + top
-// recaps. Stored in KV under field:morning_report:{date} (48h TTL) AND in
-// analytics_output for historical browsing.
+// One paragraph: the night's headline, the games that mattered, what carries forward.
+// Stored in KV under field:morning_report:{date} (48h TTL) AND in analytics_output for
+// historical browsing.
 //
-// The recap selection, the prompt and the team-name guard below are pure and exported
-// (2026-10-30), so scripts/check-morning-report-degraded.mjs and
-// scripts/probe-morning-report-guard-replay.mjs run THIS code rather than a copy of it.
-// selectRecapGames moved to src/morning-report.js (2026-10-30, unchanged); re-exported so
-// the importers of this file keep working.
-export { selectRecapGames };
-
-export function buildMorningReportPrompt(date, { stars, truthIs, recapGames }) {
-    const recapLines = recapGames
-        .map(g => {
-            // Score must be explicitly bound to each team name, not a bare
-            // "X-Y" string relying on positional order matching the team
-            // order. Confirmed real bug 2026-07-02: this line previously
-            // read "${g.away} at ${g.home} ${home_score}-${away_score}" --
-            // team order (away, home) did not match score order (home,
-            // away), so a reader (the LLM, or a human) naturally associates
-            // the FIRST score with the FIRST-listed team, silently swapping
-            // the actual result. Confirmed this produced two real live
-            // errors: "Congo DR at England 2-1" (real: England 2, Congo DR
-            // 1) was read as Congo DR 2-1, and "Bosnia-Herzegovina at
-            // United States 2-0" (real: USA 2, Bosnia 0) was read as
-            // Bosnia 2-0 -- both silently inverting the actual winner.
-            // Fixed using the same explicit-pairing pattern already used
-            // correctly 6 times elsewhere in index.js
-            // (`${away} ${awayScore} at ${home} ${homeScore}`).
-            const score = (typeof g.home_score === 'number' && typeof g.away_score === 'number')
-                ? `${g.away_score}-${g.home_score}` : '';
-            return `- ${g.sport || '?'}: ${g.away} at ${g.home} ${score}${g.note ? ' — ' + g.note : ''}`;
-        })
-        .join('\n');
-
-    const truthLine = truthIs?.headline || 'A quiet night.';
-    const starLine  = stars
-        ? `${stars.stars}/5 (${stars.totalGames} games, ${stars.dramaGames} drama, ${stars.closeGames} close, ${stars.walkoffs} walkoffs)`
-        : 'unrated';
-
-    const prompt =
-        `Write FIELD's Morning Report for ${date}. V4 voice: warm, wise, uplifting. ` +
-        `One paragraph, 80-120 words.\n\n` +
-        `STRUCTURE:\n` +
-        `- Open with the night's headline truth (The Truth Is)\n` +
-        `- 2-3 most important results with angle\n` +
-        `- Close with what carries forward\n\n` +
-        `NIGHT STARS: ${starLine}\n` +
-        `THE TRUTH IS: ${truthLine}\n\n` +
-        `ALL RESULTS:\n${recapLines || '(no completed games)'}\n\n` +
-        `Do NOT list all results. Pick the 3-4 that matter most. ` +
-        `The truth is the fun part. Let it be fun. ` +
-        // Added 2026-07-03 -- real, confirmed fabrication found live: a
-        // Morning Report entry referenced an AFL result (team names +
-        // score) with ZERO real data anywhere in the pipeline for that
-        // date -- confirmed via direct query of both regular_season_games
-        // (empty for AFL, checked back to June 1) and the live
-        // /context/date endpoint (zero AFL games returned). The real
-        // score coincidentally matched a genuinely different real game
-        // from a different matchup that same night. Same proven
-        // instruction pattern already used in Stakes brief prompts
-        // elsewhere in this codebase -- ported here, not invented fresh.
-        `ONLY reference games and scores listed above in ALL RESULTS. ` +
-        `Never invent a team, sport, matchup, or score not present there -- ` +
-        `if a sport has no real completed games above, do not mention it. ` +
-        // Added 2026-07-15, REVISED same day after a second real, live
-        // incident survived the first version of this instruction (see the
-        // structural guard's comment below for the full story): ALL
-        // RESULTS above gives bare mascot names only ("Fire", "Sun" -- no
-        // city, e.g. "WNBA: Fire at Sun 87-90"), confirmed live by reading
-        // the real ctx.games data this function actually consumes -- NOT
-        // full city-qualified names as first assumed. "Fire" was rendered
-        // as "Chicago Fire" (a real MLS team) instead of the correct WNBA
-        // team, while the real score (90-87) stayed correct -- a
-        // generation-time name expansion, not a data-pipeline bug (the
-        // relay's own data was already correct at prompt-build time,
-        // confirmed directly). Since the data never supplies a city, the
-        // model has nothing to correctly expand a bare mascot into --
-        // asking it to use the exact string it's given is the only
-        // reliable instruction here.
-        `Use each team's name EXACTLY as written above -- just the name given ` +
-        `(e.g. "the Fire", "the Sun"), nothing more. Do NOT add a city, ` +
-        `location, or league qualifier in front of a team name unless that ` +
-        `exact qualifier appears in ALL RESULTS above -- if you're unsure ` +
-        `which city or league a team belongs to, do not guess or add one.`;
-    return prompt;
-}
-
-// Structural guard, added alongside the prompt instruction above (2026-07-15,
-// real live incident -- see comment above). REVISED same day after a
-// second real, live occurrence survived the first version of this guard:
-// ctx.games (fetchContextGraph / /context/date/{date}, the REAL data
-// this function actually consumes -- confirmed live, NOT assumed from
-// /v2/games's fuller shape, which was this dispatch's first, wrong
-// assumption) stores team names as BARE MASCOTS ONLY ("Sun", "Fire"),
-// never a city-qualified full name ("Connecticut Sun", "Portland
-// Fire"). A simple "is the real team's name present" check is
-// structurally unable to catch this bug: "Fire" (correct) and "Chicago
-// Fire" (real incident's wrong substitution) both trivially contain the
-// substring "Fire". Since the data never supplies a city, there is no
-// way to verify a city-qualified reference is CORRECT either (we can't
-// tell "Connecticut Sun" is right from data alone) -- so, matching this
-// repo's established fail-safe convention (uncertain -> treat as risk,
-// e.g. _bsdEventIsLive), ANY invented city/qualifier immediately before
-// a real team's bare mascot is treated as suspect and rejected, not
-// just outright name swaps. A team is "present" if its bare mascot
-// appears (optionally as "the <mascot>" shorthand) with no fabricated
-// qualifier immediately before it.
-
-const teamPresent = (prose, name) => {
-    if (!name) return true; // nothing to check
-    if (prose.includes(name)) return true;
-    const lastWord = name.trim().split(/\s+/).pop();
-    return lastWord ? prose.includes(`the ${lastWord}`) : false;
-};
-
-// The text that tripped the qualifier rule ("Bay Lightning"), or null. This was
-// `hasFabricatedQualifier`, a boolean from `re.test`; a match is truthy and no match is
-// null, so every decision taken from it is unchanged. The text is what lets the stored
-// record say WHICH qualifier fired.
-const fabricatedQualifierMatch = (prose, mascot) => {
-    if (!mascot) return null;
-    const esc = mascot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // A capitalized word immediately before the mascot that isn't "The"
-    // -- e.g. "Chicago Fire" when the real team is bare "Fire".
-    const re = new RegExp(`\\b(?!The\\b)([A-Z][a-zA-Z']*)\\s+${esc}\\b`);
-    const m = re.exec(prose);
-    return m ? m[0] : null;
-};
-
-// Every recap game the prose gets wrong by the guard's rules, in recap order; [] when
-// none, and [] when there is no prose at all (an empty answer is the proxy failing and is
-// recorded as 'prose-empty', not as a guard finding). This was an inline
-// `recapGames.some(...)` until 2026-10-30; `.length > 0` is the same decision, and the
-// entries say which game, which rule and which text.
-export function teamNameSubstitutions(prose, recapGames) {
-    if (!prose) return [];
-    const found = [];
-    for (const g of recapGames) {
-        if (typeof g.home_score !== 'number' || typeof g.away_score !== 'number') continue;
-        // Check both score orders -- the prompt's own recapLines always uses
-        // away-home order, but prose narration naturally leads with whichever
-        // team the sentence is about (often the winner), which can flip the
-        // literal digit order (real incident text used "90-87", home-first,
-        // for a game recapLines listed as "87-90" away-first -- confirmed via
-        // a forced-condition test against the real incident text, which the
-        // away-first-only version of this check silently failed to match).
-        const awayFirst = `${g.away_score}-${g.home_score}`;
-        const homeFirst = `${g.home_score}-${g.away_score}`;
-        if (!prose.includes(awayFirst) && !prose.includes(homeFirst)) continue;
-        const missingTeam = [g.home, g.away].filter(name => !teamPresent(prose, name));
-        const qualifier = fabricatedQualifierMatch(prose, g.home) || fabricatedQualifierMatch(prose, g.away);
-        if (missingTeam.length > 0 || qualifier) {
-            found.push({
-                sport: g.sport,
-                away: g.away,
-                home: g.home,
-                score: awayFirst,
-                missing_team: missingTeam,
-                fabricated_qualifier: qualifier,
-            });
-        }
-    }
-    return found;
-}
-
+// THE CONTRACT (src/morning-report.js, 2026-10-30). The model is shown games under ids g1,
+// g2, ... WITHOUT team names and writes one sentence of commentary for each game it picks.
+// The relay prints every team name and every score from the data, and prints Phase 3's
+// headline first. Nothing below reads the model's prose to decide whether it is true: a line
+// that breaks the contract (a digit, a team name from tonight's slate, an unknown or repeated
+// id) is dropped and recorded by reason, never by text. This replaced a guard that searched
+// the prose for scores and team names and threw accurate prose away on 2 of 4 replayed days
+// (outbox/morning-report-guard-replay-latest.json).
+// docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3, option 4.
 async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
-    const recapGames = selectRecapGames(ctx);
-    const prompt = buildMorningReportPrompt(date, { stars, truthIs, recapGames });
+    const prepared = prepareMorningReport(date, { stars, truthIs, ctx });
 
-    const { text: prose, failure: proxyFailure } = await callProxyDetailed(env, prompt, { maxTokens: 250 });
-    const substitutions = teamNameSubstitutions(prose, recapGames);
-    if (substitutions.length > 0) {
-        console.error('[ANALYTICS] morning_report rejected: real score present with a missing or fabricated-qualifier team name for that game');
+    // One model call, and only when there is a game to cite. No context at all (Phase 1
+    // failed) has no game to cite, and so has a night with none; the row records which.
+    let prose = null;
+    let proxyFailure = null;
+    let finished = null;
+    if (prepared.citable.length > 0) {
+        ({ text: prose, failure: proxyFailure } = await callProxyDetailed(env, prepared.prompt, { maxTokens: MR_MAX_TOKENS }));
+        if (prose) finished = finishMorningReport(prose, prepared, truthIs);
     }
-    const briefText = (prose && substitutions.length === 0)
-        ? prose
+    const composed = finished ? finished.composed : null;
+    const dropped = finished ? finished.parsed.dropped : [];
+    if (finished && (dropped.length > 0 || !composed)) {
+        console.error(`[ANALYTICS] morning_report ${composed ? 'dropped lines' : 'no usable game line'} (${finished.parsed.recognized} recognised): ${dropped.map(d => `${d.key ?? '?'}:${d.reason}`).join(', ') || 'none'}`);
+    }
+    const briefText = composed
+        ? composed.text
         : `Quiet night across the slate for ${date}. Tomorrow brings another set.`;
 
     // KV write — best-effort, doesn't fail the phase if KV is unavailable.
@@ -772,25 +627,31 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         console.error('[ANALYTICS] morning_report KV put failed:', e.message);
     }
 
-    // WHY the template, when it was written (2026-10-30). Until now the row read the same
-    // whether the proxy answered nothing or the answer was thrown away, and
-    // analytics_runs.errors stayed [] either way -- phase 5 "completes" on both paths.
-    //   prose-empty      no text came back; proxy_failure says how (http-<status>, bad-json, no-text).
-    //   team-name-guard  text came back and the guard above rejected it; guard.first names
-    //                    the game, the missing team(s) or the qualifier text that tripped it.
-    // The rejected prose itself is NOT stored: GET /analytics/morning_report/{date} serves
-    // this value publicly, and the prose is what the guard judged fabricated.
-    // `degraded` is the flag /analytics/degraded and session_health already read
-    // (JSON_EXTRACT(value,'$.degraded')), so a template morning now shows up in the
-    // needs_manual_recompute bucket. It is false, not absent, on a good morning: a row
-    // without the key was written before this. circadian_late is deliberately not marked --
-    // it is PURE, so the degraded sweep would re-copy the same template every day.
-    const degradedReason = !prose ? 'prose-empty' : (substitutions.length > 0 ? 'team-name-guard' : null);
-    const outcome = degradedReason === null
-        ? { degraded: false }
-        : degradedReason === 'prose-empty'
-            ? { degraded: true, degraded_reason: degradedReason, proxy_failure: proxyFailure }
-            : { degraded: true, degraded_reason: degradedReason, guard: { offenders: substitutions.length, first: substitutions[0] } };
+    // WHY the template, when it was written (2026-10-30). Until then the row read the same
+    // whatever the cause and analytics_runs.errors stayed [] ("completed") on every path.
+    //   no-context     the context graph was unreadable (Phase 1 failed): nothing to cite.
+    //   prose-empty    the proxy returned no text; proxy_failure says how (http-<status>,
+    //                  bad-json, no-text).
+    //   bad-structure  text came back and no game line in it followed the contract;
+    //                  structure.dropped says which lines were dropped and why, never their text.
+    //   no_games       NOT degraded: the night has no completed game, so the template is accurate.
+    // The dropped text is NOT stored: GET /analytics/morning_report/{date} serves this value
+    // publicly. `degraded` is the flag /analytics/degraded and session_health already read
+    // (JSON_EXTRACT(value,'$.degraded')), so a template morning shows up in the
+    // needs_manual_recompute bucket. It is false, not absent, on a good morning: a row without
+    // the key was written before this. circadian_late is deliberately not marked -- it is PURE,
+    // so the degraded sweep would re-copy the same template every day.
+    // A good morning may still have dropped lines; they are listed so a model drifting from
+    // the form is visible before it costs a whole report.
+    const outcome = !ctx
+        ? { degraded: true, degraded_reason: 'no-context' }
+        : prepared.citable.length === 0
+            ? { degraded: false, no_games: true }
+            : !prose
+                ? { degraded: true, degraded_reason: 'prose-empty', proxy_failure: proxyFailure }
+                : !composed
+                    ? { degraded: true, degraded_reason: 'bad-structure', structure: { recognized: finished.parsed.recognized, dropped } }
+                    : { degraded: false, cited: composed.cited, ...(dropped.length > 0 ? { dropped } : {}) };
 
     await writeAnalyticsOutput(env, {
         date,
@@ -813,8 +674,8 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
 // for this date (read from D1, not recomputed -- Rule 63, avoids a second
 // unnecessary AI call for truth_is) rather than re-running the full
 // processDate pipeline, which would touch already-correct phases
-// (night_stars, jinx, etc.) unnecessarily. Makes exactly one real LLM call
-// (inside runPhase5MorningReport itself). circadian_late is PURE-classified
+// (night_stars, jinx, etc.) unnecessarily. Makes at most one real LLM call
+// (inside runPhase5MorningReport itself; none when the night has no game to cite). circadian_late is PURE-classified
 // (a copy of morning_report's text, no LLM call of its own) and already has
 // its own generic recompute path -- callers should follow this with
 // recomputePhase(env, 'circadian_late', date) to refresh that copy too.

@@ -1,31 +1,34 @@
 #!/usr/bin/env node
-// Why did the Morning Report say "Quiet night"?
+// Phase 5, end to end: what the row says, and what the paragraph is made of.
 //
-// runPhase5MorningReport writes one fixed template -- "Quiet night across the
-// slate for ${date}. Tomorrow brings another set." -- on two different paths: the
-// proxy returned no text, or it returned text and the team-name guard threw the
-// text away. Until 2026-10-30 the row was identical on both paths and phase 5
-// counted as completed on both, so analytics_runs.errors stayed [] while 16 of
-// the 22 mornings 2026-10-08..29 were the template, with nothing to say which
-// cause it was.
+// runPhase5MorningReport writes one fixed template -- "Quiet night across the slate for
+// ${date}. Tomorrow brings another set." -- when it has nothing better, and until 2026-10-30
+// the row was identical whatever the cause and phase 5 counted as completed on every path
+// (analytics_runs.errors stayed [] while 16 of the 22 mornings 2026-10-08..29 were the
+// template). Since 2026-10-30 the row says why, and the paragraph is no longer the model's:
+// src/morning-report.js has the model cite games by id and has the relay print every team name
+// and score. scripts/check-morning-report-cite.mjs pins that contract on the pure functions;
+// THIS pins the phase around it, through the real recomputeMorningReport -- the exported
+// entry that reads night_stars / truth_is from D1, fetches the context graph, calls the proxy
+// and writes the row -- against a mocked proxy, a mocked relay and a mocked D1.
 //
-// This pins the record that now says so, on the row itself:
-//   degraded:false                      a morning that produced prose
+// The record, on the row itself:
+//   degraded:false                      a morning that printed game lines
+//                                       + cited [game ids], + dropped [{key,reason}] when the
+//                                       model's answer had lines the contract refused
+//   degraded:false, no_games            the night has no completed game; the template is accurate
+//   degraded:true, no-context           the context graph was unreadable (Phase 1 failed)
 //   degraded:true, prose-empty          + proxy_failure  http-<status> | bad-json | no-text
-//   degraded:true, team-name-guard      + guard {offenders, first{...}}
-// and the one fact the 2026-10-30 diagnosis rests on: a REJECTED answer still
-// counts its AI call (aiCalls 1), an EMPTY one does not (aiCalls 0). The
-// arithmetic is in docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md.
-//
-// It runs the real recomputeMorningReport -- the exported entry point that
-// reads night_stars / truth_is from D1, fetches the context graph, calls the
-// proxy and writes the row -- against a mocked proxy and a mocked D1.
+//   degraded:true, bad-structure        + structure {recognized, dropped}: text came back and no
+//                                       game line in it followed the contract
+// and the one arithmetic the 2026-10-30 diagnosis rests on: an answer that came back counts its
+// AI call (aiCalls 1) whether or not a line survived; an empty one does not (aiCalls 0); a night
+// with nothing to cite makes no call at all.
+// docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md
 //
 // Rule 90: mutation-tested by scripts/mutate-morning-report-degraded.mjs.
-import {
-  recomputeMorningReport, teamNameSubstitutions, buildMorningReportPrompt,
-  selectRecapGames, callProxyDetailed,
-} from '../src/analytics-engine.js';
+import { recomputeMorningReport, callProxyDetailed } from '../src/analytics-engine.js';
+import { prepareMorningReport, MR_MAX_TOKENS } from '../src/morning-report.js';
 
 // A crash inside the code under test is a failure of this check, said in the same words
 // as any other, not a stack trace the mutation runner has to guess at.
@@ -45,34 +48,53 @@ const RELAY = 'https://relay.test';
 const DATE = '2026-10-29';
 const TEMPLATE = `Quiet night across the slate for ${DATE}. Tomorrow brings another set.`;
 
-// Real rows from /context/date/2026-10-29: bare mascots, away first.
+// Rows shaped like /context/date/2026-10-29: bare mascots, away first, each with an id.
 const GAMES = [
-  { sport: 'NHL',  away: 'Jets',      home: 'Lightning',     away_score: 4,   home_score: 6,   note: null },
-  { sport: 'NBA',  away: 'Cavaliers', home: 'Hawks',         away_score: 111, home_score: 114, note: null },
-  { sport: 'WNBA', away: 'Valkyries', home: 'Dream',         away_score: 69,  home_score: 80,  note: null },
-  { sport: 'NBA',  away: 'Kings',     home: 'Pelicans',      away_score: 120, home_score: 132, note: null },
-  { sport: 'NBA',  away: 'Grizzlies', home: 'Trail Blazers', away_score: 124, home_score: 103, note: null },
+  { id: 'NHL_2026-10-29_a',  sport: 'NHL',  away: 'Jets',      home: 'Lightning',     away_score: 4,   home_score: 6,   note: null },
+  { id: 'NBA_2026-10-29_b',  sport: 'NBA',  away: 'Cavaliers', home: 'Hawks',         away_score: 111, home_score: 114, note: null },
+  { id: 'WNBA_2026-10-29_c', sport: 'WNBA', away: 'Valkyries', home: 'Dream',         away_score: 69,  home_score: 80,  note: null },
+  { id: 'NBA_2026-10-29_d',  sport: 'NBA',  away: 'Kings',     home: 'Pelicans',      away_score: 120, home_score: 132, note: null },
+  { id: 'NBA_2026-10-29_e',  sport: 'NBA',  away: 'Grizzlies', home: 'Trail Blazers', away_score: 124, home_score: 103, note: null },
 ];
 const CTX = { ok: true, date: DATE, games: { regular: GAMES, postseason: [] } };
 const STARS = { stars: 3, totalGames: 33, dramaGames: 4, closeGames: 6, walkoffs: 0 };
-const TRUTH = { headline: "Quiet night. The truth is, sometimes that's the story." };
+const TRUTH = { type: 'none', headline: "Quiet night. The truth is, sometimes that's the story." };
 
-const PROSE_OK = 'The Lightning beat the Jets 6-4 and the Hawks edged the Cavaliers 114-111, while the Dream topped the Valkyries 80-69. The schedule thinned out from there.';
-const PROSE_QUALIFIER = 'The Tampa Bay Lightning beat the Jets 6-4 and the Hawks edged the Cavaliers 114-111.';
-const PROSE_MISSING = 'Tampa won 6-4 over the Jets, and the Hawks edged the Cavaliers 114-111.';
-const PROSE_NO_SCORE = 'The Tampa Bay Lightning had a big night against the Jets.';
+// An answer in the form the prompt asks for. None of these lines has a digit or a name from the slate.
+const OPEN = 'A calm evening with a few results worth a second look.';
+const A1 = 'Hockey supplied the loudest finish of the night as the winners pulled clear.';
+const A2 = 'A tight basketball game that stayed in doubt until the final minute.';
+const A3 = 'The winners controlled this basketball game from the opening minutes.';
+const CLOSE = 'Tomorrow brings another chance for something unexpected.';
+const GOOD = [`open: ${OPEN}`, `g1: ${A1}`, `g2: ${A2}`, `g3: ${A3}`, `close: ${CLOSE}`].join('\n');
+// What the relay prints from it: the headline, the open line, then each fact beside its sentence.
+const BRIEF_GOOD = [TRUTH.headline, OPEN, `Lightning 6, Jets 4. ${A1}`, `Hawks 114, Cavaliers 111. ${A2}`,
+  `Dream 80, Valkyries 69. ${A3}`, CLOSE].join(' ');
+
+// Lines the contract refuses: a digit, a name from tonight's slate, an id that is not in the list,
+// an unfinished sentence. Each is distinctive so "it is not stored" can be searched for.
+const L_DIGIT = 'Won by 3 points in a tense game that nobody will forget soon.';
+const L_NAME = 'The Dream pulled away late in a game that felt decided early.';
+const L_UNKNOWN = 'A thrilling baseball game in a place nobody expected to see one.';
+const L_NAME2 = 'The Lightning beat the Jets in a game that stayed tense.';
+const L_CUT = 'A tense game that stayed in doubt until the very last';
+const WITH_DROPS = [`open: ${OPEN}`, `g1: ${A1}`, `g2: ${L_DIGIT}`, `g3: ${L_NAME}`, `g9: ${L_UNKNOWN}`, `close: ${CLOSE}`].join('\n');
+const NO_USABLE = [`open: ${OPEN}`, `g1: ${L_NAME2}`, `g2: ${L_DIGIT}`, `g3: ${L_CUT}`, `close: ${CLOSE}`].join('\n');
+// The model ignores the form and writes a paragraph, with a team and a score in it.
+const FREE_PROSE = 'Quiet in Tampa until the Lightning beat the Jets 6-4, and the Hawks edged the Cavaliers 114-111.';
 
 const reply = (status, body, headers = {}) => () =>
   new Response(typeof body === 'string' ? body : JSON.stringify(body), { status, headers });
 const textReply = (text) => reply(200, { content: [{ type: 'text', text }] }, { 'X-FIELD-Model': 'gemini-3.1-flash-lite' });
 
 // One recompute against a mocked world. `proxy` is called once per proxy request.
-async function run(proxy) {
+// `ctxBody` is what /context/date answers (null is a body of "null": no context at all).
+async function run(proxy, { ctxBody = CTX, truth = TRUTH } = {}) {
   const sent = [], writes = [], kv = [];
   globalThis.fetch = async (url, init) => {
     const u = String(url);
     if (u === PROXY) { sent.push({ body: JSON.parse(init.body), headers: init.headers }); return proxy(); }
-    if (u === `${RELAY}/context/date/${DATE}`) return new Response(JSON.stringify(CTX), { status: 200 });
+    if (u === `${RELAY}/context/date/${DATE}`) return new Response(JSON.stringify(ctxBody), { status: 200 });
     throw new Error(`unmocked fetch ${u}`);
   };
   const env = {
@@ -83,14 +105,14 @@ async function run(proxy) {
       prepare: (sql) => ({
         bind: (...args) => ({
           first: async () => sql.includes("'night_stars'") ? { value: JSON.stringify(STARS) }
-            : sql.includes("'truth_is'") ? { value: JSON.stringify(TRUTH) }
+            : sql.includes("'truth_is'") ? { value: JSON.stringify(truth) }
             : { brief_text: 'previous brief' },
           run: async () => { writes.push({ sql, args }); return {}; },
         }),
       }),
     },
   };
-  // The guard logs its rejection with console.error; capture it so it is asserted, not printed.
+  // Phase 5 logs a refused line with console.error; capture it so it is asserted, not printed.
   const logged = [];
   const realError = console.error;
   console.error = (...a) => { logged.push(a.join(' ')); };
@@ -99,37 +121,7 @@ async function run(proxy) {
   finally { console.error = realError; }
   // INSERT OR REPLACE bind order: id, date, feature, sport, value, brief_text.
   const w = writes.find(x => x.args[2] === 'morning_report');
-  return { result, sent, kv, logged, row: w ? { value: JSON.parse(w.args[4]), brief: w.args[5] } : null };
-}
-
-// ── the guard, as a pure function ───────────────────────────────────────────
-const recap = selectRecapGames(CTX);
-ok(() => recap.length === 5, 'selectRecapGames keeps games that have scores');
-ok(() => teamNameSubstitutions('', recap).length === 0 && teamNameSubstitutions(null, recap).length === 0,
-  'no prose is not a guard finding (that is the proxy failing, recorded as prose-empty)');
-ok(() => teamNameSubstitutions(PROSE_OK, recap).length === 0, 'bare mascots with "the" pass the guard');
-ok(() => teamNameSubstitutions('The Lightning beat the Jets 6-4.', recap).length === 0,
-  'a leading "The" is not a fabricated qualifier');
-{
-  const s = teamNameSubstitutions(PROSE_QUALIFIER, recap);
-  ok(() => s.length === 1 && s[0].home === 'Lightning' && s[0].away === 'Jets' && s[0].score === '4-6',
-    'a city-qualified name is caught, and the finding names the game and its score in recap order');
-  ok(() => s[0].fabricated_qualifier === 'Bay Lightning' && s[0].missing_team.length === 0,
-    'a city-qualified name is caught as a qualifier, with the text that tripped the rule');
-}
-{
-  const s = teamNameSubstitutions(PROSE_MISSING, recap);
-  ok(() => s.length === 1 && s[0].missing_team.length === 1 && s[0].missing_team[0] === 'Lightning' && s[0].fabricated_qualifier === null,
-    'a missing team is caught as missing, by name, with no qualifier');
-}
-ok(() => teamNameSubstitutions('Jets 4-6 Tampa Bay Lightning', recap).length === 1,
-  'a score written away-first is checked (4-6)');
-ok(() => teamNameSubstitutions(PROSE_NO_SCORE, recap).length === 0,
-  'prose that cites no score is not inspected (current behaviour of the guard)');
-{
-  const s = teamNameSubstitutions('The Tampa Bay Lightning beat the Jets 6-4 and the Atlanta Hawks edged the Cavaliers 114-111.', recap);
-  ok(() => s.length === 2 && s[0].home === 'Lightning' && s[1].home === 'Hawks',
-    'every offending game is reported, in recap order');
+  return { result, sent, kv, logged, row: w ? { value: JSON.parse(w.args[4]), raw: w.args[4], brief: w.args[5] } : null };
 }
 
 // ── callProxyDetailed: a null answer keeps its reason ───────────────────────
@@ -149,57 +141,83 @@ ok(() => teamNameSubstitutions(PROSE_NO_SCORE, recap).length === 0,
   ok(() => blank.text === null && blank.failure === 'no-text', 'whitespace-only text is no-text');
 }
 
-// ── the phase, end to end ───────────────────────────────────────────────────
+// ── a good morning ──────────────────────────────────────────────────────────
 {
-  const r = await run(textReply(PROSE_OK));
-  ok(() => r.row.value.degraded === false, 'a good morning writes degraded:false (a row without the key predates this)');
-  ok(() => !('degraded_reason' in r.row.value) && !('guard' in r.row.value) && !('proxy_failure' in r.row.value),
+  const r = await run(textReply(GOOD));
+  const v = r.row.value;
+  ok(() => v.degraded === false, 'a good morning writes degraded:false (a row without the key predates this)');
+  ok(() => !('degraded_reason' in v) && !('structure' in v) && !('proxy_failure' in v) && !('dropped' in v) && !('no_games' in v),
     'a good morning carries no reason fields');
-  ok(() => r.row.brief === PROSE_OK && r.kv[0][0] === `field:morning_report:${DATE}` && r.kv[0][1] === PROSE_OK,
-    'a good morning stores the prose, in D1 and in KV');
-  ok(() => r.row.value.stars === 3 && r.row.value.word_count > 10, 'word_count and stars are still written');
+  ok(() => r.row.brief === BRIEF_GOOD,
+    'a good morning prints the headline, then the open line, then each fact beside the model\'s sentence');
+  ok(() => r.kv.length === 1 && r.kv[0][0] === `field:morning_report:${DATE}` && r.kv[0][1] === BRIEF_GOOD,
+    'a good morning stores the same text in D1 and in KV');
+  ok(() => JSON.stringify(v.cited) === JSON.stringify(['NHL_2026-10-29_a', 'NBA_2026-10-29_b', 'WNBA_2026-10-29_c']),
+    'a good morning names the games it cited, by their real ids');
+  ok(() => v.stars === 3 && v.word_count === BRIEF_GOOD.split(/\s+/).length, 'word_count and stars are still written');
   ok(() => r.result.aiCalls === 1 && r.result.outcome.degraded === false && r.result.before === 'previous brief',
     'recompute returns before, aiCalls 1 and the outcome');
-  ok(() => r.logged.length === 0, 'a good morning logs no rejection');
+  ok(() => r.logged.length === 0, 'a good morning logs nothing');
   const req = r.sent[0];
-  ok(() => r.sent.length === 1 && req.body.model === 'claude-haiku-4-5-20251001' && req.body.max_tokens === 250
+  ok(() => r.sent.length === 1 && req.body.model === 'claude-haiku-4-5-20251001' && req.body.max_tokens === MR_MAX_TOKENS
       && req.headers['X-FIELD-Relay'] === 'test-secret',
     'phase 5 makes exactly one proxy call, with the production model, max_tokens and secret header');
-  ok(() => req.body.messages[0].content === buildMorningReportPrompt(DATE, { stars: STARS, truthIs: TRUTH, recapGames: selectRecapGames(CTX) }),
-    'phase 5 sends the built prompt');
+  ok(() => req.body.messages[0].content === prepareMorningReport(DATE, { stars: STARS, truthIs: TRUTH, ctx: CTX }).prompt,
+    'phase 5 sends the prepared prompt');
 }
+
+// ── lines the contract refuses, in an answer that still has a usable line ───
 {
-  const r = await run(textReply(PROSE_QUALIFIER));
+  const r = await run(textReply(WITH_DROPS));
   const v = r.row.value;
-  ok(() => v.degraded === true && v.degraded_reason === 'team-name-guard',
-    'a guard rejection is recorded as degraded, reason team-name-guard');
-  ok(() => v.guard.offenders === 1 && v.guard.first.fabricated_qualifier === 'Bay Lightning'
-      && v.guard.first.home === 'Lightning' && v.guard.first.away === 'Jets' && v.guard.first.score === '4-6',
-    'a guard rejection names the game, the score and the qualifier that tripped it');
-  ok(() => !('proxy_failure' in v), 'a guard rejection carries no proxy_failure');
+  ok(() => v.degraded === false && JSON.stringify(v.dropped) === JSON.stringify([
+      { key: 'g2', reason: 'digit' }, { key: 'g3', reason: 'team-name' }, { key: 'g9', reason: 'unknown-id' }]),
+    'a dropped line is recorded by key and reason on a good morning');
+  ok(() => r.row.brief === [TRUTH.headline, OPEN, `Lightning 6, Jets 4. ${A1}`, CLOSE].join(' '),
+    'a good morning with dropped lines still prints the lines that followed the contract, and only those');
+  ok(() => ![L_DIGIT, L_NAME, L_UNKNOWN, 'Won by', 'pulled away late'].some(t => r.row.raw.includes(t) || r.row.brief.includes(t)),
+    'the dropped text is not stored, in the value or the brief (the value is served publicly)');
+  ok(() => r.logged.length === 1 && r.logged[0].includes('dropped lines') && r.logged[0].includes('g2:digit')
+      && r.logged[0].includes('g3:team-name') && r.logged[0].includes('g9:unknown-id') && !r.logged[0].includes('Won by'),
+    'dropped lines are logged once, by key and reason, without their text');
+  ok(() => r.result.aiCalls === 1, 'an answer with dropped lines counts its AI call');
+}
+
+// ── no line followed the contract ───────────────────────────────────────────
+{
+  const r = await run(textReply(NO_USABLE));
+  const v = r.row.value;
+  ok(() => v.degraded === true && v.degraded_reason === 'bad-structure' && !('proxy_failure' in v) && !('cited' in v),
+    'a morning with no usable line is recorded as degraded, reason bad-structure');
+  ok(() => v.structure.recognized === 5 && JSON.stringify(v.structure.dropped) === JSON.stringify([
+      { key: 'g1', reason: 'team-name' }, { key: 'g2', reason: 'digit' }, { key: 'g3', reason: 'unterminated' }]),
+    'bad-structure names the lines it dropped and why');
   ok(() => r.row.brief === TEMPLATE && r.kv[0][1] === TEMPLATE,
-    'a rejected answer is replaced by the template, in D1 and in KV (text unchanged)');
-  ok(() => r.result.aiCalls === 1, 'a rejected answer still counts its AI call');
-  ok(() => r.logged.length === 1 && r.logged[0].includes('morning_report rejected'), 'a guard rejection is logged once');
-  ok(() => !JSON.stringify(v).includes(PROSE_QUALIFIER) && !JSON.stringify(v).includes('Tampa'),
-    'the rejected prose is not stored (the value is served publicly)');
+    'a morning with no usable line writes the template, in D1 and in KV (text unchanged)');
+  ok(() => r.result.aiCalls === 1, 'an answer with no usable line still counts its AI call');
+  ok(() => r.logged.length === 1 && r.logged[0].includes('no usable game line') && r.logged[0].includes('g1:team-name'),
+    'a morning with no usable line is logged once, by key and reason');
+  ok(() => ![L_NAME2, L_DIGIT, L_CUT, 'Lightning beat'].some(t => r.row.raw.includes(t)),
+    'the answer text is not stored in the value (it is served publicly)');
 }
 {
-  const r = await run(textReply(PROSE_MISSING));
+  const r = await run(textReply(FREE_PROSE));
   const v = r.row.value;
-  ok(() => v.degraded === true && v.degraded_reason === 'team-name-guard'
-      && v.guard.first.missing_team.length === 1 && v.guard.first.missing_team[0] === 'Lightning'
-      && v.guard.first.fabricated_qualifier === null,
-    'a missing team is recorded as such, by name');
+  ok(() => v.degraded_reason === 'bad-structure' && v.structure.recognized === 0
+      && JSON.stringify(v.structure.dropped) === JSON.stringify([{ key: null, reason: 'unrecognized-line' }])
+      && r.row.brief === TEMPLATE && !r.row.raw.includes('Tampa') && !r.row.raw.includes('Lightning'),
+    'an answer that ignores the form is bad-structure, recognised 0, and its text is not stored');
 }
+
+// ── the proxy gave nothing ──────────────────────────────────────────────────
 {
   const r = await run(reply(500, 'internal error'));
   const v = r.row.value;
   ok(() => v.degraded === true && v.degraded_reason === 'prose-empty', 'an HTTP failure is recorded as degraded, reason prose-empty');
-  ok(() => v.proxy_failure === 'http-500' && !('guard' in v), 'an HTTP failure keeps its status and carries no guard record');
+  ok(() => v.proxy_failure === 'http-500' && !('structure' in v), 'an HTTP failure keeps its status and carries no structure record');
   ok(() => r.row.brief === TEMPLATE && r.kv[0][1] === TEMPLATE, 'an HTTP failure writes the template (text unchanged)');
   ok(() => r.result.aiCalls === 0, 'an empty answer counts no AI call');
-  ok(() => r.logged.length === 0, 'an empty answer is not logged as a guard rejection');
+  ok(() => r.logged.length === 0, 'an empty answer is not logged as a refused one');
 }
 {
   const r = await run(reply(200, { content: [] }));
@@ -209,10 +227,35 @@ ok(() => teamNameSubstitutions(PROSE_NO_SCORE, recap).length === 0,
   const r = await run(reply(200, '<html>error code: 1101</html>'));
   ok(() => r.row.value.degraded_reason === 'prose-empty' && r.row.value.proxy_failure === 'bad-json', 'a non-JSON 200 is prose-empty / bad-json');
 }
+
+// ── nothing to cite: no model call ──────────────────────────────────────────
 {
-  const r = await run(textReply(PROSE_NO_SCORE));
-  ok(() => r.row.value.degraded === false && r.row.brief === PROSE_NO_SCORE,
-    'prose that cites no score is accepted as it always was');
+  const r = await run(textReply(GOOD), { ctxBody: null });
+  const v = r.row.value;
+  ok(() => v.degraded === true && v.degraded_reason === 'no-context' && !('no_games' in v),
+    'a missing context is recorded as degraded, reason no-context');
+  ok(() => r.sent.length === 0, 'a missing context asks the model for nothing');
+  ok(() => r.row.brief === TEMPLATE && r.kv[0][1] === TEMPLATE && r.result.aiCalls === 0,
+    'a missing context writes the template and counts no AI call');
+}
+{
+  const quiet = { ok: true, date: DATE, games: { regular: [{ id: 'x', sport: 'NBA', away: 'Kings', home: 'Hawks', away_score: null, home_score: null, note: null }], postseason: [] } };
+  const r = await run(textReply(GOOD), { ctxBody: quiet });
+  const v = r.row.value;
+  ok(() => v.degraded === false && v.no_games === true && !('degraded_reason' in v),
+    'a night with no game is not degraded (the template is accurate)');
+  ok(() => r.sent.length === 0, 'a night with no game asks the model for nothing');
+  ok(() => r.row.brief === TEMPLATE && r.kv[0][1] === TEMPLATE && r.result.aiCalls === 0,
+    'a night with no game writes the template and counts no AI call');
+}
+
+// ── Phase 3's game is printed once ──────────────────────────────────────────
+{
+  const r = await run(textReply(GOOD), { truth: { ...TRUTH, game_id: GAMES[0].id } });
+  const prompt = r.sent[0].body.messages[0].content;
+  ok(() => prompt.includes('g1 | NBA | final 114-111') && !prompt.includes('g5 |')
+      && r.row.brief.includes(`Hawks 114, Cavaliers 111. ${A1}`) && !r.row.brief.includes('Lightning 6, Jets 4'),
+    'the truth game is printed once: as Phase 3\'s headline, not again as a cited game');
 }
 
 console.log(`${n - fails}/${n} assertions pass`);

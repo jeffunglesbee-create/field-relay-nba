@@ -120,11 +120,18 @@ export function buildMorningReportPrompt(date, { stars, truthIs, citable }) {
         `Your answer is a short list of labelled lines, and the relay sets each of your sentences next to ` +
         `the game it is about.\n\n` +
         `RULES FOR YOUR SENTENCES\n` +
-        `- Never write a team name, a city, a player name or a league name. Say "the winners", "the visitors", ` +
-        `"the home side", "the closest game of the night", "hockey" or "basketball".\n` +
+        `- The reader sees each game's teams and score, printed by the relay just before your sentence. ` +
+        `Do not repeat the score, the margin or the total. Say what kind of game it was, in fresh words: ` +
+        `a one-score finish, a rout, a level draw, an escape in overtime.\n` +
+        `- Never write a team name, a city, a player name or a league name. Say "the winners", "the losers", ` +
+        `"hockey" or "basketball".\n` +
         `- Never write a digit. Spell every number out as a word.\n` +
-        `- Say only what the line for that game says: the sport, the margin, the total, overtime. ` +
+        `- You are told only the sport, the margin, the total and whether it went to overtime. You are not told ` +
+        `which side was at home, who scored or how the game unfolded, so never say home, away, visitors, hosts, ` +
+        `comeback or late drama. Never compare one game with another ("closest", "biggest", "best", "only"). ` +
         `Do not invent streaks, records, injuries, series, players or storylines.\n` +
+        `- Vary your wording from line to line. Avoid stock phrases such as "rhythm of", "marvel", "lessons", ` +
+        `"hard-fought", "brand new day" and "secured".\n` +
         `- Every line is one complete sentence of 10 to 25 words and ends with a full stop.\n\n` +
         `NIGHT STARS: ${starLine}\n` +
         `THE TRUTH IS (the relay prints it above your text; do not repeat it): ${truthGloss}\n\n` +
@@ -133,7 +140,7 @@ export function buildMorningReportPrompt(date, { stars, truthIs, citable }) {
         `Pick the 3 or 4 games that matter most, most important first.\n` +
         `open: <one sentence of warm wonder about the night's truth>\n` +
         `${shown}\n` +
-        `close: <one sentence about what carries forward to tomorrow>`
+        `close: <one sentence of quiet anticipation for tomorrow; name no game and no team>`
     );
 }
 
