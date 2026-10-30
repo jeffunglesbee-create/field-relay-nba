@@ -291,6 +291,40 @@ D1 `cc49101c`, `change_log` (`source='closing_odds_capture'`) joined to
   `ceiling_reached_at` null, `degraded_open.events` 0. 10-24 used 2324 of a
   3800 ceiling.
 
+### Data point 2026-10-30 — the generator's day-0 NBA is empty on a ten-game night (BUILD-ON-A: added here, not filed)
+
+Found while auditing which sports the jubilant-bassoon forward-window probe covers
+(its session doc is `outbox/cc-session-2026-10-30-forward-window-probe.md` there).
+This is the first measured consequence of the readers listed above that "fail
+under the 403".
+
+- **The file.** jubilant-bassoon `outbox/field-data-today.json`, generated
+  2026-10-30T14:26:59Z by `field-data.yml`: `schedules_by_date['2026-10-30'].nba`
+  is 0.
+- **The relay, same day.** `GET /v2/games?sport=nba&date=2026-10-30` lists 10
+  games (`source` espn-wc, every game state `pre`, first tip 23:00Z), read
+  through the relay self-probe on 2026-10-30. The probe's capture on the runner
+  (run 41139258140) read the next three days: 7 on 10-31, 4 on 11-01, 15 on 11-02.
+- **The passthrough, same day.** `GET /nba/liveData/scoreboard/todaysScoreboard_00.json`
+  answers 403, body `nba returned 403`: still the CDN refusing the Worker.
+- **Why the file says 0.** The `Fetch NHL + NBA + MLB schedules from relay` step
+  of `field-data.yml` calls that passthrough with `curl -sf ... || echo '{}'`.
+  `-f` makes curl fail on the 403, the fallback writes `{}`, and `parseNBA` in
+  `scripts/build-field-data.js` returns an empty list from `raw.scoreboard?.games
+  || []`. A 403 is recorded as "no games", which is the conflation this CC-CMD's
+  TASK 1 says must stop (`nba-cdn-empty` meaning both), in a workflow, and as a
+  silent fallback.
+- **Not built.** The fix is a decision this CC-CMD already names: point the
+  generator at the ESPN-sourced `/v2/games?sport=nba&date=` (its shape is not the
+  CDN scoreboard `parseNBA` reads, so an adapter is needed) or stop shipping an
+  NBA key from the generator; and make the 403 a visible failure instead of
+  `{}`. The Rule 45 flag above still stands. What reads `schedules.nba` from the
+  file was not traced; the forward window carries NBA as day 0 only by design.
+- **Unblocked by:** the owner's call on the box-score decision TASK 1 names.
+  **Verify after any fix:** `outbox/field-data-today.json` `schedules_by_date`
+  for a game day has `nba` above 0 when `/v2/games?sport=nba&date=<that day>`
+  lists games.
+
 ## Done condition (Rule 90 artifacts)
 
 1. TASK 0's three outputs committed.
