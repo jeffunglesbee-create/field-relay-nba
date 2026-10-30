@@ -1,0 +1,26 @@
+name: Morning report cite replay
+
+# Read-only. Asks the real proxy for the Morning Report the cron would ask for under the
+# cite-by-id contract (src/morning-report.js), once per date (default 11 dates, 11
+# inferences, Rule 78), and runs the production parser and composer over each answer, so
+# whether the production model follows the contract can be READ rather than assumed.
+# docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md, Task 3 option 4.
+#
+# Dispatch-only, NO schedule: this answers a question once. The permanent record is the
+# row the cron writes (value.degraded, value.cited, value.dropped), not this.
+#
+# `secrets: inherit` is what hands the relay secret to the reusable runner (see its header);
+# the caller must also grant contents: write.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  replay:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-morning-report-cite-replay.mjs
+      commit_message: "chore: morning-report cite replay result [skip ci]"
+    secrets: inherit

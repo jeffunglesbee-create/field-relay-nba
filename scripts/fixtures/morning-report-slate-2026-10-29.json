@@ -1,0 +1,355 @@
+{
+ "_about": "Trimmed real /context/date/2026-10-29 payload, the truth_is finding and night_stars value as served on 2026-10-30. The slate the team-name guard rejected accurate prose on (docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md). Only the fields src/morning-report.js reads.",
+ "ctx": {
+  "ok": true,
+  "date": "2026-10-29",
+  "games": {
+   "regular": [
+    {
+     "id": "2026-10-29-mls-van-sd",
+     "sport": "MLS",
+     "home": "Vancouver Whitecaps FC",
+     "away": "San Diego FC",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-stl-por",
+     "sport": "MLS",
+     "home": "St. Louis CITY SC",
+     "away": "Portland Timbers",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-sea-hou",
+     "sport": "MLS",
+     "home": "Seattle Sounders FC",
+     "away": "Houston Dynamo FC",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-sj-col",
+     "sport": "MLS",
+     "home": "San Jose Earthquakes",
+     "away": "Colorado Rapids",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-nsh-phi",
+     "sport": "MLS",
+     "home": "Nashville SC",
+     "away": "Philadelphia Union",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-min-skc",
+     "sport": "MLS",
+     "home": "Minnesota United FC",
+     "away": "Sporting Kansas City",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-dal-clb",
+     "sport": "MLS",
+     "home": "FC Dallas",
+     "away": "Columbus Crew",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-chi-orl",
+     "sport": "MLS",
+     "home": "Chicago Fire FC",
+     "away": "Orlando City",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "2026-10-29-mls-atx-rsl",
+     "sport": "MLS",
+     "home": "Austin FC",
+     "away": "Real Salt Lake",
+     "home_score": null,
+     "away_score": null,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "NBA_2026-10-29_e401909893",
+     "sport": "NBA",
+     "home": "Hawks",
+     "away": "Cavaliers",
+     "home_score": 114,
+     "away_score": 111,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NBA_2026-10-29_e401909894",
+     "sport": "NBA",
+     "home": "Pelicans",
+     "away": "Kings",
+     "home_score": 132,
+     "away_score": 120,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NBA_2026-10-29_e401909895",
+     "sport": "NBA",
+     "home": "Trail Blazers",
+     "away": "Grizzlies",
+     "home_score": 103,
+     "away_score": 124,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892601",
+     "sport": "NHL",
+     "home": "Lightning",
+     "away": "Jets",
+     "home_score": 6,
+     "away_score": 4,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892602",
+     "sport": "NHL",
+     "home": "Penguins",
+     "away": "Mammoth",
+     "home_score": 3,
+     "away_score": 4,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "NHL_2026-10-29_e401892603",
+     "sport": "NHL",
+     "home": "Hurricanes",
+     "away": "Blue Jackets",
+     "home_score": 3,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892600",
+     "sport": "NHL",
+     "home": "Red Wings",
+     "away": "Blackhawks",
+     "home_score": 4,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892604",
+     "sport": "NHL",
+     "home": "Blues",
+     "away": "Bruins",
+     "home_score": 4,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892605",
+     "sport": "NHL",
+     "home": "Predators",
+     "away": "Capitals",
+     "home_score": 3,
+     "away_score": 4,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892606",
+     "sport": "NHL",
+     "home": "Stars",
+     "away": "Canadiens",
+     "home_score": 2,
+     "away_score": 5,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892607",
+     "sport": "NHL",
+     "home": "Wild",
+     "away": "Islanders",
+     "home_score": 3,
+     "away_score": 4,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "NHL_2026-10-29_e401892608",
+     "sport": "NHL",
+     "home": "Ducks",
+     "away": "Sabres",
+     "home_score": 6,
+     "away_score": 7,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-29_e401892609",
+     "sport": "NHL",
+     "home": "Kings",
+     "away": "Senators",
+     "home_score": 6,
+     "away_score": 5,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "NHL_2026-10-29_e401892610",
+     "sport": "NHL",
+     "home": "Sharks",
+     "away": "Canucks",
+     "home_score": 3,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "WNBA_2026-10-29_e401918310",
+     "sport": "WNBA",
+     "home": "Dream",
+     "away": "Valkyries",
+     "home_score": 80,
+     "away_score": 69,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "Serie A_2026-10-29_e401874976",
+     "sport": "Serie A",
+     "home": "Frosinone",
+     "away": "Lecce",
+     "home_score": 5,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "Serie A_2026-10-29_e401874969",
+     "sport": "Serie A",
+     "home": "Fiorentina",
+     "away": "Atalanta",
+     "home_score": 2,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "EFL Cup_2026-10-29_e401921844",
+     "sport": "EFL Cup",
+     "home": "Everton",
+     "away": "Newcastle",
+     "home_score": 3,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "NFL_2026-10-29_e401873023",
+     "sport": "NFL",
+     "home": "Packers",
+     "away": "Panthers",
+     "home_score": 27,
+     "away_score": 19,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "CFB_2026-10-29_e401862812",
+     "sport": "CFB",
+     "home": "North Texas",
+     "away": "FAU",
+     "home_score": 48,
+     "away_score": 41,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "CFB_2026-10-29_e401869963",
+     "sport": "CFB",
+     "home": "James Madison",
+     "away": "Troy",
+     "home_score": 21,
+     "away_score": 24,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "wnba_2026-10-29_e401918310",
+     "sport": "wnba",
+     "home": "Atlanta Dream",
+     "away": "Golden State Valkyries",
+     "home_score": 80,
+     "away_score": 69,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "golf_2026-10-29_vidantaworldmexicoopen_r1",
+     "sport": "golf",
+     "home": "VidantaWorld Mexico Open",
+     "away": "R1",
+     "home_score": -9,
+     "away_score": null,
+     "note": "Karl Vilips -9",
+     "went_to_ot": null
+    },
+    {
+     "id": "PGA Tour_2026-10-29_e401850978",
+     "sport": "PGA Tour",
+     "home": null,
+     "away": null,
+     "home_score": -9,
+     "away_score": -8,
+     "note": null,
+     "went_to_ot": null
+    }
+   ],
+   "postseason": []
+  }
+ },
+ "truth": {
+  "type": "none",
+  "game_id": null,
+  "sport": null,
+  "headline": "Quiet night. The truth is, sometimes that's the story."
+ },
+ "stars": {
+  "stars": 3,
+  "totalGames": 33,
+  "dramaGames": 0,
+  "closeGames": 9,
+  "walkoffs": 0
+ }
+}

@@ -566,6 +566,19 @@ jobs:
           node scripts/check-morning-report-degraded.mjs
           node scripts/mutate-morning-report-degraded.mjs
 
+      # The Morning Report cites games by id and the relay writes every team name and score
+      # (src/morning-report.js). This pins the contract on the real functions with no model in
+      # the loop: the prompt carries no name, a score is printed beside its own team, a line with
+      # a digit, a slate name, an unknown or repeated id is dropped and recorded by reason, and
+      # over 400 random slates and answers every digit and name in the paragraph is the relay's.
+      # It replays the two real slates on which the old team-name guard threw accurate prose
+      # away. Then it breaks the module 45 ways and requires the check to go red for the stated
+      # reason each time (Rule 90). docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md
+      - name: the Morning Report cites games by id
+        run: |
+          node scripts/check-morning-report-cite.mjs
+          node scripts/mutate-morning-report-cite.mjs
+
       # ask 2: brief_type must be gated on finality and single-sourced. A fifth
       # write site pasting the 'game_recap' literal back in, or the enqueue
       # dropping isFinal, both silently restore the pre-fix behaviour.

@@ -18,6 +18,7 @@
 // the heaviest favourite on the card. The same measurement found 0 real upsets
 // lost, so the rule costs no finding it did not invent.
 import { winnerMoneylinePrice, lineSpread } from './odds-consumer-rules.js';
+import { selectRecapGames } from './morning-report.js';
 
 const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11', 'phase12', 'phase13'];
 const STATUS_KV_KEY = 'field:analytics:status';
@@ -586,17 +587,9 @@ async function runPhase3TruthIs(env, date, ctx) {
 // The recap selection, the prompt and the team-name guard below are pure and exported
 // (2026-10-30), so scripts/check-morning-report-degraded.mjs and
 // scripts/probe-morning-report-guard-replay.mjs run THIS code rather than a copy of it.
-export function selectRecapGames(ctx) {
-    const games = ctx
-        ? [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])]
-        : [];
-
-    // One-line recap per game. Keep prompt tight — Gemini handles ~250 words
-    // of context comfortably, beyond that it tends to enumerate.
-    return games
-        .filter(g => g.note || (typeof g.home_score === 'number' && typeof g.away_score === 'number'))
-        .slice(0, 16);
-}
+// selectRecapGames moved to src/morning-report.js (2026-10-30, unchanged); re-exported so
+// the importers of this file keep working.
+export { selectRecapGames };
 
 export function buildMorningReportPrompt(date, { stars, truthIs, recapGames }) {
     const recapLines = recapGames

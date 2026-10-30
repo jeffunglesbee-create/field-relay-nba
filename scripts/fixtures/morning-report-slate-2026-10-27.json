@@ -1,0 +1,305 @@
+{
+ "_about": "Trimmed real /context/date/2026-10-27 payload, the truth_is finding and night_stars value as served on 2026-10-30. The slate the team-name guard rejected accurate prose on (docs/CC-CMD-2026-10-30-morning-report-degraded-reason.md). Only the fields src/morning-report.js reads.",
+ "ctx": {
+  "ok": true,
+  "date": "2026-10-27",
+  "games": {
+   "regular": [
+    {
+     "id": "golf_2026-10-27_butterfieldbermudachampionship_r4",
+     "sport": "golf",
+     "home": "Butterfield Bermuda Championship",
+     "away": "R4",
+     "home_score": -16,
+     "away_score": null,
+     "note": "Austin Smotherman -16",
+     "went_to_ot": null
+    },
+    {
+     "id": "NBA_2026-10-27_e401909877",
+     "sport": "NBA",
+     "home": "Celtics",
+     "away": "Nets",
+     "home_score": 125,
+     "away_score": 124,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "NBA_2026-10-27_e401909878",
+     "sport": "NBA",
+     "home": "Knicks",
+     "away": "Pistons",
+     "home_score": 111,
+     "away_score": 97,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NBA_2026-10-27_e401909879",
+     "sport": "NBA",
+     "home": "Spurs",
+     "away": "Kings",
+     "home_score": 130,
+     "away_score": 103,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NBA_2026-10-27_e401909880",
+     "sport": "NBA",
+     "home": "Lakers",
+     "away": "Trail Blazers",
+     "home_score": 129,
+     "away_score": 136,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892585",
+     "sport": "NHL",
+     "home": "Flyers",
+     "away": "Blue Jackets",
+     "home_score": 3,
+     "away_score": 4,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "NHL_2026-10-27_e401892586",
+     "sport": "NHL",
+     "home": "Hurricanes",
+     "away": "Bruins",
+     "home_score": 2,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892587",
+     "sport": "NHL",
+     "home": "Blackhawks",
+     "away": "Kings",
+     "home_score": 2,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892588",
+     "sport": "NHL",
+     "home": "Blues",
+     "away": "Canadiens",
+     "home_score": 0,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892589",
+     "sport": "NHL",
+     "home": "Predators",
+     "away": "Islanders",
+     "home_score": 3,
+     "away_score": 4,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "NHL_2026-10-27_e401892590",
+     "sport": "NHL",
+     "home": "Stars",
+     "away": "Devils",
+     "home_score": 1,
+     "away_score": 5,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892591",
+     "sport": "NHL",
+     "home": "Jets",
+     "away": "Panthers",
+     "home_score": 1,
+     "away_score": 5,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892592",
+     "sport": "NHL",
+     "home": "Mammoth",
+     "away": "Wild",
+     "home_score": 1,
+     "away_score": 3,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892593",
+     "sport": "NHL",
+     "home": "Golden Knights",
+     "away": "Senators",
+     "home_score": 4,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "NHL_2026-10-27_e401892594",
+     "sport": "NHL",
+     "home": "Ducks",
+     "away": "Canucks",
+     "home_score": 5,
+     "away_score": 6,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "NHL_2026-10-27_e401892595",
+     "sport": "NHL",
+     "home": "Sharks",
+     "away": "Sabres",
+     "home_score": 0,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": 0
+    },
+    {
+     "id": "MLB_2026-10-27_e401908045",
+     "sport": "MLB",
+     "home": "Rays",
+     "away": "Brewers",
+     "home_score": 4,
+     "away_score": 3,
+     "note": null,
+     "went_to_ot": 1
+    },
+    {
+     "id": "Serie A_2026-10-27_e401874980",
+     "sport": "Serie A",
+     "home": "Sassuolo",
+     "away": "Lazio",
+     "home_score": 2,
+     "away_score": 6,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "Serie A_2026-10-27_e401874780",
+     "sport": "Serie A",
+     "home": "AS Roma",
+     "away": "Cagliari",
+     "home_score": 4,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "Serie A_2026-10-27_e401874786",
+     "sport": "Serie A",
+     "home": "Torino",
+     "away": "Como",
+     "home_score": 1,
+     "away_score": 3,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "EFL Cup_2026-10-27_e401921833",
+     "sport": "EFL Cup",
+     "home": "Bradford",
+     "away": "Peterborough",
+     "home_score": 2,
+     "away_score": 0,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "EFL Cup_2026-10-27_e401921835",
+     "sport": "EFL Cup",
+     "home": "Fleetwood Town",
+     "away": "Arsenal",
+     "home_score": 1,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "EFL Trophy_2026-10-27_e401906346",
+     "sport": "EFL Trophy",
+     "home": "Wimbledon",
+     "away": "Arsenal U21",
+     "home_score": 1,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "EFL Trophy_2026-10-27_e401906347",
+     "sport": "EFL Trophy",
+     "home": "Port Vale",
+     "away": "Man City U21",
+     "home_score": 5,
+     "away_score": 0,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "EFL Trophy_2026-10-27_e401906252",
+     "sport": "EFL Trophy",
+     "home": "Shrewsbury",
+     "away": "Everton U21",
+     "home_score": 2,
+     "away_score": 1,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "CFB_2026-10-27_e401871071",
+     "sport": "CFB",
+     "home": "Western KY",
+     "away": "Delaware",
+     "home_score": 21,
+     "away_score": 35,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "CFB_2026-10-27_e401871072",
+     "sport": "CFB",
+     "home": "Missouri St",
+     "away": "Sam Houston",
+     "home_score": 24,
+     "away_score": 3,
+     "note": null,
+     "went_to_ot": null
+    },
+    {
+     "id": "EFL Trophy_2026-10-27_e401909640",
+     "sport": "EFL Trophy",
+     "home": "Blackpool",
+     "away": "A Villa U21",
+     "home_score": 3,
+     "away_score": 2,
+     "note": null,
+     "went_to_ot": null
+    }
+   ],
+   "postseason": []
+  }
+ },
+ "truth": {
+  "type": "convergence",
+  "game_id": "NHL_2026-10-27_e401892588",
+  "sport": "NHL",
+  "headline": "4 unusual finishes — led by Canadiens shut out Blues 2-0."
+ },
+ "stars": {
+  "stars": 4,
+  "totalGames": 28,
+  "dramaGames": 1,
+  "closeGames": 11,
+  "walkoffs": 0
+ }
+}
