@@ -264,12 +264,41 @@ export function bumpReason(prev, reason) {
     return reasons;
 }
 
+/** The substring that marks a D1 overload in a degrade reason. The pairing watch carries its own copy of
+ *  this string (scripts/watch-odds-pairing-rate.mjs) and scripts/check-degrade-by-hour.mjs asserts the
+ *  two are equal, so a rename on either side fails a gate instead of silently counting zero. */
+export const D1_OVERLOAD_MARK = 'D1 DB is overloaded';
+
+/** One more event in the UTC-hour histogram, as a NEW object (docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md).
+ *
+ *  `{ '14': { events, overload } }`. At most 24 keys ('00'..'23'), so it cannot grow past the order of size of
+ *  the reason cap, and it rides the write the counter already makes. A malformed hour is IGNORED rather than
+ *  becoming a 25th key. `overload` tests the FULL reason, not the 120-character key bumpReason stores, so a
+ *  long message that pushes the mark past the truncation point is still counted here.
+ *
+ *  A record written before this field existed has no `by_hour`, so on the day of the deploy the map covers
+ *  only the events after it; a reader must compare the map's total with `events` and say so (Rule 99). */
+export function bumpHour(prev, hour, reason) {
+    const by = (prev && typeof prev === 'object' && !Array.isArray(prev)) ? { ...prev } : {};
+    if (!/^(?:[01]\d|2[0-3])$/.test(String(hour))) return by;
+    const cur = (by[hour] && typeof by[hour] === 'object' && !Array.isArray(by[hour])) ? by[hour] : {};
+    by[hour] = {
+        events: (Number(cur.events) || 0) + 1,
+        overload: (Number(cur.overload) || 0) + (String(reason || '').includes(D1_OVERLOAD_MARK) ? 1 : 0),
+    };
+    return by;
+}
+
 async function _countDegradeOpen(env, units, reason = '') {
     try {
-        const key = _degradeKey();
+        // ONE instant for the day key, the hour and `last`, so a degrade at 23:59:59.999 cannot file its
+        // hour under one day and its key under the next.
+        const at = new Date().toISOString();
+        const key = _degradeKey(at.slice(0, 10));
         const raw = await env.FIELD_JOURNALISM.get(key);
         const cur = raw ? JSON.parse(raw) : { events: 0, credits: 0 };
         const reasons = bumpReason(cur.reasons, reason);
+        const byHour = bumpHour(cur.by_hour, at.slice(11, 13), reason);
         await env.FIELD_JOURNALISM.put(key, JSON.stringify({
             events: (Number(cur.events) || 0) + 1,
             // Credits, not just events: one degraded historical call is 30 and
@@ -277,7 +306,8 @@ async function _countDegradeOpen(env, units, reason = '') {
             // the same and could not be compared against an escape figure.
             credits: (Number(cur.credits) || 0) + (Number(units) || 0),
             reasons,
-            last: new Date().toISOString(),
+            by_hour: byHour,
+            last: at,
         }), { expirationTtl: 172800 });
     } catch (_) {
         // Deliberately empty. See BEST EFFORT above.

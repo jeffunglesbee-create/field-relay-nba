@@ -106,6 +106,14 @@ jobs:
           node scripts/check-degrade-open-reason.mjs --self-test
           node scripts/check-degrade-open-reason.mjs
 
+      # WHEN the guard fell open: the counter gained an hour map (docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md). The
+      # real chargeOdds on a node:sqlite D1 whose charge batch throws, a pinned clock, a recording KV: one put per
+      # degrade, the hour from the same instant as the day key, a record from before the field not claiming coverage.
+      - name: the degrade counter files each event under its UTC hour, with no extra write
+        run: |
+          node scripts/check-degrade-by-hour.mjs
+          node scripts/mutate-degrade-by-hour.mjs
+
       # And the other half of the SAME incident: what threw, those 245 times,
       # was chargedFromBatch — the monthly batch is two statements and the
       # helper demanded three, so every monthly charge degraded open and the

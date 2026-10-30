@@ -233,6 +233,59 @@ export function d1OverloadVerdict(block, budget = D1_OVERLOAD_BUDGET) {
   return { state: pathBlind > budget ? 'over' : 'within', ...base };
 }
 
+/** THE HOUR OF EACH DEGRADE, ON THE CLOSED DAY — docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md, Task 1.
+ *
+ *  `degraded_open.by_hour` is `{ 'HH': { events, overload } }`, UTC. The count says HOW MANY guards fell open; this
+ *  says WHEN, which is what separates "stop deploying into the peak" from "a capacity question".
+ *
+ *  INFORMATIONAL, AND NEVER A FAILURE. d1OverloadVerdict above fails the run on a block it cannot read, and that is
+ *  right for the count. This field did not exist before 2026-10-30, so every record written earlier lacks it and a
+ *  day that straddles the deploy carries it for only the events after. Failing on its absence would turn the watch red
+ *  for a day that did nothing wrong. Its absence is `not-reported`, which is NOT zero (Rule 99), and a map that
+ *  covers fewer events than the counter says so: `partial`, with both numbers (Rule 91).
+ *
+ *    none          events is 0: nothing to split
+ *    reported      the map covers every event the counter counted
+ *    partial       the map covers some of them (the rest predate the field)
+ *    inconsistent  the map claims MORE events than the counter: one of them is wrong
+ *    not-reported  events > 0 and no usable map
+ *    unreadable    the block or its event count is not readable
+ *
+ *  The hours are SORTED here. Object.keys puts '10'..'23' before '00'..'09' (integer-like keys enumerate first),
+ *  so printing in enumeration order would read as 10:00Z first. */
+export function byHourVerdict(block) {
+  if (block === undefined) return { state: 'not-reported' };
+  if (block === null || typeof block !== 'object' || Array.isArray(block)) return { state: 'unreadable' };
+  const events = Number(block.events);
+  if (block.events === null || block.events === undefined || !Number.isFinite(events)) return { state: 'unreadable' };
+  if (events === 0) return { state: 'none', events: 0, covered: 0, hours: [] };
+  const by = block.by_hour;
+  if (!by || typeof by !== 'object' || Array.isArray(by)) return { state: 'not-reported', events, covered: 0, hours: [] };
+  const hours = Object.keys(by).filter((h) => /^(?:[01]\d|2[0-3])$/.test(h)).sort()
+    .map((h) => ({ hour: h, events: Number(by[h] && by[h].events) || 0, overload: Number(by[h] && by[h].overload) || 0 }))
+    .filter((h) => h.events > 0);
+  const covered = hours.reduce((t, h) => t + h.events, 0);
+  if (covered === 0) return { state: 'not-reported', events, covered, hours };
+  if (covered > events) return { state: 'inconsistent', events, covered, hours };
+  return { state: covered < events ? 'partial' : 'reported', events, covered, hours };
+}
+
+/** The lines the watch prints for a byHourVerdict. Exported so the wording is tested: the two sentences that carry
+ *  the Rule 99 / Rule 91 content ("NOT zero", "the rest predate the field") are the ones a edit would drop. */
+export function byHourLines(hrs) {
+  if (hrs.state === 'reported' || hrs.state === 'partial' || hrs.state === 'inconsistent') {
+    const out = [`  by hour (UTC)        : ${hrs.state} — covers ${hrs.covered} of ${hrs.events} events`
+      + (hrs.state === 'partial' ? '   (the rest predate the field)' : '')];
+    for (const h of hrs.hours) out.push(`      ${h.hour}:00Z   ${String(h.events).padStart(3)} event(s)   ${String(h.overload).padStart(3)} D1 overload(s)`);
+    return out;
+  }
+  if (hrs.state === 'not-reported') {
+    return ['  by hour (UTC)        : not-reported — events were counted but the day carries no hour map (a record from before 2026-10-30, or an older relay); this is NOT zero'];
+  }
+  if (hrs.state === 'unreadable') return ['  by hour (UTC)        : unreadable'];
+  return [];   // none: degraded_open already said so
+}
+
 /** CI SPENDS AT THE VENDOR WITHOUT TOUCHING OUR LEDGER, BY CONSTRUCTION.
  *  odds-backfill.js runs in GitHub Actions and calls the Odds API directly;
  *  consumeOddsCredit lives in the worker and never sees it. So a positive
@@ -627,6 +680,39 @@ if (SELF) {
       'overloads past the 8-reason cap land here and would otherwise read as none');
   one('an explicit budget is honoured', d1OverloadVerdict(day10, 12).state, 'over');
 
+  // THE HOUR MAP — informational; absence is not-reported, never zero (Rule 99), and its coverage is stated (Rule 91).
+  const HR = (x) => byHourVerdict(x);
+  const REAL1029 = { events: 5, credits: 30, reasons: { [OVC]: 5 }, last: '2026-10-29T16:04:03.057Z' };   // the real record: no by_hour
+  one('hours: undefined is not-reported, not zero', HR(undefined).state, 'not-reported');
+  one('hours: null is unreadable', HR(null).state, 'unreadable');
+  one('hours: no events is none', HR({ events: 0, credits: 0 }).state, 'none');
+  one('hours: events MISSING is unreadable, not a clean day', HR({ credits: 0, by_hour: { '14': { events: 1, overload: 1 } } }).state, 'unreadable',
+      'Number(undefined) is NaN; a block with no event count must not read as none');
+  one('hours: events NULL is unreadable, not a clean day', HR({ events: null, credits: 0 }).state, 'unreadable',
+      'Number(null) is 0 and finite: only the explicit null check stops it reading as none');
+  one('hours: the REAL 2026-10-29 record has no by_hour: not-reported, with its 5 events kept', [HR(REAL1029).state, HR(REAL1029).events].join(','), 'not-reported,5',
+      'a record written before the field existed must not read as a day with no degrades');
+  one('hours: an array by_hour is not a map', HR({ events: 3, by_hour: [1, 2] }).state, 'not-reported');
+  one('hours: a map of garbage entries covers nothing', HR({ events: 3, by_hour: { '14': 'x', '15': null } }).state, 'not-reported');
+  one('hours: a map covering every event is reported', HR({ events: 3, by_hour: { '14': { events: 3, overload: 3 } } }).state, 'reported');
+  one('hours: a map covering FEWER events than the counter is partial, with both numbers',
+      (() => { const v = HR({ events: 6, by_hour: { '15': { events: 1, overload: 1 } } }); return [v.state, v.covered, v.events].join(','); })(), 'partial,1,6',
+      'the day of the deploy: five events predate the field');
+  one('hours: a map claiming MORE events than the counter is inconsistent, not reported',
+      HR({ events: 2, by_hour: { '14': { events: 5, overload: 5 } } }).state, 'inconsistent');
+  one('hours are SORTED, not in enumeration order', HR({ events: 3, by_hour: { '14': { events: 2, overload: 2 }, '09': { events: 1, overload: 0 } } }).hours.map((h) => h.hour).join(','), '09,14',
+      "Object.keys puts '14' before '09'");
+  one('hours: a malformed hour key is not a bucket', HR({ events: 2, by_hour: { '25': { events: 2, overload: 2 } } }).state, 'not-reported');
+  one('hours: the per-hour overload count is carried', HR({ events: 3, by_hour: { '14': { events: 3, overload: 2 } } }).hours[0].overload, 2);
+  const PART = byHourLines(HR({ events: 6, by_hour: { '15': { events: 1, overload: 1 } } }));
+  one('lines: a partial day states BOTH numbers and why', PART[0].includes('partial — covers 1 of 6 events') && PART[0].includes('the rest predate the field'), true, PART[0]);
+  one('lines: one line per hour, UTC, with its overload count', PART[1], '      15:00Z     1 event(s)     1 D1 overload(s)');
+  one('lines: the real 10-29 record prints NOT zero', byHourLines(HR(REAL1029))[0].includes('this is NOT zero'), true,
+      'an absent map printed without that sentence reads as a quiet day');
+  one('lines: events 0 prints nothing (degraded_open already said none)', byHourLines(HR({ events: 0, credits: 0 })).length, 0);
+  one('lines: an unreadable block prints unreadable', byHourLines(HR(null))[0].endsWith('unreadable'), true);
+  one('lines: hours print in hour order', byHourLines(HR({ events: 3, by_hour: { '14': { events: 2, overload: 2 }, '09': { events: 1, overload: 0 } } })).slice(1).map((l) => l.trim().slice(0, 3)).join(','), '09:,14:');
+
   for (const [daily, want, why] of CEILING) {
     const got = ceilingVerdict(daily).state;
     got === want ? console.log(`  PASS  ceiling: ${want.padEnd(27)} (${why})`)
@@ -950,6 +1036,11 @@ if (ovlWhy) {
   if (ovl.events !== undefined) console.log(`  all degrade events   : ${ovl.events}`);
   if (ovl.monthBatch !== undefined) console.log(`  month-batch reason   : ${ovl.monthBatch}   (the batch-shape fix of 2026-10-11 should hold this at 0)`);
   if (ovl.overflow) console.log(`  overflow bucket      : ${ovl.overflow}   (reasons past the cap — overloads could be hiding here)`);
+}
+// WHEN they happened. Informational: it never sets `failed` (see byHourVerdict).
+if (closedDay && !ovlWhy) {
+  const hrs = byHourVerdict(Object.prototype.hasOwnProperty.call(closedDay, 'degraded_open') ? closedDay.degraded_open : undefined);
+  for (const line of byHourLines(hrs)) console.log(line);
 }
 if (ovlWhy || ['over', 'unattributed', 'not-reported', 'unreadable'].includes(ovl.state)) {
   failed = true;
