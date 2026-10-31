@@ -1,117 +1,5 @@
 [
   {
-    "at": "2026-10-18T12:49:47.658Z",
-    "date": "2026-10-18",
-    "used": 659,
-    "by_site": {
-      "ambientCaptureClosingOdds": 6,
-      "fetchSportOddsHistorical": 90,
-      "fetchSportOddsLive": 267,
-      "getWCPregameLambdas": 8,
-      "handleCFLOddsProbs": 288,
-      "handleWCOddsProbs": 0,
-      "wpResolver": 0,
-      "ambientFetchLiveOdds": 0,
-      "oddsProxyRoute": 0,
-      "unattributed": 0
-    },
-    "by_site_sum": 659,
-    "unreadable_sites": null,
-    "degraded_open": {
-      "events": 0,
-      "credits": 0,
-      "last": null
-    },
-    "source": "d1",
-    "ceiling_reached_at": null,
-    "reconcile": [
-      {
-        "site": "fetchSportOddsLive",
-        "state": "reconciled",
-        "cache": "EXPIRED",
-        "n": 84,
-        "credits_kept": 252
-      },
-      {
-        "site": "fetchSportOddsHistorical",
-        "state": "reconciled",
-        "cache": "MISS",
-        "n": 2,
-        "credits_kept": 60
-      },
-      {
-        "site": "handleCFLOddsProbs",
-        "state": "reconciled",
-        "cache": "EXPIRED",
-        "n": 8,
-        "credits_kept": 30
-      },
-      {
-        "site": "fetchSportOddsHistorical",
-        "state": "reconciled",
-        "cache": "EXPIRED",
-        "n": 1,
-        "credits_kept": 30
-      },
-      {
-        "site": "fetchSportOddsLive",
-        "state": "reconciled",
-        "cache": "MISS",
-        "n": 5,
-        "credits_kept": 15
-      },
-      {
-        "site": "ambientCaptureClosingOdds",
-        "state": "reconciled",
-        "cache": "EXPIRED",
-        "n": 2,
-        "credits_kept": 6
-      },
-      {
-        "site": "handleCFLOddsProbs",
-        "state": "cache-hit",
-        "cache": "HIT",
-        "n": 92,
-        "credits_kept": 0
-      },
-      {
-        "site": "fetchSportOddsHistorical",
-        "state": "cache-hit",
-        "cache": "HIT",
-        "n": 70,
-        "credits_kept": 0
-      },
-      {
-        "site": "getWCPregameLambdas",
-        "state": "cache-hit",
-        "cache": "HIT",
-        "n": 34,
-        "credits_kept": 0
-      },
-      {
-        "site": "getWCPregameLambdas",
-        "state": "reconciled",
-        "cache": "EXPIRED",
-        "n": 34,
-        "credits_kept": 0
-      },
-      {
-        "site": "fetchSportOddsLive",
-        "state": "cache-hit",
-        "cache": "HIT",
-        "n": 32,
-        "credits_kept": 0
-      },
-      {
-        "site": "handleWCOddsProbs",
-        "state": "reconciled",
-        "cache": "EXPIRED",
-        "n": 1,
-        "credits_kept": 0
-      }
-    ]
-  },
-  {
     "at": "2026-10-18T17:37:09.767Z",
     "date": "2026-10-18",
     "used": 2005,
@@ -6150,6 +6038,58 @@
         "state": "reconciled",
         "cache": "MISS",
         "n": 1,
+        "credits_kept": 0
+      }
+    ]
+  },
+  {
+    "at": "2026-10-31T02:54:12.946Z",
+    "date": "2026-10-31",
+    "used": 15,
+    "by_site": {
+      "ambientCaptureClosingOdds": 3,
+      "handleCFLOddsProbs": 12,
+      "getWCPregameLambdas": 0,
+      "handleWCOddsProbs": 0,
+      "fetchSportOddsLive": 0,
+      "fetchSportOddsHistorical": 0,
+      "wpResolver": 0,
+      "ambientFetchLiveOdds": 0,
+      "oddsProxyRoute": 0,
+      "identityMismatches": 0,
+      "archiveOddsBackfill": 0,
+      "archiveGameClosing": 0,
+      "unattributed": 0
+    },
+    "by_site_sum": 15,
+    "unreadable_sites": null,
+    "degraded_open": {
+      "events": 0,
+      "credits": 0,
+      "last": null
+    },
+    "source": "d1",
+    "ceiling_reached_at": null,
+    "reconcile": [
+      {
+        "site": "handleCFLOddsProbs",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 2,
+        "credits_kept": 12
+      },
+      {
+        "site": "ambientCaptureClosingOdds",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 1,
+        "credits_kept": 3
+      },
+      {
+        "site": "handleCFLOddsProbs",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 2,
         "credits_kept": 0
       }
     ]
