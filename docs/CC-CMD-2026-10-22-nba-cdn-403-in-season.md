@@ -362,16 +362,25 @@ box-score decision TASK 1 names is separate and untouched. This supersedes the
   subprocess. It has not been seen on the runner, because the only way to make
   the relay fail on demand is to push a bad overlay to `main`.
 - **Gaps, each with what unblocks it (Rule 74).**
-  1. *The other readers are still silent.* WNBA (the same relay route), MLB
-     (statsapi), MLS (ESPN) and NHL (the passthrough, `curl -sf ... || echo '{}'`)
-     turn a failed read into `[]` and record nothing. An independent review
-     reproduced it for WNBA (a 502 from the relay), an MLB error body and an
-     ESPN error body: empty list, `source_errors` `{}`, green run. The record
-     says so (`source_errors_cover`), and the last step prints which source it
-     vouches for. **Unblocked by:** the owner ruling that a failed read in a
-     given source turns the daily run red. WNBA can reuse the board reader.
-     **Verify:** `source_errors_cover` in the committed overlay lists the source,
-     and the check has a case where that source fails and the last step exits 1.
+  1. *The other readers are still silent.* MLB (statsapi), MLS (ESPN) and NHL
+     (the passthrough, `curl -sf ... || echo '{}'`) turn a failed read into `[]`
+     and record nothing. An independent review reproduced it for an MLB error
+     body and an ESPN error body: empty list, `source_errors` `{}`, green run.
+     `source_errors_cover` says so, and the last step prints which sources it
+     vouches for. **WNBA was in this list and is done:** built 2026-10-31 on the
+     owner's `go` (jubilant-bassoon `a8c1744e`, run 41171382117 green, overlay
+     `d8611140` carries the 2026-10-31 game, `source_errors_cover` is
+     `["nba","wnba"]`). It reads the same route through the same reader; a relay
+     502 on any of its four window days is `null` for that day with the date and
+     reason recorded, and an off-season window (the relay answers 2026-11-01 and
+     2027-01-15 with `games []`, `source espn-wc`) records nothing. The relay's KV
+     secondary (`source wnba-kv`) is treated as an answer. **Unblocked by, for
+     MLB, MLS and NHL:** the owner ruling that a failed read in a given source
+     turns the daily run red. **Verify:** `source_errors_cover` in the committed
+     overlay lists the source, and the check has a case where that source fails
+     and the last step exits 1. **Still to see live:** the winter window
+     (2026-11-01's scheduled run: WNBA `[]` on all four days, `source_errors`
+     `{}`, green).
   2. *Playoff context is absent.* The ESPN board has no series text, playoff flag
      or game label (`round` is null on all 7 games read 2026-10-31), so the
      generator's NBA entries carry no `seriesRecord`, `isPlayoff` or `gameLabel`
