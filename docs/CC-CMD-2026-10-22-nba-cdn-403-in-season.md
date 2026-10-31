@@ -362,25 +362,36 @@ box-score decision TASK 1 names is separate and untouched. This supersedes the
   subprocess. It has not been seen on the runner, because the only way to make
   the relay fail on demand is to push a bad overlay to `main`.
 - **Gaps, each with what unblocks it (Rule 74).**
-  1. *The other readers are still silent.* MLB (statsapi), MLS (ESPN) and NHL
-     (the passthrough, `curl -sf ... || echo '{}'`) turn a failed read into `[]`
-     and record nothing. An independent review reproduced it for an MLB error
-     body and an ESPN error body: empty list, `source_errors` `{}`, green run.
-     `source_errors_cover` says so, and the last step prints which sources it
-     vouches for. **WNBA was in this list and is done:** built 2026-10-31 on the
-     owner's `go` (jubilant-bassoon `a8c1744e`, run 41171382117 green, overlay
-     `d8611140` carries the 2026-10-31 game, `source_errors_cover` is
-     `["nba","wnba"]`). It reads the same route through the same reader; a relay
-     502 on any of its four window days is `null` for that day with the date and
-     reason recorded, and an off-season window (the relay answers 2026-11-01 and
-     2027-01-15 with `games []`, `source espn-wc`) records nothing. The relay's KV
-     secondary (`source wnba-kv`) is treated as an answer. **Unblocked by, for
-     MLB, MLS and NHL:** the owner ruling that a failed read in a given source
-     turns the daily run red. **Verify:** `source_errors_cover` in the committed
-     overlay lists the source, and the check has a case where that source fails
-     and the last step exits 1. **Still to see live:** the winter window
-     (2026-11-01's scheduled run: WNBA `[]` on all four days, `source_errors`
-     `{}`, green).
+  1. *The other readers are still silent.* NHL (the passthrough,
+     `curl -sf ... || echo '{}'`), MLS (ESPN) and the ESPN GOTD flags read for
+     MLB turn a failed read into `[]` (an empty set for the flags) and record
+     nothing. An independent review reproduced it for an ESPN error body: empty
+     list, `source_errors` `{}`, green run. `source_errors_cover` says so, and
+     the last step prints which sources it vouches for. **Done, on the owner's
+     `go`, 2026-10-31:**
+     - *WNBA* (jubilant-bassoon `a8c1744e`, overlay `d8611140`): the same route
+       through the same reader; a relay 502 on any of its four window days is
+       `null` for that day with the date and reason recorded; an off-season
+       window records nothing (the relay answers 2026-11-01 and 2027-01-15 with
+       `games []`, `source espn-wc`); the relay's KV secondary (`source
+       wnba-kv`) is an answer.
+     - *MLB, the statsapi schedule* (jubilant-bassoon `4b1580a5`, run 41220454373
+       green, overlay `c11ceaa0`): `scripts/mlb-schedule.cjs` over a shared
+       `getJson`; a failed read, or a mapping failure, is `null` for that day
+       with the reason recorded; HTTP 200 with `dates []` is an empty day.
+       Statsapi's answers (an off-day, the last game day, an invalid-date 400
+       with no `dates` key) were read by a runner through `cors-probe`, because
+       the sandbox cannot reach it. The overlay carries MLB `[]` on all four
+       window days from four real statsapi off-day answers.
+     `source_errors_cover` is `["nba","wnba","mlb"]`; "mlb" is the statsapi
+     schedule only. **Unblocked by, for NHL, MLS and the ESPN GOTD flags:** the
+     owner ruling that a failed read in a given source turns the daily run red.
+     **Verify:** `source_errors_cover` in the committed overlay lists the source,
+     and the check has a case where that source fails and the last step exits 1.
+     **Still to see live:** the winter window for WNBA and MLB (2026-11-01's
+     scheduled run: both `[]` on all four days, `source_errors` `{}`, green), and
+     any in-season MLB game, postponed game or GOTD flag (the first scheduled
+     run after Opening Day, about late March 2027).
   2. *Playoff context is absent.* The ESPN board has no series text, playoff flag
      or game label (`round` is null on all 7 games read 2026-10-31), so the
      generator's NBA entries carry no `seriesRecord`, `isPlayoff` or `gameLabel`
