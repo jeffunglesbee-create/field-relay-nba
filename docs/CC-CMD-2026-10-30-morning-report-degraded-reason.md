@@ -232,3 +232,51 @@ The same game on the same date, before and after. 2026-10-28, replay 3: "Kraken 
 3. A fix is chosen with the owner and shipped. Met: option 4.
 4. The first morning written by the new code is read against the games. Run `node scripts/verify-morning-report.mjs 2026-10-30` (Node 22; with `--dir` on three saved route answers if its fetch cannot reach the relay). The row is written by the 2026-10-31 09:00Z cron (05:00 ET; daylight time ends 2026-11-01). Exit 0: every game the report cites is printed as exactly the fact line and the sentence the oracle has for its row, and the open and close lines follow the form. Exit 1: the findings name the game and the text. Exit 2: nothing to verify, with the reason on the row (`degraded_reason`, `no_games`). The open and close lines are read for stock wording. Scheduled task `trig_01YXBNhWJFgRU3SHCY9KMPsR` runs it at 09:15Z and appends the result here. No recompute (Rule 78).
 5. Task 4 is decided, or closed with a reason, by the owner. Met: ordered 2026-10-30 16:59 ET, built and live 21:40Z. What it left open is the list above; closing this document is the owner's.
+
+## Observed 2026-10-31
+
+Read 2026-10-31T09:17:17Z (verifier run; route GETs at unix time 1793438228 + cache-busting `x=`). Row written `2026-10-31 09:00:16`; `/analytics/status` `last_run` `2026-10-31T09:00:20.075Z`, `date_processed` 2026-10-30, `phases_failed` [], `ai_calls_made` 3, `errors` []. `/analytics/degraded`: `total` 0 since 2026-10-17. `/analytics/truth_is/2026-10-30`: type `convergence`, headline "5 unusual finishes — led by Espanyol beat Villarreal 1-0 as a +650 underdog."
+
+`data.value` verbatim:
+
+```
+{"word_count":80,"stars":2,"degraded":false,"cited":["Ligue 1_2026-10-30_e401876420","NBA_2026-10-30_e401909280","NHL_2026-10-30_e401892611","Bundesliga_2026-10-30_e401884746"]}
+```
+
+No `dropped` key, so nothing was dropped.
+
+`brief_text` verbatim:
+
+```
+5 unusual finishes — led by Espanyol beat Villarreal 1-0 as a +650 underdog. A collection of unexpected outcomes unfolded across the globe while the world remained tucked away in peaceful slumber. Lille 1, Lens 0. A one-goal shutout. 76ers 98, Knicks 93. A five-point win. Devils 5, Golden Knights 2. Won by three goals. Elversberg 4, Mainz 1. A lopsided three-goal win. Fresh possibilities await as the sun rises to illuminate the path toward another cycle of athletic endeavor.
+```
+
+Verifier output (`node scripts/verify-morning-report.mjs 2026-10-30`, Node 22.23.4, live fetch, no `--dir`), verbatim:
+
+```
+morning_report 2026-10-30  written 2026-10-31 09:00:16  read 2026-10-31T09:17:17.287Z
+value: {"word_count":80,"stars":2,"degraded":false,"cited":["Ligue 1_2026-10-30_e401876420","NBA_2026-10-30_e401909280","NHL_2026-10-30_e401892611","Bundesliga_2026-10-30_e401884746"]}
+brief_text: 5 unusual finishes — led by Espanyol beat Villarreal 1-0 as a +650 underdog. A collection of unexpected outcomes unfolded across the globe while the world remained tucked away in peaceful slumber. Lille 1, Lens 0. A one-goal shutout. 76ers 98, Knicks 93. A five-point win. Devils 5, Golden Knights 2. Won by three goals. Elversberg 4, Mainz 1. A lopsided three-goal win. Fresh possibilities await as the sun rises to illuminate the path toward another cycle of athletic endeavor.
+games on the night: 23; Phase 3 headline: 5 unusual finishes — led by Espanyol beat Villarreal 1-0 as a +650 underdog.
+
+  Ligue 1_2026-10-30_e401876420  Lille 1, Lens 0. A one-goal shutout.   [shutout, phrasing 0]
+  NBA_2026-10-30_e401909280  76ers 98, Knicks 93. A five-point win.   [win, phrasing 0]
+  NHL_2026-10-30_e401892611  Devils 5, Golden Knights 2. Won by three goals.   [win, phrasing 1]
+  Bundesliga_2026-10-30_e401884746  Elversberg 4, Mainz 1. A lopsided three-goal win.   [wide, phrasing 0]
+  open : A collection of unexpected outcomes unfolded across the globe while the world remained tucked away in peaceful slumber.
+  close: Fresh possibilities await as the sun rises to illuminate the path toward another cycle of athletic endeavor.
+
+VERIFIED  4 game(s): each fact line and sentence is the spec's for its row; open and close follow the form
+exit=0
+```
+
+Exit code: 0.
+
+Verdict: VERIFIED. The morning was composed (`degraded:false`, no `no_games`), and every game line is the relay's and true of its row. Counts: 23 games on the night, 4 cited and printed, 4 verified, 0 findings, 0 dropped.
+
+Open line, verbatim: "A collection of unexpected outcomes unfolded across the globe while the world remained tucked away in peaceful slumber."
+Close line, verbatim: "Fresh possibilities await as the sun rises to illuminate the path toward another cycle of athletic endeavor."
+
+Stock wording: the open says "unexpected outcomes", which is replay 4's stock phrase (4 of 11 opens). The close does not begin "We look forward" (replay 4: 11 of 11), but it uses the sunrise image ("as the sun rises"), one of the stock motifs the task names. The open also carries a night/sleep image ("peaceful slumber"). The open fits the Phase 3 type `convergence`, following the gloss the prompt gives for it ("unexpected"). One morning is one observation and shows no rate.
+
+Done condition 4: met. The row was written by the 2026-10-31 09:00Z cron, the verifier exited 0, and the open and close lines were read for stock wording (above). The Status line is unchanged; closing this document and the question of the relay writing the close line remain the owner's.
