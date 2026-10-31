@@ -12,6 +12,8 @@ owner's decision and has its own CC-CMD
 Live checks 1, 2 and 3 passed. All three done conditions are met. Also the
 owner's: the Rule 45 human review of ESPN serving the NBA board.
 Built under BUILD-ON-A ("filing is not the work").
+The generator's NBA read (the Data point of 2026-10-30) was built 2026-10-31, in
+jubilant-bassoon `7176807e`; see "Built 2026-10-31" under it.
 **Filed by:** TASK 0 of `docs/CC-CMD-2026-10-22-ambient-capture-coverage-gaps.md`,
 Rule 87.4.
 
@@ -324,6 +326,64 @@ under the 403".
   **Verify after any fix:** `outbox/field-data-today.json` `schedules_by_date`
   for a game day has `nba` above 0 when `/v2/games?sport=nba&date=<that day>`
   lists games.
+
+### Built 2026-10-31 — the generator reads the board from /v2/games (jubilant-bassoon `7176807e`)
+
+Built on the owner's `go` of 2026-10-31 for "the generator's NBA source". The
+box-score decision TASK 1 names is separate and untouched. This supersedes the
+"Not built" bullet above for the generator.
+
+- **The choice.** The first of the two options that bullet names: the generator
+  reads the ESPN-sourced `/v2/games?sport=nba&date=`, the route `parseWNBA`
+  already reads for WNBA. No adapter was needed, because the generator takes the
+  four fields it carried (home, away, start time, venue) straight from the
+  board; the relay's contract is read as it is (Rule 60).
+- **What changed there.** `scripts/nba-board.cjs` reads the board and throws on
+  anything that is not a clean answer (non-OK status, an `error` key, a `source`
+  naming an error, no `games` array, another sport or date, a game with no team
+  name, a request that fails or times out). `parseNBA` returns `null` for an
+  unread board and records the date and reason in `_meta.source_errors`; an
+  empty day stays `[]`. `_meta.source_errors_cover` lists the sources that
+  record vouches for. The workflow's passthrough fetch is gone, and its last
+  step fails the run after the overlay is pushed when a source is recorded as
+  unread. `nba-board-check.yml` runs the check and its mutation harness on a
+  push to the files they cover.
+- **Live.** The daily generator, dispatched on the runner (run 41165483123, head
+  `7176807e`), was green on every step, and the overlay it committed
+  (`54091f34`) has `schedules_by_date['2026-10-31'].nba` = 7, `games_found.nba` =
+  7, `source_errors` `{}`, `source_errors_cover` `["nba"]`. The relay listed 7
+  games for 2026-10-31 (self-probe 2026-10-31, kept as
+  `outbox/fixture-nba-board-20261031.json` in jubilant-bassoon). The check ran
+  on the runner too (run 41165473123): 112 assertions, 80 mutants caught.
+  This meets the "Verify after any fix" line above.
+- **Not live.** The red path. A 403 becoming `null` with a recorded reason and a
+  failed last step is proven in the check, which runs the whole generator under
+  stubbed `fs`, `https` and `fetch` and runs the real last-step script as a
+  subprocess. It has not been seen on the runner, because the only way to make
+  the relay fail on demand is to push a bad overlay to `main`.
+- **Gaps, each with what unblocks it (Rule 74).**
+  1. *The other readers are still silent.* WNBA (the same relay route), MLB
+     (statsapi), MLS (ESPN) and NHL (the passthrough, `curl -sf ... || echo '{}'`)
+     turn a failed read into `[]` and record nothing. An independent review
+     reproduced it for WNBA (a 502 from the relay), an MLB error body and an
+     ESPN error body: empty list, `source_errors` `{}`, green run. The record
+     says so (`source_errors_cover`), and the last step prints which source it
+     vouches for. **Unblocked by:** the owner ruling that a failed read in a
+     given source turns the daily run red. WNBA can reuse the board reader.
+     **Verify:** `source_errors_cover` in the committed overlay lists the source,
+     and the check has a case where that source fails and the last step exits 1.
+  2. *Playoff context is absent.* The ESPN board has no series text, playoff flag
+     or game label (`round` is null on all 7 games read 2026-10-31), so the
+     generator's NBA entries carry no `seriesRecord`, `isPlayoff` or `gameLabel`
+     and no NBA matchupNote is generated. The CDN board had them until it began
+     refusing the Worker. **Unblocked by:** the first ESPN playoff day (April
+     2027): read `/v2/games?sport=nba&date=<that day>` and see whether the relay
+     serves series context; if not, a relay field first (Rule 60, Rule 70), then
+     the generator reads it. Nothing in the client page reads `schedules.nba`
+     from the file today (it reads `mlb` only; grep of `src/legacy/field.js`,
+     2026-10-31).
+  3. *Day 0 only.* The board takes a date now, so NBA could be windowed like
+     MLB and WNBA (`WINDOWED_SPORTS`). Nobody has asked, so it was not changed.
 
 ## Done condition (Rule 90 artifacts)
 
