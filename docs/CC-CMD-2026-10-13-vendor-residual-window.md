@@ -69,3 +69,20 @@ Name the site and mechanism only when a command has failed to refute it.
   an off-schedule reading splits the next window (HANDOFF.md).
 - Do not "fix" `handleCFLOddsProbs` on P5 alone. Its gap is bigger than the
   thing it would be fixing.
+
+## Data points
+
+- **2026-10-31, the window-aligned residual by hand for the eight closed days 10-23 to 10-30** (Task 1 is not built, so the watch still prints the UTC-day figure; this is Task 1's formula, vendor delta − `ledger_month_used` delta − known CI spend, computed from the committed `outbox/odds-daily-vs-vendor-series.json` rows and the `known CI spend` line of each day's log; windows 23.8 to 24.6 h; negative = the ledger recorded more than the vendor billed):
+
+  | closed day | vendor Δ | ledger Δ | known CI | window-aligned | the watch's UTC-day verdict |
+  |---|---|---|---|---|---|
+  | 10-23 | 811 | 711 | 100 | **0** | `counter-under-counts` (+75) |
+  | 10-24 | 2120 | 2333 | 200 | −413 | `we-overcharge-ourselves` (−404) |
+  | 10-25 | 1323 | 1083 | 240 | **0** | `we-overcharge-ourselves` (−225) |
+  | 10-26 | 378 | 228 | 180 | −30 | `tracks-the-bill` (−12) |
+  | 10-27 | 445 | 411 | 160 | −126 | `tracks-the-bill` (+24) |
+  | 10-28 | 636 | 752 | 120 | −236 | `we-overcharge-ourselves` (−75) |
+  | 10-29 | 650 | 1038 | 140 | −528 | `we-overcharge-ourselves` (−674) |
+  | 10-30 | 445 | 691 | 160 | −406 | `we-overcharge-ourselves` (−631) |
+
+  Two readings. **(1) The one `counter-under-counts` verdict in this series after the owner's 2026-10-18 ruling, on 10-23, is a window artifact:** its window-aligned residual is exactly 0, so the enforcing counter did not under-count that day; the +75 was the UTC-day counter (636) read against a window whose ledger delta was 711. This is premise P1 of this document, observed on a day it flipped the verdict's sign. It had not been recorded in any CC-CMD, and the watch's own text calls that verdict "THE BREACH". **(2) The window-aligned residual is not small on the last three days (−236, −528, −406)**, and the days with the largest over-record are the days `handleCFLOddsProbs` carries (10-30: `by_site` 696 against 150 credits kept by `reconcile`, 451 cache hits at 0, read from `GET /budget/odds?date=2026-10-30`), which is P5. Both stay inside the ruling of 2026-10-18 (a one-directional over-record is headroom thrown away, never spend; do not fix the over-record yet). Not a verdict: no `counter-under-counts` is observed after window alignment in these eight days, and the CFL season ends inside the CFL VOID window (2026-11-08 to 2026-11-23), after which `handleCFLOddsProbs` should stop contributing. **Unblocked, a watch-only change with no credits and no change to the counter:** Task 1 (the watch prints the window-aligned residual). Verify with the command in Done condition 1.
