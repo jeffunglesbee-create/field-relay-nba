@@ -362,10 +362,10 @@ box-score decision TASK 1 names is separate and untouched. This supersedes the
   subprocess. It has not been seen on the runner, because the only way to make
   the relay fail on demand is to push a bad overlay to `main`.
 - **Gaps, each with what unblocks it (Rule 74).**
-  1. *The other readers are still silent.* NHL (the passthrough,
-     `curl -sf ... || echo '{}'`), MLS (ESPN) and the ESPN GOTD flags read for
-     MLB turn a failed read into `[]` (an empty set for the flags) and record
-     nothing. An independent review reproduced it for an ESPN error body: empty
+  1. *The other readers are still silent.* MLS (ESPN) and the ESPN GOTD flags
+     read for MLB turn a failed read into `[]` (an empty set for the flags) and
+     record nothing. (NHL, the passthrough read with `curl -sf ... || echo
+     '{}'`, was in this list until 2026-10-31: done, below.) An independent review reproduced it for an ESPN error body: empty
      list, `source_errors` `{}`, green run. `source_errors_cover` says so, and
      the last step prints which sources it vouches for. **Done, on the owner's
      `go`, 2026-10-31:**
@@ -383,15 +383,35 @@ box-score decision TASK 1 names is separate and untouched. This supersedes the
        with no `dates` key) were read by a runner through `cors-probe`, because
        the sandbox cannot reach it. The overlay carries MLB `[]` on all four
        window days from four real statsapi off-day answers.
-     `source_errors_cover` is `["nba","wnba","mlb"]`; "mlb" is the statsapi
-     schedule only. **Unblocked by, for NHL, MLS and the ESPN GOTD flags:** the
+     - *NHL, the relay's own scoreboard passthrough* (jubilant-bassoon `aefe51ff`,
+       run 41229556544 green, overlay `24749d46`): `scripts/nhl-scoreboard.cjs`
+       over the same `getJson`, reading the URL the curl step read,
+       `/nhl/v1/scoreboard/now`. It throws on a request that fails, HTTP not ok,
+       not JSON, neither a `gamesByDate` nor a `games` array (`{}` was exactly
+       what the old fallback wrote), a `gamesByDate` entry not keyed by a
+       `YYYY-MM-DD` `date`, an entry for the day with no `games` array, and a
+       game with no team abbreviation; a failed read, or a mapping failure, is
+       `null` for day 0 with the date and reason recorded. No entry for the day
+       is `[]` (read from `CC-CMD-2026-06-26-nhl-nhle.md`: the off-season
+       scoreboard has no entry for today; not observed). The passthrough body
+       was read by a runner (the sandbox cannot reach `/nhl/*`): 11 dates, 78
+       games. The overlay's 10 NHL games for 2026-10-31 are byte-equal to the
+       previous generator's mapping of the same body, and to the overlay the old
+       curl path committed two hours earlier. The curl step is gone from
+       `field-data.yml`.
+     `source_errors_cover` is `["nba","wnba","mlb","nhl"]`; "mlb" is the
+     statsapi schedule only. **Unblocked by, for MLS and the ESPN GOTD flags:** the
      owner ruling that a failed read in a given source turns the daily run red.
      **Verify:** `source_errors_cover` in the committed overlay lists the source,
      and the check has a case where that source fails and the last step exits 1.
      **Still to see live:** the winter window for WNBA and MLB (2026-11-01's
-     scheduled run: both `[]` on all four days, `source_errors` `{}`, green), and
-     any in-season MLB game, postponed game or GOTD flag (the first scheduled
-     run after Opening Day, about late March 2027).
+     scheduled run: both `[]` on all four days, `source_errors` `{}`, green; NHL
+     there must equal the relay's count for the day), the NHL off-season shape
+     (the first scheduled run after the last NHL game: `games_found.nhl` 0,
+     `source_errors` `{}`, green), a real NHL playoff game (the check runs the
+     series paths on bodies derived from one regular-season game), and any
+     in-season MLB game, postponed game or GOTD flag (the first scheduled run
+     after Opening Day, about late March 2027).
   2. *Playoff context is absent.* The ESPN board has no series text, playoff flag
      or game label (`round` is null on all 7 games read 2026-10-31), so the
      generator's NBA entries carry no `seriesRecord`, `isPlayoff` or `gameLabel`
@@ -404,6 +424,22 @@ box-score decision TASK 1 names is separate and untouched. This supersedes the
      2026-10-31).
   3. *Day 0 only.* The board takes a date now, so NBA could be windowed like
      MLB and WNBA (`WINDOWED_SPORTS`). Nobody has asked, so it was not changed.
+     **NHL too, and its source was never today-only:** the scoreboard carries
+     the last 3 days and the next 7 (11 dates read 2026-10-31); the generator's
+     old comment said the feed was today-only, which was false. The
+     forward-window probe (run 41224278008, 2026-10-31) listed 5, 4 and 11 NHL
+     games for 11-01 to 11-03 against 0 in the file. Owner decision; the reader
+     already picks a date out of the body, so windowing it is a loop over the
+     window days.
+  4. *A null source is shown as 0 in two summaries.* The page's `FIELD_DEBUG`
+     log prints `games_found?.nhl||0` (and the same for `mlb` and `nba`), so an
+     unread source reads as 0 there; and `games_found_by_date` and the run's
+     day-0 total count only sources that returned a list, so an unread source
+     lowers the total instead of marking it. The file itself and the run log
+     (`Parsed: unread NHL + ...`) say `null` and `unread`. **Unblocked by:** the
+     next client deploy (`src/legacy/field.js:21601`, a debug line, no user
+     effect). **Verify:** `grep -n 'games_found?' src/legacy/field.js` shows no
+     `||0` on the three keys.
 
 ## Done condition (Rule 90 artifacts)
 
