@@ -1,0 +1,12 @@
+=== odds daily vs vendor  day=2026-10-31  utc=2026-11-01T05:54:31.202Z ===
+
+  2026-10-31 our counter : 1018 / 3800
+  vendor cumulative now  : 171
+  previous reading       : 2026-10-31T05:29:25.893Z  vendor 36032
+
+  verdict: month-boundary  2026-10 -> 2026-11
+
+COVERAGE: 1 reading recorded for 2026-10-31; 44 on file. No comparison
+this run — the vendor counter did not run continuously across the window.
+
+OK: reading stored. A verdict needs two readings inside one vendor billing month.

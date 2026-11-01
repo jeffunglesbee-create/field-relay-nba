@@ -1,0 +1,10 @@
+=== odds daily-vs-monthly  utc=2026-11-01T05:54:34.477Z ===
+series: outbox/odds-daily-vs-vendor-series.json
+readings on file: 44
+readings in the current month's segment: 1  (43 dropped at the reset of 2026-11-01T05:54:31.202Z)
+days fully inside the span: 0
+span: -  ->  -
+verdict: month-boundary
+
+  the monthly counter reset between the two newest readings — there is no span inside one month yet
+  Not a pass and not a failure — the comparison did not run (Rule 99).
