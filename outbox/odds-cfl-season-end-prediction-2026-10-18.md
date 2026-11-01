@@ -162,9 +162,9 @@ Option 2 of the charge CC-CMD, built as Task 3 of
 `docs/CC-CMD-2026-10-13-vendor-residual-window.md`, changes `handleCFLOddsProbs`:
 the whole call (charge, vendor fetch, reconcile, tally) now runs as one promise
 registered with `ctx.waitUntil`. It was built on 2026-11-01 and is committed
-before the window, so by the VOID rule above (a commit to the listed files
-between 2026-11-08 and 2026-11-23) it voids nothing; the close-out of the push
-records the commit and the deploy run. The VOID check is commit-based and is
+before the window (commit `6589bc1`, deployed 2026-11-01T17:25Z by Deploy RELAY
+Worker run 41330484626), so by the VOID rule above (a commit to the listed files
+between 2026-11-08 and 2026-11-23) it voids nothing. The VOID check is commit-based and is
 run as written. Whether the fix was live for the whole window is a separate
 fact, and the judging run reports it (the deploy run for that commit, from
 the Actions API) beside the scores; it does not decide VOID.
