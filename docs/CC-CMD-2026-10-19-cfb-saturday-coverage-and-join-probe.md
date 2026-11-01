@@ -4,9 +4,12 @@
 **Repo:** field-relay-nba (Part A, TASK A2 also touches jubilant-bassoon)
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL — approved 2026-10-29 ("cfb Saturday approved"). TASK A0 done except the job-log half of A0.2
-(`outbox/cfb-saturday-a0-20261029.md`). A1 decided: hold, read 2026-10-31. B1 decided: (a), redefined. B2 and B3 built and
-deployed (`89f047a`); their live proof is the 2026-10-31 scheduled run (done condition 4), read on 2026-11-01. A2 does not
+**Status:** DONE 2026-11-01 — approved 2026-10-29 ("cfb Saturday approved"). TASK A0 complete: the job-log half of A0.2 was
+read 2026-11-01 (`outbox/cfb-saturday-a1-20261101.md`, with `outbox/odds-backfill-unmatched-20261101.json`). A1 decided: hold,
+read 2026-10-31; **read 2026-11-01: 32 of 33 early CFB rows priced before kickoff, so (c) stands and nothing goes back to the
+owner** (see "Results"). B1 decided: (a), redefined. B2 and B3 built and deployed (`89f047a`); their live proof is the
+2026-10-31 scheduled run (done condition 4), **read 2026-11-01 and met** (`probe_date` 2026-10-31, CFB 47 rows, 45 priced). One
+Saturday is the sample; the next CFB reading is the backfill run of 2026-11-01 about 15:30Z (see "Results"). A2 does not
 depend on A1 or B1 (it changes readers, not what the backfill writes); it is built and deployed in both repos (relay `66a61d2`,
 client `26ee3239`; see TASK A2 below).
 **Filed by:** CC, while recording the CFB done condition (Rule 87.4). Its
@@ -253,15 +256,37 @@ the probe says `ALL_PRICED: 44 of 44` for the first and refuses `NO_ROWS_AT_ALL`
 `scripts/identity_ambiguity_conditions.py` encode CC-CMD-2026-09-11 as
 "blocked until both close". Update them to B1's outcome.
 
+## Results
+
+### 2026-11-01 — A1 reading, probe artifact, A0.2 job-log half (0 credits; D1 SELECT only; full tables and the query in
+`outbox/cfb-saturday-a1-20261101.md`)
+
+- **A1 reading, CFB 2026-10-31** (D1 `cc49101c`, `regular_season_games`, `sport = 'CFB' AND date = '2026-10-31'`): **47 rows, 45
+  priced (96%), 2 unpriced; 33 rows kick off before 22:00Z, 32 of them priced, all 32 before kickoff; 0 priced after kickoff, 0
+  marked late; one capture, 2026-10-31T10:01:37.867Z.** Against A0.1 (2026-09-12: 67 of 80 priced, 35 of 42 early) and A0.2 (CFB
+  203 of 383 unpriced since 09-16): CFB no longer loses its early games on the first Saturday after the join was met (10-28). The
+  two unpriced rows are Liberty vs FIU (19:30Z) and GA Southern vs App State (22:30Z), both finalized, neither with a closing line;
+  why is not read (it needs the vendor's listing: credits, no approval). The denominator is one Saturday.
+- **Probe artifact (done condition 4):** `outbox/odds-join-probe-20261101T023329Z.json`, scheduled run 41265675536 (created
+  2026-11-01T02:33:13Z, head `48dbddd`, success): `probe_date` 2026-10-31, `http` 200, `failed []`, CFB `d1_rows` 47, `d1_priced` 45,
+  `d1_priced_late` 0, `d1_missing` 2, verdict `NO_JOIN_EVIDENCE` (2 unpriced rows, all finished; slate matcher 0). NFL
+  `NO_ROWS_AT_ALL`, Bundesliga 5 of 6 and MLS 23 of 24 priced, `NO_JOIN_EVIDENCE`. Its CFB counts equal the D1 reading above.
+- **A0.2 job-log half:** 46 successful `odds-backfill.yml` runs from 2026-09-16, 296 sport-date lines, none unreadable. The
+  `unmatched` counter is archive rows the matcher found no vendor event for, not unpriced rows (MLB: 101 unmatched, 0 unpriced).
+  Per sport against D1's unpriced count: CFB 188 against 203, NHL 76 against 76, NBA 70 against 69, NFL 69 against 59. Since
+  game-date 10-23: CFB 26 (all on 10-24), NHL 5, NBA 2, NFL 11. **Next CFB reading:** the backfill run of 2026-11-01 about 15:30Z
+  prints the `americanfootball_ncaaf` line for 2026-10-31; its `unmatched` should be near the 2 unpriced rows.
+- **Not read, and why:** whether the vendor lists the 2 unpriced games (Odds API credits need the owner); CFB on any other Saturday.
+
 ## Done condition (Rule 89 artifacts)
 
 1. **A0's three outputs are committed,** each with its denominator. (A0.1 and A0.3 and the D1 half of A0.2 are, in
-   `outbox/cfb-saturday-a0-20261029.md`; the job-log half of A0.2 is not.)
-2. **The owner's A1 and B1 decisions are recorded in this document.**
+   `outbox/cfb-saturday-a0-20261029.md`; **MET 2026-11-01:** the job-log half of A0.2 is in `outbox/cfb-saturday-a1-20261101.md`.)
+2. **The owner's A1 and B1 decisions are recorded in this document.** (Met 2026-10-29; A1's reading recorded 2026-11-01.)
 3. **Each code change (A2, B2) has its proof:** a fixture red before and
    green after, a mutation, and one green deploy-path run. A2 also needs a
    green jubilant-bassoon deploy.
-4. **After B2, the next Saturday's artifact reads a Saturday `probe_date`,**
+4. **(MET 2026-11-01, run 41265675536.)** **After B2, the next Saturday's artifact reads a Saturday `probe_date`,**
    and is either `matched > 0` or a printed refusal. (Restated 2026-10-29: once the cron prices the morning's rows,
    `matched > 0` cannot be the test. The artifact must read `probe_date` 2026-10-31, show `d1_rows`/`d1_priced`
    for CFB, and carry a verdict of `ALL_PRICED`, `PRICED_LATE`, `COVERED`, `NO_JOIN_EVIDENCE` or `NO_SLATE` with those
