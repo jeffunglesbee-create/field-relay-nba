@@ -31,6 +31,7 @@
 // behaviour; it stops the gate being satisfiable by hand.
 
 import { execFileSync } from 'node:child_process'
+import { VENDOR_WATCH_REFUSALS } from './staged-verdicts.mjs'
 
 // 3, from the shape of a legitimate refusal rather than taste. A month reset
 // refuses the run that spans it and at most the next one, because the run after
@@ -42,6 +43,10 @@ const MAX_STREAK = 3
 const REFUSALS = new Set([
   'month-boundary', 'no-contained-day', 'not-enough-readings', 'unreadable',
   'no-data', 'counter-reset', 'window-drift', 'NOT RUN',
+  // The three states the vendor watch's window verdict added (46a929f, 2026-11-01): it ends a run in each when the window it was asked to judge cannot be measured (an unreadable
+  // ledger, a ledger that fell, CI rows it could not read). No comparison was made, exactly like the rest of this list; left out, five consecutive ones read as `ended by judged`,
+  // streak 0 (found by the 2026-11-01 review of the Task 3 change, which ran it).
+  'ledger-unreadable', 'ci-unreadable', 'ledger-went-backwards',
 ])
 
 /**
@@ -107,6 +112,11 @@ function selfTest() {
   t('daily-exceeds-monthly is not a refusal — it is a real finding',
     isRefusal('daily-exceeds-monthly') === false)
   t('month-boundary is a refusal', isRefusal('month-boundary') === true)
+  for (const v of ['ledger-unreadable', 'ci-unreadable', 'ledger-went-backwards'])
+    t(`${v} (a window the vendor watch could not measure) is a refusal, and five in a row is a streak of 5`,
+      isRefusal(v) === true && refusalStreak([L(v), L(v), L(v), L(v), L(v), L('tracks-the-bill')]).streak === 5)
+  // Two hand-kept lists of the vendor watch's refusal states must not drift apart: every state the verifier knows as a refusal is one here.
+  for (const v of VENDOR_WATCH_REFUSALS) t(`the vendor-watch refusal "${v}" is a refusal here too`, isRefusal(v) === true)
 
   // THE MEASURED CASE. Four month-boundary logs, newest first.
   const latch = refusalStreak([L('month-boundary'), L('month-boundary'), L('month-boundary'), L('month-boundary'), L('consistent')])

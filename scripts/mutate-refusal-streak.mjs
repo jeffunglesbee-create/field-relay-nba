@@ -53,6 +53,21 @@ const MUTATIONS = [
    "    if (false) { endedBy = 'judged' }",
    'without the break every log in history joins the streak, so a watch that judged this morning still reports a long streak and the gate cries wolf until it is disabled'],
 
+  ['R7 ledger-unreadable stops counting as a refusal',
+   "  'ledger-unreadable', 'ci-unreadable', 'ledger-went-backwards',",
+   "  'ci-unreadable', 'ledger-went-backwards',",
+   'a window the vendor watch could not measure, five days running, read as `judged` with streak 0'],
+
+  ['R8 ci-unreadable stops counting as a refusal',
+   "  'ledger-unreadable', 'ci-unreadable', 'ledger-went-backwards',",
+   "  'ledger-unreadable', 'ledger-went-backwards',",
+   'same, for CI rows the watch could not read'],
+
+  ['R9 ledger-went-backwards stops counting as a refusal',
+   "  'ledger-unreadable', 'ci-unreadable', 'ledger-went-backwards',",
+   "  'ledger-unreadable', 'ci-unreadable',",
+   'same, for a ledger that fell inside one month'],
+
   ['R6 the two ways a streak ends are collapsed',
    "    if (v === null) { endedBy = 'unparseable'; break }",
    "    if (v === null) { endedBy = 'judged'; break }",
