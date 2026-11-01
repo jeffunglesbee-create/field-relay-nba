@@ -276,6 +276,7 @@ the probe says `ALL_PRICED: 44 of 44` for the first and refuses `NO_ROWS_AT_ALL`
   Per sport against D1's unpriced count: CFB 188 against 203, NHL 76 against 76, NBA 70 against 69, NFL 69 against 59. Since
   game-date 10-23: CFB 26 (all on 10-24), NHL 5, NBA 2, NFL 11. **Next CFB reading:** the backfill run of 2026-11-01 about 15:30Z
   prints the `americanfootball_ncaaf` line for 2026-10-31; its `unmatched` should be near the 2 unpriced rows.
+- **Next CFB reading, 2026-11-01** (`odds-backfill.yml` run 41327396208, created 16:38:51Z, success; job log read 17:55Z): `[odds-backfill] 2026-10-31 americanfootball_ncaaf: 23 event(s), 8 out of window, 15 in pool -> 14 paired by name, 0 by elimination, 33 unmatched, 2 ambiguous, 0 refused (all three kinds); kickoff judged on 14 of 14 pairs`. **The expectation written above, that `unmatched` would be near the 2 unpriced rows, was wrong.** `unmatched` is `rows.length - byGameId.size` in `src/odds-name-match.js`: the slate's rows with no vendor pair, ambiguous ones included. 47 rows = 14 paired + 33 unmatched, the same 47 as the D1 reading. It counts rows the matcher did not pair, not rows without a price, so 33 and 2 measure different things and are not compared. 0 credits beyond the run's own 220 (28 games, all sports).
 - **Not read, and why:** whether the vendor lists the 2 unpriced games (Odds API credits need the owner); CFB on any other Saturday.
 
 ## Done condition (Rule 89 artifacts)
