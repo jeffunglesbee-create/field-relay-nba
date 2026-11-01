@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (defect in a watch) plus an open measurement
-**Status:** PARTIAL — Task 1 built and pushed 2026-11-01 (`46a929f`; session doc `outbox/cc-session-2026-11-01-vendor-residual-window.md`); done condition 3 is the scheduled run of 2026-11-02. Task 2 (P5) MEASURED 2026-11-01 and narrowed, not closed: the CFL refund gap tracks the ledger's over-record (Pearson r 0.93, 11 windows), no mechanism is named, and the one run that separates the two live explanations is STAGED behind the owner's approval of up to 12 Odds API credits (Task 2b).
+**Status:** PARTIAL — Task 1 built and pushed 2026-11-01 (`46a929f`; session doc `outbox/cc-session-2026-11-01-vendor-residual-window.md`); done condition 3 is the scheduled run of 2026-11-02. Task 2 (P5) MEASURED and its mechanism SHOWN 2026-11-01: the CFL refund gap tracks the ledger's over-record (Pearson r 0.93, 11 windows), and Task 2b, run with the owner's approval, showed that a client that abandons the request stops the awaited reconcile before its tally (0 of 5 aborted calls tallied, 5 of 5 control calls did; one charge left standing). The fix is the owner's call (Task 3, not built).
 
 ## What was read
 
@@ -88,15 +88,32 @@ Name the site and mechanism only when a command has failed to refute it.
 
 | # | premise | command | 2026-11-01 |
 |---|---|---|---|
-| H1 | A client that disconnects mid-request stops the handler before the refund and the tally (the awaited continuation is cancelled) | `npm install --no-save miniflare@4 && node scripts/cfl-abort-local-workerd.mjs` (output `outbox/cfl-abort-local-workerd-20261101.txt`): a handler of the same shape on local workerd (miniflare 4, workerd 1.20260730.1), 54 calls, no network, no credits, with a positive control | **UNDECIDED, AND THE LOCAL INSTRUMENT IS INVALID.** The calls aborted during the reconcile still completed charge, refund and tally, but so did the positive control, a handler that checks `request.signal` and stops when it is aborted (6 of 6, through miniflare's Node proxy and directly on workerd's socket). A run that cannot see a disconnect cannot say the continuation survived one. Whether Cloudflare's edge propagates a disconnect to a production Worker is not testable locally; only Task 2b can decide it. The client does not time out by itself: `fetchCFLOddsProbs` in jubilant-bassoon `src/legacy/field.js` calls `fetch(..., { cache: 'no-store' })` with no AbortController, so a disconnect needs a navigation, a closed tab or a dropped connection. |
-| H2 | The correction batch fails for another reason (a D1 error under load) and the tally still lands | the Worker's `[odds-reconcile] D1 correction failed` warnings for this site | **NOT TESTABLE NOW.** `wrangler.toml` has no observability block, so the warnings exist only for a live `wrangler tail`; enabling logs needs the owner's approval. What the series does say: degrade-open (D1 overload) is reported above 0 in 2 of 59 samples (gap 390 and 588) and is 0 on the other large days (10-24: 450, 10-30: 324, 10-28: 204). |
+| H1 | A client that disconnects mid-request stops the handler before the refund and the tally (the awaited continuation is cancelled) | `npm install --no-save miniflare@4 && node scripts/cfl-abort-local-workerd.mjs` (output `outbox/cfl-abort-local-workerd-20261101.txt`): a handler of the same shape on local workerd (miniflare 4, workerd 1.20260730.1), 54 calls, no network, no credits, with a positive control | **UNDECIDED, AND THE LOCAL INSTRUMENT IS INVALID.** The calls aborted during the reconcile still completed charge, refund and tally, but so did the positive control, a handler that checks `request.signal` and stops when it is aborted (6 of 6, through miniflare's Node proxy and directly on workerd's socket). A run that cannot see a disconnect cannot say the continuation survived one. Whether Cloudflare's edge propagates a disconnect to a production Worker is not testable locally; only Task 2b can decide it. The client does not time out by itself: `fetchCFLOddsProbs` in jubilant-bassoon `src/legacy/field.js` calls `fetch(..., { cache: 'no-store' })` with no AbortController, so a disconnect needs a navigation, a closed tab or a dropped connection. **Task 2b, 2026-11-01, in production: SUPPORTED.** 0 of 5 aborted calls tallied, 5 of 5 control calls did, one charge left standing (Task 2b, Result). |
+| H2 | The correction batch fails for another reason (a D1 error under load) and the tally still lands | the Worker's `[odds-reconcile] D1 correction failed` warnings for this site | **NOT TESTABLE NOW.** `wrangler.toml` has no observability block, so the warnings exist only for a live `wrangler tail`; enabling logs needs the owner's approval. What the series does say: degrade-open (D1 overload) is reported above 0 in 2 of 59 samples (gap 390 and 588) and is 0 on the other large days (10-24: 450, 10-30: 324, 10-28: 204). **Task 2b: not needed to explain the effect** (the ledger was idle); not excluded as a contributor on busy days. |
 | H3 | The gap is lost tallies for calls that were correctly kept; the ledger itself is right | the sign of the window-aligned residual | **REFUTED.** If the ledger were right the residual would be 0 while the gap stayed. It is negative by about the gap in 10 of 11 windows. |
 | H4 | The `MAX(0, used + ?)` clamp in the correction | whether the gap is always a whole number of the call's charge and never negative | **REFUTED for CFL.** 59 of 59 whole multiples of 6; none negative. |
 | H5 | The same defect at every site | `by_site - kept` per site | **REFUTED as a general reconcile defect.** Six of seven other sites: 0 in every sample. |
 
-### Task 2b — the run that separates H1 from H2 (STAGED, owner approval)
+### Task 2b — the run that separates H1 from H2 (RAN 2026-11-01 with the owner's approval)
 
-**What is staged:** `scripts/cfl-abort-experiment.mjs` and `.github/workflows/cfl-abort-experiment.yml`. It reads `GET /budget/odds` (CFL `by_site`, `kept`, tallied calls, HIT calls), sends a normal `GET /cfl/odds-probs` to warm the cache and a second to confirm `cf-cache-status: HIT`, then makes 5 calls that the client abandons after 3, 10, 25, 50 and 100 ms (only after a HIT was confirmed), then 5 normal calls as the control, and reads the ledger again after each phase and 20 s later. Verdicts: `abort-loses-nothing`, `abort-loses-refund-and-tally` (the continuation did not run: H1), `abort-loses-refund-keeps-tally` (the refund fails after the tally lands, an abort-triggered H2), `inconclusive:*` (ledger not quiet, abort not effective, control moved, cache not warm, warm-up failed). It was proved against a fake relay that can lose a continuation (23 assertions, 14 mutations caught) and never against the real one.
+**Dispatched 2026-11-01T13:53Z after the owner's "cfl approved"; run 41313403502, artifact `outbox/cfl-abort-experiment-20261101T135557Z.json`. Result below. The paragraphs after the result are the staging record, kept as written.**
+
+
+**Result, 2026-11-01. Verdict `abort-loses-refund-and-tally`.** Cost: 6 vendor credits (the warm-up came back EXPIRED, a real vendor call; the confirmation was a HIT) and 6 credits of over-record left in the relay's ledger. The ledger was quiet (the two readings before the run are identical), 5 of 5 aborts took effect (at 3, 10, 25, 50 and 100 ms), and every call the client did not abort answered 200 and HIT.
+
+| phase | calls | `by_site` change | `kept` change | tally rows added (of which HIT) |
+|---|---|---|---|---|
+| aborted | 5 | **+6** | 0 | **0** (0) |
+| control (not aborted) | 5 | 0 | 0 | **+5** (+5) |
+| 20 s later | | 0 | 0 | 0 |
+
+The tally is the last step of the continuation. **0 of 5 aborted calls reached it; 5 of 5 control calls did and were refunded; nothing arrived late.** At least one aborted call also kept its 6-credit charge (`by_site` +6). The ledger was idle, so a D1 error under load is not what happened here: H2 is not needed for this effect.
+
+**What it shows, and what it does not.** It shows that on Cloudflare's edge a client that abandons a `/cfl/odds-probs` request stops the awaited reconcile before it finishes, and that a charge can be left standing. It does not show how much of the production gap (75 calls' worth against 389 HIT calls on 10-24) is real browsers disconnecting: these 5 calls were abandoned on purpose, inside the reconcile window. The split among the other four aborted calls (never charged, or charged and refunded before the cut) is not recoverable, because the ledger keeps no count of charges. One run, n = 5. H2 is not excluded as a further contributor on busy days.
+
+**For the vendor watch.** The run adds 6 credits the vendor billed that nothing else explains (residual +6) and 6 credits of over-record in the ledger (residual -6), both in the window that closes at the 2026-11-02 reading; they cancel, well inside max(50, 5% of the vendor's spend).
+
+**What was staged:** `scripts/cfl-abort-experiment.mjs` and `.github/workflows/cfl-abort-experiment.yml`. It reads `GET /budget/odds` (CFL `by_site`, `kept`, tallied calls, HIT calls), sends a normal `GET /cfl/odds-probs` to warm the cache and a second to confirm `cf-cache-status: HIT`, then makes 5 calls that the client abandons after 3, 10, 25, 50 and 100 ms (only after a HIT was confirmed), then 5 normal calls as the control, and reads the ledger again after each phase and 20 s later. Verdicts: `abort-loses-nothing`, `abort-loses-refund-and-tally` (the continuation did not run: H1), `abort-loses-refund-keeps-tally` (the refund fails after the tally lands, an abort-triggered H2), `inconclusive:*` (ledger not quiet, abort not effective, control moved, cache not warm, warm-up failed). It was proved against a fake relay that can lose a continuation (23 assertions, 14 mutations caught) and never against the real one.
 
 **What blocks it:** `GET /cfl/odds-probs` charges 6 Odds API credits BEFORE the vendor fetch and keeps them on a cache miss, and the standing rule is that no Odds API call is made without the owner's approval. **Cost, bounded:** at most 2 cold-cache calls (the warm-up and, if it was not yet HIT, its confirmation) = **at most 12 credits at the vendor**; the aborted calls are made only on a confirmed HIT, so they reach the edge cache, not the vendor. It can leave up to 5 x 6 = 30 credits of over-record in the relay's own ledger for the day (a lost refund is exactly what is being tested); the artifact states the number so that day's window-aligned residual can be corrected by hand (the tolerance is max(50, 5% of the vendor's spend)).
 
@@ -106,12 +123,20 @@ Name the site and mechanism only when a command has failed to refute it.
 
 **What each verdict decides:** `abort-loses-refund-and-tally` names H1 for production, and the candidate fix is to run the post-fetch reconcile under `ctx.waitUntil` so a disconnect cannot cancel it (a one-function change in `handleCFLOddsProbs`, to be proposed to the owner with the 2026-10-18 ruling in view, not made here). `abort-loses-nothing` leaves H2: the next step is the owner's approval to enable Workers Logs for one CFL day and read the `[odds-reconcile] D1 correction failed` count. A counter of charges per site in `odds_budget_site` would settle either case without an experiment, but it changes the charge batch and needs the owner's approval too.
 
+## Task 3 — the fix (the owner's call; NOT BUILT)
+
+**Probe, 2026-11-01:** `handleCFLOddsProbs(env)` takes no `ctx`; its one call site is the `/cfl/odds-probs` route in the fetch handler (`return handleCFLOddsProbs(env)`), where `ctx` is available. The response carries a `reconciled` field, which the only client consumer, `fetchCFLOddsProbs` in jubilant-bassoon `src/legacy/field.js`, does not read (`grep reconciled` in that file: 0 hits). `reconcileOddsCredit` never throws to its caller: it returns `{ state, ... }`.
+
+**Candidate:** pass `ctx` and run the reconcile under `ctx.waitUntil`, so a disconnect cannot cancel it; the response then cannot carry the final `state` (report `deferred`, and update CONTRACTS.md, whose copy the client would need synced). The same shape, with the same exposure, is `handleWCOddsProbs`, `oddsProxyRoute` and the request path of `getWCPregameLambdas`; their volume is low or their callers are servers, which is why they show no gap.
+
+**Blocked by:** the owner's 2026-10-18 ruling, "do not fix the over-record yet". **Unblocked when** the owner rules. **Done condition when built:** a repeat of Task 2b (same approval gate) returns `abort-loses-nothing`, and `by_site - kept` for CFL stays 0 on the next busy CFL day (`node scripts/analyze-cfl-reconcile-gap.mjs`, 11 windows to compare against). **Mutation:** put the awaited call back; the repeat must return a lossy verdict.
+
 ## Done conditions
 
 1. **MET 2026-11-01 (`46a929f`).** The watch's verdict is the window-aligned residual, with the real 10-12 pair
    at −190 in its self-test and the mutation CAUGHT.
 2. P5 is either explained by a named mechanism with the command that showed it,
-   or shown not to bear on the residual. **NARROWED 2026-11-01, NOT MET:** P5 bears on the residual (Task 2, Result) and its mechanism is not named; H3, H4 and H5 are refuted, H1 and H2 stand. Met when `outbox/cfl-abort-experiment-<stamp>.json` carries a verdict that does not start with `inconclusive` (Task 2b, STAGED behind the owner's approval) and one of H1 or H2 is struck.
+   or shown not to bear on the residual. **MET 2026-11-01, with a stated limit.** P5 bears on the residual (Task 2, Result), and the mechanism is shown by the command that showed it: `outbox/cfl-abort-experiment-20261101T135557Z.json`, verdict `abort-loses-refund-and-tally` (a client that abandons the request stops the awaited reconcile before its tally; one charge left standing). H3, H4 and H5 are refuted. Not shown: what share of the production gap real browser disconnects account for, and H2 as a further contributor.
 3. The first scheduled run after Task 1 prints both figures. **STAGED:** the run of 2026-11-02 (about 05:30Z to 07:00Z; the sandbox cannot reach the relay and dispatching the workflow would split the window). Verify: `outbox/odds-daily-vs-vendor-2026-11-02T*.log` carries `residual (window-aligned)` and `residual against that`, and the series row it stores has a numeric `ledger_month_used` and `ledger_source` `d1`.
 
 ## Do not
@@ -121,10 +146,12 @@ Name the site and mechanism only when a command has failed to refute it.
 - Do not "fix" `handleCFLOddsProbs` on P5 alone. (2026-11-01: its gap is no longer
   bigger than the thing it would be fixing, it is the same size; the 2026-10-18
   ruling and the missing mechanism still stand. Task 2b names the mechanism.)
-- Do not dispatch `cfl-abort-experiment.yml` without the owner's approval string. It
-  can spend up to 12 Odds API credits.
+- Do not dispatch `cfl-abort-experiment.yml` again without a new approval. It ran once on
+  2026-11-01; it can spend up to 12 Odds API credits.
 
 ## Data points
+
+- **2026-11-01, Task 2b ran (run 41313403502).** Verdict `abort-loses-refund-and-tally`: 5 of 5 aborts effective; 0 of 5 aborted calls tallied against 5 of 5 control calls; `by_site` +6 in the aborted phase; 6 vendor credits spent, 6 of over-record left in the ledger. The mechanism of P5 is shown; its share of the production gap is not measured.
 
 - **2026-11-01, Task 2 measured (`scripts/analyze-cfl-reconcile-gap.mjs`).** 11 of 12 windows from 10-20 to 10-31: sum of residuals -2,076, sum of CFL gap midpoints 1,962, Pearson r 0.925, 10 of 11 windows within 60 of zero once the gap is added back. 59 of 59 CFL gaps are whole multiples of 6. Six of seven other sites have a gap of 0 in every sample. The local workerd abort run (54 calls) cannot decide H1: its own positive control did not see the disconnect, so the instrument is invalid and its readings are not evidence either way. Full table and the H1-H5 rows in Task 2 above.
 

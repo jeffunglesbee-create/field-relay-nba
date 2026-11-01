@@ -17,6 +17,8 @@ sandbox exits with code 000 (no response). The agent proxy's own status
 | One of five routes (below), a body over 12 KB, or the response headers | **`scripts/relay-look.sh`** | about a minute, one workflow run | the five routes in `scripts/relay-read.mjs` |
 | All of the above without the round trip, permanently | the owner adds the relay host under **Allowed domains** in the environment's network settings (cloud environment menu, Edit, Network access) | one change | then `curl` works and none of this is needed |
 
+**Measured 2026-11-01 13:56Z:** the owner added `*.workers.dev` under Additional allowed domains (the settings list shows it). The session that was already running still got `curl` exit 000 to the relay and the agent proxy logged a new `connect_rejected` for it at 13:56:15Z, so a changed rule does not reach a live session. Whether a NEW session gets through is UNVERIFIED; check it first with `curl -sS -o /dev/null -w '%{http_code}\n' -m 10 https://field-relay-nba.jeffunglesbee.workers.dev/health` and fall back to `scripts/relay-look.sh` on 000.
+
 If you need a route that spends Odds API credits, none of these is the answer: ask the owner. If you need a game board, `probe_relay_route` carries its own list.
 
 ## `scripts/relay-look.sh`

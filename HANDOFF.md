@@ -1,5 +1,17 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-01 (14:05Z) — the CFL abort experiment ran with the owner's approval: a client that abandons the request stops the reconcile before its tally
+
+**HEAD:** `527a5f6` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-01-relay-from-the-sandbox.md (task: docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 2b)
+
+No Worker code changed, so there is no deploy. 6 Odds API credits spent at the vendor, inside the 12 the owner approved.
+
+- **Task 2b ran (run 41313403502, 13:53Z).** Verdict `abort-loses-refund-and-tally`. 5 of 5 aborts took effect; the 5 aborted calls added 0 tally rows and left `by_site` +6; the 5 control calls added 5 tally rows and left `by_site` 0; nothing arrived late. Artifact `outbox/cfl-abort-experiment-20261101T135557Z.json`. P5's mechanism is shown: a disconnect cancels the awaited reconcile on the edge. Not shown: what share of the production gap (about 16% of cache-hit calls on busy days) is real browser disconnects; H2 (a correction that fails under load) is not excluded on busy days. n = 5.
+- **For the 2026-11-02 vendor watch:** this run adds 6 vendor credits no CI row explains (+6) and 6 of ledger over-record (-6) to the window closing at that reading. They cancel.
+- **Open, the owner's call:** the fix, Task 3 of the CC-CMD (run the post-fetch reconcile under `ctx.waitUntil`; the client does not read `reconciled`; CONTRACTS.md changes). Blocked by the 2026-10-18 ruling. Done when a repeat of Task 2b returns `abort-loses-nothing`.
+- **`*.workers.dev` was added to Allowed domains.** The live session still could not reach the relay (curl exit 000, a new `connect_rejected` at 13:56:15Z): a changed rule does not reach a running session. For a NEW session, check with one `curl` before using `scripts/relay-look.sh`; the runner path stays valid either way.
+
 ## SESSION CLOSE-OUT — 2026-11-01 (13:40Z) — a runner reads five relay routes for a sandbox that cannot reach the relay, and the CFL refund gap is put beside the ledger's over-record
 
 **HEAD:** `f0fdf99` → `dcfb4f3` → this close-out · **Branch:** main
