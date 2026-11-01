@@ -1,6 +1,6 @@
 # CFB Saturday CC-CMD — the A1 reading, the probe artifact, and the job-log half of A0.2 (2026-11-01)
 
-**Run:** 2026-11-01 04:30Z to 05:30Z, the wake of `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`. D1 `cc49101c`
+**Run:** 2026-11-01 04:30Z to 04:55Z, the wake of `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`. D1 `cc49101c`
 (field-archive) by SELECT only (`rows_written 0`), the committed probe artifact, and the REST API for run logs. 0 Odds API credits;
 no probe workflow was dispatched.
 

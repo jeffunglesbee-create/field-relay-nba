@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-01 (04:47Z) — the CFB Saturday read, the by_hour and vendor-residual data points, and where the generator's strict readers are recorded
+
+**HEAD:** `b6c46113` → `821d2a2` → this close-out · **Branch:** main
+**Session doc:** outbox/cfb-saturday-a1-20261101.md (task: docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md)
+
+No relay source changed in this session's commits; every commit is a document. 0 Odds API credits, D1 SELECT only.
+
+- **CFB Saturday CC-CMD is DONE (`821d2a2`).** First CFB Saturday after the join (2026-10-31): 47 rows, 45 priced, 2 unpriced; 33 kicked off before 22:00Z and 32 of those were priced, all before kickoff; 0 after kickoff; one capture at 10:01:37Z. Against 2026-09-12 (67 of 80 priced, 35 of 42 early) A1 (c) stands and nothing goes back to the owner. The scheduled probe run 41265675536 wrote `probe_date` 2026-10-31 (CFB 47 rows, 45 priced, `NO_JOIN_EVIDENCE`): done condition 4 met. The A0.2 job-log half is read: 46 `odds-backfill.yml` runs, per-sport `unmatched` beside D1's unpriced counts (CFB 188 against 203, NHL 76 against 76, NBA 70 against 69). The 2 unpriced rows (Liberty vs FIU, GA Southern vs App State) are unexplained; the vendor's listing costs credits.
+- **STAGED, with its wake:** the CFB line of the backfill run that processes 2026-10-31. Blocked by: the run on 2026-11-01 about 15:30Z. Verify: its `americanfootball_ncaaf` line for 2026-10-31 prints an `unmatched` near 2.
+- **by_hour:** closed day 2026-10-30 had `degraded_open.events` 0 (`GET /budget/odds?date=2026-10-30`; pairing-watch log `odds-pairing-rate-20261031T155616Z` agrees), so there is nothing to split and `docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md` stays PARTIAL. The wake reads each closed day at 18:00Z until one has events; it stops 2026-11-08.
+- **Vendor residual, window-aligned, by hand (`docs/CC-CMD-2026-10-13-vendor-residual-window.md`, "Data points").** The one `counter-under-counts` verdict after the 2026-10-18 ruling (closed day 2026-10-23, +75) is a window artifact: aligned to the vendor's window the residual is 0. The last three closed days read -236, -528, -406 aligned (a one-directional over-record, inside the ruling); the watch still prints the UTC-day figure.
+- **Open, the owner's call:** Task 1 of that CC-CMD (the watch prints the window-aligned residual). Watch-only, no credits, no change to the counter; about 30 minutes.
+- **Generator readers (jubilant-bassoon session doc: that repo's outbox, `cc-session-2026-10-31-generator-nba-source.md`; recorded here in `docs/CC-CMD-2026-10-22-nba-cdn-403-in-season.md`, "Built 2026-10-31").** The daily generator reads NBA, WNBA, MLB and NHL through readers that throw on an unclean answer; an unread source is `null` with a reason and the run goes red after the overlay is pushed. Cover list `nba, wnba, mlb, nhl`. Live: jubilant-bassoon run 41229556544. Gaps 3 (NHL and NBA are day 0 only; the NHL scoreboard carries the next 7 days) and 4 (a null source shows as 0 in the page's debug log) are in that CC-CMD with their unblock criteria.
+- **Seen, not fixed:** the absence-collapse ratchet reports `field-relay-nba flagged [?? 0] 1 < 3 — lower it`: an improvement in this repo's count, so the baseline can be lowered with `node scripts/check-absence-collapse.mjs . --require=src/index.js --write-baseline=docs/absence-collapse-baseline.json` from a clean checkout of this repo.
+
 ## SESSION CLOSE-OUT — 2026-10-30 (21:50Z) — the relay writes the sentence about each game in the Morning Report
 
 **HEAD:** `b25cb617` → `b6c46113` (deployed 21:40Z, run 41131995398) → this close-out · **Branch:** main
