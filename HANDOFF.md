@@ -1,6 +1,6 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-11-01 (17:35Z) — the CFL odds call runs under ctx.waitUntil: Task 3 is deployed, and its proof is a repeat of Task 2b that needs the owner's approval
+## SESSION CLOSE-OUT — 2026-11-01 (17:31Z) — the CFL odds call runs under ctx.waitUntil: Task 3 is deployed, and its proof is a repeat of Task 2b that needs the owner's approval
 
 **HEAD:** `1f097a3` → `6589bc1` → this close-out · **Branch:** main
 **Session doc:** outbox/cc-session-2026-11-01-cfl-waituntil.md (task: docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 3, by the owner's order "Build task 3")
@@ -22,9 +22,9 @@ Worker code changed (`src/index.js`), so there is a deploy: Deploy RELAY Worker 
 
 No Worker code changed, so there is no deploy. 6 Odds API credits spent at the vendor, inside the 12 the owner approved.
 
-- **Task 2b ran (run 41313403502, 13:53Z).** Verdict `abort-loses-refund-and-tally`. 5 of 5 aborts took effect; the 5 aborted calls added 0 tally rows and left `by_site` +6; the 5 control calls added 5 tally rows and left `by_site` 0; nothing arrived late. Artifact `outbox/cfl-abort-experiment-20261101T135557Z.json`. P5's mechanism is SUPPORTED BY ONE CALL (corrected 17:35Z; this entry first said "shown"): one aborted call kept its charge, and for the other four the ledger cannot say cut or never arrived. Not shown: what share of the production gap (about 16% of cache-hit calls on busy days) is real browser disconnects; H2 (a correction that fails under load) is not excluded on busy days. n = 5.
+- **Task 2b ran (run 41313403502, 13:53Z).** Verdict `abort-loses-refund-and-tally`. 5 of 5 aborts took effect; the 5 aborted calls added 0 tally rows and left `by_site` +6; the 5 control calls added 5 tally rows and left `by_site` 0; nothing arrived late. Artifact `outbox/cfl-abort-experiment-20261101T135557Z.json`. P5's mechanism is SUPPORTED BY ONE CALL (corrected 17:31Z; this entry first said "shown"): one aborted call kept its charge, and for the other four the ledger cannot say cut or never arrived. Not shown: what share of the production gap (about 16% of cache-hit calls on busy days) is real browser disconnects; H2 (a correction that fails under load) is not excluded on busy days. n = 5.
 - **For the 2026-11-02 vendor watch:** this run adds 6 vendor credits no CI row explains (+6) and 6 of ledger over-record (-6) to the window closing at that reading. They cancel.
-- **Superseded 17:35Z:** the fix (Task 3 of the CC-CMD) was ordered by the owner, built with the WHOLE call registered (not only the post-fetch reconcile), deployed, and needed no CONTRACTS.md change; see the entry above. Still open: the repeat of Task 2b.
+- **Superseded 17:31Z:** the fix (Task 3 of the CC-CMD) was ordered by the owner, built with the WHOLE call registered (not only the post-fetch reconcile), deployed, and needed no CONTRACTS.md change; see the entry above. Still open: the repeat of Task 2b.
 - **`*.workers.dev` was added to Allowed domains.** The live session still could not reach the relay (curl exit 000, a new `connect_rejected` at 13:56:15Z): a changed rule does not reach a running session. For a NEW session, check with one `curl` before using `scripts/relay-look.sh`; the runner path stays valid either way.
 
 ## SESSION CLOSE-OUT — 2026-11-01 (13:40Z) — a runner reads five relay routes for a sandbox that cannot reach the relay, and the CFL refund gap is put beside the ledger's over-record

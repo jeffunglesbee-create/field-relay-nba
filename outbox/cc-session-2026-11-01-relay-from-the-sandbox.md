@@ -47,7 +47,7 @@ See `docs/CC-CMD-2026-10-13-vendor-residual-window.md`, Task 2, Result. In one p
 
 ## Open, the owner's call
 
-- **SUPERSEDED 2026-11-01 17:35Z: built and deployed, see `outbox/cc-session-2026-11-01-cfl-waituntil.md`.** *(Original text:)* **The fix (Task 3 of the CC-CMD, not built).** Run the post-fetch reconcile of `handleCFLOddsProbs` under `ctx.waitUntil` so a disconnect cannot cancel it. Blocked by the owner's 2026-10-18 ruling "do not fix the over-record yet". The client does not read the response's `reconciled` field (0 hits), so only CONTRACTS.md changes with it. Done when a repeat of Task 2b returns `abort-loses-nothing`.
+- **SUPERSEDED 2026-11-01 17:31Z: built and deployed, see `outbox/cc-session-2026-11-01-cfl-waituntil.md`.** *(Original text:)* **The fix (Task 3 of the CC-CMD, not built).** Run the post-fetch reconcile of `handleCFLOddsProbs` under `ctx.waitUntil` so a disconnect cannot cancel it. Blocked by the owner's 2026-10-18 ruling "do not fix the over-record yet". The client does not read the response's `reconciled` field (0 hits), so only CONTRACTS.md changes with it. Done when a repeat of Task 2b returns `abort-loses-nothing`.
 - Adding `field-relay-nba.jeffunglesbee.workers.dev` under Allowed domains in the environment's network settings makes the runner path unnecessary for the five routes (and opens every other route to a sandbox `curl`, with the consequences for credits that implies).
 
 ## Seen, not fixed
