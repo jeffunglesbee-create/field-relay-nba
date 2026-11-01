@@ -1,5 +1,19 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-01 (07:34Z) — the vendor watch judges the vendor's window, and a window it cannot measure fails the run
+
+**HEAD:** `df74feb` → `46a929f` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-01-vendor-residual-window.md (task: docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 1)
+
+No Worker code changed, so there is no deploy; the change is a script, two workflows, a baseline and documents. 0 Odds API credits.
+
+- **Task 1 built (`46a929f`).** `odds-daily-vs-vendor` used to difference the vendor's spend between its two readings against the closed UTC day's counter: two different 24 hours. The verdict is now vendor delta minus `monthly.used` delta over the same two readings minus known CI spend; the UTC-day figure stays as a labelled diagnostic. Pinned on three real series pairs: 10-12 reads -190 (not -616); **10-23 reads 0, `tracks-the-bill`, where the UTC-day figure had read `counter-under-counts` (+75), the breach verdict**; 10-30 reads -406.
+- **A window it cannot measure fails the run, with its reason, and nothing is substituted:** `ledger-unreadable` (missing, not a number, or not read from D1: the route's KV fallback is stored as unreadable), `ledger-went-backwards`, and `ci-unreadable`. The old code read a D1 500 as zero CI spend with no warning; on the 10-12 pair that read `tracks-the-bill`. `/d1/execute` is now read as the route answers (flat `{success, results}`), not the nested shape the old code guessed. Refusals (no-data, month-boundary, counter-reset, window-drift) are unchanged and exit 0.
+- **Checks.** Self-test 78; `scripts/check-odds-daily-vs-vendor-run.mjs` runs the whole watch against a stub relay that speaks the routes' real shapes (11 cases, 10 red on the previous watch); mutation harness 51 of 51. `guards.yml` runs all of it on every push (these checks used to run only inside the daily workflow); the daily workflow runs the run check after the measurement with `if: always()`. Review: 25 agents, 22 candidate findings, 17 stood and are fixed (a failed CI read read as zero, the ledger's source, the stub's shapes, the harness's coupling to the measurement, an absence-collapse site whose removal lowered the baseline by two).
+- **STAGED, with its wake:** the live proof. Blocked by: the sandbox cannot reach the relay and dispatching `odds-daily-vs-vendor.yml` would split the window. Unblocked by: the scheduled run of 2026-11-02 (about 05:30Z to 07:00Z). Verify: the new `outbox/odds-daily-vs-vendor-2026-11-02T*.log` prints `residual (window-aligned)` and `residual against that`, and the series row it stores has a numeric `ledger_month_used` with `ledger_source` `d1`.
+- **Open, the owner's call:** Task 2 of that CC-CMD (P5, why `handleCFLOddsProbs` records 696 credits against 150 kept); the window-drift refusal, which is kept and could be relaxed now that both sides cover the same instants.
+- **Seen, not fixed:** a stored null ledger fails two runs in a row (the bad reading is the next baseline); that is the specified behaviour and the sibling watch's `unreadable` latches the streak gate at three.
+
 ## SESSION CLOSE-OUT — 2026-11-01 (04:47Z) — the CFB Saturday read, the by_hour and vendor-residual data points, and where the generator's strict readers are recorded
 
 **HEAD:** `b6c46113` → `821d2a2` → this close-out · **Branch:** main

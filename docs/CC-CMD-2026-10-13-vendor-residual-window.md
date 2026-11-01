@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (defect in a watch) plus an open measurement
-**Status:** OPEN
+**Status:** PARTIAL — Task 1 built and pushed 2026-11-01 (`46a929f`; session doc `outbox/cc-session-2026-11-01-vendor-residual-window.md`); done condition 3 is the scheduled run of 2026-11-02. Task 2 (P5) is open.
 
 ## What was read
 
@@ -57,11 +57,11 @@ Name the site and mechanism only when a command has failed to refute it.
 
 ## Done conditions
 
-1. The watch's verdict is the window-aligned residual, with the real 10-12 pair
+1. **MET 2026-11-01 (`46a929f`).** The watch's verdict is the window-aligned residual, with the real 10-12 pair
    at −190 in its self-test and the mutation CAUGHT.
 2. P5 is either explained by a named mechanism with the command that showed it,
    or shown not to bear on the residual.
-3. The first scheduled run after Task 1 prints both figures.
+3. The first scheduled run after Task 1 prints both figures. **STAGED:** the run of 2026-11-02 (about 05:30Z to 07:00Z; the sandbox cannot reach the relay and dispatching the workflow would split the window). Verify: `outbox/odds-daily-vs-vendor-2026-11-02T*.log` carries `residual (window-aligned)` and `residual against that`, and the series row it stores has a numeric `ledger_month_used` and `ledger_source` `d1`.
 
 ## Do not
 
@@ -86,3 +86,5 @@ Name the site and mechanism only when a command has failed to refute it.
   | 10-30 | 445 | 691 | 160 | −406 | `we-overcharge-ourselves` (−631) |
 
   Two readings. **(1) The one `counter-under-counts` verdict in this series after the owner's 2026-10-18 ruling, on 10-23, is a window artifact:** its window-aligned residual is exactly 0, so the enforcing counter did not under-count that day; the +75 was the UTC-day counter (636) read against a window whose ledger delta was 711. This is premise P1 of this document, observed on a day it flipped the verdict's sign. It had not been recorded in any CC-CMD, and the watch's own text calls that verdict "THE BREACH". **(2) The window-aligned residual is not small on the last three days (−236, −528, −406)**, and the days with the largest over-record are the days `handleCFLOddsProbs` carries (10-30: `by_site` 696 against 150 credits kept by `reconcile`, 451 cache hits at 0, read from `GET /budget/odds?date=2026-10-30`), which is P5. Both stay inside the ruling of 2026-10-18 (a one-directional over-record is headroom thrown away, never spend; do not fix the over-record yet). Not a verdict: no `counter-under-counts` is observed after window alignment in these eight days, and the CFL season ends inside the CFL VOID window (2026-11-08 to 2026-11-23), after which `handleCFLOddsProbs` should stop contributing. **Unblocked, a watch-only change with no credits and no change to the counter:** Task 1 (the watch prints the window-aligned residual). Verify with the command in Done condition 1.
+
+- **2026-11-01, Task 1 built (`46a929f`).** `judgeDay` differences the vendor window against `monthly.used` over the same two readings less known CI spend; the UTC-day figure is a labelled diagnostic. Pinned on three real series pairs: 10-12 reads -190 (not -616), **10-23 reads 0 = `tracks-the-bill`** (the UTC-day figure read `counter-under-counts`, +75), 10-30 reads -406. A window that cannot be measured fails the run: `ledger-unreadable` (including a ledger the route served from KV), `ledger-went-backwards`, and `ci-unreadable` (the old code read a D1 500 as zero CI spend; on the 10-12 pair that read `tracks-the-bill`). An independent review replayed the new `judgeDay` over all 43 real pairs and reproduced the table above. Open and unchanged: the window-drift refusal, the P2 premise that CI credits are not in the ledger (read from source, not measured), and Task 2.
