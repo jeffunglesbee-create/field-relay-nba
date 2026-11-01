@@ -1,0 +1,65 @@
+=== silently dead crons  repos=4  streak=3  utc=2026-11-01T17:54:56.684Z ===
+    jeffunglesbee-create/field-relay-nba
+    jeffunglesbee-create/jubilant-bassoon
+    jeffunglesbee-create/field-laboratory
+    jeffunglesbee-create/field-playground
+
+  ── jeffunglesbee-create/field-relay-nba ──
+    199 workflow(s), 199 active  (all pages read)
+    scheduled and healthy             : 38
+    no schedule: block, not judged     : 159
+    declared detectors, red on purpose : 2   (not failures)
+      .github/workflows/rule90-staleness-monitor.yml  red at least 2.0 days
+        reports: rule-registry entries marked UNEXERCISED for more than 14 days
+        now:     rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/brief-label-migration.yml  red at least 20.1 days
+        reports: brief rows whose sport is outside the authority label set read from the games table
+        now:     4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/jubilant-bassoon ──
+    138 workflow(s), 138 active  (all pages read)
+    scheduled and healthy             : 30
+    no schedule: block, not judged     : 107
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/nba-clutch-update.yml
+        red since at least 2026-07-25T08:13:11Z, latest 2026-07-31T08:56:19Z
+        https://github.com/jeffunglesbee-create/jubilant-bassoon/actions/runs/30618071472
+
+  ── jeffunglesbee-create/field-laboratory ──
+    42 workflow(s), 42 active  (all pages read)
+    scheduled and healthy             : 7
+    no schedule: block, not judged     : 35
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/field-playground ──
+    83 workflow(s), 83 active  (all pages read)
+    scheduled and healthy             : 22
+    no schedule: block, not judged     : 61
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+    COVERAGE: 4 repos, 462 workflows, 462 active, 100 JUDGED
+    (>= 3 completed scheduled runs each). NOT judged: 362 with no
+    schedule: block — their failures surface on the commit that caused them —
+    and 0 that declare a cron but have never produced a run,
+    named above rather than counted. A workflow is judged on its last 3
+    scheduled runs whenever they happened, so a firing delay cannot skew it.
+    NOT covered: any repo outside the 4 listed at the top.
+
+  ── ratchet (docs/dead-cron-baseline.json) ──
+    carried, already admitted : 1
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/nba-clutch-update.yml
+        kind dead  red since 2026-07-25  admitted 46d ago  review by 2027-05-15
+        unblocked by: read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing
+    NEW, not in the baseline  : 0
+    baseline entries resolved : 0
+    reviews overdue           : 0
