@@ -1,0 +1,20 @@
+{
+ "label": "look13271419616",
+ "stamp": "20261101T132809Z",
+ "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+ "submitted": 2,
+ "duplicates_dropped": 0,
+ "requested": 2,
+ "summary": {
+  "submitted": 2,
+  "requested": 2,
+  "read_ok": 2,
+  "refused": 0,
+  "failed": 0,
+  "empty_ok": 0
+ },
+ "entries": [
+  {"route":"/budget/odds?date=2026-11-01","status":200,"ok":true,"ms":2274,"headers":{"content-type":"application/json","cache-control":"public, max-age=30"},"bytes":2696,"empty":false,"truncated":false,"json":true,"body":{"ok":true,"daily":{"date":"2026-11-01","requested_date":"2026-11-01","is_today":true,"used":276,"source":"d1","kv_used":0,"ceiling":3800,"remaining":3524,"ceiling_reached_at":null,"month_limit_reached_at":null,"site_ceilings":{"getWCPregameLambdas":300,"handleWCOddsProbs":null,"handleCFLOddsProbs":null,"fetchSportOddsLive":2000,"fetchSportOddsHistorical":1800,"wpResolver":null,"ambientFetchLiveOdds":null,"ambientCaptureClosingOdds":400,"oddsProxyRoute":null,"identityMismatches":150,"archiveOddsBackfill":300,"archiveGameClosing":900,"unattributed":null},"site_ceiling_reached_at":{"getWCPregameLambdas":null,"fetchSportOddsLive":null,"fetchSportOddsHistorical":null,"ambientCaptureClosingOdds":null,"identityMismatches":null,"archiveOddsBackfill":null,"archiveGameClosing":null},"refusals":[],"site_stamps_unreadable":null,"stamps_unreadable":null,"standing_ceiling":3800,"by_site":{"ambientCaptureClosingOdds":15,"archiveGameClosing":120,"fetchSportOddsLive":93,"getWCPregameLambdas":0,"handleCFLOddsProbs":36,"identityMismatches":12,"handleWCOddsProbs":0,"fetchSportOddsHistorical":0,"wpResolver":0,"ambientFetchLiveOdds":0,"oddsProxyRoute":0,"archiveOddsBackfill":0,"unattributed":0},"by_site_sum":276,"unaccounted":0,"unreadable_sites":null,"degraded_open":{"events":0,"credits":0,"last":null},"reconcile":[{"site":"archiveGameClosing","state":"reconciled","cache":"MISS","n":4,"credits_kept":120},{"site":"fetchSportOddsLive","state":"reconciled","cache":"EXPIRED","n":23,"credits_kept":69},{"site":"fetchSportOddsLive","state":"reconciled","cache":"MISS","n":8,"credits_kept":24},{"site":"handleCFLOddsProbs","state":"reconciled","cache":"EXPIRED","n":4,"credits_kept":24},{"site":"ambientCaptureClosingOdds","state":"reconciled","cache":"EXPIRED","n":5,"credits_kept":15},{"site":"identityMismatches","state":"reconciled","cache":"EXPIRED","n":3,"credits_kept":9},{"site":"identityMismatches","state":"reconciled","cache":"MISS","n":1,"credits_kept":3},{"site":"getWCPregameLambdas","state":"reconciled","cache":"EXPIRED","n":47,"credits_kept":0},{"site":"archiveGameClosing","state":"cache-hit","cache":"HIT","n":11,"credits_kept":0},{"site":"fetchSportOddsLive","state":"cache-hit","cache":"HIT","n":5,"credits_kept":0},{"site":"getWCPregameLambdas","state":"cache-hit","cache":"HIT","n":4,"credits_kept":0},{"site":"handleCFLOddsProbs","state":"cache-hit","cache":"HIT","n":4,"credits_kept":0}],"grant_today":null},"monthly":{"month":"2026-11","used":276,"limit":85000,"remaining":84724,"source":"d1","kv_used":0},"provider":{"ok":true,"state":"ok","key":"primary","checked_at":"2026-11-01T13:28:10.047Z","requests_remaining":"99742","requests_used":"258","headers_present":true}}},
+  {"route":"/health","status":200,"ok":true,"ms":142,"headers":{"content-type":"text/plain"},"bytes":377,"empty":false,"truncated":false,"json":false,"body":"RELAY OK — nba + nhl + fpl + fd + odds + squiggle + kali + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron + tts, quality-source=fresh"}
+ ]
+}
