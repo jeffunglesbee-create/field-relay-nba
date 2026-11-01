@@ -290,7 +290,7 @@ wording, not the numbers):
 | `fetchSportOddsLive` | 2,000 | 1,020 (10-24, a Saturday) | the opening-line cron |
 | `fetchSportOddsHistorical` | 1,800 | 900 (10-22) | `/archive/game` closings and backfill |
 | `getWCPregameLambdas` | 300 | 76 | 10-07: 2,536 in a day |
-| `handleCFLOddsProbs` | **none** | charged 2,058, kept far less | strands estimates; options 2 and 3 are held |
+| `handleCFLOddsProbs` | **none** | charged 2,058, kept far less | strands estimates; option 2 was built 2026-11-01 (vendor-residual CC-CMD Task 3; its effect is measured on the next busy CFL day), option 3 is held |
 | `ambientFetchLiveOdds`, other sites | none | path off | needs about 3,000 a day if served; set a cap when it is switched on |
 
 Replayed on the daily rows, these caps would have refused 21,514 credits between

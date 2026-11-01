@@ -23,7 +23,19 @@ export const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffungl
 export const SITE = 'handleCFLOddsProbs';
 export const CALL = 6;
 export const APPROVAL_TEXT = 'APPROVED: up to 12 Odds API credits for the CFL abort experiment';
-export const ABORT_MS = [3, 10, 25, 50, 100];
+// The first run (2026-11-01) aborted at 3, 10, 25, 50 and 100 ms. Some of those can have been abandoned before the request reached the Worker, and a call that never arrived leaves no
+// charge and no tally, which reads exactly like a call that was cut. So the schedule is CALIBRATED: fractions of the MEDIAN latency of three confirmed cache-HIT calls (the cold call
+// is a different, slower path and is not used), with a floor. The fractions stop at 0.6 on purpose: an abort that lands after the response is a call that was not cut, and the
+// latency of one call varies, so a schedule that reaches 0.95 of a sample loses its late aborts whenever the call is a little faster than the sample (measured by the 2026-11-01
+// review: with 20% jitter a schedule to 0.95 left some abort ineffective in 23 runs of 40, and the verdict then discarded the aborts that DID take effect). `abortMs` in the options
+// still overrides it (the self-test does).
+export const ABORT_FRACTIONS = [0.2, 0.3, 0.4, 0.5, 0.6];
+export const ABORT_FLOOR_MS = 40;
+export const LATENCY_SAMPLES = 3;
+/** 'abort-loses-nothing' needs at least this many calls the client really cut. Fewer and the experiment never tested the thing; a LOSS is conclusive with any. */
+export const MIN_EFFECTIVE = 3;
+export const schedule = (latencyMs) => ABORT_FRACTIONS.map((f) => Math.max(ABORT_FLOOR_MS, Math.round(f * latencyMs)));
+export const median = (xs) => { const a = [...xs].sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** The CFL line of one /budget/odds body. Throws on any shape drift: an absent block must never read as zero. */
@@ -35,23 +47,29 @@ export function cflLedger(body) {
   const by = d.by_site[SITE];
   if (typeof by !== 'number') throw new Error(`daily.by_site.${SITE} is ${JSON.stringify(by)}, not a number`);
   const rows = d.reconcile.filter((r) => r.site === SITE);
-  const sum = (f) => rows.reduce((t, r) => t + (Number(f(r)) || 0), 0);
+  // A row with no numeric value where a sum needs one throws: absence is not zero, and a ledger that lost a field must not read as a quiet one.
+  const sum = (f) => rows.reduce((t, r) => { const v = f(r); if (typeof v !== 'number' || !Number.isFinite(v)) throw new Error(`daily.reconcile has a ${SITE} row with a non-numeric n or credits_kept: ${JSON.stringify(r).slice(0, 100)}`); return t + v; }, 0);
   return { date: d.date, by_site: by, kept: sum((r) => r.credits_kept), n: sum((r) => r.n), hit: sum((r) => (r.cache === 'HIT' ? r.n : 0)) };
 }
 const diff = (a, b) => ({ by_site: b.by_site - a.by_site, kept: b.kept - a.kept, n: b.n - a.n, hit: b.hit - a.hit });
 
-/** What the aborted phase says. `k` aborted calls, each of which the client really abandoned; `d` is the ledger delta over that phase alone. */
+/** What the aborted phase says. `k` aborted calls, `effective` of them really abandoned by the client; `abortDelta` is the ledger delta over that phase alone.
+ *  A call the client did NOT cut completes like any normal call, and the control phase shows a normal call loses nothing, so every lost refund or tally has to come from a cut call:
+ *  more lost than were cut means something else wrote to the ledger. A loss is conclusive with any cut call; "loses nothing" needs MIN_EFFECTIVE of them. */
 export function verdictOf({ k, effective, abortDelta, controlDelta, quiet }) {
   if (!quiet) return { verdict: 'inconclusive:ledger-not-quiet', why: 'the ledger moved before the experiment started (real traffic), so its deltas cannot be attributed' };
-  if (effective < k) return { verdict: 'inconclusive:abort-not-effective', why: `${k - effective} of ${k} aborted calls completed before the abort; the abort did not take effect` };
   if (controlDelta.by_site !== 0 || controlDelta.kept !== 0) return { verdict: 'inconclusive:control-moved', why: 'normal cache-hit calls changed by_site or kept, so something else wrote to the ledger in the window' };
   const lostRefunds = abortDelta.by_site / CALL;
   const missingTallies = k - abortDelta.hit;
-  if (!Number.isInteger(lostRefunds) || lostRefunds < 0 || abortDelta.kept !== 0) return { verdict: 'inconclusive:unexpected-delta', why: `by_site moved ${abortDelta.by_site}, kept ${abortDelta.kept}: not a whole number of lost ${CALL}-credit refunds` };
-  if (lostRefunds === 0 && missingTallies === 0) return { verdict: 'abort-loses-nothing', why: `${k} aborted cache-hit calls: every refund and every tally landed` };
-  if (lostRefunds > 0 && missingTallies > 0) return { verdict: 'abort-loses-refund-and-tally', why: `${lostRefunds} of ${k} aborted calls kept their ${CALL}-credit charge and ${missingTallies} left no tally: the continuation did not run` };
-  if (lostRefunds > 0) return { verdict: 'abort-loses-refund-keeps-tally', why: `${lostRefunds} of ${k} aborted calls kept their charge although the tally says it was refunded` };
-  return { verdict: 'inconclusive:tally-only', why: `${missingTallies} tallies missing but no charge kept` };
+  if (!Number.isInteger(lostRefunds) || lostRefunds < 0 || abortDelta.kept !== 0 || missingTallies < 0) return { verdict: 'inconclusive:unexpected-delta', why: `by_site moved ${abortDelta.by_site}, kept ${abortDelta.kept}, tallies ${abortDelta.hit} of ${k}: not a whole number of lost ${CALL}-credit refunds with a tally each` };
+  if (lostRefunds > effective || missingTallies > effective) return { verdict: 'inconclusive:unexpected-delta', why: `${lostRefunds} refunds and ${missingTallies} tallies were lost but only ${effective} of ${k} calls were cut: something else wrote to the ledger` };
+  if (lostRefunds === 0 && missingTallies === 0) {
+    if (effective < MIN_EFFECTIVE) return { verdict: 'inconclusive:abort-not-effective', why: `only ${effective} of ${k} aborted calls were cut before their response (at least ${MIN_EFFECTIVE} are needed to say a cut loses nothing)` };
+    return { verdict: 'abort-loses-nothing', why: `${effective} of ${k} aborted cache-hit calls were cut, and every refund and every tally landed` };
+  }
+  if (lostRefunds > 0 && missingTallies > 0) return { verdict: 'abort-loses-refund-and-tally', why: `${lostRefunds} of ${effective} cut calls kept their ${CALL}-credit charge and ${missingTallies} left no tally: the continuation did not run` };
+  if (lostRefunds > 0) return { verdict: 'abort-loses-refund-keeps-tally', why: `${lostRefunds} of ${effective} cut calls kept their charge although the tally says it was refunded` };
+  return { verdict: 'inconclusive:tally-only', why: `${missingTallies} tallies missing but no charge kept: a call that never reached the Worker, or a tally lost on its own` };
 }
 
 async function getJson(fetchImpl, pathAndQuery) {
@@ -69,7 +87,7 @@ async function abortedCall(fetchImpl, ms) {
 }
 
 /** The whole experiment over an injected fetch and sleep, so the self-test runs it against a fake relay. Returns the artifact. */
-export async function run(fetchImpl, { abortMs = ABORT_MS, settleMs = 3000, quietMs = 8000, lateMs = 20000, day } = {}) {
+export async function run(fetchImpl, { abortMs = null, settleMs = 3000, quietMs = 8000, lateMs = 20000, day } = {}) {
   const d = day || new Date().toISOString().slice(0, 10);
   const ledger = async () => { const r = await getJson(fetchImpl, `/budget/odds?date=${d}`); if (r.status !== 200) throw new Error(`/budget/odds answered ${r.status}`); return cflLedger(r.body); };
   const art = { day: d, site: SITE, approval: APPROVAL_TEXT, max_vendor_credits: 2 * CALL, calls: [], ledgers: {} };
@@ -78,13 +96,25 @@ export async function run(fetchImpl, { abortMs = ABORT_MS, settleMs = 3000, quie
   art.ledgers.before_a = await ledger(); await sleep(quietMs); art.ledgers.before_b = await ledger();
   const quiet = JSON.stringify(art.ledgers.before_a) === JSON.stringify(art.ledgers.before_b);
 
+  const tWarm = Date.now();
   const warm = await getJson(fetchImpl, '/cfl/odds-probs');
+  art.warm_ms = Date.now() - tWarm;
   art.calls.push({ step: 'warm-up', status: warm.status, cached: warm.body && warm.body.cached, state: warm.body && warm.body.reconciled && warm.body.reconciled.state });
   if (warm.status !== 200 || !warm.body || warm.body.ok !== true) return stop('warm-up-failed');
-  const confirm = await getJson(fetchImpl, '/cfl/odds-probs');
-  art.calls.push({ step: 'confirm', status: confirm.status, cached: confirm.body && confirm.body.cached, state: confirm.body && confirm.body.reconciled && confirm.body.reconciled.state });
-  if (confirm.status !== 200 || !confirm.body || confirm.body.cached !== 'HIT') return stop('cache-not-warm');
+  // The confirming call and two more, all of which must be HITs: the aborted calls are made on the cache these show to be warm, and their median is the latency the schedule is cut from.
+  const samples = [];
+  for (let i = 0; i < LATENCY_SAMPLES; i++) {
+    const t0 = Date.now();
+    const c = await getJson(fetchImpl, '/cfl/odds-probs');
+    samples.push(Date.now() - t0);
+    art.calls.push({ step: i === 0 ? 'confirm' : 'latency-sample', status: c.status, cached: c.body && c.body.cached, state: c.body && c.body.reconciled && c.body.reconciled.state });
+    if (c.status !== 200 || !c.body || c.body.cached !== 'HIT') return stop('cache-not-warm');
+  }
+  art.latency_samples_ms = samples;
+  art.latency_ms = median(samples);
 
+  abortMs = abortMs || schedule(art.latency_ms);
+  art.abort_schedule_ms = abortMs;
   await sleep(settleMs); art.ledgers.start = await ledger();
   let effective = 0;
   for (const ms of abortMs) { const r = await abortedCall(fetchImpl, ms); art.calls.push({ step: 'aborted', abort_after_ms: ms, abort_took_effect: r.aborted }); if (r.aborted) effective++; await sleep(settleMs); }
@@ -106,7 +136,7 @@ if (process.argv.includes('--self-test')) {
   const one = (label, got, want) => { total++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) bad++; console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}${ok ? '' : `: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`}`); };
   const body = (by, rows) => ({ daily: { date: '2026-11-02', by_site: { [SITE]: by }, reconcile: rows } });
   one('cflLedger sums this site only', cflLedger(body(30, [{ site: SITE, cache: 'HIT', n: 4, credits_kept: 0 }, { site: SITE, cache: 'MISS', n: 1, credits_kept: 6 }, { site: 'x', cache: 'HIT', n: 99, credits_kept: 99 }])), { date: '2026-11-02', by_site: 30, kept: 6, n: 5, hit: 4 });
-  for (const [label, b, msg] of [['no daily block', {}, /no daily block/], ['no by_site', { daily: { reconcile: [] } }, /by_site is missing/], ['reconcile not an array', { daily: { by_site: { [SITE]: 1 }, reconcile: null } }, /reconcile is not an array/], ['CFL absent from by_site', { daily: { by_site: {}, reconcile: [] } }, /not a number/]]) {
+  for (const [label, b, msg] of [['no daily block', {}, /no daily block/], ['no by_site', { daily: { reconcile: [] } }, /by_site is missing/], ['reconcile not an array', { daily: { by_site: { [SITE]: 1 }, reconcile: null } }, /reconcile is not an array/], ['CFL absent from by_site', { daily: { by_site: {}, reconcile: [] } }, /not a number/], ['a CFL row with no n', { daily: { by_site: { [SITE]: 6 }, reconcile: [{ site: SITE, cache: 'HIT', credits_kept: 0 }] } }, /non-numeric n or credits_kept/], ['a CFL row with a null credits_kept', { daily: { by_site: { [SITE]: 6 }, reconcile: [{ site: SITE, cache: 'HIT', n: 2, credits_kept: null }] } }, /non-numeric n or credits_kept/]]) {
     let got = null; try { cflLedger(b); } catch (e) { got = String(e.message); }
     one(`cflLedger throws on ${label}, saying why (absence is not zero)`, got !== null && msg.test(got), true);
   }
@@ -115,8 +145,14 @@ if (process.argv.includes('--self-test')) {
   one('nothing lost: abort-loses-nothing', V({}), 'abort-loses-nothing');
   one('2 refunds kept, 2 tallies missing', V({ abortDelta: { ...Z, by_site: 12, hit: 3 } }), 'abort-loses-refund-and-tally');
   one('2 refunds kept, every tally present', V({ abortDelta: { ...Z, by_site: 12, hit: 5 } }), 'abort-loses-refund-keeps-tally');
+  one('the abort schedule is the fractions of the measured latency, floored, and never reaches the response', [schedule(1000), schedule(100), schedule(0), schedule(1000).every((x) => x <= 600)], [[200, 300, 400, 500, 600], [40, 40, 40, 50, 60], [40, 40, 40, 40, 40], true]);
+  one('the median of three is the middle one, whatever order they arrive in', [median([300, 120, 130]), median([120, 130, 300]), median([5, 5, 900])], [130, 130, 5]);
   one('a not-quiet ledger is inconclusive before anything else', V({ quiet: false, abortDelta: { ...Z, by_site: 12, hit: 3 } }), 'inconclusive:ledger-not-quiet');
-  one('an abort that did not take effect is inconclusive', V({ effective: 3 }), 'inconclusive:abort-not-effective');
+  one('fewer cut calls than the minimum, nothing lost: inconclusive, not "loses nothing"', V({ effective: MIN_EFFECTIVE - 1 }), 'inconclusive:abort-not-effective');
+  one('exactly the minimum cut, nothing lost: abort-loses-nothing', V({ effective: MIN_EFFECTIVE }), 'abort-loses-nothing');
+  one('a loss is conclusive with ONE cut call (the calls that completed tallied, the cut one did not)', V({ effective: 1, abortDelta: { ...Z, by_site: 6, hit: 4 } }), 'abort-loses-refund-and-tally');
+  one('more refunds lost than calls cut is inconclusive: something else wrote', V({ effective: 1, abortDelta: { ...Z, by_site: 12, hit: 3 } }), 'inconclusive:unexpected-delta');
+  one('more tallies than calls is inconclusive', V({ abortDelta: { ...Z, hit: 6 } }), 'inconclusive:unexpected-delta');
   one('a moving control phase is inconclusive', V({ controlDelta: { ...Z, by_site: 6 } }), 'inconclusive:control-moved');
   one('by_site not a whole number of refunds is inconclusive', V({ abortDelta: { ...Z, by_site: 7, hit: 5 } }), 'inconclusive:unexpected-delta');
   one('a negative by_site delta is inconclusive, not "nothing lost"', V({ abortDelta: { ...Z, by_site: -6, hit: 5 } }), 'inconclusive:unexpected-delta');
@@ -124,7 +160,7 @@ if (process.argv.includes('--self-test')) {
 
   // The whole run against a fake relay that keeps a ledger and can lose the continuation of an aborted request.
   function fakeRelay(mode, opts = {}) {
-    const st = { by: 24, kept: 6, n: 8, hit: 5, requests: [], warm: opts.warm !== false };
+    const st = { by: 24, kept: 6, n: 8, hit: 5, requests: [], warm: opts.warm !== false, hitsServed: 0 };
     const srv = http.createServer(async (req, res) => {
       st.requests.push(req.url);
       if (req.url.startsWith('/budget/odds')) {
@@ -135,7 +171,8 @@ if (process.argv.includes('--self-test')) {
       let closed = false; req.on('close', () => { if (!res.writableEnded) closed = true; });
       st.by += CALL;                                              // the charge, before the fetch
       const hit = st.warm; st.warm = true;                        // the first call is a MISS, then the cache is warm
-      await sleep(40);                                            // the reconcile's latency
+      const hitIndex = hit ? st.hitsServed++ : -1;
+      await sleep(hit ? ((opts.hitLatencies && opts.hitLatencies[Math.min(hitIndex, opts.hitLatencies.length - 1)]) || opts.latency || 40) : (opts.missLatency || opts.latency || 40));  // the reconcile's latency: a cold call and the first warm one can be slower
       if (hit) {
         if (!(closed && mode !== 'healthy')) st.by -= CALL;       // the refund
         if (!(closed && mode === 'lossy-both')) { st.n += 1; st.hit += 1; }  // the tally
@@ -146,15 +183,25 @@ if (process.argv.includes('--self-test')) {
     return { st, srv };
   }
   const fastOpts = { settleMs: 100, quietMs: 30, lateMs: 60, abortMs: [5, 10, 15], day: '2026-11-02' };
-  async function against(mode, opts = {}) {
+  async function against(mode, opts = {}, runOpts = {}) {
     const { st, srv } = fakeRelay(mode, opts);
     await new Promise((r) => srv.listen(0, '127.0.0.1', r));
     const base = `http://127.0.0.1:${srv.address().port}`;
     const f = (u, o) => fetch(u.replace(RELAY, base), o);
-    try { const art = await run(f, fastOpts); return { art, st }; } finally { srv.close(); }
+    try { const art = await run(f, { ...fastOpts, ...runOpts }); return { art, st }; } finally { srv.close(); }
   }
   const h = await against('healthy');
   one('healthy relay: abort-loses-nothing, and every abort took effect', [h.art.verdict, h.art.aborted_effective, h.art.ledger_overrecord_left_credits], ['abort-loses-nothing', 3, 0]);
+  const cal = await against('healthy', { latency: 120 }, { abortMs: null });
+  one('with no abortMs given, the schedule is calibrated to the measured latency: 5 times, none under the floor, non-decreasing, and recorded', [cal.art.abort_schedule_ms.length, cal.art.abort_schedule_ms.every((x, i, a) => x >= 40 && (i === 0 || x >= a[i - 1])), cal.art.latency_ms >= 100, JSON.stringify(cal.art.abort_schedule_ms) === JSON.stringify(schedule(cal.art.latency_ms))], [5, true, true, true]);
+  // The calibration uses the median of three confirmed HITs, not the cold call and not the first warm one: a relay whose cold call takes 500 ms and whose first warm call takes 400 ms
+  // answers in about 120 ms from then on. A schedule cut from either slow call lands after the response and cuts nothing.
+  const slowStart = await against('healthy', { warm: false, latency: 120, missLatency: 500, hitLatencies: [400, 110, 120, 130] }, { abortMs: null });
+  one('a slow cold call and a slow first warm call do not set the schedule: the median of three HITs does, and every abort is cut', [slowStart.art.verdict, slowStart.art.latency_samples_ms.length, slowStart.art.latency_ms < 200, slowStart.art.aborted_effective, slowStart.art.warm_ms >= 400], ['abort-loses-nothing', 3, true, 5, true]);
+  const jit = await against('healthy', { hitLatencies: [120, 100, 140, 90, 130, 110, 125, 95, 135, 105, 120, 100, 140, 90, 130] }, { abortMs: null });
+  one('a relay whose latency jitters by 20% is still cut by every abort of the calibrated schedule', [jit.art.verdict, jit.art.aborted_effective], ['abort-loses-nothing', 5]);
+  const lossyCal = await against('lossy-both', { latency: 120 }, { abortMs: null });
+  one('a lossy relay under the calibrated schedule is conclusive', [lossyCal.art.verdict, lossyCal.art.aborted_effective], ['abort-loses-refund-and-tally', 5]);
   const l = await against('lossy-both');
   one('lossy relay (continuation cancelled): abort-loses-refund-and-tally with the over-record stated', [l.art.verdict, l.art.ledger_overrecord_left_credits], ['abort-loses-refund-and-tally', 18]);
   const t = await against('lossy-refund');

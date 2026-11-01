@@ -18,6 +18,12 @@ const M = [
   ['A6 the residual has the wrong sign', "residual: vendor - ledger - ci", "residual: ledger - vendor - ci", 'negative would mean under-recorded'],
   ['A7 CI that cannot be read is zero', "return m ? Number(m[1]) : null;", "return m ? Number(m[1]) : 0;", 'a window with unreadable CI spend reads as measured (the old watch defect)'],
   ['A8 pearson of a constant column is 0', "return sxx === 0 || syy === 0 ? null : sxy / Math.sqrt(sxx * syy);", "return sxx === 0 || syy === 0 ? 0 : sxy / Math.sqrt(sxx * syy);", 'an undefined correlation reads as \"no correlation\"'],
+  ['A10 a missing field is summed as zero', "if (typeof v !== 'number' || !Number.isFinite(v)) throw new Error(", "if (false) throw new Error(", 'a row that lost its n reads as a quiet day'],
+  ['A11 an absent reconcile array reads as no calls', "if (!Array.isArray(s.reconcile)) throw new Error(", "if (false) throw new Error(", 'a sample that lost its tally reads as a quiet one'],
+  ['A12 an unreadable site is read as its by_site', "if (Array.isArray(s.unreadable_sites) && s.unreadable_sites.includes(site)) throw new Error(", "if (false) throw new Error(", 'a site the relay could not read is counted as a reading'],
+  ['A13 a by_site that is not a number is accepted', "if (present && (typeof s.by_site[site] !== 'number' || !Number.isFinite(s.by_site[site]))) throw new Error(", "if (false) throw new Error(", 'a null charge reads as 0'],
+  ['A14 a null ledger is coerced to zero in the residual', "if (![prev.vendor_month_used, curr.vendor_month_used, prev.ledger_month_used, curr.ledger_month_used, ci].every((v) => typeof v === 'number' && Number.isFinite(v))) return null;", "", 'a window with no ledger reading prints a garbage residual'],
+  ['A15 a by_site object that is absent reads as no spend', "if (!s.by_site || typeof s.by_site !== 'object') throw new Error(", "if (false) throw new Error(", 'a sample with no by_site reads as a quiet day'],
   ['A9 pearson accepts two points', "if (n < 3) return null;", "if (n < 2) return null;", 'two points always give r = +-1'],
 ];
 let caught = 0;

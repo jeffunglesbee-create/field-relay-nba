@@ -15,16 +15,24 @@ import { readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 export const SITE = 'handleCFLOddsProbs';
 export const CALL = 6; // oddsCreditCost of the CFL URL: markets=h2h,spreads,totals x regions=us,eu
 
-const sumBy = (rows, f) => rows.reduce((t, r) => t + (f(r) || 0), 0);
+// A row with no numeric value where a sum needs one THROWS: a missing field coerced to zero inside a sum is indistinguishable from a real zero (absence is not zero).
+const sumBy = (rows, f) => rows.reduce((t, r) => { const v = f(r); if (typeof v !== 'number' || !Number.isFinite(v)) throw new Error(`a reconcile row has no numeric value where a sum needs one: ${JSON.stringify(r).slice(0, 120)}`); return t + v; }, 0);
 
 /** One drift sample -> the CFL line of it. `kept` is Σ credits_kept of THIS site's reconcile rows only. */
 export function cflSample(s, site = SITE) {
-  const rec = (s.reconcile || []).filter((r) => r.site === site);
-  const by = (s.by_site && s.by_site[site]) || 0;
+  // ABSENCE IS NOT ZERO. A sample that lost its reconcile array, its by_site object, or that lists the site as unreadable is not a sample of "no calls" and "no spend": it throws.
+  // The relay lists a site in by_site once it has spend that day, so a present by_site without the site key IS a day with none, and says so (`by_site_absent`) for the count printed below.
+  if (!Array.isArray(s.reconcile)) throw new Error(`sample ${s.at} has no reconcile array (absence is not "no calls")`);
+  if (!s.by_site || typeof s.by_site !== 'object') throw new Error(`sample ${s.at} has no by_site object (absence is not "no spend")`);
+  if (Array.isArray(s.unreadable_sites) && s.unreadable_sites.includes(site)) throw new Error(`sample ${s.at}: ${site} is listed in unreadable_sites, so its by_site is not a reading`);
+  const present = Object.prototype.hasOwnProperty.call(s.by_site, site);
+  if (present && (typeof s.by_site[site] !== 'number' || !Number.isFinite(s.by_site[site]))) throw new Error(`sample ${s.at}: by_site.${site} is ${JSON.stringify(s.by_site[site])}, not a number`);
+  const rec = s.reconcile.filter((r) => r.site === site);
+  const by = present ? s.by_site[site] : 0;
   const kept = sumBy(rec, (r) => r.credits_kept);
   const n = sumBy(rec, (r) => r.n);
   const hit = sumBy(rec.filter((r) => r.cache === 'HIT'), (r) => r.n);
-  return { at: s.at, date: s.date, by_site: by, kept, gap: by - kept, calls: (by - kept) / CALL, n, hit, non_hit: n - hit, degraded_open: s.degraded_open ? s.degraded_open.events : null };
+  return { at: s.at, date: s.date, by_site: by, by_site_absent: !present, kept, gap: by - kept, calls: (by - kept) / CALL, n, hit, non_hit: n - hit, degraded_open: s.degraded_open ? s.degraded_open.events : null };
 }
 
 /** The gap is cumulative within a UTC day. [lo, hi] at instant t: the last sample at or before t and the first after it (same day), 0 at the day's start. */
@@ -49,6 +57,8 @@ export function windowGap(rows, t0, t1) {
 
 /** Task 1's formula over two consecutive vendor-series rows: vendor window delta - ledger window delta - known CI. Negative = the ledger recorded more than was billed. */
 export function windowResidual(prev, curr, ci) {
+  // A reading that is not a number (a null ledger, which the watch now writes when D1 was unreadable) is an unmeasured window, not a zero: null, as for unreadable CI spend.
+  if (![prev.vendor_month_used, curr.vendor_month_used, prev.ledger_month_used, curr.ledger_month_used, ci].every((v) => typeof v === 'number' && Number.isFinite(v))) return null;
   const vendor = curr.vendor_month_used - prev.vendor_month_used, ledger = curr.ledger_month_used - prev.ledger_month_used;
   return { vendor, ledger, ci, residual: vendor - ledger - ci };
 }
@@ -80,7 +90,16 @@ if (process.argv.includes('--self-test')) {
   const c = cflSample(S('2026-10-24T20:00:00Z', 60, rec));
   one('gap = by_site - this site\'s kept only (another site\'s kept rows are not subtracted)', [c.by_site, c.kept, c.gap, c.calls], [60, 18, 42, 7]);
   one('n counts the site\'s rows; hit counts only cache HIT', [c.n, c.hit, c.non_hit], [13, 10, 3]);
+  let threw = null; try { cflSample({ at: 't', date: 'd', by_site: { [SITE]: 6 }, reconcile: [{ site: SITE, cache: 'HIT', credits_kept: 0 }] }); } catch (e) { threw = String(e.message); }
+  one('a CFL row with no numeric n THROWS rather than being summed as zero (absence is not zero)', /no numeric value where a sum needs one/.test(threw || ''), true);
   one('a sample with no CFL rows at all has gap = by_site, not NaN', cflSample({ at: '2026-10-24T20:00:00Z', date: '2026-10-24', by_site: { [SITE]: 12 }, reconcile: [] }).gap, 12);
+  const tr = (smp) => { try { cflSample(smp); return null; } catch (e) { return String(e.message); } };
+  one('a sample with no reconcile array THROWS (absence is not "no calls")', /no reconcile array/.test(tr({ at: 't', date: 'd', by_site: { [SITE]: 6 } }) || ''), true);
+  one('a sample with no by_site object THROWS (absence is not "no spend")', /no by_site object/.test(tr({ at: 't', date: 'd', reconcile: [] }) || ''), true);
+  one('a site listed in unreadable_sites THROWS: its by_site is not a reading', /unreadable_sites/.test(tr({ at: 't', date: 'd', by_site: { [SITE]: 6 }, reconcile: [], unreadable_sites: [SITE] }) || ''), true);
+  one('a by_site that is present but not a number THROWS', /not a number/.test(tr({ at: 't', date: 'd', by_site: { [SITE]: null }, reconcile: [] }) || ''), true);
+  one('a by_site object without the site key is a day with no spend, and says so', (({ by_site, by_site_absent }) => [by_site, by_site_absent])(cflSample({ at: 't', date: 'd', by_site: { other: 9 }, reconcile: [] })), [0, true]);
+  one('a window whose ledger reading is null is unmeasured (null), not a coerced zero', [windowResidual({ vendor_month_used: 100, ledger_month_used: null }, { vendor_month_used: 200, ledger_month_used: 150 }, 0), windowResidual({ vendor_month_used: 100, ledger_month_used: 90 }, { vendor_month_used: 200, ledger_month_used: undefined }, 0)], [null, null]);
   const rows = [['2026-10-24T02:00:00Z', 0], ['2026-10-24T08:00:00Z', 0], ['2026-10-24T14:00:00Z', 30], ['2026-10-24T23:00:00Z', 90], ['2026-10-25T03:00:00Z', 12], ['2026-10-25T09:00:00Z', 12]]
     .map(([at, g]) => cflSample(S(at, g, [{ site: SITE, state: 'cache-hit', cache: 'HIT', n: 1, credits_kept: 0 }])));
   one('gapAt gives the last sample at or before t and the first after, on the same day', gapAt(rows, '2026-10-24T10:00:00Z'), { lo: 0, hi: 30, day: '2026-10-24' });
@@ -107,6 +126,7 @@ for (const site of sites) if (site !== SITE) {
 }
 const out = { generated_from: { drift_samples: drift.length, drift_first: drift[0].at, drift_last: drift[drift.length - 1].at, vendor_rows: vendor.length, site: SITE, call_credits: CALL }, samples: rows, other_sites: other };
 
+console.log(`CFL by_site absent (read as no spend that day) in ${drift.map((x) => cflSample(x)).filter((r) => r.by_site_absent).length} of ${drift.length} samples`);
 console.log(`drift samples ${drift.length} (${drift[0].at.slice(0, 16)}Z .. ${drift[drift.length - 1].at.slice(0, 16)}Z), CFL samples ${rows.length}, vendor-series rows ${vendor.length}\n`);
 console.log('every CFL sample:  at          by_site kept  gap  calls  n   HIT nonHIT degrade-open');
 for (const r of rows) console.log(`                   ${r.at.slice(5, 16)}Z ${String(r.by_site).padStart(6)} ${String(r.kept).padStart(4)} ${String(r.gap).padStart(4)} ${String(r.calls).padStart(5)} ${String(r.n).padStart(4)} ${String(r.hit).padStart(4)} ${String(r.non_hit).padStart(5)} ${r.degraded_open}`);

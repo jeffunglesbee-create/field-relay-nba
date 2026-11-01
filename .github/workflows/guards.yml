@@ -136,6 +136,16 @@ jobs:
           node scripts/check-odds-live-disabled.mjs --self-test
           node scripts/check-odds-live-disabled.mjs
 
+      # docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 3. The CFL odds call is one promise registered with ctx.waitUntil before its first await, so the platform
+      # can keep the refund and the tally running for up to 30 s after a client abandons the request (its documented waitUntil limit; the vendor fetch has no timeout of its own).
+      # That the edge does so for this route is shown only by the repeat of Task 2b, not by this step.
+      # Source-reading, so deploy.yml carries the same step.
+      - name: The CFL odds call is one promise registered with waitUntil before its first await
+        run: |
+          node scripts/check-cfl-pipeline-registered.mjs --self-test
+          node scripts/check-cfl-pipeline-registered.mjs
+          node scripts/mutate-cfl-pipeline-registered.mjs
+
       # The half of the spend question `used` cannot answer: how much of what the
       # counter charged the provider never asked for. Four of reconcile's five
       # outcomes wrote nothing until 2026-10-08, so a refunded estimate and a

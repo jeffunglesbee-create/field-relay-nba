@@ -198,6 +198,99 @@ export const oddsBudgetCharging = ({ tablesExist, dayRows, charged, kvUsed }) =>
 // and D1 recorded none of it — the guard shipped and is not charging through it.
 oddsBudgetCharging.mustFailOn = { tablesExist: true, dayRows: 0, charged: 0, kvUsed: 1014 }
 
+/// Check 8 — has the vendor watch printed its window-aligned verdict on a scheduled run since Task 1?
+///
+/// docs/CC-CMD-2026-10-13-vendor-residual-window.md, done condition 3. Task 1 (46a929f) made the verdict the vendor's spend minus the ledger's over the SAME two readings, printed the
+/// UTC-day figure as a labelled diagnostic, and made a window it cannot measure fail the run. The sandbox cannot reach the relay and dispatching the workflow would split the window,
+/// so the proof is the first scheduled run that reaches a verdict, which this reads from the log that run commits. It was filed as a STAGED claim with no executor, which took
+/// deploy.yml red at "a staged claim names a verifier that exists and runs": the checker was right again.
+///
+/// A REFUSAL IS NOT A FAILURE AND NOT A PASS. month-boundary, no-data, counter-reset, window-drift and the new ledger-unreadable, ci-unreadable and ledger-went-backwards are the
+/// watch's honest answers; none of them is the done condition, so each is PENDING with its reason. FAIL is a log that reached a verdict without the lines Task 1 added, or a
+/// series row without a numeric D1 ledger: the change did not do what it claims.
+/** The committed logs check 8 reads, from the names in outbox/: the watch's own filename shape, dated 2026-11-02 or later, oldest first. Pure, so the checker drives it with real and broken names. */
+export const vendorWatchLogFiles = (names) => names
+  .filter((f) => /^odds-daily-vs-vendor-\d{4}-\d{2}-\d{2}T\d{4}\.log$/.test(f) && f.slice('odds-daily-vs-vendor-'.length, 'odds-daily-vs-vendor-'.length + 10) >= '2026-11-02')
+  .sort()
+/** The states the watch ends a run in. REFUSALS are honest answers that make no comparison; JUDGED are the three verdicts of a window it measured. A log in neither (no verdict line at all
+ *  because the run died on an HTTP error or an unusable reading, or a state this list does not know) is NOT judged and is NOT a regression: it is PENDING, with the reason named. */
+export const VENDOR_WATCH_REFUSALS = ['month-boundary', 'no-data', 'counter-reset', 'window-drift', 'ledger-unreadable', 'ci-unreadable', 'ledger-went-backwards']
+export const VENDOR_WATCH_JUDGED = ['tracks-the-bill', 'counter-under-counts', 'we-overcharge-ourselves']
+/** The payload of check 8 from the committed files. `logs` is [{ f: filename, t: text }] from vendorWatchLogFiles, `series` the parsed series file. Pure, so the checker can drive it with the
+ *  real 2026-11-01 refusal log and with logs it breaks on purpose. The FIRST judged log decides (a log is judged if it carries the window line or one of the three judged verdicts); with none,
+ *  the newest log speaks. The series row checked is the one THAT RUN stored, found by the `utc=` stamp in the log's header, which the watch also writes as the row's `at`: not the last row,
+ *  which a later run replaces. */
+export const vendorWatchPayload = (logs, series) => {
+  const none = { logsSince: 0, judgedLogs: 0, refusal: '', verdictLines: 0, hasWindowLine: false, hasDiagnosticLines: false, hasKnownCi: false, seriesRow: 'n/a', seriesNumeric: false, seriesSourceD1: false }
+  if (!logs.length) return none
+  const read = (t) => {
+    const v = t.split('\n').filter((l) => /^\s*verdict:/.test(l))
+    return { lines: v.length, state: v.length ? v[0].replace(/^\s*verdict:\s*/, '').trim().split(/\s+/)[0] : '' }
+  }
+  const judgedOf = ({ t }) => t.includes('residual (window-aligned)') || VENDOR_WATCH_JUDGED.includes(read(t).state)
+  const judgedLogs = logs.filter(judgedOf)
+  const decided = judgedLogs[0] || logs[logs.length - 1]
+  const t = decided.t
+  const { lines, state } = read(t)
+  const isJudged = judgedLogs.length > 0
+  const utc = (t.match(/^=== .*\butc=(\S+)/m) || [])[1] || ''
+  const rows = Array.isArray(series) ? series.filter((r) => r && typeof r === 'object') : []
+  const row = isJudged && utc ? rows.find((r) => r.at === utc) : null
+  const seriesRow = !isJudged ? 'n/a' : row ? 'found' : (utc && rows.length && utc < String(rows[0].at)) ? 'aged-out' : 'missing'
+  return {
+    logsSince: logs.length, judgedLogs: judgedLogs.length, log: decided.f, state, verdictLines: lines,
+    refusal: isJudged ? '' : (VENDOR_WATCH_REFUSALS.includes(state) ? state : state ? `unrecognised:${state}` : 'no-verdict'),
+    hasWindowLine: t.includes('residual (window-aligned)'), hasDiagnosticLines: t.includes('NOT the verdict') && t.includes('residual against that'), hasKnownCi: t.includes('known CI spend'),
+    seriesRow, seriesNumeric: !!row && typeof row.ledger_month_used === 'number', seriesSourceD1: !!row && row.ledger_source === 'd1',
+  }
+}
+export const vendorWatchWindowAligned = ({ logsSince, refusal, verdictLines, hasWindowLine, hasDiagnosticLines, hasKnownCi, seriesRow, seriesNumeric, seriesSourceD1 }) =>
+  logsSince === 0 ? 'PENDING — no odds-daily-vs-vendor log dated 2026-11-02 or later: the first scheduled run after Task 1 has not committed one'
+  : refusal ? `PENDING — no log has judged the window yet; the newest says ${refusal === 'no-verdict' ? 'nothing (it has no verdict line: the run failed before judging, on a relay error or an unusable reading)' : refusal}; that is the watch's honest answer or a transient failure, neither the done condition nor a regression`
+  : verdictLines !== 1 ? `FAIL — the judged log carries ${verdictLines} verdict lines, expected exactly 1`
+  : !hasWindowLine ? 'FAIL — the judged log reached a verdict without a "residual (window-aligned)" line: the watch is not judging the window'
+  : !hasDiagnosticLines ? 'FAIL — the judged log has no labelled UTC-day diagnostic ("NOT the verdict" and "residual against that")'
+  : !hasKnownCi ? 'FAIL — the judged log has no "known CI spend" line, the operand the residual subtracts'
+  : seriesRow === 'aged-out' ? 'PENDING — the judged run\'s series row has aged out of the 90 rows the watch keeps, so its stored baseline can no longer be read'
+  : seriesRow !== 'found' ? 'FAIL — the judged run stored no series row (none has the log\'s utc stamp as its at): the next window has no baseline'
+  : !seriesNumeric ? 'FAIL — the judged run\'s series row has no numeric ledger_month_used, so the next window has no baseline'
+  : !seriesSourceD1 ? "FAIL — the judged run's series row has a ledger_source that is not 'd1': a KV fallback was stored as a baseline"
+  : 'PASS'
+// The defect this exists to catch: a run reached a verdict and the window-aligned line is not in it.
+vendorWatchWindowAligned.mustFailOn = { logsSince: 1, refusal: '', verdictLines: 1, hasWindowLine: false, hasDiagnosticLines: true, hasKnownCi: true, seriesRow: 'found', seriesNumeric: true, seriesSourceD1: true }
+
+/// Check 9 — has the repeat of Task 2b, after the registration fix, shown that an abandoned CFL call keeps its refund and its tally?
+///
+/// docs/CC-CMD-2026-10-13-vendor-residual-window.md, done condition 4. Task 3 registered the whole /cfl/odds-probs call with ctx.waitUntil; whether the edge keeps it running after a
+/// client disconnect is shown only by running scripts/cfl-abort-experiment.mjs again, with the owner's fresh approval of up to 12 Odds API credits, after the deploy. The run commits
+/// its artifact. A REPEAT is an artifact the calibrated schedule made, which records `latency_samples_ms`; the first run (2026-11-01, `abort-loses-refund-and-tally`) predates the
+/// fix and the schedule and is not one. With no repeat the item is PENDING (waiting on the owner's approval). The NEWEST repeat decides, because it reflects the current code.
+/// INCONCLUSIVE is PENDING, with its reason. A lossy verdict is FAIL: the claim "the fix holds" is refuted. (Dispatch only after the deploy run is green: a repeat against the
+/// unfixed Worker would be lossy and would read as a regression.)
+export const cflAbortArtifactFiles = (names) => names.filter((f) => /^cfl-abort-experiment-\d{8}T\d{6}Z\.json$/.test(f)).sort()
+/** `arts` is [{ f: filename, a: parsed artifact }] from cflAbortArtifactFiles, oldest first. Pure. */
+export const cflAbortRepeatPayload = (arts) => {
+  const repeats = arts.filter(({ a }) => a && typeof a === 'object' && Array.isArray(a.latency_samples_ms))
+  if (!repeats.length) return { artifacts: arts.length, repeats: 0, file: '', verdict: '', effective: null, calls: null, byDelta: null, hitDelta: null }
+  const { f, a } = repeats[repeats.length - 1]
+  const ph = (a.deltas && a.deltas.aborted_phase) || {}
+  return {
+    artifacts: arts.length, repeats: repeats.length, file: f, verdict: typeof a.verdict === 'string' ? a.verdict : '',
+    effective: typeof a.aborted_effective === 'number' ? a.aborted_effective : null, calls: typeof a.aborted_calls === 'number' ? a.aborted_calls : null,
+    byDelta: typeof ph.by_site === 'number' ? ph.by_site : null, hitDelta: typeof ph.hit === 'number' ? ph.hit : null,
+  }
+}
+export const cflAbortRepeatLosesNothing = ({ repeats, verdict, effective, calls, byDelta, hitDelta }) =>
+  repeats === 0 ? "PENDING — no repeat of the CFL abort experiment since the fix (an artifact that records latency_samples_ms): it needs the owner's fresh approval of up to 12 Odds API credits"
+  : !verdict ? 'FAIL — the newest repeat has no verdict string'
+  : verdict.startsWith('inconclusive') ? `PENDING — the newest repeat was ${verdict}, which says nothing about the fix; it needs another run`
+  : verdict !== 'abort-loses-nothing' ? `FAIL — the newest repeat returned ${verdict}: a client that abandons /cfl/odds-probs still loses its refund or its tally with the fix deployed`
+  : !(typeof effective === 'number' && effective >= 3) ? `FAIL — the newest repeat says abort-loses-nothing with ${effective} cut calls; the verdict needs at least 3`
+  : (byDelta !== 0 || hitDelta === null || hitDelta !== calls) ? `FAIL — the newest repeat says abort-loses-nothing but its aborted phase moved by_site ${byDelta} and tallied ${hitDelta} of ${calls}: the artifact contradicts its verdict`
+  : 'PASS'
+// The defect this exists to catch: the repeat came back lossy, so the registration did not keep the call alive on this route.
+cflAbortRepeatLosesNothing.mustFailOn = { repeats: 1, verdict: 'abort-loses-refund-and-tally', effective: 5, calls: 5, byDelta: 6, hitDelta: 0 }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
@@ -206,4 +299,6 @@ export const VERDICTS = {
   thread_notes_cleanup: threadNotesCleanup,
   d1_write_provenance: d1WriteProvenance,
   odds_budget_charging: oddsBudgetCharging,
+  vendor_watch_window_aligned: vendorWatchWindowAligned,
+  cfl_abort_repeat_loses_nothing: cflAbortRepeatLosesNothing,
 }

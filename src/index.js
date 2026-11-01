@@ -3555,7 +3555,22 @@ async function handleWCOddsProbs(env) {
 // GET /cfl/odds-probs — no-vig win probabilities for CFL games from Odds API.
 // CFL has no draw market — h2h is home/away only. Includes spread + total lines.
 // Budget: 2 credits per call (markets=h2h,spreads,totals). CF edge-cached 2 min.
-async function handleCFLOddsProbs(env) {
+//
+// THE WHOLE CALL RUNS UNDER ctx.waitUntil. Measured 2026-11-01 (docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 2b, run 41313403502): a client that abandons
+// this request can stop the awaited chain below before its tally and leave the 6-credit charge standing: 0 of 5 aborted calls tallied, against 5 of 5 that were not, and one
+// charge left standing (SUPPORTED BY ONE CALL: the other four are ambiguous between cut and never arrived).
+// So the charge, the vendor fetch, the reconcile and the tally are ONE promise, registered with waitUntil in the handler's synchronous segment (before any await, so
+// nothing can cancel it first) and also returned, so the response is built from the same result, `reconciled` included. A missing ctx throws before anything is
+// charged: it is a programming error and must be loud, not a call that runs unprotected. scripts/check-cfl-pipeline-registered.mjs holds all of this.
+// THE BOUND: Cloudflare cancels waitUntil work 30 s after the disconnect (docs: workers/runtime-apis/context, workers/platform/limits). The vendor fetch has no timeout of its own,
+// so a vendor that hangs longer than that after a disconnect still strands the charge; the cancellation is logged only to Workers Logs and Tail Workers, which wrangler.toml does not enable.
+async function handleCFLOddsProbs(env, ctx) {
+    if (!ctx || typeof ctx.waitUntil !== 'function') throw new TypeError('handleCFLOddsProbs needs the execution context (ctx.waitUntil)');
+    const work = cflOddsProbsPipeline(env);
+    ctx.waitUntil(work);
+    return work;
+}
+async function cflOddsProbsPipeline(env) {
     const key = _oddsPrimaryKey(env);
     if (!key) {
         return new Response(JSON.stringify({ ok: false, probs: [], error: 'ODDS_API_KEY not configured' }),
@@ -14177,7 +14192,7 @@ export default {
         }
 
         // /cfl/* — CFL odds from The Odds API + CFL internal API (echo.pims.cfl.ca)
-        if (pathname === '/cfl/odds-probs') return handleCFLOddsProbs(env);
+        if (pathname === '/cfl/odds-probs') return handleCFLOddsProbs(env, ctx);
 
         // /cfl/fixtures[?season_id=35] — schedule + live scores from CFL internal API
         // /cfl/fixtures/{id}           — single game detail

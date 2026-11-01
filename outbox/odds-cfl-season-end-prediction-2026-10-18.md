@@ -154,6 +154,56 @@ falls on 10-19 and voids nothing. It does change one input: from 10-19 the
 month row is written in the same batch as the day, so the internal gap should
 stop growing. The residual rows above are vendor-side and are not affected.
 
+**Added 2026-11-01, before the window, so the VOID check stays meaningful.** This
+paragraph adds facts and annotations. It changes none of the rules above, and the
+judging run scores every test exactly as committed on 2026-10-18.
+
+Option 2 of the charge CC-CMD, built as Task 3 of
+`docs/CC-CMD-2026-10-13-vendor-residual-window.md`, changes `handleCFLOddsProbs`:
+the whole call (charge, vendor fetch, reconcile, tally) now runs as one promise
+registered with `ctx.waitUntil`. It was built on 2026-11-01 and is committed
+before the window, so by the VOID rule above (a commit to the listed files
+between 2026-11-08 and 2026-11-23) it voids nothing; the close-out of the push
+records the commit and the deploy run. The VOID check is commit-based and is
+run as written. Whether the fix was live for the whole window is a separate
+fact, and the judging run reports it (the deploy run for that commit, from
+the Actions API) beside the scores; it does not decide VOID.
+
+Unlike option 1 (10-19), which left the rows this experiment measures
+untouched, **this change targets the quantity under test**: the stranded part of
+CFL's by-site figure (`CFL by site − CFL receipts` in the table above). Task 2b
+(2026-11-01) supports, from one call, that a client which abandons the request
+can stop the awaited chain; the other four aborted calls are ambiguous between
+cut and never arrived, and the share of the production gap that real disconnects
+cause is not shown. The fix removes that cause if it is the cause, and does not
+remove the others: a correction that fails under load (H2), a vendor fetch that
+throws (the catch branch returns 500 with the charge standing and no reconcile),
+and a vendor call that hangs past the 30 s the platform allows after a disconnect.
+So a SMALL stranded figure is expected after the deploy on busy days, not zero.
+
+**What the judging run does with this.** It scores H-whole, spec 2.3, H-none and
+M (a), (b) and (c) as committed, and for H-whole, spec 2.3 and M (c) it adds this
+sentence to the report: *measured after an intervention that targets the stranded
+part these tests measure; the result is not evidence about CFL's contribution in
+either direction.* A contraction that H-whole or spec 2.3 predicted may simply
+not be visible when the stranded figure was already near 0 at the start of the
+pre-window, and M (c) fails by construction if the fix works; reading either as
+exoneration or as a failed mechanism would be wrong, and the report says so
+rather than re-statusing them. M (b), as written, is satisfied by two near-zero
+sums as readily as by the reference weeks' cancelling sums, so it cannot tell the
+fix working from the fix failing, and the report says that too.
+
+The question this experiment asked ("is CFL over-recording the cause?") is
+answered by the fix's own contrast instead: the CFL gap and the window-aligned
+residual before and after the deploy (`node scripts/analyze-cfl-reconcile-gap.mjs`,
+11 measured windows before). The criterion for "the fix works" is fixed in the
+CC-CMD's Task 3 done condition, before the data exist: the repeat of Task 2b
+returns `abort-loses-nothing`, and the gap added across a busy CFL day stays at or
+below 48 credits (8 calls, inside the watch's own tolerance floor of 50) on a day
+with at least 100 HIT calls tallied; fewer HIT calls than that is inconclusive,
+not a pass. Other scheduled reads on this work are not judge runs: the vendor
+watch of 2026-11-02 and the read of the 2026-11-07 CFL day on 2026-11-08.
+
 ## How this will be judged
 
 Two runs are scheduled into this session as one-shot tasks. Their ids are

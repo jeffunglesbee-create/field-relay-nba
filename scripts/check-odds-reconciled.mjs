@@ -47,7 +47,11 @@ const check = (n, ok, d = '') => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${
 // check-odds-label-split.mjs names reconcileOddsCredit as a stub it hands to the source of
 // fetchSportOddsLive, to record the label that function reconciles under (2026-10-28). It
 // makes no charged call and reaches no vendor.
-// SCOPE-EXCLUDES: scripts/check-odds-site-caps.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs scripts/check-odds-label-split.mjs
+// check-cfl-pipeline-registered.mjs (2026-11-01) hands a recording STUB named reconcileOddsCredit (and one for
+// consumeOddsCredit) to the source of handleCFLOddsProbs, to assert when the call is registered with waitUntil and in
+// what order its steps run; mutate-cfl-pipeline-registered.mjs quotes those lines as anchors. Neither makes a charged
+// call or reaches a vendor.
+// SCOPE-EXCLUDES: scripts/check-odds-site-caps.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs scripts/check-odds-label-split.mjs scripts/check-cfl-pipeline-registered.mjs scripts/mutate-cfl-pipeline-registered.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 function fnBounds(lines, i) {
   let start = 0;

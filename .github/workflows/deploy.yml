@@ -518,6 +518,18 @@ jobs:
       - name: Every charged odds call is reconciled against the receipt
         run: node scripts/check-odds-reconciled.mjs
 
+      # Blocking. docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 3. A client that abandons /cfl/odds-probs stopped the awaited charge-fetch-reconcile-tally
+      # chain before the tally and could leave the 6-credit charge standing (Task 2b, 2026-11-01: 0 of 5 aborted calls tallied, 5 of 5 not aborted did; supported by one call). The whole call is now one
+      # promise registered with ctx.waitUntil in the handler's synchronous segment (the platform documents up to 30 s after a disconnect; that the edge does so for this route is
+      # shown only by the repeat of Task 2b). This runs the real handler and the real reconcile with its refund and tally against recording stubs and a fake D1 and KV, and its
+      # harness puts the original defect and forty-six other breaks back, each in a copy of the source and each caught by the clause it breaks, plus five benign edits that must
+      # stay green.
+      - name: The CFL odds call is one promise registered with waitUntil before its first await
+        run: |
+          node scripts/check-cfl-pipeline-registered.mjs --self-test
+          node scripts/check-cfl-pipeline-registered.mjs
+          node scripts/mutate-cfl-pipeline-registered.mjs
+
       # Blocking. 219 of 1412 archived closing lines were captured after kickoff
       # (outbox/late-close-consumer-flip-*.log). Read as closing lines they
       # manufactured 7 upset findings and would have printed an in-play price as
@@ -1114,6 +1126,11 @@ jobs:
 
       - name: every staged verdict can fail, and can pass
         run: node scripts/staged-verdicts-check.mjs
+
+      # Rule 90 for the two verdicts that read files (check 8, the vendor watch's log and series; check 9, the CFL abort repeat's artifact): the 2026-11-01 review found 8 of 20
+      # mutants of the first payload parser surviving, because a test looped over the very list it was checking. Each mutation breaks one clause and the checker must go red on it.
+      - name: the file-reading staged verdicts are mutation-tested
+        run: node scripts/mutate-staged-verdicts-vendor-watch.mjs
 
       - name: a staged claim names a verifier that exists and runs
         run: node scripts/staged-verifier-check.mjs --self-test && node scripts/staged-verifier-check.mjs

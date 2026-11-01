@@ -31,7 +31,7 @@
 // Baselines are the deploy commit times, so a row that predates the fix can
 // never be counted as evidence for it.
 
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { PROMPT_EXAMPLE_LITERALS } from '../src/journalism-quality.js';
 import { selectScoringPlays } from '../src/context-assembler.js';
 // The four verdicts moved to their own module so they can be exercised against
@@ -41,7 +41,8 @@ import { selectScoringPlays } from '../src/context-assembler.js';
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
          threadNotesCleanup, d1WriteProvenance,
-         oddsBudgetCharging } from './staged-verdicts.mjs';
+         oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
+         cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -133,7 +134,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 7;
+const EXPECTED_CHECKS = 9;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -670,6 +671,52 @@ try {
     add({
         id: 'odds_budget_charging',
         what: 'the odds budget guard charges today through D1 odds_budget, not only KV odds:daily:*',
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
+
+// ── Check 8: the vendor watch's window-aligned verdict (docs/CC-CMD-2026-10-13-vendor-residual-window.md, done condition 3) ──
+// Reads the committed log of the first scheduled run dated 2026-11-02 or later, and the last row of the series that run stores. Files, not D1 or the relay: the watch commits both.
+try {
+    const logs = vendorWatchLogFiles(readdirSync('outbox'));
+    const series = JSON.parse(readFileSync('outbox/odds-daily-vs-vendor-series.json', 'utf8'));
+    const p = vendorWatchPayload(logs.map((f) => ({ f, t: readFileSync(`outbox/${f}`, 'utf8') })), series);
+    add({
+        id: 'vendor_watch_window_aligned',
+        what: 'the first scheduled odds-daily-vs-vendor run after Task 1 that judges the window prints the window-aligned verdict, the labelled UTC-day diagnostic and the known CI spend, and stores a numeric D1 ledger reading (the judged window\'s BASELINE row predates ledger_source when it is the 2026-11-01 row, and the watch accepts it on its number alone: PASS does not show where that baseline came from)',
+        qualifying_rows: p.judgedLogs,
+        logs_since: p.logsSince,
+        decided_by: p.log || null,
+        series_row: p.seriesRow,
+        status: vendorWatchWindowAligned(p),
+    });
+} catch (e) {
+    add({
+        id: 'vendor_watch_window_aligned',
+        what: 'the first scheduled odds-daily-vs-vendor run after Task 1 prints the window-aligned verdict',
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
+
+// ── Check 9: the CFL registration fix holds in production (docs/CC-CMD-2026-10-13-vendor-residual-window.md, done condition 4) ──
+// Reads the committed artifacts of scripts/cfl-abort-experiment.mjs; the newest one made by the calibrated schedule (it records latency_samples_ms) decides. Files, not D1 or the relay.
+try {
+    const files = cflAbortArtifactFiles(readdirSync('outbox'));
+    const p = cflAbortRepeatPayload(files.map((f) => ({ f, a: JSON.parse(readFileSync(`outbox/${f}`, 'utf8')) })));
+    add({
+        id: 'cfl_abort_repeat_loses_nothing',
+        what: 'a repeat of the CFL abort experiment, after the waitUntil registration fix, returns abort-loses-nothing with at least 3 abandoned calls cut (the busy-day read of 2026-11-07 is read by hand and is not part of this verdict)',
+        qualifying_rows: p.repeats,
+        artifacts_on_file: p.artifacts,
+        decided_by: p.file || null,
+        status: cflAbortRepeatLosesNothing(p),
+    });
+} catch (e) {
+    add({
+        id: 'cfl_abort_repeat_loses_nothing',
+        what: 'a repeat of the CFL abort experiment returns abort-loses-nothing',
         qualifying_rows: 0,
         status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
     });

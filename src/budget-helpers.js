@@ -59,9 +59,13 @@ const ODDS_CEILING_GRANTS = [
 // ONLY WHERE CHARGED FOLLOWS KEPT. A cap counts the charge, and a charge is an
 // estimate until the vendor's receipt corrects it. The closing capture, the live
 // odds and the historical fetch are kept at what they are charged (5,478/5,478,
-// 3,618/3,621, 3,060/3,060 over 10-14..10-23). The CFL route is not (6.4x), and
-// its options 2 and 3 are held, so it carries no cap: a cap there would bind on
-// credits the vendor never billed. The WC lambdas strand 116 as 8, but never
+// 3,618/3,621, 3,060/3,060 over 10-14..10-23). The CFL route was not (6.4x), and
+// it still carries no cap: a cap there would bind on credits the vendor never billed.
+// Option 2 of the charge CC-CMD was built on 2026-11-01 (Task 3 of the vendor-residual
+// CC-CMD, which registers the whole call with waitUntil; that it survives a disconnect
+// on this route is shown only by the repeat of Task 2b); whether charged now
+// follows kept is measured on the next busy CFL day, and a cap waits on that reading.
+// Option 3 stays held. The WC lambdas strand 116 as 8, but never
 // more than 76 in a day, and the cap is 300.
 //
 // A site that is not listed has no cap. `ambientFetchLiveOdds` would need about

@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Confidence gate:** >= 95 before any commit
-**Status:** DONE 2026-10-25. Option 1 landed 2026-10-19 (`7ec2d03f`..`c8a45be7`, deploy run 39183315552 green), after two adversarial review rounds, and its done condition PASSED on the 2026-10-25T06:30Z read: the month-minus-daily gap read −2,790 at the baseline and −2,790 after CFL's 10-23 (54 credits) and 10-24 (588 credits) games; see "Done condition, result". Options 2 and 3 and TASK 0's CFL half stay held by the 2026-10-18 ruling under "Decision" (option 3 until 2026-11-24, when `trig_019aQvU36rYwZ7PqjaMnV5ut` judges the CFL post-window); done condition 3 asks for whichever option lands, so they are not part of it. Session doc: `outbox/cc-session-2026-10-19-odds-single-batch.md`.
+**Status:** DONE 2026-10-25. Option 1 landed 2026-10-19 (`7ec2d03f`..`c8a45be7`, deploy run 39183315552 green), after two adversarial review rounds, and its done condition PASSED on the 2026-10-25T06:30Z read: the month-minus-daily gap read −2,790 at the baseline and −2,790 after CFL's 10-23 (54 credits) and 10-24 (588 credits) games; see "Done condition, result". Option 2 was UNHELD on 2026-11-01 by the owner's order "Build task 3" and built as Task 3 of `docs/CC-CMD-2026-10-13-vendor-residual-window.md` (see "Note 2026-11-01" at the end); option 3 and TASK 0's CFL half stay held by the 2026-10-18 ruling under "Decision" (option 3 until 2026-11-24, when `trig_019aQvU36rYwZ7PqjaMnV5ut` judges the CFL post-window); done condition 3 asks for whichever option lands; its option-2 line is OPEN and STAGED (Note 2026-11-01, and done condition 4 of the vendor-residual CC-CMD carries its verifier). Session doc: `outbox/cc-session-2026-10-19-odds-single-batch.md`.
 **Filed by:** CC, from TASK 1 of `docs/CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md`, which measures and may not fix.
 
 ---
@@ -138,9 +138,12 @@ The owner delegated the choice. Recorded here, with the reason for each:
    the same thing with a fix in place.
 3. **TASK 0, CFL half (why CFL calls strand): held.** It only informs option
    2.
-4. **Option 2: held.** It closes the vendor-side over-record, which raises
-   effective spend toward the real ceiling. That is the capacity change the
-   2026-10-18 ruling defers to a later CC-CMD.
+4. **Option 2: held on 2026-10-18; UNHELD 2026-11-01** by the owner's order
+   "Build task 3", built as Task 3 of
+   `docs/CC-CMD-2026-10-13-vendor-residual-window.md` (see the Note at the end).
+   It closes the vendor-side over-record, which raises effective spend toward
+   the real ceiling. That was the capacity change the 2026-10-18 ruling deferred
+   to a later CC-CMD; the order of 2026-11-01 takes it.
 5. **Option 3: held until 2026-11-24.** Changing `/cfl/odds-probs` now would
    change what `CC-CMD-2026-10-18-odds-counter-internal-then-calendar`'s TASK 2
    measures over 2026-11-08 to 11-23. Revisit after its judgment run.
@@ -237,3 +240,17 @@ Measured from `outbox/odds-daily-vs-monthly-20261027T045612Z.log` (run 404524497
   days that all follow 10-19 would mean the single-batch fix did not hold, and this note is wrong.
 - Not changed: no code. A floor at the deploy instant would clear the red 5 days earlier at the cost of a new constant in a guard;
   the watch cannot fire on a new divergence until 11-01 either way, which is the whole price of leaving it.
+
+---
+
+## Note 2026-11-01: option 2 is built, by the owner's order, and what it changes
+
+**The hold is lifted.** Decision 4 above held option 2 because it "closes the vendor-side over-record, which raises effective spend toward the real ceiling". On 2026-11-01, after Task 2b of `docs/CC-CMD-2026-10-13-vendor-residual-window.md` showed the mechanism for at least one call (run 41313403502: 0 of 5 aborted `/cfl/odds-probs` calls tallied against 5 of 5 that were not, one charge left standing; for the other four the ledger cannot say cut or never arrived), the owner ordered "Build task 3". That is option 2, and it is built there, not here. The CLAUDE.md gate on structural changes to the fetch handler is answered by the same order: the change threads `ctx` through ONE call site, the `/cfl/odds-probs` route, and touches no other routing.
+
+**What was built differs from option 2 as written, for a measured reason.** Option 2 said "run fetch-and-reconcile under `ctx.waitUntil()`". The experiment aborted calls at 3, 10, 25, 50 and 100 ms and cannot say where it cut each one (the ledger keeps no count of charges), so a registration placed after the fetch would leave every earlier moment open to a cut. So the whole call (charge, vendor fetch, reconcile, tally) is one promise, registered with `waitUntil` in the handler's synchronous segment and also returned, so the response, `reconciled` included, is unchanged. It also does not close "the internal gap, which opens before the fetch": option 1 did that, and still stands.
+
+**What it does to this document's done condition 3 for option 2** ("never-reconciled CFL calls fall to near 0"): STAGED, not met. It is measured by a repeat of Task 2b (which needs the owner's fresh approval of up to 12 credits) and by `node scripts/analyze-cfl-reconcile-gap.mjs` on the next busy CFL day (2026-11-07, the Division Finals), against the criterion fixed in Task 3 of the vendor-residual CC-CMD before the data exist: a gap of at most 48 credits across a day with at least 100 HIT calls tallied. "Near 0" in this document is read as that, not as exactly 0: quiet days before the fix already showed a gap of 12.
+
+**What it does to effective spend.** Option 2 was held because it raises effective spend toward the real ceiling, and it does. The stranded charges were the ledger's over-record (about 2,076 credits over 11 measured windows, 1,962 of it CFL's gap), so closing them returns that headroom to the guards that read the ledger: the daily counter and the per-site ceilings stop counting 6 credits for every cut cache-HIT call. A call that was cut before its vendor fetch now completes, and on a cache MISS that bills the vendor, which is spend the old behaviour sometimes avoided by accident (a cut call that never fetched). Neither effect is measured separately; the per-site ceiling for this route is unchanged by this change.
+
+**What it does to the calendar experiment** (`docs/CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md`, TASK 2, window 2026-11-08 to 11-23): the fix is committed on 2026-11-01 (the close-out of the push records the commit and the deploy run), outside the window, so the prediction's own VOID rule (a commit to `handleCFLOddsProbs` between 11-08 and 11-23) voids nothing. Unlike option 1 on 10-19, which left the measured rows untouched, this change TARGETS the quantity the experiment measures. The prediction document records that under "Added 2026-11-01": the judging run scores every test as committed, annotates H-whole, spec 2.3 and M (c) as measured after an intervention, and re-statuses nothing.
