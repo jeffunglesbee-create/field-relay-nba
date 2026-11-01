@@ -223,7 +223,8 @@ and carry-forwards are spec failures.
    not deferred work).
 
 **Violation signals:** carry-forwards without a second CC-CMD; verification
-steps blocked by sandbox egress (use relay self-probe endpoints instead);
+steps blocked by sandbox egress (use relay self-probe endpoints instead, or
+`scripts/relay-look.sh` for the five routes a runner can read for you: docs/relay-from-the-sandbox.md);
 URLs or function names written from memory rather than probed from source.
 
 ---

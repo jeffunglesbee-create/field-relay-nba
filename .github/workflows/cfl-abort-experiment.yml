@@ -1,0 +1,60 @@
+name: CFL abort experiment (OWNER APPROVAL REQUIRED)
+
+# STAGED. DO NOT DISPATCH WITHOUT THE OWNER'S APPROVAL OF THE CREDITS. docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 2b.
+#
+# The one production experiment that separates the two live explanations of P5 (handleCFLOddsProbs holds charges its reconcile says it refunded): does a client that
+# disconnects mid-request lose the refund and the tally, or does the refund fail for another reason? scripts/cfl-abort-experiment.mjs says how, and what it costs:
+# at most TWO cold-cache GET /cfl/odds-probs calls (6 Odds API credits each, so at most 12), then aborted calls on a cache a normal call has shown to be HIT. It may also
+# leave up to 30 credits of over-record in the relay's own ledger for the day (a lost refund is what is being tested); the artifact states the number.
+#
+# The job REFUSES to send anything unless `approval` equals the text in scripts/cfl-abort-experiment.mjs exactly. It is not a convenience input: it is the owner's
+# standing rule that no Odds API call is made without approval. Dispatch on a day and hour with no CFL games (the ledger must be quiet for the verdict to mean
+# anything; a busy ledger returns inconclusive), and not within an hour of the 05:30Z vendor reading.
+#
+# Verify afterwards: outbox/cfl-abort-experiment-<stamp>.json carries `verdict`, `aborted_effective`, `ledger_overrecord_left_credits` and the five ledger readings.
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: "Must equal exactly: APPROVED: up to 12 Odds API credits for the CFL abort experiment"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cfl-abort-experiment
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The experiment's logic is proved against a fake relay that can lose a continuation before it is aimed at the real one.
+      - name: the experiment can tell a lost refund from a kept one
+        run: |
+          node scripts/cfl-abort-experiment.mjs --self-test
+          node scripts/mutate-cfl-abort-experiment.mjs
+
+      - name: Run the experiment
+        env:
+          APPROVAL: ${{ inputs.approval }}
+        run: |
+          set -o pipefail
+          node scripts/cfl-abort-experiment.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="cfl-abort-experiment" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          PROBE_PATHS="outbox/cfl-abort-experiment-*.json" \
+          bash scripts/probe-commit-retry.sh "chore: cfl abort experiment"

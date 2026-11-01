@@ -1,0 +1,72 @@
+name: Relay read (from a runner)
+
+# The run's title carries the label, so the sandbox helper finds ITS run by title, not by 'newest dispatch'.
+run-name: relay-read ${{ inputs.label }}
+
+# A LOOK AT THE DEPLOYED RELAY FOR A SESSION WHOSE SANDBOX CANNOT REACH IT.
+#
+# NO CREDENTIAL: the relay's shared secret is not passed to this job (it opens /web-fetch and /admin). scripts/relay-read.mjs says why.
+#
+# The sandbox's egress policy answers 403 to CONNECT for *.workers.dev (measured 2026-11-01); a runner has open egress. Dispatch this with the
+# allow-listed GET routes you want, it reads them, commits outbox/relay-read-<label>-<stamp>.json, and the session `git pull`s it.
+# scripts/relay-look.sh does the whole round trip from the sandbox (dispatch over REST, wait, pull, print). About a minute.
+# docs/relay-from-the-sandbox.md says when to use this instead of probe_relay_route or a D1 query.
+#
+# GET only, and an allow-list of five routes whose handlers were read to the end for any spend or write (scripts/relay-read.mjs). Anything else is refused: there is no
+# override input. The run goes red if anything was refused or failed, so a look that did not look cannot be mistaken for one.
+
+on:
+  workflow_dispatch:
+    inputs:
+      routes:
+        description: "GET routes, whitespace separated, each starting with / (max 10; the rest are refused). Five are readable: /health /budget/odds /analytics/status /analytics/degraded /archive/query"
+        required: true
+        type: string
+      label:
+        description: "Short unique label for the artifact filename (letters, digits, . _ -)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# One at a time: two dispatches would read the relay together and race their commits.
+concurrency:
+  group: relay-read
+  cancel-in-progress: false
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The policy must be able to refuse before its refusals mean anything.
+      - name: the policy can refuse
+        run: |
+          node scripts/relay-read.mjs --self-test
+          node scripts/mutate-relay-read.mjs
+
+      - name: Read the relay
+        env:
+          ROUTES: ${{ inputs.routes }}
+          LABEL: ${{ inputs.label }}
+        run: |
+          set -o pipefail
+          node scripts/relay-read.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): a refused or failed route is evidence too, and it is in the artifact.
+      - name: Commit the artifact
+        if: always()
+        env:
+          LABEL: ${{ inputs.label }}
+        run: |
+          SAFE=$(printf '%s' "$LABEL" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-60)
+          PROBE_AUTHOR_NAME="relay-read" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          PROBE_PATHS="outbox/relay-read-*.json" \
+          bash scripts/probe-commit-retry.sh "chore: relay read $SAFE"

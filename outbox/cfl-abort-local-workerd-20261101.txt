@@ -1,0 +1,13 @@
+awaited    no abort                                 client saw {"response":6}   server steps {"charged>refunded>tallied":6}
+awaited    abort at 100 ms (during the reconcile)   client saw {"error":6}      server steps {"charged>refunded>tallied":6}
+awaited    abort at 500 ms (after it)               client saw {"response":6}   server steps {"charged>refunded>tallied":6}
+waitUntil  no abort                                 client saw {"response":6}   server steps {"charged>refunded>tallied":6}
+waitUntil  abort at 100 ms (during the reconcile)   client saw {"response":6}   server steps {"charged>refunded>tallied":6}
+waitUntil  abort at 500 ms (after it)               client saw {"response":6}   server steps {"charged>refunded>tallied":6}
+signalcheck no abort                                 client saw {"response":6}   server steps {"charged>refunded>tallied":6}
+signalcheck abort at 100 ms (during the reconcile)   client saw {"error":6}      server steps {"charged>refunded>tallied":6}
+signalcheck abort at 500 ms (after it)               client saw {"response":6}   server steps {"charged>refunded>tallied":6}
+
+POSITIVE CONTROL FAILED: a handler that checks request.signal was NOT cut off by a client abort, so this instrument cannot see a disconnect. EVERY row above is uninformative about H1.
+
+client connects DIRECTLY to workerd (unsafeGetDirectURL); workerd 1.20260730.1; 9 scenarios x 6 calls = 54 calls, zero network, zero credits

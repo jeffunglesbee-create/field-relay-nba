@@ -1,0 +1,63 @@
+name: Runner read path and CFL gap guards
+
+# Proves the tools that point a dispatch input at the live relay, and the staged experiment that costs credits, BEFORE anything can dispatch them. Path-filtered
+# rather than added to guards.yml: the four mutation harnesses take about six minutes together and only a change to these files can break what they prove
+# (relay-read.yml and cfl-abort-experiment.yml run their own self-test and harness again before they touch the relay).
+#
+#   scripts/relay-read.mjs / mutate-relay-read.mjs   an exact allow-list of five routes, no override, no credential; 29 mutations
+#   scripts/relay-look.sh / check-relay-look.mjs     the sandbox helper against a fake gh and a local git remote; 9 mutations
+#   scripts/analyze-cfl-reconcile-gap.mjs            the P5 arithmetic; 9 mutations
+#   scripts/cfl-abort-experiment.mjs                 the approval-gated experiment against a fake relay that can lose a continuation; 14 mutations
+# docs/relay-from-the-sandbox.md and docs/CC-CMD-2026-10-13-vendor-residual-window.md say what each is for.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/relay-read.mjs'
+      - 'scripts/mutate-relay-read.mjs'
+      - 'scripts/relay-look.sh'
+      - 'scripts/check-relay-look.mjs'
+      - 'scripts/mutate-relay-look.mjs'
+      - 'scripts/analyze-cfl-reconcile-gap.mjs'
+      - 'scripts/mutate-analyze-cfl-reconcile-gap.mjs'
+      - 'scripts/cfl-abort-experiment.mjs'
+      - 'scripts/mutate-cfl-abort-experiment.mjs'
+      - 'scripts/probe-commit-retry.sh'
+      - '.github/workflows/relay-read.yml'
+      - '.github/workflows/cfl-abort-experiment.yml'
+      - '.github/workflows/runner-read-guards.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: the runner read path refuses what it must refuse
+        if: always()
+        run: |
+          node scripts/relay-read.mjs --self-test
+          node scripts/mutate-relay-read.mjs
+
+      - name: the sandbox helper survives a dirty tree, a failed poll and a failed run
+        if: always()
+        run: |
+          node scripts/check-relay-look.mjs
+          node scripts/mutate-relay-look.mjs
+
+      - name: the CFL refund-gap analysis and its staged experiment
+        if: always()
+        run: |
+          node scripts/analyze-cfl-reconcile-gap.mjs --self-test
+          node scripts/mutate-analyze-cfl-reconcile-gap.mjs
+          node scripts/cfl-abort-experiment.mjs --self-test
+          node scripts/mutate-cfl-abort-experiment.mjs
