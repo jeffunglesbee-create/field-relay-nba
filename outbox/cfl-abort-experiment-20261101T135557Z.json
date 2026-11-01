@@ -1,0 +1,144 @@
+{
+ "day": "2026-11-01",
+ "site": "handleCFLOddsProbs",
+ "approval": "APPROVED: up to 12 Odds API credits for the CFL abort experiment",
+ "max_vendor_credits": 12,
+ "calls": [
+  {
+   "step": "warm-up",
+   "status": 200,
+   "cached": "EXPIRED",
+   "state": "reconciled"
+  },
+  {
+   "step": "confirm",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 3,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 10,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 25,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 50,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 100,
+   "abort_took_effect": true
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  }
+ ],
+ "ledgers": {
+  "before_a": {
+   "date": "2026-11-01",
+   "by_site": 36,
+   "kept": 24,
+   "n": 8,
+   "hit": 4
+  },
+  "before_b": {
+   "date": "2026-11-01",
+   "by_site": 36,
+   "kept": 24,
+   "n": 8,
+   "hit": 4
+  },
+  "start": {
+   "date": "2026-11-01",
+   "by_site": 42,
+   "kept": 30,
+   "n": 10,
+   "hit": 5
+  },
+  "after_aborts": {
+   "date": "2026-11-01",
+   "by_site": 48,
+   "kept": 30,
+   "n": 10,
+   "hit": 5
+  },
+  "after_controls": {
+   "date": "2026-11-01",
+   "by_site": 48,
+   "kept": 30,
+   "n": 15,
+   "hit": 10
+  },
+  "late": {
+   "date": "2026-11-01",
+   "by_site": 48,
+   "kept": 30,
+   "n": 15,
+   "hit": 10
+  }
+ },
+ "deltas": {
+  "aborted_phase": {
+   "by_site": 6,
+   "kept": 0,
+   "n": 0,
+   "hit": 0
+  },
+  "control_phase": {
+   "by_site": 0,
+   "kept": 0,
+   "n": 5,
+   "hit": 5
+  },
+  "late_after_controls": {
+   "by_site": 0,
+   "kept": 0,
+   "n": 0,
+   "hit": 0
+  }
+ },
+ "aborted_calls": 5,
+ "aborted_effective": 5,
+ "ledger_overrecord_left_credits": 6,
+ "verdict": "abort-loses-refund-and-tally",
+ "why": "1 of 5 aborted calls kept their 6-credit charge and 5 left no tally: the continuation did not run"
+}
