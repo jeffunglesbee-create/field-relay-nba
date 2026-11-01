@@ -1,7 +1,7 @@
 {
- "written": "2026-10-29",
+ "written": "2026-11-01",
  "heads": {
-  "field-relay-nba": "8651e15"
+  "field-relay-nba": "4fe8519"
  },
  "repos": {
   "field-relay-nba": {
@@ -111,8 +111,6 @@
      "field-relay-nba/scripts/verify-postseason-escalations.mjs :: return b.results || [];",
      "field-relay-nba/scripts/verify-staged-items.mjs :: return j.results || [];",
      "field-relay-nba/scripts/watch-league-outranks-sport.mjs :: return b.results || [];",
-     "field-relay-nba/scripts/watch-odds-daily-vs-vendor.mjs :: ci = ciSpendInInterval(Array.isArray(rows) ? (rows[0]?.results || rows) : (rows.results || []), prev.at, reading.at);",
-     "field-relay-nba/scripts/watch-odds-daily-vs-vendor.mjs :: const rows = (b.results || b.result || []);",
      "field-relay-nba/scripts/watch-odds-pairing-rate.mjs :: const r = body.results || body.result || [];",
      "field-relay-nba/scripts/watch-odds-pairing-rate.mjs :: return Array.isArray(r) ? (r[0]?.results || r) : (r.results || []);",
      "field-relay-nba/scripts/watch-run-clock-closing-stamps.mjs :: return b.results || [];",

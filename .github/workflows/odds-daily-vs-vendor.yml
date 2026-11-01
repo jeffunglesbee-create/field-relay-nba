@@ -1,6 +1,6 @@
 name: Odds daily vs vendor (read-only)
 
-# Is the ENFORCING counter right? The only odds question with money attached.
+# Is our record of spend right? The only odds question with money attached.
 #
 # Three watches already compare our counters to each other and none of them
 # establishes which is RIGHT. The vendor's bill is the only authority. If
@@ -12,6 +12,11 @@ name: Odds daily vs vendor (read-only)
 # runners here drift 104-405 minutes. The watch REFUSES a window outside 22-26h
 # rather than differencing 28 hours of vendor spend against 24 of ours. A
 # skipped day that says why beats a day with a wrong number in it.
+#
+# THE VERDICT IS THE WINDOW-ALIGNED RESIDUAL (docs/CC-CMD-2026-10-13-vendor-residual-window.md,
+# Task 1): the vendor's spend between this run's reading and the previous one, against our
+# monthly ledger over the same two instants, less known CI spend. The UTC-day counter is printed
+# beside it as a labelled diagnostic and never decides: it covers a different 24 hours.
 #
 # READ-ONLY AND FREE: /budget/odds returns a CACHED vendor response header and
 # issues no vendor call; one D1 SELECT for CI rows. No credits.
@@ -68,6 +73,14 @@ jobs:
           node scripts/check-daily-vs-monthly.mjs
           node scripts/mutate-daily-vs-monthly.mjs
           node scripts/watch-odds-daily-vs-monthly.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The whole watch against a stub relay, AFTER the measurement and with if: always(), so a failure of this
+      # check (a port, a temp directory) can mark the run red but can never cost the day's reading and split the
+      # next vendor window. For the same reason the mutation harness in 'the watch can fail' runs WITHOUT --with-run
+      # here, so it does not depend on this check being green; guards.yml runs everything, with --with-run, on every push.
+      - name: The whole watch, run against a stub relay
+        if: always()
+        run: node scripts/check-odds-daily-vs-vendor-run.mjs
 
       # always(): the series is the artifact and must keep accumulating on the
       # run that went red — that run is the one carrying the evidence.
