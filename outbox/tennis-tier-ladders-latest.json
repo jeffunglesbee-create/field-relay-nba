@@ -1,5 +1,5 @@
 {
-  "ts": "2026-10-26T10:58:14.073Z",
+  "ts": "2026-11-02T13:22:38.173Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "perTier": 5,
   "tiers": {
@@ -39,15 +39,15 @@
       "checked": 5
     },
     "wta_250": {
-      "tournamentsInTier": 103,
-      "singles": 103,
+      "tournamentsInTier": 104,
+      "singles": 104,
       "checked": 5
     }
   },
   "editions": [
     {
       "tier": "grand_slam",
-      "tid": 15,
+      "tid": 14,
       "name": "Australian Open",
       "status": 200,
       "season": "2026",
@@ -68,7 +68,7 @@
     },
     {
       "tier": "grand_slam",
-      "tid": 14,
+      "tid": 15,
       "name": "Australian Open",
       "status": 200,
       "season": "2026",
@@ -396,8 +396,20 @@
       "tier": "atp_500",
       "tid": 189,
       "name": "Basel",
-      "status": 409,
-      "body": "{\"error\":\"a player appears twice in one round\",\"tournament\":189,\"season\":\"2026\",\"duplicates\":[{\"round\":\"Round of 32\",\"playerId\":553,\"matches\":[56972,56729]}],\"matchDateRange\":{\"first\":\"2026-10-26\",\"la"
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
     },
     {
       "tier": "atp_500",
@@ -836,8 +848,8 @@
   ],
   "census": {
     "status": 200,
-    "read": 719,
-    "declared": 719,
+    "read": 733,
+    "declared": 733,
     "truncated": false,
     "pages": 8
   },
@@ -901,11 +913,10 @@
   "summary": {
     "tiersDeclared": 8,
     "editionsRequested": 42,
-    "editionsRead": 40,
-    "modelHeld": 40,
+    "editionsRead": 41,
+    "modelHeld": 41,
     "interiorHoles": [],
     "unread": [
-      "atp_500 189 Basel HTTP 409",
       "wta_250 53 Antalya 3, Turkiye HTTP 409"
     ],
     "edgeRuleViolations": 0,
