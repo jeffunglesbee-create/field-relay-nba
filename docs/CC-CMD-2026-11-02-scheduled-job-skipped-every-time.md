@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a scheduled path that is silently empty, and the watch that could not see it)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL 2026-11-02. TASKs 1 to 3 are built, pushed and green (`9b82593e`, `dfb123f3`, `e228c22c`). TASK 4 (patent-watch, in the client) waits for the owner's go. TASK 5 (the first scheduled EPA run, and the watch that follows it) waits for GitHub to fire them.
+**Status:** PARTIAL 2026-11-02. TASKs 1 to 3 and 6 are built, pushed and green (`9b82593e`, `dfb123f3`, `e228c22c`, `db9fb0cd`). TASK 4 (patent-watch, in the client) waits for the owner's go. TASK 5 (the first scheduled EPA run, and the watch that follows it) waits for GitHub to fire them.
 **Filed by:** the 2026-11-02 read of the client, relay and laboratory outbox files (finding 1), built on the owner's "Next approved" of the same day. Session doc: `outbox/cc-session-2026-11-02-scheduled-job-skipped-every-time.md`.
 
 ---
@@ -20,6 +20,8 @@ The `if:` came first. `d48ee942` (2026-08-27T22:24:51Z) added it, when the file 
 
 **The same blind spot hid a second workflow: `patent-watch.yml` in the client.** 21 of 21 runs, 2026-06-10 to 2026-10-28, are `startup_failure`: it has never started a job. See TASK 4.
 
+**The heartbeat path held a second defect, which the skip had hidden.** Run for real (`fetch` stubbed to an empty scoreboard, so no NFL game is observable), the probe script behaves as designed: the heartbeat exits 0 and writes a NOT OBSERVABLE manifest, a deploy exits 1. The next step of the job, "Surface the verdict" (`if: always()`), then reads `d.game.name` from that manifest, which has no game, and exits 1 with `TypeError: Cannot read properties of undefined (reading 'name')`; its notice line also reads "undefined route plays". So every no-game heartbeat would have ended red, where this file's header and the closed laboratory CC-CMD-2026-08-27-relay-per-play-epa record it as neutral. The sweep looks back 14 days for a non-pending NFL event, so in-season ticks are not affected and the exposure is the off-season (derived from the sweep, not observed: ESPN is unreachable from the sandbox). It was found by running the rest of the job after the schedule had been enabled, not before; the session doc says so.
+
 ## What was built (relay, direct to main)
 
 | TASK | commit | what | proof |
@@ -28,13 +30,14 @@ The `if:` came first. `d48ee942` (2026-08-27T22:24:51Z) added it, when the file 
 | 2 | `dfb123f3` | The watch calls a workflow dead when none of its last 3 completed scheduled runs worked: each is `failure`, `skipped` or `startup_failure`. A window holding a success, `cancelled`, `timed_out`, `action_required` or `neutral` counts healthy, and the COVERAGE block says so. The report names the kind (SKIPPED, STARTUP_FAILURE, or the list of conclusions for a mixture). `surveyRepo` takes its API calls as a parameter, so the survey is tested against a fake. | Self-test 56 cases; 32 of 32 mutants (E1 to E15 are new); the two live runs below. |
 | 3 | `e228c22c` | `scripts/lib/workflow-if-eval.mjs` judges a job's `if:` on the `schedule` event with a three-valued evaluator (only a provable false counts; "may run" is counted, not guessed). `scripts/workflow-yaml-check.mjs` fails a scheduled workflow whose EVERY root job is provably skipped. `guards.yml` proves on every push that the judge is right and that the check can still fail. | 74 cases; 25 of 25 mutants plus four fixture directories through the real gate; the pre-fix EPA file fails, the real tree passes (0 of 199 failing). |
 | - | the commit titled "wording: a skipped run is not a failure; drop the colour claim nobody verified" | Wording only. Five comments and the check's own failure text said the Actions page shows a skipped run green. The API gives the conclusion; the colour was never observed here. | No behaviour change; the same four suites. |
+| 6 | `db9fb0cd` | "Surface the verdict" prints the verdict and exits 0 when the manifest has no game; unchanged for a manifest with one. `scripts/check-epa-probe-heartbeat.mjs` runs the real probe (empty scoreboard) as heartbeat and as deploy, the step's real `run:` text under `bash -e` and under `bash -eo pipefail` on each manifest and on the newest committed manifest that has a game, and judges the heartbeat flag's expression on three event names. One `guards.yml` step runs it and its mutants on every push. | 8 of 35 assertions fail on the workflow as it was, 35 of 35 after; 13 of 13 mutants caught (`scripts/mutate-epa-probe-heartbeat.mjs`); actionlint clean; YAML gate 0 of 199. CI: Repo guards run 41534847499 success (56 of 56 steps, the new one included), Workflow YAML Gate run 41534847464 success. |
 
 **Live control, twice.** The dispatch of `silently-dead-crons.yml` (run 41506676878) ran the self-test and 32 mutants green, then the live watch over four repos (462 workflows, 100 judged) named exactly two workflows as NEW decay and exited 1: `nfl-epa-route-probe.yml` (every scheduled run SKIPPED, latest 2026-11-01T18:40:47Z) and, in jubilant-bassoon, `patent-watch.yml` (every scheduled run STARTUP_FAILURE, latest 2026-10-28T20:56:25Z). Its log is `outbox/silently-dead-crons-2026-11-02T19-08-20-619Z.log`. The first scheduled run of the new watch (run 41530556202, created 21:40Z, nominal 12:15Z) read the same two and exited 1: `outbox/silently-dead-crons-2026-11-02T21-44-21-324Z.log`. The relay's repo guards (run 41506527611, 55 of 55 steps) and the workflow YAML gate (run 41506527605) were green at `e228c22c`.
 
 ## Expected, and stated now so it is not read as a regression
 
 1. **The daily watch is red until both workflows clear or are admitted.** It exits 1 on NEW decay, and as of 2026-11-02 21:44Z it does. The probe leaves the list when a scheduled run created after `9b82593e` finishes with something other than `skipped`, `failure` or `startup_failure` and sits in the watch's three-run window (one working run in three is healthy). A first run that FAILS keeps it listed, as "no scheduled run worked: failure, skipped, skipped". GitHub fires both workflows late and unevenly: the watch (nominal 12:15Z) was created at 17:54Z, 17:14Z, 17:58Z, 18:25Z on the four days before 11-02 and at 21:40Z on 11-02; the probe (nominal 14:00Z) at 18:55Z, 18:03Z and 18:40Z on 10-30 to 11-01. At 21:50Z on 11-02 no scheduled probe run for 11-02 had been created.
-2. **The first scheduled EPA run is the first time heartbeat mode has ever executed.** It may find a real problem in a path nobody has run. If it does, record it under "Observed"; do not make it quiet.
+2. **The first scheduled EPA run is the first time the heartbeat runs against a live game.** Its no-game branch is now executed on every push by TASK 6's check; the branch with a game (the scoreboard sweep, the relay route, the EP table, the summary and the commit step) has never run as a heartbeat, and a live tick is its first execution. It may find a real problem in a path nobody has run. If it does, record it under "Observed"; do not make it quiet.
 3. **One more Actions minute a day.** The probe now runs every day (about a minute) where it ran no step before.
 
 ## TASK 1, 2, 3 — built
@@ -61,13 +64,24 @@ Done: a scheduled or dispatched run of `patent-watch.yml` starts its `watch` job
 - The watch run after it: the probe is off the NEW list, or still on it with the reason.
 - Two scheduled tasks are armed (fresh sessions, docs only, they append under "Observed"): `trig_01CruYHrcseUdDi11SyKeg4R` at 2026-11-03T20:45Z reads the first probe run; `trig_01EeLZTDbdyihnpkjnH6kMdw` at 2026-11-04T22:30Z reads the 11-04 watch and backfills the probe reading if the first did not find a run.
 
+## TASK 6 — the heartbeat's no-game path ends neutral (built, `db9fb0cd`)
+
+Added to this CC-CMD, not filed separately (BUILD-ON-A): it is the same job and the same cause as TASK 1, a scheduled path that had never run holding a defect of its own. The design it serves is already recorded: this workflow's header, and the closed laboratory CC-CMD-2026-08-27-relay-per-play-epa ("`NOT OBSERVABLE` stays fatal on a deploy and is neutral on the heartbeat"). Nothing here changes that ruling; the workflow now does what it says.
+
+- **Evidence.** `node --import <a file that answers every fetch with an empty scoreboard> scripts/nfl-epa-route-probe.mjs` in an empty directory: with `EPA_PROBE_HEARTBEAT=1` it exits 0 and writes a manifest with `trigger: heartbeat`, `verdict: NOT OBSERVABLE`; with `0` it exits 1. The `run:` text of "Surface the verdict", taken out of the workflow file by a YAML parse and run under `bash --noprofile --norc -eo pipefail` on the heartbeat manifest: exit 1 and the TypeError quoted above, before any edit.
+- **The change.** In "Surface the verdict", `if (!d.game)` prints `<verdict> — no game was observable, so the route was not exercised (<trigger>)` and exits 0; otherwise the two lines it always printed. The steps before and after it are untouched.
+- **Done.** `scripts/check-epa-probe-heartbeat.mjs` passes and its 13 mutants are caught, on every push, in the `guards.yml` step "The heartbeat's no-game path ends neutral, and a deploy's does not". Verify: that step's conclusion in the run for the commit.
+- **Not covered, and the check says so in its own output.** ESPN, the relay and the commit step, which the sandbox cannot reach. They are TASK 5's first live tick.
+- **Not verified.** Which shell GitHub runs an unspecified `run:` under (`bash -e` or `bash -eo pipefail`): the documentation page could not be fetched from this session. The check runs the step under both, so its result does not depend on the answer.
+
 ## Done condition (Rule 90 artifacts)
 
 1. TASKs 1 to 3 committed with their proof: done, above.
-2. A scheduled run of `nfl-epa-route-probe.yml` that executed its probe step, recorded under "Observed" with its run id and verdict (TASK 5).
-3. The watch run that follows it reads the probe healthy, or names why not (TASK 5).
-4. `patent-watch.yml` starts a job, or the owner's decision is recorded here (TASK 4).
-5. Status moves to DONE only when 2, 3 and 4 hold.
+2. TASK 6: the heartbeat's no-game path executed on every push, and green: done (`db9fb0cd`; Repo guards run 41534847499 success, Workflow YAML Gate run 41534847464 success).
+3. A scheduled run of `nfl-epa-route-probe.yml` that executed its probe step, recorded under "Observed" with its run id and verdict (TASK 5).
+4. The watch run that follows it reads the probe healthy, or names why not (TASK 5).
+5. `patent-watch.yml` starts a job, or the owner's decision is recorded here (TASK 4).
+6. Status moves to DONE only when 3, 4 and 5 hold.
 
 ## Observed
 
