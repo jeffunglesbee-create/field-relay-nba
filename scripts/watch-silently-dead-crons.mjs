@@ -43,7 +43,8 @@ export const REPOS = (process.env.DEAD_CRON_REPOS || [
   'jeffunglesbee-create/field-laboratory',
   'jeffunglesbee-create/field-playground',
 ].join(',')).split(',').map(r => r.trim()).filter(Boolean);
-// How many consecutive failures make a workflow "dead" rather than flaky.
+// How many consecutive non-working runs (failed, skipped, or never started — see
+// DEAD_CONCLUSIONS) make a workflow "dead" rather than flaky.
 const STREAK = Number(process.env.DEAD_CRON_STREAK || 3);
 // A workflow added moments ago has not failed to fire. Beyond this, a declared
 // cron with no run is a finding. 40 days clears the longest schedule in this
@@ -168,6 +169,60 @@ export function shortRead(collected, total) {
     ? `pagination short-read: collected ${collected} of ${total}` : null;
 }
 
+/** WHAT "DEAD" MEANS, in one place, so the survey, the report and the tests cannot
+ *  disagree. A scheduled workflow is dead when NONE of its last STREAK completed
+ *  scheduled runs worked: each ran and failed, was skipped by its own job `if:`,
+ *  or never started. Until 2026-11-02 only the first was counted. The other two
+ *  were measured, and both were invisible here:
+ *
+ *    field-relay-nba / nfl-epa-route-probe.yml   66 of 66 scheduled runs `skipped`.
+ *      Its job `if:` read an upstream `workflow_run` conclusion that a `schedule`
+ *      event does not carry, so it was false on every tick. Green on the Actions
+ *      page, never executed once, and absent from this watch: the old test was
+ *      `every(r => r.conclusion === 'failure')`, which is false for a skipped run.
+ *    jubilant-bassoon / patent-watch.yml          21 of 21 `startup_failure`, from
+ *      2026-06-10. The caller passes an input the called workflow does not declare,
+ *      so GitHub refuses the run before any job exists.
+ *
+ *  `cancelled` is NOT in the set on purpose: `concurrency: cancel-in-progress`
+ *  produces it legitimately, so a streak of it is not evidence of a dead cron.
+ *  `timed_out`, `action_required` and `neutral` are left out for a different
+ *  reason: no workflow in the four repos has one as its whole window, so there is
+ *  nothing measured to judge. The COVERAGE block says so rather than leaving the
+ *  reader to infer it. */
+export const DEAD_CONCLUSIONS = new Set(['failure', 'skipped', 'startup_failure']);
+
+/** 'failure' | 'skipped' | 'startup_failure' when every run in the window shares
+ *  one dead conclusion; 'mixed' when all are dead but not alike; null when the
+ *  window is too short, or any run in it worked or ended some other way. */
+export function streakKind(conclusions, streak = STREAK) {
+  if (conclusions.length < streak) return null;
+  if (!conclusions.every(c => DEAD_CONCLUSIONS.has(c))) return null;
+  const distinct = [...new Set(conclusions)];
+  return distinct.length === 1 ? distinct[0] : 'mixed';
+}
+
+const DEAD_LEAD = {
+  failure: 'red',
+  skipped: 'every scheduled run SKIPPED (the job never started)',
+  startup_failure: 'every scheduled run STARTUP_FAILURE (the workflow never started)',
+};
+
+/** The report text for one dead workflow. The `failure` text is byte-for-byte what
+ *  this printed before 2026-11-02, so two months of committed logs still compare. */
+export function deadLines(d) {
+  const lead = d.outcome === 'mixed'
+    ? `no scheduled run worked: ${d.conclusions.join(', ')}`
+    : DEAD_LEAD[d.outcome];
+  if (lead === undefined) throw new Error(`deadLines: unknown outcome ${JSON.stringify(d.outcome)}`);
+  return `      ${d.path}\n        ${lead} since at least ${d.since}, latest ${d.latest}\n        ${d.url}`;
+}
+
+/** Every dead workflow across the surveyed repos, whatever its kind. This list is
+ *  what the ratchet judges, so it is derived from the surveys and not from the
+ *  report loop: a change to how the report is printed cannot change what is judged. */
+export const allDead = (surveys) => surveys.flatMap(r => r.dead);
+
 if (process.argv.includes('--self-test')) {
   let bad = 0;
   // Strict equality, so every case must produce a SCALAR. Three array cases
@@ -283,10 +338,99 @@ if (process.argv.includes('--self-test')) {
   one('NO review_by at all', overdueReviews(['r:x.yml'], { 'r:x.yml': {} }, TODAY).join(','), 'r:x.yml',
       'absent is overdue, not exempt — an undated entry is the quietest way to silence a cron forever');
 
+  // ── WHAT "DEAD" MEANS ───────────────────────────────────────────────────
+  // nfl-epa-route-probe.yml: 66 of 66 scheduled runs `skipped`, green on the
+  // Actions page and absent from this watch. patent-watch.yml: 21 of 21
+  // `startup_failure`. Both measured on 2026-11-02, both invisible to a test that
+  // read `every(r => r.conclusion === 'failure')`.
+  one('the window is the default the cases below assume', STREAK, 3, 'DEAD_CRON_STREAK is not set in CI');
+  const kind = (...cs) => String(streakKind(cs, 3));
+  one('three failures', kind('failure', 'failure', 'failure'), 'failure', 'the original definition, unchanged');
+  one('three skipped', kind('skipped', 'skipped', 'skipped'), 'skipped',
+      'nfl-epa-route-probe.yml: 66 of 66, green on the Actions page');
+  one('three startup_failure', kind('startup_failure', 'startup_failure', 'startup_failure'), 'startup_failure',
+      'patent-watch.yml: 21 of 21 since 2026-06-10, no job ever created');
+  one('failure and skipped mixed', kind('failure', 'skipped', 'failure'), 'mixed',
+      'no run worked, so dead, though not alike');
+  one('a success in the window', kind('failure', 'success', 'failure'), 'null',
+      'one working run in three is flaky, not dead');
+  one('the newest run worked', kind('success', 'skipped', 'skipped'), 'null',
+      'a probe fixed yesterday must read healthy today, not stay dead until the skips roll off');
+  one('only two runs', kind('skipped', 'skipped'), 'null', 'a window shorter than the streak proves nothing');
+  one('cancelled is not dead', kind('cancelled', 'cancelled', 'cancelled'), 'null',
+      'concurrency cancel-in-progress produces it legitimately');
+  one('an unmeasured conclusion is not dead', kind('timed_out', 'timed_out', 'timed_out'), 'null',
+      'not judged, and the COVERAGE block says so');
+
+  // The survey, against a fake of the API. The fake answers the REAL query or
+  // nothing: a URL that has drifted (no `status=completed`, another per_page or
+  // event) reads as "no runs", so it fails the cases below instead of passing.
+  const fakeIo = (byPath, crons = {}) => {
+    const wfs = Object.keys(byPath).map((p, i) => ({
+      id: i + 1, name: `wf ${p}`, path: p, state: 'active', created_at: '2026-01-01T00:00:00Z' }));
+    const want = ['event=schedule', 'per_page=3', 'status=completed'].join('&');
+    return {
+      ghAll: async () => wfs,
+      gh: async (path) => {
+        const m = /\/workflows\/(\d+)\/runs\?(.*)$/.exec(path);
+        const cs = m && m[2].split('&').sort().join('&') === want ? byPath[wfs[Number(m[1]) - 1].path] : [];
+        return { workflow_runs: cs.map((c, i) => ({
+          conclusion: c, created_at: `2026-10-0${3 - i}T00:00:00Z`, html_url: `u/${m[1]}/${i}` })) };
+      },
+      cronOf: async (_repo, p) => (p in crons ? crons[p] : null),
+    };
+  };
+  const SKIPS = ['skipped', 'skipped', 'skipped'];
+  const sv = await surveyRepo('o/r', {}, fakeIo({
+    'epa.yml': SKIPS,
+    'ok.yml': ['success', 'skipped', 'skipped'],
+    'red.yml': ['failure', 'failure', 'failure'],
+    'sf.yml': ['startup_failure', 'startup_failure', 'startup_failure'],
+    'mix.yml': ['failure', 'skipped', 'failure'],
+    'short.yml': ['skipped', 'skipped'],
+    'none.yml': [],
+  }, { 'none.yml': '0 1 * * *' }));
+  one('survey: which workflows are dead', sv.dead.map(d => d.path).join(','), 'epa.yml,red.yml,sf.yml,mix.yml',
+      'the all-skipped probe is now among them');
+  one('survey: how each is dead', sv.dead.map(d => d.outcome).join(','), 'skipped,failure,startup_failure,mixed',
+      'the kind travels with the entry, so the report can say which');
+  one('survey: who is healthy', sv.healthy.join(','), 'wf ok.yml,wf short.yml',
+      'a success in the window, or fewer runs than the streak');
+  one('survey: a cron that never produced a run', sv.neverFired.map(w => w.path).join(','), 'none.yml',
+      'the zero-run branch is untouched by this change');
+  one('survey: the window bounds', sv.dead.map(d => `${d.since}|${d.latest}`)[0],
+      '2026-10-01T00:00:00Z|2026-10-03T00:00:00Z', 'oldest and newest of the three, as before');
+  const dv = await surveyRepo('o/r', { 'o/r:epa.yml': { reports: 'r', red_because: 'b', tracked_by: 't' } },
+                              fakeIo({ 'epa.yml': SKIPS }));
+  one('survey: a declared detector that never runs keeps its own bucket',
+      [dv.dead.length, dv.detectors.length].join('/'), '0/1', 'declared paths are routed whatever the kind');
+  const sf = await surveyRepo('jeffunglesbee-create/field-relay-nba', {},
+                              fakeIo({ '.github/workflows/silently-dead-crons.yml': SKIPS }));
+  one('survey: this watch, all skipped, is excluded as itself',
+      [sf.dead.length, sf.selfRed.length].join('/'), '0/1', 'self-exclusion applies to every kind, not only failure');
+  one('the ratchet judges every kind',
+      allDead([{ dead: [{ outcome: 'skipped' }] }, { dead: [{ outcome: 'failure' }, { outcome: 'startup_failure' }] }]).length,
+      3, 'derived from the surveys, not from the report loop');
+
+  const E = { path: 'w.yml', since: 'S', latest: 'L', url: 'U' };
+  one('failure text is unchanged', deadLines({ ...E, outcome: 'failure' }),
+      '      w.yml\n        red since at least S, latest L\n        U', 'two months of committed logs still compare');
+  one('skipped says SKIPPED', deadLines({ ...E, outcome: 'skipped' }).includes('SKIPPED'), true,
+      'a probe that never ran must read differently from one that failed');
+  one('startup_failure says so', deadLines({ ...E, outcome: 'startup_failure' }).includes('STARTUP_FAILURE'), true,
+      'a refused workflow file is a different repair from a failing job');
+  one('mixed lists what happened',
+      deadLines({ ...E, outcome: 'mixed', conclusions: ['failure', 'skipped', 'failure'] }).includes('failure, skipped, failure'),
+      true, 'a mixture has no single word, so the conclusions are the report');
+  let refused = false;
+  try { deadLines({ ...E, outcome: 'cancelled' }); } catch (e) { refused = true; }
+  one('an unknown outcome is refused', refused, true, 'a typo must not print as an empty lead');
+
   console.log(bad ? `\n${bad} of ${ran} FAILED` : `\nself-test: ${ran}/${ran}`);
-  console.log(`COVERAGE: the pure predicates — page loop, short read, grace, repo list,\n  detector keys, cron extraction, and the ratchet. It does NOT reach the API — the`);
-  console.log(`sandbox token here is a proxy placeholder, so the live half is verified by`);
-  console.log(`dispatching the workflow and reading its committed outbox log.`);
+  console.log(`COVERAGE: the pure predicates — page loop, short read, grace, repo list,\n  detector keys, cron extraction, the ratchet, the dead-window definition and the per-repo`);
+  console.log(`survey (run against a fake of the API that answers only the real query). It does NOT`);
+  console.log(`reach the real API — the sandbox token here is a proxy placeholder — so the live half`);
+  console.log(`is verified by dispatching the workflow and reading its committed outbox log.`);
   process.exit(bad ? 1 : 0);
 }
 const say = (s) => { console.log(s); log.push(s); };
@@ -322,7 +466,11 @@ async function ghAll(path, key, perPage = 100) {
 
 /** One repo's verdict. Pure of the OUTPUT side so the caller shapes reporting;
  *  the network lives here and nowhere else. */
-async function surveyRepo(repo, declared) {
+async function surveyRepo(repo, declared, io = { gh, ghAll, cronOf }) {
+  // The network is a parameter so the classification below can run against a fake
+  // in --self-test. It was the half of this watch that no test reached, and it is
+  // where `every(r => r.conclusion === 'failure')` hid a 66-run streak of skips.
+  const { gh, ghAll, cronOf } = io;
   // PAGINATED, AND IT WAS NOT. Until 2026-09-17 this was a single
   // `?per_page=100` against a repo holding 150 workflows: the watch built
   // specifically to escape per-workflow blindness read two thirds of the repo
@@ -344,9 +492,10 @@ async function surveyRepo(repo, declared) {
       (cron ? neverFired : noCron).push({ ...w, cron });
       continue;
     }
-    const streak = workflow_runs.every(r => r.conclusion === 'failure');
-    if (streak && workflow_runs.length >= STREAK) {
-      const entry = { repo, name: w.name, path: w.path,
+    const conclusions = workflow_runs.map(r => r.conclusion);
+    const outcome = streakKind(conclusions);
+    if (outcome !== null) {
+      const entry = { repo, name: w.name, path: w.path, outcome, conclusions,
                       since: workflow_runs[workflow_runs.length - 1].created_at,
                       latest: workflow_runs[0].created_at, url: workflow_runs[0].html_url };
       // KEYS ARE REPO-QUALIFIED. A bare `.github/workflows/deploy.yml` exists in
@@ -376,7 +525,7 @@ async function surveyRepo(repo, declared) {
   const surveys = [];
   for (const repo of REPOS) surveys.push(await surveyRepo(repo, declared));
 
-  const dead = [], neverFired = [];
+  const dead = allDead(surveys), neverFired = [];
   for (const r of surveys) {
     say(`\n  ── ${r.repo} ──`);
     say(`    ${r.total} workflow(s), ${r.active} active  (all pages read)`);
@@ -405,11 +554,12 @@ async function surveyRepo(repo, declared) {
       say(`      ${w.path}   cron ${w.cron || '?'}   added ${String(w.created_at).slice(0, 10)} (${age}d ago)`);
       neverFired.push({ ...w, repo: r.repo });
     }
-    say(`    FAILING ${STREAK} CONSECUTIVE RUNS  : ${r.dead.length}`);
-    for (const d of r.dead) {
-      say(`      ${d.path}\n        red since at least ${d.since}, latest ${d.latest}\n        ${d.url}`);
-      dead.push(d);
-    }
+    const plain = r.dead.filter(d => d.outcome === 'failure');
+    const other = r.dead.filter(d => d.outcome !== 'failure');
+    say(`    FAILING ${STREAK} CONSECUTIVE RUNS  : ${plain.length}`);
+    for (const d of plain) say(deadLines(d));
+    say(`    NO RUN WORKED, NOT PLAIN FAILURE   : ${other.length}   (skipped, startup_failure or mixed)`);
+    for (const d of other) say(deadLines(d));
   }
 
   if (neverFired.length) {
@@ -432,6 +582,9 @@ async function surveyRepo(repo, declared) {
   say(`    and ${neverFired.length} that declare a cron but have never produced a run,`);
   say(`    named above rather than counted. A workflow is judged on its last ${STREAK}`);
   say(`    scheduled runs whenever they happened, so a firing delay cannot skew it.`);
+  say(`    DEAD means none of those ${STREAK} runs worked: each failed, was skipped, or never`);
+  say(`    started (startup_failure). A window holding anything else — a success, or`);
+  say(`    cancelled, timed_out, action_required, neutral — is counted healthy above.`);
   say(`    NOT covered: any repo outside the ${REPOS.length} listed at the top.`);
 
 
