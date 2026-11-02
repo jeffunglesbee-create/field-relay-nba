@@ -97,10 +97,17 @@ jobs:
         run: |
           F=$(ls -t outbox/nfl-epa-route-probe-*.json 2>/dev/null | head -1)
           [ -n "$F" ] || { echo "::warning::no artifact — the probe did not reach the route"; exit 0; }
+          # A NOT OBSERVABLE artifact has no game and no counts. On the heartbeat the
+          # probe exits 0 for it, so this step must show the verdict and also exit 0;
+          # reading d.game.name from it failed the job (scripts/check-epa-probe-heartbeat.mjs).
           node -e '
             const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
-            console.log(`::notice::${d.verdict} — ${d.route_plays} route plays, ${d.client_plays} client plays, ${d.disagreements} disagreement(s)`);
-            console.log(`game: ${d.game.name} (${d.game.id}, ${d.game.state})`);
+            if (!d.game) {
+              console.log(`::notice::${d.verdict} — no game was observable, so the route was not exercised (${d.trigger})`);
+            } else {
+              console.log(`::notice::${d.verdict} — ${d.route_plays} route plays, ${d.client_plays} client plays, ${d.disagreements} disagreement(s)`);
+              console.log(`game: ${d.game.name} (${d.game.id}, ${d.game.state})`);
+            }
           ' "$F"
 
       - name: Commit the artifact

@@ -532,6 +532,17 @@ jobs:
         if: always()
         run: node scripts/check-workflow-if-eval.mjs && node scripts/mutate-workflow-if-eval.mjs
 
+      # docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md. The probe's
+      # "NOT OBSERVABLE is neutral on the heartbeat" was written in August and never
+      # executed, because the job's `if:` skipped every tick. Run for real, it held in
+      # the script and failed in the workflow: the step that shows the verdict threw
+      # on an artifact with no game, and the run went red. This runs the real probe
+      # (empty scoreboard) as the heartbeat and as a deploy, and the real step on what
+      # they write, then proves with 13 mutations that the check can fail.
+      - name: The heartbeat's no-game path ends neutral, and a deploy's does not
+        if: always()
+        run: node scripts/check-epa-probe-heartbeat.mjs && node scripts/mutate-epa-probe-heartbeat.mjs
+
       # LAST, AND THAT IS THE POINT. This checked HANDOFF.md's staleness from
       # step 6, and the gates here are sequential steps in ONE job, so its red
       # SKIPPED every step after it: the credential scan's siblings, the odds
