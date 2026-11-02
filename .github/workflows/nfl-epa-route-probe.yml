@@ -66,8 +66,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # A failed deploy left the old route live; probing it would report on bytes
-    # nobody shipped. workflow_dispatch has no upstream conclusion, so it passes.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # nobody shipped. Only a `workflow_run` event has an upstream conclusion to
+    # read, so only that event is gated on it. Dispatch and schedule carry none.
+    #
+    # THE FIRST FORM OF THIS LINE GATED EVERY EVENT BUT DISPATCH ON THAT CONCLUSION.
+    # A scheduled tick evaluated `null == 'success'`, skipped the job, and finished
+    # "skipped" -- green on the Actions page. 66 of 66 scheduled runs, from the first
+    # tick after the cron was added (2026-08-28) to 2026-11-01, executed no step,
+    # and the EPA_PROBE_HEARTBEAT branch below was dead code for the same reason.
+    # scripts/lib/workflow-if-eval.mjs now fails the workflow-yaml gate on that
+    # shape, and the dead-cron watch counts an all-skipped window as dead.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
