@@ -240,6 +240,29 @@ Measured from `outbox/odds-daily-vs-monthly-20261027T045612Z.log` (run 404524497
   days that all follow 10-19 would mean the single-batch fix did not hold, and this note is wrong.
 - Not changed: no code. A floor at the deploy instant would clear the red 5 days earlier at the cost of a new constant in a guard;
   the watch cannot fire on a new divergence until 11-01 either way, which is the whole price of leaving it.
+- **Result, read by the scheduled wake of 2026-11-02 (fired 10:00Z): the prediction held, and the half of it that can fail is not
+  yet tested.** Both runs started at about 05:54Z, not 04:30Z; GitHub starts the schedule late.
+  - Run 41278695947, 2026-11-01T05:54Z, sha `df74feb2`: success, every step green, step 6 (`Our daily counter against our monthly
+    counter`) included. `outbox/odds-daily-vs-monthly-20261101T055434Z.log` reads `verdict: month-boundary`: 44 readings on file,
+    1 in the current segment (43 dropped at the reset of 2026-11-01T05:54:31Z), 0 days fully inside the span.
+  - Run 41396684994, 2026-11-02T05:54Z, sha `60dcf2a2`: success, every step green. `outbox/odds-daily-vs-monthly-20261102T055419Z.log`
+    reads `verdict: no-contained-day`: 45 readings on file, 2 in the segment, span 2026-11-01T05:54:31Z to 2026-11-02T05:54:15Z,
+    0 days fully inside.
+  - Before them all six scheduled runs of 10-26 to 10-31 were red, and step 6 failed in every one. The last, run 41172781486, read
+    `daily-exceeds-monthly` with EXCESS 2,580 (ratio 1.05x), just above the range of 2,127 to 2,538 quoted above. On four of the
+    six (10-26, 10-29, 10-30, 10-31) step 5, `Watch`, was red as well. That is the vendor watch, a different verdict (on 10-31
+    `we-overcharge-ourselves`, residual -631 against a tolerance of 50) kept in
+    `docs/CC-CMD-2026-10-13-vendor-residual-window.md`, not predicted here. Its first window-aligned verdict, in the 11-02 run, was
+    `tracks-the-bill` (residual -22, tolerance 50).
+  - What the green shows: the pre-10-19 days left the segment with the reset, which is what the prediction said would clear the red.
+    What it does not show: both logs end "Not a pass and not a failure — the comparison did not run (Rule 99)". No closed UTC day
+    lay inside the span, so nothing was compared. A green from an empty comparison is no evidence that the single-batch fix
+    holds, and the condition that would refute this note (`daily-exceeds-monthly` on days that all follow 10-19) is still open.
+  - When it can be read: the run of 2026-11-03 (about 05:54Z) is the first whose span holds a whole closed UTC day, 2026-11-02, so it
+    is the first that compares anything. `dailyVsMonthly` on the committed series plus one invented reading for that day returns
+    `consistent` with one contained day, which tests that the code leaves `no-contained-day` then; it does not predict the figure.
+    The watch exits 1 on any excess above its FLOOR of 50, while this note's bar for "the fix did not hold" is 500, so a
+    `daily-exceeds-monthly` with an excess of 51 to 500 turns the workflow red without refuting the note.
 
 ---
 
