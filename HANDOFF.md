@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-02 (21:55Z) — the EPA route probe was skipped on 66 of 66 scheduled runs and the dead-cron watch could not count it; both are fixed, and the watch is now red on purpose
+
+**HEAD:** `7eff9a20` → `dfb123f3` → `9b82593e` → `e228c22c` → the wording commit → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-02-scheduled-job-skipped-every-time.md (task: docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md, TASKs 1 to 3)
+
+No Worker code changed, so there is no deploy. 0 Odds API credits.
+
+- **What changed.** `nfl-epa-route-probe.yml`'s job `if:` could not be true on a schedule event: all 66 scheduled runs (2026-08-28 to 2026-11-01) finished `skipped` (`9b82593e`). The watch now calls a workflow dead when none of its last 3 completed scheduled runs worked, that is `failure`, `skipped` or `startup_failure` (`dfb123f3`; 56 cases, 32 of 32 mutants). `workflow-yaml-check.mjs` now fails a scheduled workflow whose every root job is provably skipped on a schedule event (`e228c22c`; 74 cases, 25 of 25 mutants; the pre-fix file fails, the tree passes 0 of 199). Repo guards run 41506527611 and the YAML gate run 41506527605 were green.
+- **The watch is red from today, as designed.** Its first scheduled run (41530556202, 21:40Z) exited 1 on two NEW entries: `nfl-epa-route-probe.yml` (SKIPPED) and, in jubilant-bassoon, `patent-watch.yml` (STARTUP_FAILURE, 21 of 21 since 2026-06-10). The probe leaves the list when a scheduled run after `9b82593e` works; `patent-watch.yml` waits for the owner's go on a one-line caller fix (CC-CMD TASK 4: the caller passes `skip_drive`, the callee declares `skip_dropbox`). No baseline entry was added for either.
+- **STAGED.** The probe's heartbeat mode has never executed; its first scheduled run is its first execution and may find a real problem. At 21:50Z no scheduled probe run for 11-02 had been created. **Unblocked by:** GitHub firing the tick. **Verify:** a scheduled run created after 2026-11-02T19:04Z whose probe step ran, and a verdict in `outbox/nfl-epa-route-probe-*.json`. Two scheduled tasks are armed (2026-11-03 20:45Z and 2026-11-04 22:30Z) and will append under "Observed" in the CC-CMD.
+- **Evidence appended** to `docs/CC-CMD-2026-09-15-dead-cron-triage.md` (the Rule 90 registry has one UNEXERCISED entry, not four) and `docs/CC-CMD-2026-10-22-dead-cron-watch-one-empty-read.md` (`surveyRepo` takes `io`); the laboratory's coverage-alarm CC-CMD got its own append in that repository.
+- **Correction.** Five comments and the new check's failure text said a skipped run shows green on the Actions page. That was never observed; the wording commit replaces it with "not a failure".
+
 ## SESSION CLOSE-OUT — 2026-11-02 (08:15Z) — the vendor watch's first window-aligned verdict is `tracks-the-bill` (-22 within 50), and the repeat of Task 2b returned `abort-loses-nothing`
 
 **HEAD:** `6796a95` → this close-out · **Branch:** main

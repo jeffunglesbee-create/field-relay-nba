@@ -94,3 +94,13 @@ a genuinely broken workflow visible in review.
 `watch-silently-dead-crons.mjs` green with **zero** dead crons and **zero**
 declared detectors — every detector green because its condition cleared, not
 because it was listed.
+
+## Evidence added 2026-11-02
+
+Measured on 2026-11-02 by the read of the client, relay and laboratory outbox files; the tables above are as written on 2026-09-15 and are not edited.
+
+- **One rule-registry entry is UNEXERCISED today, not four.** The monitor's own query (`category = 'rule-registry'` and a title that begins `UNEXERCISED`), run as a read-only SELECT on field-archive, returns one row: `rule-98`, `updated_at` 2026-08-03 02:29:35, 91.7 days old on 2026-11-02 (90.6 days at the monitor's run of 2026-11-01 17:40Z). `rule-92`, `rule-93` and `rule-94` no longer carry the prefix; their `updated_at` is 2026-09-15 18:40:30, 18:40:35 and 18:40:40.
+- **What cleared the three is not recorded here, and was not traced.** They concern client features (Watch Engine selection, OTW momentum, the `_fieldDataReady` sentinel), and no file under `scripts/` in this repository names them. TASK 2 above still reads "Unstarted"; by the registry's own state three of its four entries have left the list.
+- **The watch prints a condition that stopped being true 19 minutes after it was written.** `docs/declared-detectors.json` was committed at 2026-09-15T18:21:52Z (`2ffbd855`) with the text "rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days" for `rule90-staleness-monitor.yml`. The three entries were re-titled at 18:40Z. The watch has printed that text on every run since, including both runs of 2026-11-02 (dispatch 41506676878, scheduled 41530556202). The monitor itself has failed on each of its last four scheduled runs I read (2026-10-29 to 2026-11-01); the newest (41332637032) lists the single violation `rule-98` at 90.6 days. This is TASK 3's condition, unmet for 48 days.
+- **Proposal, not made.** The `red_because` text carries a figure that ages daily, so replacing it with "rule-98 at 91.7 days" would be false again tomorrow. Name the condition and the entry (`rule-98`, no mutation-proven check) and let the monitor's log carry the number.
+- **The done condition is further away than it was written.** "Zero dead crons and zero declared detectors" now also has to hold with the watch counting skipped and never-started windows: on 2026-11-02 it names two NEW workflows (see `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md`), carries `nba-clutch-update.yml` in the baseline, and lists these two declared detectors.

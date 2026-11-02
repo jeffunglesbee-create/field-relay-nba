@@ -63,3 +63,9 @@ workflow) is not done, so the premise is neither confirmed nor withdrawn.
    mutation is caught, and the next scheduled run reads NEW 0 for the 6.
 3. If TASK 0 shows no empty answers in 20 reads and the re-run is clean:
    Status WITHDRAWN as a one-off, with both outputs.
+
+## Note 2026-11-02 — the survey can now be tested against a fake API
+
+`docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md` (commit `dfb123f3`) changed `surveyRepo` in `scripts/watch-silently-dead-crons.mjs` to take its API calls as a third parameter, `io`, which defaults to the real `{ gh, ghAll, cronOf }`. The watch's self-test now runs the per-repo survey against a fake, including the zero-run branch that files a workflow as never fired. TASK 1's self-test ("the first answer is empty, the second has runs") needs exactly that seam: a fake `io` whose `gh` answers an empty `workflow_runs` once and then answers with runs. Build on it rather than adding another.
+
+The location quoted above ("about line 335") has moved with that change; find the branch by its comment. The same change widened what the watch counts as dead (a window of only `skipped` or `startup_failure` runs, as well as `failure`), so TASK 0's re-run of the watch now lists those too: on 2026-11-02 it names `nfl-epa-route-probe.yml` and, in jubilant-bassoon, `patent-watch.yml`, which are not the six false readings this document is about.
