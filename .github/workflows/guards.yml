@@ -523,7 +523,7 @@ jobs:
 
       # docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md. A scheduled
       # workflow whose every root job is provably skipped on a `schedule` event
-      # finishes "skipped" -- green on the Actions page -- and runs no step.
+      # finishes "skipped" -- not a failure -- and runs no step.
       # nfl-epa-route-probe.yml did that on 66 of 66 ticks. The check itself runs
       # in workflow-yaml-gate.yml whenever a workflow changes; this step proves,
       # on every push, that the judge is right and that the check can still fail:

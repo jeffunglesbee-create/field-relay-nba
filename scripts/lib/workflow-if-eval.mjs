@@ -6,12 +6,12 @@
 //
 // On a `schedule` tick the first operand is false, and the second reads a payload
 // key that only a `workflow_run` event has: `null == 'success'` is false. The job
-// was skipped, the run finished "skipped", and the Actions page shows that green.
-// 66 of 66 scheduled runs, 2026-08-27 to 2026-11-01, executed no step. The
+// was skipped and the run finished "skipped", which is not a failure.
+// 66 of 66 scheduled runs, 2026-08-28 to 2026-11-01, executed no step. The
 // dead-cron watch could not see it either, because it counted only `failure`.
 //
 // A parser cannot catch this: the file is valid. A runtime check cannot: the run
-// is green. It is decidable from the file, because the context a scheduled run
+// never fails. It is decidable from the file, because the context a scheduled run
 // sees is small and fixed.
 //
 // THREE-VALUED. A condition is true, false, or UNDECIDED. Only "false" can fail a
@@ -290,7 +290,7 @@ export function judgeWorkflow(doc) {
   if (roots.length && roots.every((r) => r.verdict === false)) {
     const list = roots.map((r) => `${r.name} (if: ${String(r.expr).replace(/\s+/g, ' ').trim()})`).join('; ');
     findings.push(`scheduled, but every root job is provably skipped on a schedule event: ${list}. `
-      + 'Each tick finishes "skipped", which the Actions page shows green, and runs no step.');
+      + 'Each tick finishes "skipped", which is not a failure, so nothing goes red and no step runs.');
   }
   return { scheduled: true, roots, findings };
 }

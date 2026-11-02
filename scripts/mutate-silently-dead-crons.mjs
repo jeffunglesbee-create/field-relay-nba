@@ -133,7 +133,7 @@ const MUTATIONS = [
   { name: 'E1 a skipped streak stops counting as dead',
     anchor: "export const DEAD_CONCLUSIONS = new Set(['failure', 'skipped', 'startup_failure']);",
     replace: "export const DEAD_CONCLUSIONS = new Set(['failure', 'startup_failure']);",
-    catches: 'the EPA probe, skipped on 66 of 66 scheduled runs, is green again and unreported' },
+    catches: 'the EPA probe, skipped on 66 of 66 scheduled runs, goes uncounted again and unreported' },
 
   { name: 'E2 a startup_failure streak stops counting as dead',
     anchor: "export const DEAD_CONCLUSIONS = new Set(['failure', 'skipped', 'startup_failure']);",

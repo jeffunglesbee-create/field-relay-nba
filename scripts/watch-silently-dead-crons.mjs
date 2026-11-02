@@ -339,15 +339,15 @@ if (process.argv.includes('--self-test')) {
       'absent is overdue, not exempt — an undated entry is the quietest way to silence a cron forever');
 
   // ── WHAT "DEAD" MEANS ───────────────────────────────────────────────────
-  // nfl-epa-route-probe.yml: 66 of 66 scheduled runs `skipped`, green on the
-  // Actions page and absent from this watch. patent-watch.yml: 21 of 21
+  // nfl-epa-route-probe.yml: 66 of 66 scheduled runs `skipped`, which is not a
+  // failure, so none was ever counted by this watch. patent-watch.yml: 21 of 21
   // `startup_failure`. Both measured on 2026-11-02, both invisible to a test that
   // read `every(r => r.conclusion === 'failure')`.
   one('the window is the default the cases below assume', STREAK, 3, 'DEAD_CRON_STREAK is not set in CI');
   const kind = (...cs) => String(streakKind(cs, 3));
   one('three failures', kind('failure', 'failure', 'failure'), 'failure', 'the original definition, unchanged');
   one('three skipped', kind('skipped', 'skipped', 'skipped'), 'skipped',
-      'nfl-epa-route-probe.yml: 66 of 66, green on the Actions page');
+      'nfl-epa-route-probe.yml: 66 of 66, not a failure and so never counted');
   one('three startup_failure', kind('startup_failure', 'startup_failure', 'startup_failure'), 'startup_failure',
       'patent-watch.yml: 21 of 21 since 2026-06-10, no job ever created');
   one('failure and skipped mixed', kind('failure', 'skipped', 'failure'), 'mixed',

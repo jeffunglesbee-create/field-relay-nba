@@ -91,7 +91,7 @@ for (const f of files) {
   }
 
   // 5. A scheduled workflow whose every root job is provably skipped on a
-  //    schedule event finishes "skipped", which the Actions page shows green.
+  //    schedule event finishes "skipped", which is not a failure and runs no step.
   const wv = judgeWorkflow(doc);
   judged.push(wv);
   for (const m of wv.findings) fail(m);
