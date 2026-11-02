@@ -1,0 +1,170 @@
+{
+ "day": "2026-11-02",
+ "site": "handleCFLOddsProbs",
+ "approval": "APPROVED: up to 12 Odds API credits for the CFL abort experiment",
+ "max_vendor_credits": 12,
+ "calls": [
+  {
+   "step": "warm-up",
+   "status": 200,
+   "cached": "EXPIRED",
+   "state": "reconciled"
+  },
+  {
+   "step": "confirm",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "latency-sample",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "latency-sample",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 150,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 225,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 300,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 376,
+   "abort_took_effect": true
+  },
+  {
+   "step": "aborted",
+   "abort_after_ms": 451,
+   "abort_took_effect": true
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  },
+  {
+   "step": "control",
+   "status": 200,
+   "cached": "HIT",
+   "state": "cache-hit"
+  }
+ ],
+ "ledgers": {
+  "before_a": {
+   "date": "2026-11-02",
+   "by_site": 24,
+   "kept": 24,
+   "n": 16,
+   "hit": 12
+  },
+  "before_b": {
+   "date": "2026-11-02",
+   "by_site": 24,
+   "kept": 24,
+   "n": 16,
+   "hit": 12
+  },
+  "start": {
+   "date": "2026-11-02",
+   "by_site": 30,
+   "kept": 30,
+   "n": 20,
+   "hit": 15
+  },
+  "after_aborts": {
+   "date": "2026-11-02",
+   "by_site": 30,
+   "kept": 30,
+   "n": 25,
+   "hit": 20
+  },
+  "after_controls": {
+   "date": "2026-11-02",
+   "by_site": 30,
+   "kept": 30,
+   "n": 30,
+   "hit": 25
+  },
+  "late": {
+   "date": "2026-11-02",
+   "by_site": 30,
+   "kept": 30,
+   "n": 30,
+   "hit": 25
+  }
+ },
+ "warm_ms": 242,
+ "latency_samples_ms": [
+  904,
+  751,
+  691
+ ],
+ "latency_ms": 751,
+ "abort_schedule_ms": [
+  150,
+  225,
+  300,
+  376,
+  451
+ ],
+ "deltas": {
+  "aborted_phase": {
+   "by_site": 0,
+   "kept": 0,
+   "n": 5,
+   "hit": 5
+  },
+  "control_phase": {
+   "by_site": 0,
+   "kept": 0,
+   "n": 5,
+   "hit": 5
+  },
+  "late_after_controls": {
+   "by_site": 0,
+   "kept": 0,
+   "n": 0,
+   "hit": 0
+  }
+ },
+ "aborted_calls": 5,
+ "aborted_effective": 5,
+ "ledger_overrecord_left_credits": 0,
+ "verdict": "abort-loses-nothing",
+ "why": "5 of 5 aborted cache-hit calls were cut, and every refund and every tally landed"
+}
