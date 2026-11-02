@@ -31,7 +31,9 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # The proof step below (self-test plus 23 mutations) measured 7 minutes in CI on 2026-11-01 (runner-read-guards run 41330484619), and the experiment itself takes about 2: a 10-minute
+    # bound would cancel the job mid-experiment, after requests had been sent and before the artifact was committed.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
