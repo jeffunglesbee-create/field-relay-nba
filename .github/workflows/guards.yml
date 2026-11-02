@@ -521,6 +521,17 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/check-archive-date-keying.mjs --self-test && node scripts/check-archive-date-keying.mjs
 
+      # docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md. A scheduled
+      # workflow whose every root job is provably skipped on a `schedule` event
+      # finishes "skipped" -- green on the Actions page -- and runs no step.
+      # nfl-epa-route-probe.yml did that on 66 of 66 ticks. The check itself runs
+      # in workflow-yaml-gate.yml whenever a workflow changes; this step proves,
+      # on every push, that the judge is right and that the check can still fail:
+      # 25 mutations of the judge and the gate, through four fixture directories.
+      - name: The scheduled-job check fails on the shape that skipped 66 of 66 runs
+        if: always()
+        run: node scripts/check-workflow-if-eval.mjs && node scripts/mutate-workflow-if-eval.mjs
+
       # LAST, AND THAT IS THE POINT. This checked HANDOFF.md's staleness from
       # step 6, and the gates here are sequential steps in ONE job, so its red
       # SKIPPED every step after it: the credential scan's siblings, the odds

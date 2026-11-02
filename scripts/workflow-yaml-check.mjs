@@ -10,14 +10,25 @@
 // Rule 90 exactly: it had only ever passed, and it could not detect the class
 // of defect it stood in front of. A string scan is not a parse.
 //
-// Assertions per file, each with a mutation that proves it can fail
-// (test/workflow-yaml-fixtures/):
+// Assertions per file:
 //   1. parses as YAML at all
 //   2. has a trigger -- read from `true`, not 'on', because YAML 1.1 parses
 //      the bare word `on` as the boolean true, which is why a naive
 //      d['on'] check reads undefined on a perfectly good workflow
 //   3. has at least one job
 //   4. every job names a runner or reuses a workflow
+//   5. a workflow with a `schedule` trigger has at least one root job that can
+//      run on a schedule event (scripts/lib/workflow-if-eval.mjs)
+//
+// Only 5 has a mutation harness (scripts/mutate-workflow-if-eval.mjs). This
+// header used to say all four of the others did, in test/workflow-yaml-fixtures/;
+// that directory has never existed, so 1-4 have only ever passed. The harness
+// runs one fixture through assertion 1 as a regression, which is not a proof.
+//
+// 5 exists because nfl-epa-route-probe.yml's only job was gated on
+// `github.event.workflow_run.conclusion == 'success'` for every event but
+// dispatch. A scheduled tick evaluated `null == 'success'`, skipped the job, and
+// finished green: 66 of 66 scheduled runs executed no step. The file parsed.
 //
 // A fifth assertion was written and deleted before this shipped: a string scan
 // for a blank line inside a `run:` block, aimed at the exact shape that caused
@@ -30,6 +41,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { judgeWorkflow, coverageLine } from './lib/workflow-if-eval.mjs';
 
 const DIR = process.env.WORKFLOW_DIR || '.github/workflows';
 
@@ -60,6 +72,7 @@ const files = fs.existsSync(DIR)
   : [];
 
 const failures = [];
+const judged = [];
 for (const f of files) {
   const full = path.join(DIR, f);
   const text = fs.readFileSync(full, 'utf8');
@@ -76,9 +89,16 @@ for (const f of files) {
     if (!job || typeof job !== 'object') { fail(`job ${name} is not a mapping`); continue; }
     if (!job['runs-on'] && !job.uses) fail(`job ${name} has neither runs-on nor uses`);
   }
+
+  // 5. A scheduled workflow whose every root job is provably skipped on a
+  //    schedule event finishes "skipped", which the Actions page shows green.
+  const wv = judgeWorkflow(doc);
+  judged.push(wv);
+  for (const m of wv.findings) fail(m);
 }
 
 console.log(`workflow-yaml-check: ${files.length} workflow file(s) in ${DIR}, ${failures.length} failing`);
+console.log(`  ${coverageLine(judged)}`);
 for (const m of failures) console.log(`  FAIL ${m}`);
 if (!files.length) { console.log('  no workflow files found — that is a finding, not a pass'); process.exit(1); }
 process.exit(failures.length ? 1 : 0);
