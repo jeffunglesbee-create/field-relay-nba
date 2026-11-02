@@ -49,7 +49,7 @@
 |---|---|---|
 | the verdict is the window-aligned residual; the 10-12 pair is -190 | **VERIFIED** | self-test and run check, above |
 | the watch fails closed on an unmeasurable window | **VERIFIED against a stub** | run-check cases for a null ledger, a KV ledger, a fallen ledger, a D1 500 and a wrong secret |
-| the real `/budget/odds` and `/d1/execute`, the workflow, the series commit | **STAGED** | the sandbox cannot reach the relay and dispatching `odds-daily-vs-vendor.yml` would split the window. **Unblocked by:** the scheduled run of 2026-11-02 (fires about 05:30Z to 07:00Z). **Verify:** `outbox/odds-daily-vs-vendor-2026-11-02T*.log` prints `residual (window-aligned)`, the labelled diagnostic, a `verdict:` line and a stored series row with a numeric `ledger_month_used` and `ledger_source` `d1`; the first row of November (11-01) is its baseline. A wake is armed |
+| the real `/budget/odds` and `/d1/execute`, the workflow, the series commit | **VERIFIED 2026-11-02** (scheduled run 41396684994; `tracks-the-bill`, window-aligned residual -22 within 50; see the CC-CMD's Data points). Was **STAGED** | the sandbox cannot reach the relay and dispatching `odds-daily-vs-vendor.yml` would split the window. **Unblocked by:** the scheduled run of 2026-11-02 (fires about 05:30Z to 07:00Z). **Verify:** `outbox/odds-daily-vs-vendor-2026-11-02T*.log` prints `residual (window-aligned)`, the labelled diagnostic, a `verdict:` line and a stored series row with a numeric `ledger_month_used` and `ledger_source` `d1`; the first row of November (11-01) is its baseline. A wake is armed |
 
 ## Not changed, and why
 

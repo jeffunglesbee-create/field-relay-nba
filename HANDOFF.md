@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-02 (08:15Z) — the vendor watch's first window-aligned verdict is `tracks-the-bill` (-22 within 50), and the owner approved the repeat of Task 2b
+
+**HEAD:** `6796a95` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-01-vendor-residual-window.md (task: docs/CC-CMD-2026-10-13-vendor-residual-window.md, done condition 3)
+
+No Worker code changed, so there is no deploy. 0 Odds API credits so far today.
+
+- **Done condition 3 MET.** Scheduled run 41396684994 (05:54Z): window 2026-11-01T05:54Z to 2026-11-02T05:54Z, vendor billed 895, ledger 697, known CI 220, **residual -22, tolerance 50, `tracks-the-bill`**; the UTC-day diagnostic reads -85 and is labelled not the verdict; the stored series row has `ledger_month_used` 886 and `ledger_source` d1. The staged verdict `vendor_watch_window_aligned` reads PASS on the committed files. One window, with Task 2b's run and the Task 3 deploy inside it and no CFL game that day: not a measurement of the fix.
+- **Correction.** The 17:31Z and 14:05Z entries said Task 2b's 6 vendor credits and 6 of over-record cancel as a pair. The warm-up's 6 credits are in the ledger too, so only the stranded charge moves the residual, by -6.
+- **The owner approved the repeat of Task 2b** ("Task 2b approved", 00:24Z). It is armed for 08:20Z (`trig_01N3rQPAwXyQWCrgHc7bit2u`), in the dead-quiet CFL hours and after the vendor reading; one dispatch, never a second without a new approval. I raised the workflow's job timeout to 25 minutes first (`6796a95`): its proof step takes 7 minutes and a 10-minute bound would have cancelled the job between the requests and the artifact.
+
 ## SESSION CLOSE-OUT — 2026-11-01 (17:31Z) — the CFL odds call runs under ctx.waitUntil: Task 3 is deployed, and its proof is a repeat of Task 2b that needs the owner's approval
 
 **HEAD:** `1f097a3` → `6589bc1` → this close-out · **Branch:** main
@@ -24,7 +35,7 @@ Worker code changed (`src/index.js`), so there is a deploy: Deploy RELAY Worker 
 No Worker code changed, so there is no deploy. 6 Odds API credits spent at the vendor, inside the 12 the owner approved.
 
 - **Task 2b ran (run 41313403502, 13:53Z).** Verdict `abort-loses-refund-and-tally`. 5 of 5 aborts took effect; the 5 aborted calls added 0 tally rows and left `by_site` +6; the 5 control calls added 5 tally rows and left `by_site` 0; nothing arrived late. Artifact `outbox/cfl-abort-experiment-20261101T135557Z.json`. P5's mechanism is SUPPORTED BY ONE CALL (corrected 17:31Z; this entry first said "shown"): one aborted call kept its charge, and for the other four the ledger cannot say cut or never arrived. Not shown: what share of the production gap (about 16% of cache-hit calls on busy days) is real browser disconnects; H2 (a correction that fails under load) is not excluded on busy days. n = 5.
-- **For the 2026-11-02 vendor watch:** this run adds 6 vendor credits no CI row explains (+6) and 6 of ledger over-record (-6) to the window closing at that reading. They cancel.
+- **For the 2026-11-02 vendor watch:** this run's 6 vendor credits are in the ledger too (charged and kept), so they cancel; only the stranded charge moves the residual, by -6. (This line first said +6 and -6 cancel as a pair; corrected 2026-11-02.)
 - **Superseded 17:31Z:** the fix (Task 3 of the CC-CMD) was ordered by the owner, built with the WHOLE call registered (not only the post-fetch reconcile), deployed, and needed no CONTRACTS.md change; see the entry above. Still open: the repeat of Task 2b.
 - **`*.workers.dev` was added to Allowed domains.** The live session still could not reach the relay (curl exit 000, a new `connect_rejected` at 13:56:15Z): a changed rule does not reach a running session. For a NEW session, check with one `curl` before using `scripts/relay-look.sh`; the runner path stays valid either way.
 
