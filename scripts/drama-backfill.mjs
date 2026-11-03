@@ -14,6 +14,24 @@ const MAX_BATCHES = 30;   // safety cap (600 games max)
 const DELAY_MS   = 200;
 const ESPN_AFL_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard';
 
+// A read that failed is not a score. /archive/drama-by-id only writes while
+// drama_peak IS NULL (CC-CMD-2026-07-06), so ANY value written here is final,
+// and /archive/drama-missing lists only NULL rows, so a game left NULL is simply
+// tried again on the next scheduled run. Only ESPN saying the event does not
+// exist (404/410, passed through by the relay's relayFetch) is a fact about the
+// game and justifies the 0 "cannot be scored" mark. Everything else (403 from
+// ESPN's edge, 429, 5xx, a network error, a malformed body) is a failure to read:
+// nothing is written for that game this run. Measured: 2026-10-31 19:37Z, a 403
+// for Bayern v Dortmund (event 401884754) was stored as 0 and stayed 0, while
+// the same request answers 200 today (CC-CMD-2026-11-03-drama-backfill-error-is-not-a-score).
+class EspnStatusError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+const ESPN_EVENT_ABSENT = new Set([404, 410]);
+
 // === Drama scoring — exact port from CC-CMD v2, verbatim ===
 function dramaScoreLive(st, sport, homeRank, awayRank) {
   const homeScore = st.homeScore ?? 0;
@@ -90,7 +108,7 @@ function computeDramaRetroactive(states, sport, homeRank, awayRank) {
 async function fetchMLBHistoricalStates(espnEventId) {
   const url = `${RELAY}/espn-summary/sports/baseball/mlb/summary?event=${espnEventId}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`ESPN MLB ${res.status} for event ${espnEventId}`);
+  if (!res.ok) throw new EspnStatusError(`ESPN MLB ${res.status} for event ${espnEventId}`, res.status);
   const data = await res.json();
   const plays = data.plays || [];
   if (plays.length === 0) return [];
@@ -120,7 +138,7 @@ async function fetchMLBHistoricalStates(espnEventId) {
 async function fetchWNBAHistoricalStates(espnEventId) {
   const url = `${RELAY}/espn-summary/sports/basketball/wnba/summary?event=${espnEventId}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`ESPN WNBA ${res.status} for event ${espnEventId}`);
+  if (!res.ok) throw new EspnStatusError(`ESPN WNBA ${res.status} for event ${espnEventId}`, res.status);
   const data = await res.json();
   const plays = data.plays || [];
   if (plays.length === 0) return [];
@@ -153,7 +171,7 @@ async function getAFLScoreboardIndex() {
   // ?dates=2026&limit=500 returns the full season (216 events, rounds 1-23 + finals)
   // vs ?dates=2026 alone which caps at 100 events (only through round 10 / May 21).
   const r0 = await fetch(`${ESPN_AFL_SCOREBOARD}?dates=2026&limit=500`);
-  if (!r0.ok) throw new Error(`ESPN AFL scoreboard ${r0.status}`);
+  if (!r0.ok) throw new EspnStatusError(`ESPN AFL scoreboard ${r0.status}`, r0.status);
   const allEvents = (await r0.json()).events || [];
   console.log(`  [afl] Fetched ${allEvents.length} events`);
 
@@ -189,7 +207,7 @@ async function getAFLScoreboardIndex() {
 async function fetchSoccerHistoricalStates(espnEventId, leagueSlug) {
   const url = `${RELAY}/espn-summary/sports/soccer/${leagueSlug}/summary?event=${espnEventId}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`ESPN soccer ${res.status} for event ${espnEventId} (${leagueSlug})`);
+  if (!res.ok) throw new EspnStatusError(`ESPN soccer ${res.status} for event ${espnEventId} (${leagueSlug})`, res.status);
   const data = await res.json();
 
   const comps     = data.header?.competitions?.[0]?.competitors ?? [];
@@ -295,6 +313,10 @@ async function main() {
 
   let totalProcessed = 0, totalErrors = 0, batchNum = 0;
   const touchedDates = new Set();
+  // Games whose read failed this run. They stay NULL (so the next run retries
+  // them) and are not attempted again in this one: /archive/drama-missing keeps
+  // listing a NULL row, so without this set the loop would refetch it every batch.
+  const deferred = new Set();
 
   while (batchNum < MAX_BATCHES) {
     batchNum++;
@@ -310,9 +332,14 @@ async function main() {
       console.log(`Batch ${batchNum}: 0 games — backfill complete`);
       break;
     }
-    console.log(`Batch ${batchNum}: ${games.length} games`);
+    const fresh = games.filter(g => !deferred.has(g.id));
+    if (fresh.length === 0) {
+      console.log(`Batch ${batchNum}: ${games.length} games, all deferred after a failed read in this run; stopping. They stay NULL and are retried on the next run. Games past the relay's ${BATCH_SIZE}-game window are not reached this run.`);
+      break;
+    }
+    console.log(`Batch ${batchNum}: ${games.length} games${fresh.length < games.length ? ` (${games.length - fresh.length} deferred this run)` : ''}`);
 
-    for (const game of games) {
+    for (const game of fresh) {
       touchedDates.add(game.date);
       const sport = classifySport(game.sport);
       const label = `${game.sport} | ${game.home} vs ${game.away} (${game.date}) [event=${game.espn_event_id}]`;
@@ -365,8 +392,19 @@ async function main() {
         totalProcessed++;
       } catch (err) {
         console.error(`  [error] ${label}: ${err.message}`);
-        // Write 0 to clear this game from the missing queue so we don't loop forever
-        try { await writeGameDrama(game.id, 0, null); } catch { /* ignore */ }
+        if (err instanceof EspnStatusError && ESPN_EVENT_ABSENT.has(err.status)) {
+          // ESPN says the event does not exist: the game cannot be scored, which is what 0 means.
+          try {
+            await writeGameDrama(game.id, 0, null);
+            console.error(`  [absent] ${label} → 0 (ESPN ${err.status})`);
+          } catch (werr) {
+            deferred.add(game.id);
+            console.error(`  [deferred] ${label}: the 0 was not stored (${werr.message}); stays NULL, retried on the next run`);
+          }
+        } else {
+          deferred.add(game.id);
+          console.error(`  [deferred] ${label}: nothing written, stays NULL, retried on the next run`);
+        }
         totalErrors++;
         totalProcessed++;
       }
@@ -375,7 +413,7 @@ async function main() {
     }
   }
 
-  console.log(`\n=== Done: ${totalProcessed} processed, ${totalErrors} errors ===`);
+  console.log(`\n=== Done: ${totalProcessed} processed, ${totalErrors} errors, ${deferred.size} deferred ===`);
 
   // Best-effort: each (feature, date) recompute call is independently
   // wrapped so one failing (e.g. jinx 401s) never blocks or skips the
