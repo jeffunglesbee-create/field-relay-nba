@@ -37,3 +37,12 @@ jobs:
 
       - name: Every pushing workflow lands its push or goes red
         run: node scripts/check-push-lands.mjs
+
+      # docs/CC-CMD-2026-11-03-workflow-jobs-have-no-time-limit.md, TASK 1. Run
+      # 41650246688 held a runner for 941 s on one Apps Script request: neither the
+      # request nor the job had a limit. This fails when drive-upload-outbox.yml
+      # loses either. It judges that one workflow; the other 199 are TASK 2.
+      # guards.yml proves, on every push, that this step can fail.
+      - name: The Drive upload workflow keeps its request and job time limits
+        if: always()
+        run: node scripts/check-workflow-timeouts.mjs

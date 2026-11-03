@@ -532,6 +532,17 @@ jobs:
         if: always()
         run: node scripts/check-workflow-if-eval.mjs && node scripts/mutate-workflow-if-eval.mjs
 
+      # docs/CC-CMD-2026-11-03-workflow-jobs-have-no-time-limit.md, TASK 1. Run
+      # 41650246688 held a runner for 941 s on one Apps Script request, and neither
+      # the request nor its job had a limit. The check itself runs in
+      # workflow-yaml-gate.yml whenever a workflow changes; this step proves, on
+      # every push, that the judge is right and that the check can still fail:
+      # 28 mutations of the judge and the check, through ten fixture directories
+      # made from the real drive-upload-outbox.yml.
+      - name: The time-limit check fails on the shape that held a runner for 941 s
+        if: always()
+        run: node scripts/check-workflow-timeouts.mjs --self-test && node scripts/mutate-workflow-timeouts.mjs
+
       # docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md. The probe's
       # "NOT OBSERVABLE is neutral on the heartbeat" was written in August and never
       # executed, because the job's `if:` skipped every tick. Run for real, it held in
