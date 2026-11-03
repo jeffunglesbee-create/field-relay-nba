@@ -39,9 +39,11 @@ const ESPN_EVENT_ABSENT = new Set([404, 410]);
 // unattributed because only the status was logged: ESPN's edge, the relay, or Cloudflare in front
 // of it could not be told apart (CC-CMD-2026-11-03-drama-backfill-error-is-not-a-score).
 function servedBy(res) {
-  const relayError = res.headers.get('x-relay-error') || 'none';
-  const dataCentre = (res.headers.get('cf-ray') || '').split('-').pop() || 'unknown';
-  return `X-RELAY-Error: ${relayError}; data centre: ${dataCentre}`;
+  // A header that is absent is stated as absent; it is not collapsed into an empty string.
+  const relayError = res.headers.get('x-relay-error');
+  const ray = res.headers.get('cf-ray');
+  const dataCentre = ray === null ? 'unknown' : ray.split('-').pop();
+  return `X-RELAY-Error: ${relayError === null ? 'none' : relayError}; data centre: ${dataCentre}`;
 }
 
 // === Drama scoring — exact port from CC-CMD v2, verbatim ===
