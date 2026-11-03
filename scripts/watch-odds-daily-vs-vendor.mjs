@@ -164,16 +164,21 @@ export function vendorDay(prev, curr) {
  *
  * NULL, NOT ZERO, when the tally cannot be read. "Nothing was unreconciled"
  * and "we could not find out" are different answers and only one of them
- * explains a residual.
+ * explains a residual. That covers a row as well as the array: a row that is
+ * not an object, or a no-header row whose credits_kept or n is not a number,
+ * makes the whole tally null. It used to be summed as 0 (`Number(x) || 0`), so
+ * a row that lost its credits read as a day with fewer unreconciled estimates.
  */
 export function noHeaderCredits(reconcileRows) {
   if (!Array.isArray(reconcileRows)) return null;
   let credits = 0, calls = 0;
   const sites = new Set();
   for (const r of reconcileRows) {
-    if (!r || r.state !== 'no-header') continue;
-    credits += Number(r.credits_kept) || 0;
-    calls += Number(r.n) || 0;
+    if (!r || typeof r !== 'object') return null;
+    if (r.state !== 'no-header') continue;
+    if (!Number.isFinite(r.credits_kept) || !Number.isFinite(r.n)) return null;
+    credits += r.credits_kept;
+    calls += r.n;
     if (r.site) sites.add(r.site);
   }
   return { credits, calls, sites: [...sites].sort() };
@@ -344,6 +349,13 @@ if (process.argv.includes('--self-test')) {
       'the reader needs which site, not only how much');
   one('a cache-hit row is not an overcharge', NH([row('a', 'cache-hit', 9, 0)]).credits, 0,
       'reconcile already refunded those in full');
+  one('a no-header row with no credits_kept is null, not a zero that hides it', NH([row('a', 'no-header', 10, undefined)]), null,
+      'it used to be summed as 0 (Rule 99)');
+  one('a no-header row with no n is null', NH([{ site: 'a', state: 'no-header', credits_kept: 20 }]), null);
+  one('a number sent as a string is not a number', NH([row('a', 'no-header', 10, '20')]), null, 'the relay serves numbers');
+  one('a row that is null makes the tally null, it is not skipped', NH([row('a', 'no-header', 10, 20), null]), null);
+  one('a row that is not a no-header row is not read, so a gap in it does not make the tally unreadable',
+      NH([{ site: 'b', state: 'reconciled', n: 3 }, row('a', 'no-header', 2, 4)]).credits, 4);
 
   // THE LEDGER ON THE VENDOR'S WINDOW. Pairs below are rows of
   // outbox/odds-daily-vs-vendor-series.json, verbatim, with the known CI spend
@@ -560,7 +572,7 @@ const v = j.window;
 // arithmetic to be rewritten.
 const nh = noHeaderCredits(rawBudget?.daily?.reconcile);
 if (nh === null) {
-  say(`  unreconciled estimate  : UNREADABLE — daily.reconcile is not an array, so none of`);
+  say(`  unreconciled estimate  : UNREADABLE — daily.reconcile is not an array, or a row of it has no numeric credits_kept or n, so none of`);
   say(`                           the UTC-day residual above can be attributed to a kept estimate`);
 } else if (nh.credits === 0) {
   say(`  unreconciled estimate  : 0 — no call kept an estimate for want of a receipt`);

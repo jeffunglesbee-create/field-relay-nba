@@ -46,6 +46,16 @@ const MUTATIONS = [
     replace: "  if (delta < -1e12) return { state: 'counter-reset', delta };",
     catches: 'a billing cycle that does not land on the 1st is differenced as if it were spend' },
 
+  { name: 'V3a a no-header row that lost its credits is summed as 0 (the original defect)',
+    anchor: "    if (!Number.isFinite(r.credits_kept) || !Number.isFinite(r.n)) return null;",
+    replace: "    r = { ...r, credits_kept: Number(r.credits_kept) || 0, n: Number(r.n) || 0 };",
+    catches: 'the unreconciled-estimate line reads a smaller number, or 0, for a tally it could not read' },
+
+  { name: 'V3b a null row in the tally is skipped',
+    anchor: "    if (!r || typeof r !== 'object') return null;",
+    replace: "    if (!r || typeof r !== 'object') continue;",
+    catches: 'a row that was lost reads as a row that was not there' },
+
   { name: 'V3 no baseline becomes a zero-spend day',
     anchor: "  if (!prev) return { state: 'no-data' };",
     replace: "  if (!prev) return { state: 'ok', vendorDay: 0 };",
@@ -106,8 +116,8 @@ const MUTATIONS = [
     catches: 'an unreadable tally reports 0 unreconciled credits, so a residual that is entirely a kept estimate reads as entirely unexplained (Rule 99)' },
 
   { name: 'V14 reconciled rows counted as unreconciled',
-    anchor: "    if (!r || r.state !== 'no-header') continue;",
-    replace: '    if (!r) continue;',
+    anchor: "    if (r.state !== 'no-header') continue;",
+    replace: '    if (false) continue;',
     catches: 'every settled call is added to the named overcharge, which would make the residual look fully explained on any day' },
 
   // ── Task 1 of CC-CMD-2026-10-13-vendor-residual-window: the verdict is the window-aligned residual ──

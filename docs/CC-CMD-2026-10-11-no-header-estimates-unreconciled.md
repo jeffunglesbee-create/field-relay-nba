@@ -224,3 +224,10 @@ contains a known quantity is not a measurement.
    2026-10-10's was +107. Its cause is not established here. The 2026-10-12
    closed day, with `no-header` near zero, is the first reading that
    isolates it.
+
+## Note 2026-11-03: `noHeaderCredits` no longer sums a missing field as 0
+
+Found by the close-out audit of `docs/CC-CMD-2026-10-13-vendor-residual-window.md` (BUILD-ON-A: added here, which created the function, not filed again). `noHeaderCredits` (`scripts/watch-odds-daily-vs-vendor.mjs`) summed `credits_kept` and `n` as `Number(x) || 0` inside a loop, so a `no-header` row that lost either field read as a day with fewer unreconciled estimates, although the function's own comment says the tally must be null, not zero, when it cannot be read. A loop the absence-collapse gate cannot see.
+
+Fixed 2026-11-03: a row that is not an object, or a `no-header` row whose `credits_kept` or `n` is not a finite number (a numeric string included), makes the whole tally null, which the caller already prints as UNREADABLE. It feeds only the diagnostic line "unreconciled estimate", not `judgeDay`, so the verdict is unaffected. `--self-test` 83 of 83 (five new cases), `scripts/mutate-odds-daily-vs-vendor.mjs --with-run` 53 of 53 (V3a puts the original defect back, V3b skips a null row; V14's anchor was re-pointed at the rewritten line, which had made it report "NOTHING MUTATED"), `scripts/check-odds-daily-vs-vendor-run.mjs` passes against the stub relay. Verify: `node scripts/watch-odds-daily-vs-vendor.mjs --self-test | tail -3` prints `self-test: 83/83`.
+
