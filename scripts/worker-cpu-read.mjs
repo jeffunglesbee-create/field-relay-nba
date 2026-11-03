@@ -35,8 +35,17 @@
 // as that Worker's tail. Adaptive datasets are sampled; the counts are
 // Cloudflare's estimates.
 //
-// Exit: 0 measured, 1 query or auth failure (body printed), 2 nothing to read.
+// LOCALISE MODE (MODE=localise WORKER=<name> STATUS=<status>): every time bucket
+// in the window holding an invocation of one Worker with one status, at the finest
+// time dimension the schema offers, reconciled against the same window's daily
+// totals. Built for docs/CC-CMD-2026-11-03-relay-exceeded-memory.md. It also
+// prints every dimension the dataset offers, so whether anything separates a
+// cron tick from a request is the schema's answer, not a guess from timing.
+//
+// Exit: 0 measured, 1 query or auth failure (body printed), 2 nothing to read,
+//       3 (localise) the buckets do not sum to the daily totals.
 //   node scripts/worker-cpu-read.mjs              (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, DAYS)
+//   MODE=localise WORKER=field-relay-nba STATUS=exceededMemory node scripts/worker-cpu-read.mjs
 //   node scripts/worker-cpu-read.mjs --self-test
 
 import { readFileSync } from 'node:fs'
@@ -137,6 +146,44 @@ export function render ({ summary, qFields, qDesc, doRows, days, limits }) {
   return out.join('\n')
 }
 
+/** The finest time dimension available, finest first. */
+export function pickTimeDim (dims) {
+  return ['datetimeMinute', 'datetimeFiveMinutes', 'datetimeFifteenMinutes', 'datetimeHour'].find(d => dims.includes(d)) || null
+}
+
+/**
+ * buckets: [{ at: ISO, requests, cpuP50 }], dayTotals: { day: n }
+ * The buckets are a second grouping of the same sampled data, so they must sum
+ * to the daily totals. A gap is printed as a failure, never smoothed.
+ */
+export function renderLocalise ({ worker, status, days, timeDim, dims, buckets, dayTotals }) {
+  const out = []
+  const sumB = buckets.reduce((a, b) => a + b.requests, 0)
+  const sumD = Object.values(dayTotals).reduce((a, b) => a + b, 0)
+  const ok = sumB === sumD
+  out.push(`COVERAGE: ${worker}, status ${status}, ${days} UTC day(s), bucketed by ${timeDim}. ${buckets.length} bucket(s) hold ${sumB} invocation(s); the daily totals hold ${sumD}. Counts are Cloudflare's sampled estimates.`)
+  out.push(`Dimensions this dataset offers: ${dims.join(', ')}`)
+  out.push('')
+  out.push('Every bucket, oldest first:')
+  for (const b of [...buckets].sort((x, y) => x.at.localeCompare(y.at))) {
+    out.push(`  ${b.at}  ${b.requests}${typeof b.cpuP50 === 'number' ? `  cpuTimeP50 ${b.cpuP50}` : ''}`)
+  }
+  out.push('')
+  out.push('By day: ' + Object.entries(dayTotals).filter(([, v]) => v > 0).map(([k, v]) => `${k} ${v}`).join(', '))
+  const byHour = {}
+  for (const b of buckets) { const h = b.at.slice(11, 13); byHour[h] = (byHour[h] || 0) + b.requests }
+  out.push('By UTC hour of day: ' + Object.keys(byHour).sort().map(h => `${h}h ${byHour[h]}`).join(', '))
+  if (timeDim === 'datetimeMinute') {
+    const on5 = buckets.filter(b => Number(b.at.slice(14, 16)) % 5 === 0).reduce((a, b) => a + b.requests, 0)
+    out.push(`On a minute divisible by 5 (where the */5 and */15 crons fire): ${on5} of ${sumB}. Timing alone does not prove the trigger.`)
+  }
+  out.push('')
+  out.push(ok
+    ? `RECONCILED: ${buckets.length} bucket(s) sum to ${sumB}, equal to the daily totals.`
+    : `DOES NOT RECONCILE: buckets sum to ${sumB}, daily totals to ${sumD} (difference ${sumB - sumD}).`)
+  return { text: out.join('\n'), ok }
+}
+
 /** The relay's own cpu_ms from wrangler.toml; the only limit this repo can read. */
 export function relayLimit (toml) {
   const name = toml.match(/^name\s*=\s*"([^"]+)"/m)?.[1]
@@ -176,6 +223,7 @@ async function live () {
   for (const k of ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']) {
     if (!process.env[k]) { console.log(`FAIL: ${k} is not set`); process.exit(1) }
   }
+  if (process.env.MODE === 'localise') return localise()
   const days = Math.min(Math.max(Number(process.env.DAYS || 7), 1), 30)
   const account = process.env.CLOUDFLARE_ACCOUNT_ID
 
@@ -247,6 +295,49 @@ async function live () {
   console.log(render({ summary: summarise(rows, qFields), qFields, qDesc, doRows, days, limits }))
 }
 
+async function localise () {
+  const worker = process.env.WORKER
+  const status = process.env.STATUS
+  if (!worker || !status) { console.log('FAIL: localise needs WORKER and STATUS'); process.exit(1) }
+  const days = Math.min(Math.max(Number(process.env.DAYS || 30), 1), 30)
+  const account = process.env.CLOUDFLARE_ACCOUNT_ID
+
+  const root = (await gql('{ __schema { queryType { name } } }')).__schema.queryType.name
+  const acct = await childType(await childType(root, 'viewer'), 'accounts')
+  const wiaFields = await fieldsOf(await childType(acct, 'workersInvocationsAdaptive'))
+  const sub = name => named(wiaFields.find(x => x.name === name)?.type)
+  const dims = (await fieldsOf(sub('dimensions'))).map(f => f.name)
+  const timeDim = pickTimeDim(dims)
+  if (!timeDim) { console.log(`FAIL: no time dimension among: ${dims.join(', ')}`); process.exit(1) }
+  const hasCpu = (await fieldsOf(sub('quantiles'))).some(f => f.name === 'cpuTimeP50')
+
+  const end0 = Math.floor(Date.now() / DAY_MS) * DAY_MS
+  const buckets = []
+  const dayTotals = {}
+  for (let i = days; i >= 1; i--) {
+    const s = new Date(end0 - i * DAY_MS)
+    const e = new Date(end0 - (i - 1) * DAY_MS - 1000)
+    const day = s.toISOString().slice(0, 10)
+    const v = { a: account, w: worker, st: status, s: s.toISOString(), e: e.toISOString() }
+    const f = 'filter:{scriptName:$w, status:$st, datetime_geq:$s, datetime_leq:$e}'
+    const tot = await gql(`query($a:String!,$w:String!,$st:String!,$s:Time!,$e:Time!){ viewer { accounts(filter:{accountTag:$a}) {
+      workersInvocationsAdaptive(limit:10, ${f}) { sum { requests } } } } }`, v)
+    dayTotals[day] = (tot.viewer.accounts[0]?.workersInvocationsAdaptive || []).reduce((a, r) => a + (r.sum.requests || 0), 0)
+    if (!dayTotals[day]) continue
+    const d = await gql(`query($a:String!,$w:String!,$st:String!,$s:Time!,$e:Time!){ viewer { accounts(filter:{accountTag:$a}) {
+      workersInvocationsAdaptive(limit:10000, ${f}) { dimensions { ${timeDim} } sum { requests } ${hasCpu ? 'quantiles { cpuTimeP50 }' : ''} } } } }`, v)
+    for (const r of d.viewer.accounts[0]?.workersInvocationsAdaptive || []) {
+      buckets.push({ at: r.dimensions[timeDim], requests: r.sum.requests || 0, cpuP50: r.quantiles?.cpuTimeP50 })
+    }
+  }
+  if (!buckets.length && !Object.values(dayTotals).some(Boolean)) {
+    console.log(`NOTHING MEASURED: no ${status} invocation of ${worker} in ${days} day(s). Not a pass.`); process.exit(2)
+  }
+  const r = renderLocalise({ worker, status, days, timeDim, dims, buckets, dayTotals })
+  console.log(r.text)
+  process.exit(r.ok ? 0 : 3)
+}
+
 /** DO namespace id -> "Class (script)". A failure is printed, and ids stand in. */
 async function namespaceNames (account) {
   const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/workers/durable_objects/namespaces?per_page=100`, {
@@ -297,6 +388,18 @@ function selfTest () {
 
   t('relayLimit reads name and cpu_ms', JSON.stringify(relayLimit('name = "r"\n[limits]\ncpu_ms      = 300000\n')) === '{"r":300000}')
   t('relayLimit returns nothing when cpu_ms is absent', JSON.stringify(relayLimit('name = "r"\n')) === '{}')
+
+  t('pickTimeDim takes the finest', pickTimeDim(['date', 'datetimeHour', 'datetimeMinute']) === 'datetimeMinute' && pickTimeDim(['date', 'datetimeHour']) === 'datetimeHour' && pickTimeDim(['date']) === null)
+  const bk = [{ at: '2026-10-07T03:10:00Z', requests: 2, cpuP50: 9 }, { at: '2026-10-07T03:17:00Z', requests: 1 }, { at: '2026-10-08T11:30:00Z', requests: 3 }]
+  const L = renderLocalise({ worker: 'w', status: 'exceededMemory', days: 2, timeDim: 'datetimeMinute', dims: ['datetimeMinute', 'status'], buckets: bk, dayTotals: { '2026-10-07': 3, '2026-10-08': 3 } })
+  t('localise reconciles when buckets equal the daily totals', L.ok && /RECONCILED: 3 bucket\(s\) sum to 6/.test(L.text))
+  t('localise lists every bucket oldest first', L.text.indexOf('2026-10-07T03:10') < L.text.indexOf('2026-10-07T03:17') && L.text.indexOf('2026-10-07T03:17') < L.text.indexOf('2026-10-08T11:30'))
+  t('localise counts minutes on a cron boundary', /On a minute divisible by 5 .*: 5 of 6/.test(L.text))
+  t('localise groups by UTC hour of day', /By UTC hour of day: 03h 3, 11h 3/.test(L.text))
+  t('localise prints the dataset\'s dimensions', /Dimensions this dataset offers: datetimeMinute, status/.test(L.text))
+  const G = renderLocalise({ worker: 'w', status: 's', days: 2, timeDim: 'datetimeHour', dims: [], buckets: bk, dayTotals: { '2026-10-07': 3, '2026-10-08': 4 } })
+  t('localise fails when buckets do not sum to the totals', !G.ok && /DOES NOT RECONCILE: buckets sum to 6, daily totals to 7 \(difference -1\)/.test(G.text))
+  t('the cron-minute line is printed only at minute grain', !/divisible by 5/.test(G.text))
 
   console.log(`self-test: ${n - failed}/${n}`)
   process.exit(failed ? 1 : 0)
