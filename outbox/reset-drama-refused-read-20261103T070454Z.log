@@ -1,0 +1,4 @@
+=== Reset the Drama row stored from a refused read: Bundesliga_2026-10-31_e401884754 ===
+
+[before] {"id":"Bundesliga_2026-10-31_e401884754","sport":"Bundesliga","date":"2026-10-31","home":"Bayern","away":"Dortmund","home_score":2,"away_score":2,"drama_peak":0,"drama_arc":"null","espn_event_id":"401884754","finalized_at":"2026-10-31 19:30:26"}
+RESET ERROR: ESPN summary for 401884754 answers HTTP 403 through the relay: a reset now would only be refused again; not resetting
