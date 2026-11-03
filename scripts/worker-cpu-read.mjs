@@ -18,9 +18,17 @@
 // memory, and each quantile's own schema description is printed so the unit is
 // the API's word rather than this file's.
 //
-// THE ANSWER THAT MATTERS is the `exceededResources` count: Cloudflare's status
-// for 1102/1027, "most commonly excessive CPU time". Zero means no invocation in
-// the window hit a limit, whatever the percentiles say.
+// THE ANSWER THAT MATTERS is the count of `exceeded*` statuses: exceededResources
+// (1102/1027, "most commonly excessive CPU time") and exceededMemory (the 128 MB
+// limit). Zero means no invocation in the window hit a limit, whatever the
+// percentiles say. The first run counted exceededResources alone and called the
+// relay clean while it carried 45 exceededMemory invocations; the prefix match is
+// why a third limit status would not be missed the same way.
+//
+// PERCENTILES ARE KEPT PER STATUS. A Worker's worst daily p99 across all statuses
+// is usually its failures' p99: the first run reported the relay at 5.4 s CPU,
+// which was the p99 of 45 out-of-memory invocations, not of its 2.9 million
+// successful ones. Success is reported on its own line, failures on theirs.
 //
 // WHAT IT DOES NOT MEASURE, printed with every result (Rule 91): CPU per ROUTE
 // or per cron handler. The dataset is per Worker. A heavy route is visible only
@@ -53,7 +61,8 @@ export function pickQuantiles (names) {
 
 /**
  * rows: [{ day, scriptName, status, requests, errors, quantiles: {field: n} }]
- * -> per Worker: totals, requests by status, and per quantile the worst day.
+ * -> per Worker: totals, requests by status, and per status per quantile the
+ *    worst day.
  * Quantiles from different days are never averaged: a day's p99 is only that
  * day's, so the honest summary is the largest one and the day it came from.
  */
@@ -61,6 +70,7 @@ export function summarise (rows, qFields) {
   const by = {}
   for (const r of rows) {
     const w = by[r.scriptName] ||= { requests: 0, errors: 0, status: {}, worst: {}, days: new Set() }
+    const ws = w.worst[r.status] ||= {}
     w.requests += r.requests
     w.errors += r.errors
     w.status[r.status] = (w.status[r.status] || 0) + r.requests
@@ -68,13 +78,18 @@ export function summarise (rows, qFields) {
     for (const f of qFields) {
       const v = r.quantiles?.[f]
       if (typeof v !== 'number') continue
-      if (!w.worst[f] || v > w.worst[f].value) w.worst[f] = { value: v, day: r.day, status: r.status }
+      if (!ws[f] || v > ws[f].value) ws[f] = { value: v, day: r.day }
     }
   }
   return by
 }
 
-export function exceeded (w) { return w.status.exceededResources || 0 }
+/** Every runtime-limit status, by prefix: { exceededResources: n, exceededMemory: n, ... } */
+export function limitHits (w) {
+  return Object.fromEntries(Object.entries(w.status).filter(([k]) => k.startsWith('exceeded')))
+}
+export function exceeded (w) { return Object.values(limitHits(w)).reduce((a, b) => a + b, 0) }
+const hitText = w => Object.entries(limitHits(w)).map(([k, v]) => `${k} ${v}`).join(', ')
 
 export function render ({ summary, qFields, qDesc, doRows, days, limits }) {
   const out = []
@@ -87,12 +102,16 @@ export function render ({ summary, qFields, qDesc, doRows, days, limits }) {
   for (const n of names) {
     const w = summary[n]
     const lim = limits[n] ? `cpu_ms limit ${limits[n]} (wrangler.toml)` : 'limit not read'
-    out.push(`== ${n}  requests ${w.requests}  errors ${w.errors}  exceededResources ${exceeded(w)}  days with traffic ${w.days.size}  [${lim}]`)
+    out.push(`== ${n}  requests ${w.requests}  errors ${w.errors}  limit hits ${exceeded(w)}${exceeded(w) ? ` (${hitText(w)})` : ''}  days with traffic ${w.days.size}  [${lim}]`)
     const st = Object.entries(w.status).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ')
     out.push(`   by status: ${st}`)
+    const ok = w.worst.success || {}
     for (const f of qFields) {
-      const x = w.worst[f]
-      if (x) out.push(`   worst daily ${f}: ${x.value} on ${x.day} (status ${x.status})`)
+      if (ok[f]) out.push(`   success, worst daily ${f}: ${ok[f].value} on ${ok[f].day}`)
+    }
+    for (const st of Object.keys(w.worst).filter(k => k !== 'success').sort()) {
+      const parts = qFields.filter(f => /^cpuTimeP(50|99)$/.test(f) && w.worst[st][f]).map(f => `${f} ${w.worst[st][f].value} on ${w.worst[st][f].day}`)
+      out.push(`   ${st} (${w.status[st]}): worst daily ${parts.join(', ') || 'no cpu quantile'}`)
     }
   }
   out.push('')
@@ -113,8 +132,8 @@ export function render ({ summary, qFields, qDesc, doRows, days, limits }) {
   out.push('')
   const hit = names.filter(n => exceeded(summary[n]) > 0)
   out.push(hit.length
-    ? `VERDICT: ${hit.length} Worker(s) had exceededResources invocations: ${hit.map(n => `${n} ${exceeded(summary[n])}`).join(', ')}`
-    : `VERDICT: no exceededResources invocation on any of ${names.length} Worker(s) in ${days} day(s)`)
+    ? `VERDICT: ${hit.length} of ${names.length} Worker(s) hit a runtime limit in ${days} day(s): ${hit.map(n => `${n} (${hitText(summary[n])})`).join('; ')}`
+    : `VERDICT: no runtime-limit invocation on any of ${names.length} Worker(s) in ${days} day(s)`)
   return out.join('\n')
 }
 
@@ -257,18 +276,23 @@ function selfTest () {
   const s = summarise(rows, q)
   t('requests sum across days and statuses', s.a.requests === 152 && s.b.requests === 7)
   t('exceededResources is counted from the status dimension', exceeded(s.a) === 2 && exceeded(s.b) === 0)
-  t('the worst daily p99 is the largest, with its day and status', s.a.worst.cpuTimeP99.value === 310 && s.a.worst.cpuTimeP99.day === '2026-11-02' && s.a.worst.cpuTimeP99.status === 'exceededResources')
-  t('quantiles from different days are not averaged', s.a.worst.cpuTimeP50.value === 300)
+  t('the success worst daily p99 is the largest success day, failures excluded', s.a.worst.success.cpuTimeP99.value === 90 && s.a.worst.success.cpuTimeP99.day === '2026-11-02')
+  t('a failure status keeps its own worst', s.a.worst.exceededResources.cpuTimeP99.value === 310)
+  t('quantiles from different days are not averaged', s.a.worst.success.cpuTimeP50.value === 5)
+  const mem = summarise([...rows, { day: '2026-11-02', scriptName: 'b', status: 'exceededMemory', requests: 3, errors: 3, quantiles: { cpuTimeP50: 9, cpuTimeP99: 9 } }], q)
+  t('exceededMemory is a limit hit too', exceeded(mem.b) === 3 && JSON.stringify(limitHits(mem.a)) === '{"exceededResources":2}')
 
   const txt = render({ summary: s, qFields: q, qDesc: { cpuTimeP50: 'unit word' }, doRows: [{ day: 'd1', namespace: 'N', cpuTime: 4 }, { day: 'd2', namespace: 'N', cpuTime: 9 }], days: 2, limits: { a: 300000 } })
-  t('the verdict names a Worker that exceeded', /VERDICT: 1 Worker\(s\) had exceededResources invocations: a 2/.test(txt))
+  t('the verdict names a Worker that exceeded', /VERDICT: 1 of 2 Worker\(s\) hit a runtime limit in 2 day\(s\): a \(exceededResources 2\)/.test(txt))
+  t('success and failure lines are separate', /success, worst daily cpuTimeP99: 90 on 2026-11-02/.test(txt) && /exceededResources \(2\): worst daily cpuTimeP50 300 on 2026-11-02, cpuTimeP99 310/.test(txt))
+  t('the memory verdict names exceededMemory', /b \(exceededMemory 3\)/.test(render({ summary: mem, qFields: q, qDesc: {}, doRows: null, days: 2, limits: {} })))
   t('coverage is printed with the result (Rule 91)', /^COVERAGE: 2 Worker\(s\), 2 UTC day\(s\)/m.test(txt) && /per route or per cron handler is NOT measured/.test(txt))
   t('the schema\'s own unit description is printed', /cpuTimeP50: unit word/.test(txt))
   t('a DO namespace is summed with its worst day', /N: total 13, worst day d2 at 9/.test(txt))
   t('the relay limit is labelled, others say not read', /== a .*\[cpu_ms limit 300000/.test(txt) && /== b .*\[limit not read\]/.test(txt))
 
   const clean = render({ summary: summarise(rows.filter(r => r.status !== 'exceededResources'), q), qFields: q, qDesc: {}, doRows: null, days: 2, limits: {} })
-  t('with no exceeded rows the verdict says none', /VERDICT: no exceededResources invocation on any of 2 Worker\(s\)/.test(clean))
+  t('with no exceeded rows the verdict says none', /VERDICT: no runtime-limit invocation on any of 2 Worker\(s\)/.test(clean))
   t('missing DO data is NOT MEASURED, not zero', /Durable Objects: NOT MEASURED/.test(clean))
 
   t('relayLimit reads name and cpu_ms', JSON.stringify(relayLimit('name = "r"\n[limits]\ncpu_ms      = 300000\n')) === '{"r":300000}')
