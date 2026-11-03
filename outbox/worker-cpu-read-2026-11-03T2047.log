@@ -1,0 +1,121 @@
+=== worker cpu read  utc=2026-11-03T20:47:12Z  days=30 ===
+COVERAGE: 5 Worker(s), 30 UTC day(s), per Worker and per DO namespace. CPU per route or per cron handler is NOT measured (the dataset is per Worker). Counts are Cloudflare's sampled estimates.
+
+Units, from the schema's own descriptions:
+  cpuTimeP25: CPU time 25th percentile - microseconds
+  cpuTimeP50: CPU time 50th percentile - microseconds
+  cpuTimeP75: CPU time 75th percentile - microseconds
+  cpuTimeP90: CPU time 90th percentile - microseconds
+  cpuTimeP95: CPU time 95th percentile - microseconds
+  cpuTimeP99: CPU time 99th percentile - microseconds
+  cpuTimeP999: CPU time 99.9th percentile - microseconds
+  wallTimeP25: Wall time 25th percentile - microseconds
+  wallTimeP50: Wall time 50th percentile - microseconds
+  wallTimeP75: Wall time 75th percentile - microseconds
+  wallTimeP90: Wall time 90th percentile - microseconds
+  wallTimeP95: Wall time 95th percentile - microseconds
+  wallTimeP99: Wall time 99th percentile - microseconds
+  wallTimeP999: Wall time 99.9th percentile - microseconds
+
+== field-relay-nba  requests 3025676  errors 253  exceededResources 0  days with traffic 30  [cpu_ms limit 300000 (wrangler.toml)]
+   by status: success 2885513, clientDisconnected 139637, responseStreamDisconnected 273, scriptThrewException 208, exceededMemory 45
+   worst daily cpuTimeP25: 4313389 on 2026-10-07 (status exceededMemory)
+   worst daily cpuTimeP50: 4692034 on 2026-10-07 (status exceededMemory)
+   worst daily cpuTimeP75: 4891813 on 2026-10-07 (status exceededMemory)
+   worst daily cpuTimeP90: 5122515 on 2026-10-07 (status exceededMemory)
+   worst daily cpuTimeP95: 5393956 on 2026-10-07 (status exceededMemory)
+   worst daily cpuTimeP99: 5393956 on 2026-10-07 (status exceededMemory)
+   worst daily cpuTimeP999: 5393956 on 2026-10-07 (status exceededMemory)
+   worst daily wallTimeP25: 270424800 on 2026-10-20 (status responseStreamDisconnected)
+   worst daily wallTimeP50: 270642720 on 2026-10-20 (status responseStreamDisconnected)
+   worst daily wallTimeP75: 6010018000 on 2026-10-18 (status responseStreamDisconnected)
+   worst daily wallTimeP90: 6010048000 on 2026-10-28 (status responseStreamDisconnected)
+   worst daily wallTimeP95: 6010092500 on 2026-10-22 (status responseStreamDisconnected)
+   worst daily wallTimeP99: 6010092500 on 2026-10-22 (status responseStreamDisconnected)
+   worst daily wallTimeP999: 6010092500 on 2026-10-22 (status responseStreamDisconnected)
+== field-claude-proxy  requests 294745  errors 49  exceededResources 0  days with traffic 30  [limit not read]
+   by status: success 288005, clientDisconnected 6691, scriptThrewException 49
+   worst daily cpuTimeP25: 8338 on 2026-10-16 (status scriptThrewException)
+   worst daily cpuTimeP50: 8338 on 2026-10-16 (status scriptThrewException)
+   worst daily cpuTimeP75: 8338 on 2026-10-16 (status scriptThrewException)
+   worst daily cpuTimeP90: 8338 on 2026-10-16 (status scriptThrewException)
+   worst daily cpuTimeP95: 8338 on 2026-10-16 (status scriptThrewException)
+   worst daily cpuTimeP99: 8338 on 2026-10-16 (status scriptThrewException)
+   worst daily cpuTimeP999: 13800 on 2026-10-19 (status success)
+   worst daily wallTimeP25: 7987549 on 2026-10-16 (status scriptThrewException)
+   worst daily wallTimeP50: 7987549 on 2026-10-16 (status scriptThrewException)
+   worst daily wallTimeP75: 7987549 on 2026-10-16 (status scriptThrewException)
+   worst daily wallTimeP90: 7987549 on 2026-10-16 (status scriptThrewException)
+   worst daily wallTimeP95: 7987549 on 2026-10-16 (status scriptThrewException)
+   worst daily wallTimeP99: 9935977 on 2026-10-25 (status clientDisconnected)
+   worst daily wallTimeP999: 18226202 on 2026-10-05 (status success)
+== stat-job-watcher  requests 43077  errors 394  exceededResources 394  days with traffic 30  [limit not read]
+   by status: success 42676, exceededResources 394, clientDisconnected 7
+   worst daily cpuTimeP25: 32500000 on 2026-10-05 (status exceededResources)
+   worst daily cpuTimeP50: 32500000 on 2026-10-05 (status exceededResources)
+   worst daily cpuTimeP75: 32500000 on 2026-10-05 (status exceededResources)
+   worst daily cpuTimeP90: 32500000 on 2026-10-05 (status exceededResources)
+   worst daily cpuTimeP95: 32500000 on 2026-10-05 (status exceededResources)
+   worst daily cpuTimeP99: 32500000 on 2026-10-05 (status exceededResources)
+   worst daily cpuTimeP999: 32500000 on 2026-10-05 (status exceededResources)
+   worst daily wallTimeP25: 50514180 on 2026-10-29 (status exceededResources)
+   worst daily wallTimeP50: 54573080 on 2026-10-28 (status exceededResources)
+   worst daily wallTimeP75: 166667580 on 2026-10-17 (status exceededResources)
+   worst daily wallTimeP90: 166667580 on 2026-10-17 (status exceededResources)
+   worst daily wallTimeP95: 166667580 on 2026-10-17 (status exceededResources)
+   worst daily wallTimeP99: 807821100 on 2026-10-20 (status exceededResources)
+   worst daily wallTimeP999: 807821100 on 2026-10-20 (status exceededResources)
+== jubilant-bassoon  requests 16258  errors 0  exceededResources 0  days with traffic 30  [limit not read]
+   by status: success 16219, clientDisconnected 39
+   worst daily cpuTimeP25: 1615 on 2026-10-31 (status clientDisconnected)
+   worst daily cpuTimeP50: 1615 on 2026-10-31 (status clientDisconnected)
+   worst daily cpuTimeP75: 1615 on 2026-10-31 (status clientDisconnected)
+   worst daily cpuTimeP90: 1615 on 2026-10-31 (status clientDisconnected)
+   worst daily cpuTimeP95: 1630 on 2026-10-15 (status success)
+   worst daily cpuTimeP99: 2696 on 2026-10-23 (status success)
+   worst daily cpuTimeP999: 6225 on 2026-10-20 (status success)
+   worst daily wallTimeP25: 68795 on 2026-10-31 (status clientDisconnected)
+   worst daily wallTimeP50: 68795 on 2026-10-31 (status clientDisconnected)
+   worst daily wallTimeP75: 123115 on 2026-10-06 (status clientDisconnected)
+   worst daily wallTimeP90: 225108 on 2026-10-15 (status success)
+   worst daily wallTimeP95: 272763 on 2026-10-15 (status success)
+   worst daily wallTimeP99: 1302259 on 2026-10-15 (status success)
+   worst daily wallTimeP999: 1691013 on 2026-10-28 (status success)
+== field-deploy  requests 632  errors 0  exceededResources 0  days with traffic 22  [limit not read]
+   by status: success 632
+   worst daily cpuTimeP25: 2188 on 2026-10-25 (status success)
+   worst daily cpuTimeP50: 6459 on 2026-11-01 (status success)
+   worst daily cpuTimeP75: 10474 on 2026-11-01 (status success)
+   worst daily cpuTimeP90: 13124 on 2026-10-18 (status success)
+   worst daily cpuTimeP95: 13124 on 2026-10-18 (status success)
+   worst daily cpuTimeP99: 15788 on 2026-10-19 (status success)
+   worst daily cpuTimeP999: 15788 on 2026-10-19 (status success)
+   worst daily wallTimeP25: 2919 on 2026-10-14 (status success)
+   worst daily wallTimeP50: 676311 on 2026-11-01 (status success)
+   worst daily wallTimeP75: 735039 on 2026-10-25 (status success)
+   worst daily wallTimeP90: 934634 on 2026-10-25 (status success)
+   worst daily wallTimeP95: 974459 on 2026-10-29 (status success)
+   worst daily wallTimeP99: 5051970 on 2026-10-29 (status success)
+   worst daily wallTimeP999: 5051970 on 2026-10-29 (status success)
+
+Durable Objects, summed cpuTime per namespace (18 namespace(s); unit: Sum of CPU time - microseconds):
+  StateStoreDO (stat-job-watcher): total 2252350361, worst day 2026-10-26 at 116193227
+  TaleoDO (stat-job-watcher): total 1297733710, worst day 2026-11-02 at 72386008
+  AmbientDO (field-relay-nba): total 1149477684, worst day 2026-10-07 at 115137847
+  GameDO (field-relay-nba): total 854902212, worst day 2026-10-25 at 48076592
+  GreenhouseDO (stat-job-watcher): total 726157610, worst day 2026-10-12 at 39159830
+  IcimsDO (stat-job-watcher): total 567893999, worst day 2026-10-05 at 30497173
+  BatchPollerDO (stat-job-watcher): total 349615532, worst day 2026-10-13 at 15344403
+  WorkdayDO (stat-job-watcher): total 289133691, worst day 2026-10-12 at 13285731
+  SuccessFactorsDO (stat-job-watcher): total 104688206, worst day 2026-10-19 at 4226223
+  SalaryInferenceDO (stat-job-watcher): total 103720602, worst day 2026-10-14 at 4811917
+  BracketDO (field-relay-nba): total 80928862, worst day 2026-10-11 at 12873953
+  BrowserDO (field-relay-nba): total 7793057, worst day 2026-10-24 at 7127525
+  UserDO (field-relay-nba): total 3277785, worst day 2026-10-17 at 369826
+  SelectMindsDO (stat-job-watcher): total 911, worst day 2026-10-23 at 911
+  OracleHcmDO (stat-job-watcher): total 829, worst day 2026-10-23 at 829
+  LeverDO (stat-job-watcher): total 682, worst day 2026-10-23 at 682
+  InforHcmDO (stat-job-watcher): total 680, worst day 2026-10-23 at 680
+  AshbyDO (stat-job-watcher): total 642, worst day 2026-10-23 at 642
+
+VERDICT: 1 Worker(s) had exceededResources invocations: stat-job-watcher 394
