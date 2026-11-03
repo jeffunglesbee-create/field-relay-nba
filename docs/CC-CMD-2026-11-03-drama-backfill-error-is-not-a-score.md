@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** B (a script that records a failure as data)
 **Confidence gate:** >= 95 before any commit
-**Status:** IN PROGRESS
+**Status:** DONE 2026-11-03 for done conditions 1 to 3. Condition 4 (a refusal met by a scheduled run on the real host) has not been observed and cannot be made to happen on demand; it is stated as not observed, and nothing is owed for it. Why ESPN refused is **not established** (see Cause and Observed).
 **Filed by:** the owner's order of 2026-11-02 23:35 ET to resolve the "Could not verify" list, item "the Drama backfill 403". Searched first, by content (BUILD-ON-A): `writeGameDrama`, `drama-by-id`, `drama-missing`, "loop forever", "drama_peak = 0". No CC-CMD covers the error path. The neighbours, read for rulings and holds before this was written: `CC-CMD-2026-07-06-drama-peak-immutability-guard.md` (the guard that makes a stored value final; nothing here weakens it), `CC-CMD-2026-07-12-drama-peak-nightstars-invalidation.md` (the recompute after a write; `touchedDates` is left exactly where it was), `CC-CMD-2026-07-05-backfill-wnba-afl-epl.md` and `CC-CMD-2026-07-04-drama-score-then-eventid-backfill.md` (0 is the "cannot be scored" mark for an unsupported sport; "no guessed or placeholder values"). None is on a hold or a VOID list.
 
 ---
@@ -32,7 +32,7 @@ What turned a refusal into a permanent wrong value is established, and it is the
 
 `scripts/drama-backfill.mjs`: the four ESPN readers throw `EspnStatusError` carrying the HTTP status. In the loop's `catch`: 404 and 410 (ESPN has no such event; passed through by the relay) store the 0 mark once, as before, and are still counted as errors. Any other failure (403, 429, 5xx, a dropped connection, a body that is not JSON, a refused write) stores nothing: the game stays NULL, is added to a per-run `deferred` set, is not fetched again in that run, and is scored by the next scheduled run (`drama-backfill.yml` runs every 2 hours). A batch in which every listed game is deferred ends the loop, with a line that says the relay's 20-game window may hide games below it. The `Done:` line gains `, N deferred`. `touchedDates` stays where the 07-12 CC-CMD put it. The immutability guard is untouched.
 
-Held by `scripts/check-drama-backfill.py` in field-laboratory (the script run unmodified against a stand-in of the relay's routes, including the guard): 75 checks in 7 scenarios on the fixed script, red on the original with the 10-31 failure reproduced (`('...e4001', 0, None, 'stored')`); `scripts/mutate-drama-backfill.py`: 15 of 15 mutants caught. Not held: the real relay and ESPN, and the AFL reader (it fetches ESPN directly).
+Held by `scripts/check-drama-backfill.py` in field-laboratory (the script run unmodified against a stand-in of the relay's routes, including the guard): 75 checks in 7 scenarios on the fixed script, red on the original with the 10-31 failure reproduced (`('...e4001', 0, None, 'stored')`); `scripts/mutate-drama-backfill.py`: 15 of 15 mutants caught. Those are the filing's figures; measured again 2026-11-03 against relay main `72bbd45c`: 97 of 97 checks in 8 scenarios and 24 of 24 mutants caught (20 of the backfill, 4 of the reset), which also hold the error line's attribution (`eaa83964`) and the reset. Not held: the real relay and ESPN, and the AFL reader (it fetches ESPN directly).
 
 ## TASK 2 — reset the one row the log proves
 
@@ -40,11 +40,27 @@ Held by `scripts/check-drama-backfill.py` in field-laboratory (the script run un
 
 ## Done conditions
 
-1. [ ] TASK 1 landed in the relay; the laboratory's check and mutants landed and green in CI.
-2. [ ] The reset ran once: before `0 / null`, `changes` 1, after NULL / NULL.
-3. [ ] A `drama-backfill.yml` run after the reset stored a real peak for the game (`[ok] Bundesliga | Bayern vs Dortmund ... → drama_peak=N`, D1 `drama_peak` > 0 with an arc).
-4. [ ] Observed on the real host, not only the stand-in: a scheduled run that meets a refusal leaves the game NULL. **May never be observable on demand**; it is stated as not observed until a run logs `[deferred]`.
+1. [x] TASK 1 landed in the relay; the laboratory's check and mutants landed and green in CI. The `drama-backfill` job is green on the final check (run 41597443741); that run as a whole is red at an unrelated step, named under Observed.
+2. [x] The reset ran once: before `0 / null`, `changes` 1, after NULL / NULL. Run 41595295738. A first dispatch (41593921289) refused by design and changed nothing.
+3. [ ] A `drama-backfill.yml` run after the reset stored a real peak for the game (`[ok] Bundesliga | Bayern vs Dortmund ... → drama_peak=N`, D1 `drama_peak` > 0 with an arc). Run 41595362453: `drama_peak=62`; D1 holds 62 with a 64-character arc.
+4. [ ] Observed on the real host, not only the stand-in: a scheduled run that meets a refusal leaves the game NULL. **May never be observable on demand**; it is stated as not observed until a run logs `[deferred]`. **NOT OBSERVED, 2026-11-03.**
 
 ## Observed
 
-(none yet)
+**2026-11-03, the chain, from the runs' own logs and D1** (session records: `outbox/cc-session-2026-11-03-could-not-verify-list.md` here, `outbox/cc-session-2026-11-03-drama-backfill-refused-read.md` in field-laboratory).
+
+| step | what was observed |
+|---|---|
+| landed in the relay | `66212686` (this filing), `961092d8` (TASK 1), `46dcb17c` (TASK 2), `eaa83964` (a refused read's error line carries `X-RELAY-Error` and the data centre), `2544091c` and `72bbd45c` (the absence-collapse sites the ratchet named) |
+| relay CI | Repo guards on `eaa83964` (run 41596652432) failed the step "No absence-collapse site appears beyond the baseline"; on `72bbd45c` (run 41597429853) success |
+| laboratory check, CI | job `drama-backfill` success on lab `2a2119c` (verify run 41593904470, every job success) and on lab `4e3981d` against relay `72bbd45c` (run 41597443741). That run's `verify` job failed at `check:history` because my lab commit `4e3981d` had no outbox entry; that is not this check, and lab guards run 41599083531 is success after the lab's boundary move |
+| laboratory check, local | 97 of 97 checks in 8 scenarios and 24 of 24 mutants (20 of the backfill, 4 of the reset), run 2026-11-03 against relay main `72bbd45c` |
+| reset, first dispatch | run 41593921289, 07:04:45Z: `[before]` `drama_peak` 0, `drama_arc` `null`; then `RESET ERROR: ESPN summary for 401884754 answers HTTP 403 through the relay: a reset now would only be refused again; not resetting`. It changed nothing, by design |
+| reset, second dispatch | run 41595295738, 07:17:06Z: `[before]` 0 / `null`; `[proof]` ESPN summary 200 through the relay, 40 key events; `[reset] changes=1`; `[after]` NULL / NULL |
+| scoring | run 41595362453 (`drama-backfill.yml`, dispatch), 07:17:43Z: `[ok] Bundesliga \| Bayern vs Dortmund (2026-10-31) [event=401884754] → drama_peak=62`; `=== Done: 3 processed, 0 errors, 0 deferred ===`. D1 read again 2026-11-03: `drama_peak` 62, `drama_arc` 64 characters starting `[52,52,52,52,52,52,52,52`, `finalized_at` 2026-10-31 19:30:26 |
+
+**The cause, further.** ESPN's summary for this event was refused a second time: the first dispatch's pre-check, the first ESPN request of that run, through the relay, about 07:05Z on 2026-11-03. About ten minutes later it answered: a runner-side probe (laboratory run 41595006871, 07:14:35 to 07:15:54Z, every request through data centre IAD) read three events twelve times each (six cache-busted, six plain; this event and two others), 36 of 36 answered 200, plus 6 no-such-event controls (404) and 6 `/v2/games` reads (200); then the reset's own proof at 07:17Z answered 200 with 40 key events. So the refusal is intermittent, and it is not a property of the event, of the runner or of data centre IAD. Neither refused request recorded a body, an `X-RELAY-Error` header or a data centre, so whether ESPN, the relay or Cloudflare in front of it refused is unknown: **why ESPN's side refused is still not established.** `eaa83964` records both for the next one.
+
+**Not observed:** done condition 4. No scheduled run has met a refusal since the fix. The check proves the script against a stand-in, not the real relay and ESPN, and the AFL reader (it fetches ESPN directly) is held by no scenario.
+
+**Untouched:** the 35 other `drama_peak = 0` rows (MLB 30, WNBA 3, AFL 2) and Serie A (the classifier skips it), listed above. Nothing proves them wrong.
