@@ -3405,7 +3405,7 @@ async function handleWCThirdPlace(env) {
 // GET /wc/odds-probs — no-vig match probabilities + Poisson lambdas from Odds API.
 // Fetches h2h + totals markets. Totals O/U line gives λ_total directly;
 // binary-search lambdaFromTotalsAndH2H resolves λ_home/λ_away without iteration.
-// Budget: 2 credits per call (markets=h2h,totals). CF edge-cached 5 min.
+// Budget: 4 credits per call (markets=h2h,totals x regions=us,eu = 2 x 2, oddsCreditCost). CF edge-cached 5 min.
 async function handleWCOddsProbs(env) {
     const key = _oddsPrimaryKey(env);
     if (!key) {
@@ -3554,7 +3554,7 @@ async function handleWCOddsProbs(env) {
 
 // GET /cfl/odds-probs — no-vig win probabilities for CFL games from Odds API.
 // CFL has no draw market — h2h is home/away only. Includes spread + total lines.
-// Budget: 2 credits per call (markets=h2h,spreads,totals). CF edge-cached 2 min.
+// Budget: 6 credits per call (markets=h2h,spreads,totals x regions=us,eu = 3 x 2, oddsCreditCost; measured 2026-09-05, X-Requests-Last 6). CF edge-cached 2 min.
 //
 // THE WHOLE CALL RUNS UNDER ctx.waitUntil. Measured 2026-11-01 (docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 2b, run 41313403502): a client that abandons
 // this request can stop the awaited chain below before its tally and leave the 6-credit charge standing: 0 of 5 aborted calls tallied, against 5 of 5 that were not, and one
