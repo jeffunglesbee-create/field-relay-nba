@@ -47,5 +47,23 @@ There is no CPU case in FIELD: no FIELD Worker hit a CPU limit, and the relay's 
 
 ## Open
 
-- **Relay exceededMemory, 45 in 30 days.** Not investigated. Filed: `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md`.
+- **Relay exceededMemory, 45 in 30 days.** Localised and caused in the same session (Part 2 below); the CC-CMD is DONE.
 - **stat-job-watcher, 394 CPU-limit hits.** A different project; reported to the owner, not filed here.
+
+## Part 2 — the 45 memory kills, localised (owner: "localise memory")
+
+| commit | what |
+|---|---|
+| `659ede9` | `MODE=localise` in the CPU reader: one Worker, one status, every minute bucket, reconciled against the daily totals (exit 3 when they differ). Self-test 27/27; 7/7 mutations after a fixture fix. |
+| this push | `scripts/nfl-r2-memory-repro.mjs`; findings in `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md` (DONE); fix filed as `docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md`; a dated note in `docs/CC-CMD-2026-08-15-ngs-passing-two-writers.md`. |
+
+**Result** (`outbox/worker-cpu-read-localise-field-relay-nba-exceededMemory-2026-11-03T2057.log`, RECONCILED 45 = 45):
+all 45 are on four **Wednesdays** (10-07, 10-14, 10-21, 10-28), 12:00–15:30 UTC, one per 15-minute mark. That is the
+window of `runNFLR2Update`. Reproduced with the real function against the real 33.4 MB `player_stats.csv`:
+532 MB heap peak; dies at a 128 MB cap; a 2,000-row cut uses 14 MB.
+
+Also measured: the CSV stops at the 2024 season; the relay's parser misreads 75,416 of 134,470 lines; the other two
+sources answer 404; the job shares its invocation with the journalism cycle (whether that finished first is not measured).
+
+A correction made in chat: the dates were first called Tuesdays, without checking. `getUTCDay()` gives 3 (Wednesday)
+for all four, which is what matches the code.

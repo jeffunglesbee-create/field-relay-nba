@@ -3,7 +3,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba
 **Filed:** 2026-11-03, by CC, from `outbox/cc-session-2026-11-03-worker-cpu-read.md`
-**Status:** FILED, not dispatched.
+**Status:** DONE 2026-11-03. Localised and caused; the fix is `docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md`. Findings at the end.
 
 ---
 
@@ -52,3 +52,36 @@ an explicit "not localisable from analytics", with the reason.
 A committed log that lists every hour with `exceededMemory > 0` for field-relay-nba
 over 30 days and sums to the total for the same window (45, or whatever the window
 then holds). A list whose sum differs from the total is not done.
+
+---
+
+## 2026-11-03 — what was found (same session)
+
+**Task 1, done condition met.** `outbox/worker-cpu-read-localise-field-relay-nba-exceededMemory-2026-11-03T2057.log`
+(run of `659ede9`): 45 buckets at `datetimeMinute`, summing to 45, equal to the
+daily totals (`RECONCILED`). The dataset offers no dimension that separates a
+scheduled invocation from a fetch (its dimensions are printed in the log).
+
+| premise | result |
+|---|---|
+| 1. concentrated on a few days | Yes: **four Wednesdays** (2026-10-07 15, 10-14 4, 10-21 13, 10-28 13), all 12:00–15:30 UTC |
+| 2. cron ticks, not requests | One invocation per bucket, 43 of 45 on a minute divisible by 5, every one at :00/:15/:30/:45 (two at :16). Consistent with the `*/15` cron; the schema cannot confirm the trigger |
+| 3. a link to other 2026-10-07 records | Not made |
+
+**Task 2: the cause, named.** The only job gated to Wednesday 12–15 UTC on the
+`*/15` cron is `runNFLR2Update` (`src/index.js:9825`, `_utcDay === 3 && _utcHour >= 12`; `src/nfl-r2.js:169`); the
+other Wednesday job (NBA clutch, `src/index.js:9882`, `!_isFinalsWindow && _utcDay === 3 && _utcHour === 12`) runs at hour 12 alone, and
+failures span hours 12–15. Reproduced, not inferred, with
+`scripts/nfl-r2-memory-repro.mjs` (the real function, nflverse served from a local copy):
+
+- `player_stats.csv` is **33,447,747 bytes** (content-length, 2026-11-03).
+- The job peaks at **532 MB** of JS heap (36 MB before the call); with
+  `--max-old-space-size=128` it dies with `JavaScript heap out of memory`. A
+  2,000-row cut of the same file peaks at 14 MB and completes.
+
+**Found on the way, each measured 2026-11-03:**
+
+- `player_stats.csv` holds seasons **1999–2024** only (Python `csv`, 134,470 rows). No 2025 or 2026 rows.
+- The relay's `parseCSV` splits on every comma. **75,416 of 134,470 data lines** have a comma count different from the header's, so their columns shift (quoted fields holding commas are the likely reason; the count is what was measured). Its output claims `season: 2016` for a file whose last season is 2024.
+- `ngs_passing/ngs_passing.csv` and `pfr_advstats/advstats_rec.csv` answer **HTTP 404** (curl from the sandbox).
+- The job shares its invocation with `handleCron`, `handleJournalismCycle` and `sweepKVBriefs` (`src/index.js:9773–9800`). When it runs out of memory, whichever of those is still running is killed too. Whether they had finished first is not measured.

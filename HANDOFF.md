@@ -9,6 +9,7 @@
 - **Result, 30 days (`outbox/worker-cpu-read-2026-11-03T2050.log`):** relay success CPU worst daily p50/p99/p999 = 2.5 / 41.8 / 372.6 ms against a 300 s limit; 0 exceededResources. **45 exceededMemory**, cause unknown → `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md` (FILED). The only CPU-limit hits on the account are stat-job-watcher's (394), which is not FIELD.
 - The `T2047` and `T2049` logs are SUPERSEDED: the first version counted exceededResources only and pooled percentiles across statuses (fixed in `1256099`).
 - field-laboratory has no Worker script (no `main`, static assets only), so there is no Worker CPU to measure there.
+- **Localised (same session):** all 45 memory kills are the Wednesday `runNFLR2Update` job (12–15 UTC, `*/15`), which peaks at 532 MB parsing a 33.4 MB CSV (`scripts/nfl-r2-memory-repro.mjs`). The CSV stops at 2024, the parser misreads 56% of its lines, and the other two sources 404. **Open, the owner's call:** `docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md`, option A (retire, ~20 min, recommended) or B (move to a runner).
 
 ## SESSION CLOSE-OUT — 2026-11-03 (14:04Z) — the real patent-watch.yml read the settled week 2026-10-27 and filed issue #2: 0 grant hits, 5 application hits
 

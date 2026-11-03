@@ -107,3 +107,20 @@ the collision is only observable across both schedules.
 `outbox/cc-session-2026-08-15-ngs-passing-two-writers.md`: commit hashes in both
 repos, the probe outputs, which writer won and why (with the coverage numbers),
 and a confidence gate.
+
+---
+
+## 2026-11-03 — two premises above are no longer true (measured; nothing here was built)
+
+From `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md`:
+
+- **"Wednesday wins, every week" is false since at least 2026-10-07.** The Wednesday
+  writer (`runNFLR2Update`) ran out of memory on every recorded tick of its window
+  (45 invocations over four Wednesdays). Its parse needs a 532 MB heap
+  (`scripts/nfl-r2-memory-repro.mjs`) and the R2 write comes after the parse, so it
+  cannot have reached the write on those ticks. R2's own timestamps were not read.
+- **The relay's source for this key is gone.** `ngs_passing/ngs_passing.csv` answers
+  HTTP 404 (curl, 2026-11-03). Task 1's comparison has one live source left.
+
+The memory fix (`docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md`) does not
+decide this key's owner; that decision stays here.
