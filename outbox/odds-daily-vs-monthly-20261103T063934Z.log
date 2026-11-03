@@ -1,0 +1,20 @@
+=== odds daily-vs-monthly  utc=2026-11-03T06:39:34.677Z ===
+series: outbox/odds-daily-vs-vendor-series.json
+readings on file: 46
+readings in the current month's segment: 3  (43 dropped at the reset of 2026-11-01T05:54:31.202Z)
+days fully inside the span: 1 (2026-11-02:339)
+span: 2026-11-01T05:54:31.202Z  ->  2026-11-03T06:39:30.357Z
+verdict: consistent
+
+  PER-DAY, diagnostic only — each pair spans ~24h offset from the UTC day
+  day          dayUsed   monthlyD    excess   span
+  2026-11-01       760        697        63     24h
+  2026-11-02       339        300        39   24.8h
+
+  A row is not a verdict: the two windows differ by the read hour, so a
+  single excess of a few tens is window offset, not a counter defect. The
+  verdict above is the window-free inequality over the whole segment.
+
+  daily sum 339 <= monthly delta 997 — no contradiction.
+  One-sided on purpose: the monthly delta holding MORE than the contained
+  days is expected, because it also holds the edge hours.

@@ -1,0 +1,23 @@
+=== odds daily vs vendor  day=2026-11-02  utc=2026-11-03T06:39:30.357Z ===
+
+  2026-11-02 our counter : 339 / 3800
+  our monthly ledger now : 1186
+  vendor cumulative now  : 1546
+  previous reading       : 2026-11-02T05:54:15.516Z  vendor 1066
+  vendor billed in the window : 480   (24.8 h between the two readings)
+  our ledger, same window     : 300   (monthly.used at those two readings)
+  known CI spend              : 180   (1 run(s), 0 undated)
+  residual (window-aligned)   : 0   tolerance 50   <- the verdict
+  diagnostic, NOT the verdict : the UTC day's counter covers a different 24 hours than the window
+  our daily counter (UTC day) : 339
+  residual against that       : -39   tolerance 50
+  unreconciled estimate  : 0 — no call kept an estimate for want of a receipt
+
+  verdict: tracks-the-bill
+
+COVERAGE: ONE closed day (2026-11-02), 46 reading(s) on file. knownCI is a
+LOWER bound — only odds-backfill records its own credits, and targeted-odds-fill
+calls the vendor directly with no counter at all — so the residual above is an
+UPPER bound on the ledger's shortfall over the window, not a measurement of it.
+
+OK: tracks-the-bill — residual 0 within 50.
