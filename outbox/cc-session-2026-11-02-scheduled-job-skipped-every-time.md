@@ -134,3 +134,7 @@ One commit I did not write: `8e94848` (title "patent-watch: 2026-11-03", with th
 - `patent_watch.py`: the client's Rule 69 (TOUCH-ONLY-A) limits a session to the code its prompt names, and asks that adjacent defects be documented for a future prompt. The CC-CMD's TASK 4b is that document.
 - `outbox/patents/watch-2026-10-27.json`: stays until the owner decides.
 - Seen, not fixed, recorded in the client's session doc: `README.md` and the header of `patent-fulltext.yml` still describe a Drive upload that the workflow does not do; `field-data.yml` line 57 column 33 fails actionlint (`force_date` is not a declared `workflow_dispatch` input).
+
+## Addendum 2026-11-03 (later) — finding 4, the C7 timer margin, was built
+
+"Not changed, and why" above lists finding 4 (a C7 timer margin) as a proposal only. It was built on 2026-11-03 for the owner's could-not-verify list: relay `e88a012d` makes the C7 mutant's timer 2000 ms instead of 60 ms, with the measurement and the CI run recorded in `docs/CC-CMD-2026-10-13-vendor-residual-window.md`, Data points, "the C7 mutant's timer margin". The run that held the escape is not identified.
