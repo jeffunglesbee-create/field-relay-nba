@@ -1,11 +1,11 @@
 # Claude Code Command — a scheduled job that is skipped on every tick raises nothing, and nothing was counting it
 
 **Date:** 2026-11-02
-**Repo:** field-relay-nba (TASK 4 landed in jubilant-bassoon on the owner's go; TASK 4b waits for the owner)
+**Repo:** field-relay-nba (TASK 4 and TASK 4b land in jubilant-bassoon on the owner's go; the checks that hold them live in field-laboratory)
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** A (a scheduled path that is silently empty, and the watch that could not see it)
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL 2026-11-03. TASKs 1 to 3 and 6 are built, pushed and green (`9b82593e`, `dfb123f3`, `e228c22c`, `db9fb0cd`). TASK 5 is observed (2026-11-02): the first scheduled EPA run, 41538005001, passed, and a dispatched watch run, 41538545029, no longer lists the probe (see Observed). TASK 4 (patent-watch, in the client) was executed on the owner's go: the caller is fixed (client `8ff34ac`) and a dispatched run, 41574599866, started its job and finished `success`, so its Done condition holds as written. That run read nothing: the data source `patent_watch.py` fetches from does not resolve, and the script reports a failed fetch as a clean week and exits 0. TASK 4's purpose is not met; the repair is TASK 4b and waits for the owner's go.
+**Status:** PARTIAL 2026-11-03. TASKs 1 to 3 and 6 are built, pushed and green (`9b82593e`, `dfb123f3`, `e228c22c`, `db9fb0cd`). TASK 5 is observed (2026-11-02): the first scheduled EPA run, 41538005001, passed, and a dispatched watch run, 41538545029, no longer lists the probe (see Observed). TASK 4 (patent-watch, in the client) was executed on the owner's go: the caller is fixed (client `8ff34ac`) and a dispatched run, 41574599866, started its job and finished `success`, so its Done condition holds as written. That run read nothing: the data source `patent_watch.py` fetches from does not resolve, and the script reports a failed fetch as a clean week and exits 0. TASK 4's purpose is not met; the repair is TASK 4b, which the owner released on 2026-11-02 23:35 ET ("Go with Claudes best recommendations"). The spec it is built against is under TASK 4b (Rule 75); its outcome goes under Observed when it has one.
 **Filed by:** the 2026-11-02 read of the client, relay and laboratory outbox files (finding 1), built on the owner's "Next approved" of the same day. Session doc: `outbox/cc-session-2026-11-02-scheduled-job-skipped-every-time.md`.
 
 ---
@@ -91,13 +91,26 @@ The step exited 0. `Commit results` then committed and pushed `8e94848` (title "
 
 **Not changed, and why.** `patent_watch.py` was not touched. The owner's approval named one line of `patent-watch.yml`. The client's Rule 69 (TOUCH-ONLY-A) limits a session to the code its prompt specifies and asks that adjacent defects be documented for a future prompt; this section is that document. The false-negative file stays until the owner decides.
 
-### TASK 4b — make the watcher tell the truth, then give it a source (waits for the owner's go)
+### TASK 4b — make the watcher tell the truth, then give it a source (the owner's go: 2026-11-02 23:35 ET)
 
 Added here, not filed separately (BUILD-ON-A): same job and same symptom as TASK 4, a scheduled path that reports success without doing its work.
 
 - **Part 1, no input needed from the owner.** `patent_watch.py` exits non-zero when a required fetch does not return its file, so `Run watcher` fails, `Commit results` (no `if:`, so it is skipped after a failed step) does not run, and no manifest is written for a week that was not read. A hit still files its issue and chains `patent-fulltext.yml`. `outbox/patents/watch-2026-10-27.json` is removed in the same prompt. The Wednesday run then turns red until Part 2, which is the truth about it. The regression check lands in the laboratory (LAB-FIRST-A): the probe above, red before (exit 0, `matches = []`) and green after (non-zero, no manifest), plus a stand-in that serves a real zip holding one watchlist assignee, to show a hit still files and chains.
 - **Part 2, the owner chooses.** (a) PPUBS: anonymous, the source `patent_fetch.py` already uses; undocumented, and nothing here has tried a search by assignee and date range, so its fit is the ADR's claim until it is tried. (b) The ODP bulk-data API: official, needs `USPTO_API_KEY`, which needs the owner's ID.me verification. Either way the pre-grant week is fixed in the same change (the Thursday that exists when the job runs).
 - **Done.** A scheduled run of `patent-watch.yml` either reads its source and says what it read, or is red. The dead-cron watch reading `success` then means a run that read something.
+
+**The go, and the choice it carried (2026-11-03).** The owner's "Go with Claudes best recommendations" (2026-11-02 23:35 ET) released this task. The recommendation was PPUBS now, so the Wednesday run reads something, and the ODP key later if the owner wants an official second reader; PPUBS needs nothing from the owner and the ODP API needs an ID.me verification. Part 2 is therefore (a). Nothing here rules out (b), but it would be a second reader behind the same `Unread` rule, never a fallback for PPUBS: a fallback turns a red week into a green one by reading some other file.
+
+**Spec (Rule 75), written before the client commit it governs.**
+
+| | |
+|---|---|
+| Files, client | `.github/scripts/patent_watch.py`: rewritten (`write_github_output` and `last_tuesday` keep their behaviour). `.github/workflows/patent-watch.yml`, job `watch` only: `timeout-minutes: 30`; step `Commit results` gets a push-retry loop and a landing check; step `Summary` says NOT READ when the watcher step did not succeed. The `on:` block, the inputs and the `followup` job are not touched. `.github/patent-watchlist.txt`: header comment only, no term added or removed. `outbox/patents/watch-2026-10-27.json`: deleted. A session doc and a HANDOFF line (Rule 67) |
+| Not touched | `patent_fetch.py` (it creates `outbox/patents/` at import, line 52, so the watcher cannot import it; one PPUBS client for both is a follow-up that needs a prompt naming it), `patent-fulltext.yml`, `outbox/patents/README.md`, any app code, `SW_VERSION` |
+| Input | `WEEK_OVERRIDE` (a Tuesday, `YYYY-MM-DD`, optional), `GH_TOKEN`, `GH_REPO`, `GITHUB_OUTPUT`; test hooks `PPUBS_BASE`, `PPUBS_PAUSE`, `PPUBS_BACKOFF`, `PPUBS_DEADLINE`. The watchlist file, one term per line, no double quote |
+| Output | `outbox/patents/watch-<Tuesday>.json`, only when the week was read completely. The old keys stay (`week_tuesday`, `week_thursday`, `watchlist`, `matches`, and per match `assignee_match`, `patent_id`, `title`, `doc_kind`, `scan`); added: `source`, `read_complete`, `controls`, `scanned`, and per match `basis`, `terms`, `guid`, `date`, `assignee`. `$GITHUB_OUTPUT`: `grant_hits` and `grant_hits_count`, which the workflow already reads |
+| Rule | a week is read completely or the run exits 1 with `NOT READ:` in the log and in the step summary, writes no manifest and no `$GITHUB_OUTPUT`. A hit still files its issue and chains utility grants (cap 20) |
+| Success | (1) field-laboratory `scripts/check-patent-watch.py` green and `scripts/mutate-patent-watch.py` catching every mutant, run by `verify.yml` job `patent-watch`; (2) `actionlint` 0 on the workflow. Both before the client commit. (3) The laboratory's `patent-watch-rehearsal.yml` reads a settled week on the real host with no token: after the client commit, because it reads the client's main. (4) The first scheduled run (Wednesday 2026-11-04 16:00Z) reads its week or is red with `NOT READ:` in its log: observed, not claimed |
 
 ## TASK 5 — read the first scheduled EPA run, and the watch that follows it
 
