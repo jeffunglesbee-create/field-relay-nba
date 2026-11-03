@@ -1,28 +1,26 @@
 {
-  "ts": "2026-10-11T06:45:50.568Z",
+  "ts": "2026-11-03T16:11:39.577Z",
   "base": "https://sports.bzzoiro.com",
-  "date": "2026-10-11",
+  "date": "2026-11-03",
   "tokenPresent": true,
   "claims": {
     "liveStates": {
       "status": {
-        "notstarted": 157,
-        "postponed": 2,
-        "1st_half": 2,
-        "2nd_half": 2,
-        "finished": 14,
-        "cancelled": 1
+        "notstarted": 25,
+        "postponed": 3,
+        "cancelled": 2,
+        "1st_half": 1,
+        "finished": 4
       },
       "period": {
-        "": 159,
-        "1T": 3,
-        "2T": 2,
-        "FT": 14
+        "": 30,
+        "1T": 1,
+        "FT": 4
       },
-      "pagesWalked": 2,
-      "eventsSeen": 178,
+      "pagesWalked": 1,
+      "eventsSeen": 35,
       "truncated": false,
-      "reportedCount": 178,
+      "reportedCount": 35,
       "sampleFields": [
         "attendance",
         "away_coach_id",
@@ -89,11 +87,12 @@
         "websocket_plus"
       ],
       "liveStatus": {
-        "inprogress": 4
+        "finished": 1,
+        "inprogress": 1
       },
       "livePeriod": {
-        "2nd_half": 2,
-        "1st_half": 2
+        "FT": 1,
+        "1st_half": 1
       },
       "newsletterStates": {
         "halftime": [],
@@ -104,9 +103,9 @@
         ]
       },
       "newsletterStatesEvidence": {
-        "rowsSampled": 178,
-        "liveRowsSampled": 4,
-        "inPlayRowsSampled": 4,
+        "rowsSampled": 35,
+        "liveRowsSampled": 2,
+        "inPlayRowsSampled": 2,
         "meaningOfEmpty": "not observed in this sample — NOT evidence the state is absent from the feed",
         "observedOutOfBand": {
           "halftime": {
@@ -124,8 +123,8 @@
       }
     },
     "odds": {
-      "eventId": 205177,
-      "eventStatus": "inprogress",
+      "eventId": 606255,
+      "eventStatus": "finished",
       "marketKeys": [
         "1x2",
         "asian_handicap",
@@ -135,23 +134,21 @@
         "over_under_05",
         "over_under_15",
         "over_under_25",
-        "over_under_35",
-        "total_corners"
+        "over_under_35"
       ],
-      "marketCount": 10,
-      "bookmakersCount": 20,
-      "totalOdds": 372,
+      "marketCount": 9,
+      "bookmakersCount": 25,
+      "totalOdds": 287,
       "bookmakersPerMarket": {
-        "btts": 17,
-        "draw_no_bet": 12,
-        "asian_handicap": 13,
-        "1x2": 8,
+        "btts": 16,
+        "draw_no_bet": 11,
+        "asian_handicap": 8,
+        "1x2": 16,
         "double_chance": 5,
         "over_under_15": 4,
-        "over_under_25": 5,
-        "over_under_35": 4,
-        "over_under_05": 2,
-        "total_corners": 2
+        "over_under_25": 4,
+        "over_under_35": 2,
+        "over_under_05": 2
       },
       "newsletterFields": {
         "btts": [
@@ -163,16 +160,16 @@
         "europeanHandicap": [],
         "openingPriceFields": [],
         "movementFields": [
-          "movement (x277)"
+          "movement (x195)"
         ]
       }
     },
     "seedIds": {
-      "eventId": 205177,
-      "teamId": 1957,
-      "coachId": 2850,
-      "refereeId": null,
-      "venueId": 1659,
+      "eventId": 606255,
+      "teamId": 1911,
+      "coachId": 4466,
+      "refereeId": 2100,
+      "venueId": 1654,
       "seasonId": 1570
     },
     "apiIndex": [
@@ -226,7 +223,7 @@
       {
         "path": "/api/schema/",
         "status": 200,
-        "bytes": 1267982,
+        "bytes": 1284655,
         "topLevelKeys": [
           "openapi",
           "info",
@@ -284,6 +281,7 @@
           "/api/v2/events/{id}/",
           "/api/v2/events/{id}/availability/",
           "/api/v2/events/{id}/broadcasts/",
+          "/api/v2/events/{id}/commentary/",
           "/api/v2/events/{id}/h2h/",
           "/api/v2/events/{id}/incidents/",
           "/api/v2/events/{id}/lineups/",
@@ -473,7 +471,7 @@
       {
         "path": "/docs/",
         "status": 200,
-        "bytes": 65516,
+        "bytes": 65692,
         "nonJsonHead": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-widt"
       },
       {
@@ -485,9 +483,9 @@
     "squadManagerReferee": [
       {
         "label": "squad (team)",
-        "path": "/api/v2/teams/1957/squad/",
+        "path": "/api/v2/teams/1911/squad/",
         "status": 200,
-        "bytes": 8377,
+        "bytes": 8996,
         "topLevelKeys": [
           "team_id",
           "count",
@@ -505,9 +503,9 @@
       },
       {
         "label": "team",
-        "path": "/api/v2/teams/1957/",
+        "path": "/api/v2/teams/1911/",
         "status": 200,
-        "bytes": 114,
+        "bytes": 118,
         "topLevelKeys": [
           "id",
           "name",
@@ -523,9 +521,9 @@
       },
       {
         "label": "lineups (event)",
-        "path": "/api/v2/events/205177/lineups/",
+        "path": "/api/v2/events/606255/lineups/",
         "status": 200,
-        "bytes": 5465,
+        "bytes": 5845,
         "topLevelKeys": [
           "event_id",
           "lineup_status",
@@ -550,7 +548,7 @@
         "label": "managers list",
         "path": "/api/v2/managers/",
         "status": 200,
-        "bytes": 20080,
+        "bytes": 20074,
         "topLevelKeys": [
           "count",
           "next",
@@ -570,9 +568,9 @@
       },
       {
         "label": "manager by id",
-        "path": "/api/v2/managers/2850/",
+        "path": "/api/v2/managers/4466/",
         "status": 200,
-        "bytes": 421,
+        "bytes": 417,
         "topLevelKeys": [
           "id",
           "name",
@@ -597,7 +595,7 @@
       },
       {
         "label": "coach by id",
-        "path": "/api/v2/coaches/2850/",
+        "path": "/api/v2/coaches/4466/",
         "status": 404,
         "bytes": 53
       },
@@ -605,7 +603,7 @@
         "label": "referees list",
         "path": "/api/v2/referees/",
         "status": 200,
-        "bytes": 16562,
+        "bytes": 16529,
         "topLevelKeys": [
           "count",
           "next",
@@ -613,6 +611,33 @@
           "results"
         ],
         "fieldCount": 19,
+        "injuryFields": [],
+        "returnFields": [],
+        "retiredFields": []
+      },
+      {
+        "label": "referee by id",
+        "path": "/api/v2/referees/2100/",
+        "status": 200,
+        "bytes": 328,
+        "topLevelKeys": [
+          "id",
+          "name",
+          "country",
+          "nationality_a3",
+          "birthdate",
+          "matches",
+          "total_yellow_cards",
+          "total_red_cards",
+          "avg_yellow_per_match",
+          "avg_red_per_match",
+          "avg_goals_per_match",
+          "avg_fouls_per_match",
+          "career_games",
+          "career_yellow_cards",
+          "career_red_cards"
+        ],
+        "fieldCount": 15,
         "injuryFields": [],
         "returnFields": [],
         "retiredFields": []
@@ -636,7 +661,7 @@
       ],
       "fieldConsumesCount": 13,
       "indexAnswered": true,
-      "offeredCount": 223,
+      "offeredCount": 224,
       "availableUnused": [
         "/api/",
         "/api/broadcasts/",
@@ -683,6 +708,7 @@
         "/api/v2/coverage/",
         "/api/v2/events/{id}/",
         "/api/v2/events/{id}/availability/",
+        "/api/v2/events/{id}/commentary/",
         "/api/v2/events/{id}/h2h/",
         "/api/v2/events/{id}/metadata/",
         "/api/v2/events/{id}/odds/",
@@ -871,150 +897,150 @@
       ],
       "claimedButAbsent": [
         "/api/v2/coaches/",
-        "/api/v2/coaches/2850/"
+        "/api/v2/coaches/4466/"
       ]
     }
   },
   "calls": [
     {
-      "path": "/api/v2/events/?date_from=2026-10-11&date_to=2026-10-11&limit=100",
+      "path": "/api/v2/events/?date_from=2026-11-03&date_to=2026-11-03&limit=100",
       "status": 200,
-      "ms": 284,
-      "bytes": 203128,
+      "ms": 324,
+      "bytes": 77368,
       "note": "claim1 events page 0"
-    },
-    {
-      "path": "/api/v2/events/?date_from=2026-10-11&date_to=2026-10-11&limit=100&offset=100",
-      "status": 200,
-      "ms": 229,
-      "bytes": 189185,
-      "note": "claim1 events page 1"
     },
     {
       "path": "/api/v2/events/live/",
       "status": 200,
-      "ms": 193,
-      "bytes": 1809,
+      "ms": 174,
+      "bytes": 951,
       "note": "claim1 live states"
     },
     {
-      "path": "/api/v2/events/205177/odds/comparison/",
+      "path": "/api/v2/events/606255/odds/comparison/",
       "status": 200,
-      "ms": 224,
-      "bytes": 35120,
+      "ms": 327,
+      "bytes": 25686,
       "note": "claim2 odds"
     },
     {
-      "path": "/api/v2/events/?date_from=2026-10-11&date_to=2026-10-11&limit=1",
+      "path": "/api/v2/events/?date_from=2026-11-03&date_to=2026-11-03&limit=1",
       "status": 200,
-      "ms": 246,
-      "bytes": 2998,
+      "ms": 199,
+      "bytes": 3221,
       "note": "claim3/4 id seed"
     },
     {
       "path": "/api/v2/",
       "status": 404,
-      "ms": 217,
+      "ms": 432,
       "bytes": 53,
       "note": "api self-description"
     },
     {
       "path": "/api/",
       "status": 200,
-      "ms": 213,
+      "ms": 195,
       "bytes": 847,
       "note": "api self-description"
     },
     {
       "path": "/api/schema/",
       "status": 200,
-      "ms": 782,
-      "bytes": 1267982,
+      "ms": 443,
+      "bytes": 1284655,
       "note": "api self-description"
     },
     {
       "path": "/api/v2/schema/",
       "status": 404,
-      "ms": 392,
+      "ms": 175,
       "bytes": 53,
       "note": "api self-description"
     },
     {
       "path": "/api/v2/openapi.json",
       "status": 404,
-      "ms": 215,
+      "ms": 169,
       "bytes": 53,
       "note": "api self-description"
     },
     {
       "path": "/docs/",
       "status": 200,
-      "ms": 387,
-      "bytes": 65516,
+      "ms": 296,
+      "bytes": 65692,
       "note": "api self-description"
     },
     {
       "path": "/api/docs/",
       "status": 406,
-      "ms": 224,
+      "ms": 184,
       "bytes": 18,
       "note": "api self-description"
     },
     {
-      "path": "/api/v2/teams/1957/squad/",
+      "path": "/api/v2/teams/1911/squad/",
       "status": 200,
-      "ms": 237,
-      "bytes": 8377,
+      "ms": 270,
+      "bytes": 8996,
       "note": "claim3/4 squad (team)"
     },
     {
-      "path": "/api/v2/teams/1957/",
+      "path": "/api/v2/teams/1911/",
       "status": 200,
-      "ms": 218,
-      "bytes": 114,
+      "ms": 194,
+      "bytes": 118,
       "note": "claim3/4 team"
     },
     {
-      "path": "/api/v2/events/205177/lineups/",
+      "path": "/api/v2/events/606255/lineups/",
       "status": 200,
-      "ms": 181,
-      "bytes": 5465,
+      "ms": 204,
+      "bytes": 5845,
       "note": "claim3/4 lineups (event)"
     },
     {
       "path": "/api/v2/managers/",
       "status": 200,
-      "ms": 242,
-      "bytes": 20080,
+      "ms": 223,
+      "bytes": 20074,
       "note": "claim3/4 managers list"
     },
     {
       "path": "/api/v2/coaches/",
       "status": 404,
-      "ms": 203,
+      "ms": 182,
       "bytes": 53,
       "note": "claim3/4 coaches list"
     },
     {
-      "path": "/api/v2/managers/2850/",
+      "path": "/api/v2/managers/4466/",
       "status": 200,
-      "ms": 219,
-      "bytes": 421,
+      "ms": 391,
+      "bytes": 417,
       "note": "claim3/4 manager by id"
     },
     {
-      "path": "/api/v2/coaches/2850/",
+      "path": "/api/v2/coaches/4466/",
       "status": 404,
-      "ms": 205,
+      "ms": 186,
       "bytes": 53,
       "note": "claim3/4 coach by id"
     },
     {
       "path": "/api/v2/referees/",
       "status": 200,
-      "ms": 10922,
-      "bytes": 16562,
+      "ms": 10404,
+      "bytes": 16529,
       "note": "claim3/4 referees list"
+    },
+    {
+      "path": "/api/v2/referees/2100/",
+      "status": 200,
+      "ms": 198,
+      "bytes": 328,
+      "note": "claim3/4 referee by id"
     }
   ],
   "rateLimit": {},
@@ -1023,33 +1049,32 @@
   "summary": {
     "tokenPresent": true,
     "callsMade": 20,
-    "coverage": "4 newsletter claims attempted; 6 of 8 candidate squad/manager/referee routes returned 200",
+    "coverage": "4 newsletter claims attempted; 7 of 9 candidate squad/manager/referee routes returned 200",
     "claim1_liveStates": {
       "verdict": "ANSWERED",
-      "eventsSeen": 178,
-      "reportedCount": 178,
+      "eventsSeen": 35,
+      "reportedCount": 35,
       "truncated": false,
-      "distinctStatus": 6,
+      "distinctStatus": 5,
       "statusVocabulary": {
-        "notstarted": 157,
-        "postponed": 2,
-        "1st_half": 2,
-        "2nd_half": 2,
-        "finished": 14,
-        "cancelled": 1
+        "notstarted": 25,
+        "postponed": 3,
+        "cancelled": 2,
+        "1st_half": 1,
+        "finished": 4
       },
       "periodVocabulary": {
-        "": 159,
-        "1T": 3,
-        "2T": 2,
-        "FT": 14
+        "": 30,
+        "1T": 1,
+        "FT": 4
       },
       "liveStatusVocabulary": {
-        "inprogress": 4
+        "finished": 1,
+        "inprogress": 1
       },
       "livePeriodVocabulary": {
-        "2nd_half": 2,
-        "1st_half": 2
+        "FT": 1,
+        "1st_half": 1
       },
       "newsletterStatesFound": {
         "halftime": [],
@@ -1060,9 +1085,9 @@
         ]
       },
       "newsletterStatesEvidence": {
-        "rowsSampled": 178,
-        "liveRowsSampled": 4,
-        "inPlayRowsSampled": 4,
+        "rowsSampled": 35,
+        "liveRowsSampled": 2,
+        "inPlayRowsSampled": 2,
         "meaningOfEmpty": "not observed in this sample — NOT evidence the state is absent from the feed",
         "observedOutOfBand": {
           "halftime": {
@@ -1081,9 +1106,9 @@
     },
     "claim2_odds": {
       "verdict": "ANSWERED",
-      "eventId": 205177,
-      "eventStatus": "inprogress",
-      "marketCount": 10,
+      "eventId": 606255,
+      "eventStatus": "finished",
+      "marketCount": 9,
       "marketKeys": [
         "1x2",
         "asian_handicap",
@@ -1093,22 +1118,20 @@
         "over_under_05",
         "over_under_15",
         "over_under_25",
-        "over_under_35",
-        "total_corners"
+        "over_under_35"
       ],
-      "bookmakersCount": 20,
-      "totalOdds": 372,
+      "bookmakersCount": 25,
+      "totalOdds": 287,
       "bookmakersPerMarket": {
-        "btts": 17,
-        "draw_no_bet": 12,
-        "asian_handicap": 13,
-        "1x2": 8,
+        "btts": 16,
+        "draw_no_bet": 11,
+        "asian_handicap": 8,
+        "1x2": 16,
         "double_chance": 5,
         "over_under_15": 4,
-        "over_under_25": 5,
-        "over_under_35": 4,
-        "over_under_05": 2,
-        "total_corners": 2
+        "over_under_25": 4,
+        "over_under_35": 2,
+        "over_under_05": 2
       },
       "newsletterFields": {
         "btts": [
@@ -1120,7 +1143,7 @@
         "europeanHandicap": [],
         "openingPriceFields": [],
         "movementFields": [
-          "movement (x277)"
+          "movement (x195)"
         ]
       }
     },
@@ -1208,6 +1231,27 @@
           "previous",
           "results"
         ]
+      },
+      {
+        "label": "referee by id",
+        "status": 200,
+        "topLevelKeys": [
+          "id",
+          "name",
+          "country",
+          "nationality_a3",
+          "birthdate",
+          "matches",
+          "total_yellow_cards",
+          "total_red_cards",
+          "avg_yellow_per_match",
+          "avg_red_per_match",
+          "avg_goals_per_match",
+          "avg_fouls_per_match",
+          "career_games",
+          "career_yellow_cards",
+          "career_red_cards"
+        ]
       }
     ],
     "surfaceDiff": {
@@ -1228,7 +1272,7 @@
       ],
       "fieldConsumesCount": 13,
       "indexAnswered": true,
-      "offeredCount": 223,
+      "offeredCount": 224,
       "availableUnused": [
         "/api/",
         "/api/broadcasts/",
@@ -1275,6 +1319,7 @@
         "/api/v2/coverage/",
         "/api/v2/events/{id}/",
         "/api/v2/events/{id}/availability/",
+        "/api/v2/events/{id}/commentary/",
         "/api/v2/events/{id}/h2h/",
         "/api/v2/events/{id}/metadata/",
         "/api/v2/events/{id}/odds/",
@@ -1463,7 +1508,7 @@
       ],
       "claimedButAbsent": [
         "/api/v2/coaches/",
-        "/api/v2/coaches/2850/"
+        "/api/v2/coaches/4466/"
       ]
     },
     "apiIndex": [
@@ -1485,7 +1530,7 @@
         "status": 200,
         "keyCount": 7,
         "declared": 0,
-        "openApiPaths": 220
+        "openApiPaths": 221
       },
       {
         "path": "/api/v2/schema/",
