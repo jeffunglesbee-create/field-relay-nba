@@ -42,24 +42,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { judgeWorkflow, coverageLine } from './lib/workflow-if-eval.mjs';
+import { parseYaml } from './lib/parse-workflow-yaml.mjs';
 
 const DIR = process.env.WORKFLOW_DIR || '.github/workflows';
 
 // Minimal YAML subset parser is NOT acceptable here -- the whole point is to
-// parse the way the runner does. js-yaml if present, else python3's yaml.
-async function parseYaml(text, file) {
-  try {
-    const jsyaml = await import('js-yaml');
-    return { ok: true, doc: (jsyaml.default ?? jsyaml).load(text) };
-  } catch (_) { /* fall through to python */ }
-  const { spawnSync } = await import('node:child_process');
-  const r = spawnSync('python3', ['-c',
-    'import sys,yaml,json; print(json.dumps(yaml.safe_load(open(sys.argv[1])), default=str))', file],
-    { encoding: 'utf8' });
-  if (r.status !== 0) return { ok: false, error: (r.stderr || '').trim().split('\n').slice(-3).join(' ') };
-  try { return { ok: true, doc: JSON.parse(r.stdout) }; }
-  catch (e) { return { ok: false, error: `parser output unreadable: ${e.message}` }; }
-}
+// parse the way the runner does. The parser (js-yaml if present, else python3's
+// yaml) lives in scripts/lib/parse-workflow-yaml.mjs, shared with
+// scripts/check-workflow-timeouts.mjs.
 
 // YAML 1.1: bare `on` is the boolean true. js-yaml's default schema and
 // python's safe_load both do this, and a check keyed on the string 'on' reads
