@@ -1,0 +1,56 @@
+=== worker cpu read  utc=2026-11-03T20:57:46Z  days=30  mode=localise ===
+COVERAGE: field-relay-nba, status exceededMemory, 30 UTC day(s), bucketed by datetimeMinute. 45 bucket(s) hold 45 invocation(s); the daily totals hold 45. Counts are Cloudflare's sampled estimates.
+Dimensions this dataset offers: cacheStatus, coloCode, date, datetime, datetimeFifteenMinutes, datetimeFiveMinutes, datetimeHour, datetimeMinute, datetimeSixHours, dispatchNamespaceName, environmentName, isDispatcher, isPreview, previewSlug, scriptName, scriptTag, scriptVersion, status, usageModel
+
+Every bucket, oldest first:
+  2026-10-07T12:00:00Z  1  cpuTimeP50 4757158
+  2026-10-07T12:15:00Z  1  cpuTimeP50 4698339
+  2026-10-07T12:30:00Z  1  cpuTimeP50 4295144
+  2026-10-07T12:45:00Z  1  cpuTimeP50 3982448
+  2026-10-07T13:00:00Z  1  cpuTimeP50 4692034
+  2026-10-07T13:16:00Z  1  cpuTimeP50 5393956
+  2026-10-07T13:30:00Z  1  cpuTimeP50 5122515
+  2026-10-07T13:45:00Z  1  cpuTimeP50 4553923
+  2026-10-07T14:00:00Z  1  cpuTimeP50 4891813
+  2026-10-07T14:16:00Z  1  cpuTimeP50 4792499
+  2026-10-07T14:30:00Z  1  cpuTimeP50 4552434
+  2026-10-07T14:45:00Z  1  cpuTimeP50 4195470
+  2026-10-07T15:00:00Z  1  cpuTimeP50 5008152
+  2026-10-07T15:15:00Z  1  cpuTimeP50 4313389
+  2026-10-07T15:30:00Z  1  cpuTimeP50 4324326
+  2026-10-14T12:00:00Z  1  cpuTimeP50 2754342
+  2026-10-14T12:15:00Z  1  cpuTimeP50 2315252
+  2026-10-14T12:30:00Z  1  cpuTimeP50 2622402
+  2026-10-14T12:45:00Z  1  cpuTimeP50 2361118
+  2026-10-21T12:00:00Z  1  cpuTimeP50 2940274
+  2026-10-21T12:15:00Z  1  cpuTimeP50 2432180
+  2026-10-21T12:30:00Z  1  cpuTimeP50 4270378
+  2026-10-21T12:45:00Z  1  cpuTimeP50 4274464
+  2026-10-21T13:00:00Z  1  cpuTimeP50 3167553
+  2026-10-21T13:15:00Z  1  cpuTimeP50 2879621
+  2026-10-21T13:45:00Z  1  cpuTimeP50 2170919
+  2026-10-21T14:00:00Z  1  cpuTimeP50 2426775
+  2026-10-21T14:15:00Z  1  cpuTimeP50 3591132
+  2026-10-21T14:45:00Z  1  cpuTimeP50 2632582
+  2026-10-21T15:00:00Z  1  cpuTimeP50 2483116
+  2026-10-21T15:15:00Z  1  cpuTimeP50 1859938
+  2026-10-21T15:30:00Z  1  cpuTimeP50 2812754
+  2026-10-28T12:00:00Z  1  cpuTimeP50 1931654
+  2026-10-28T12:15:00Z  1  cpuTimeP50 5050367
+  2026-10-28T12:30:00Z  1  cpuTimeP50 3692869
+  2026-10-28T12:45:00Z  1  cpuTimeP50 2401858
+  2026-10-28T13:00:00Z  1  cpuTimeP50 2500120
+  2026-10-28T13:15:00Z  1  cpuTimeP50 4218225
+  2026-10-28T13:45:00Z  1  cpuTimeP50 2888797
+  2026-10-28T14:00:00Z  1  cpuTimeP50 2499578
+  2026-10-28T14:30:00Z  1  cpuTimeP50 2569435
+  2026-10-28T14:45:00Z  1  cpuTimeP50 2559550
+  2026-10-28T15:00:00Z  1  cpuTimeP50 2058417
+  2026-10-28T15:15:00Z  1  cpuTimeP50 2693053
+  2026-10-28T15:30:00Z  1  cpuTimeP50 3201253
+
+By day: 2026-10-07 15, 2026-10-14 4, 2026-10-21 13, 2026-10-28 13
+By UTC hour of day: 12h 16, 13h 10, 14h 10, 15h 9
+On a minute divisible by 5 (where the */5 and */15 crons fire): 43 of 45. Timing alone does not prove the trigger.
+
+RECONCILED: 45 bucket(s) sum to 45, equal to the daily totals.
