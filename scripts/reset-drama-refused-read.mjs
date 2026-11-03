@@ -23,9 +23,21 @@ async function d1(sql, params) {
     headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': SECRET },
     body: JSON.stringify({ sql, params }),
   });
-  const body = await res.json().catch(() => ({}));
+  const text = await res.text();
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(`d1 exec failed: HTTP ${res.status}, the body is not JSON: ${text.slice(0, 300)}`);
+  }
   if (!res.ok || body.success === false) throw new Error(`d1 exec failed: HTTP ${res.status} ${JSON.stringify(body).slice(0, 300)}`);
   return body;
+}
+
+// The rows of a /d1/execute answer. An answer with no results array is an error, not an empty table.
+function rowsOf(body) {
+  if (!Array.isArray(body.results)) throw new Error(`d1 exec: no results array in the answer: ${JSON.stringify(body).slice(0, 300)}`);
+  return body.results;
 }
 
 const SELECT = `SELECT id, sport, date, home, away, home_score, away_score, drama_peak, drama_arc, espn_event_id, finalized_at
@@ -34,7 +46,7 @@ const SELECT = `SELECT id, sport, date, home, away, home_score, away_score, dram
 async function main() {
   console.log(`=== Reset the Drama row stored from a refused read: ${ID} ===\n`);
 
-  const before = (await d1(SELECT, [ID])).results || [];
+  const before = rowsOf(await d1(SELECT, [ID]));
   if (before.length !== 1) throw new Error(`expected exactly 1 row for ${ID}, found ${before.length}`);
   const row = before[0];
   console.log(`[before] ${JSON.stringify(row)}`);
@@ -62,7 +74,7 @@ async function main() {
   console.log(`[reset] changes=${changes}`);
   if (changes !== 1) throw new Error(`the reset changed ${changes} rows, expected exactly 1`);
 
-  const after = (await d1(SELECT, [ID])).results || [];
+  const after = rowsOf(await d1(SELECT, [ID]));
   console.log(`[after]  ${JSON.stringify(after[0])}`);
   if (after.length !== 1 || after[0].drama_peak !== null || after[0].drama_arc !== null) {
     throw new Error('read back after the reset: the row is not NULL / NULL');
