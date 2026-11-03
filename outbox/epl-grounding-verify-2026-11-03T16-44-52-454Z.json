@@ -1,0 +1,91 @@
+{
+  "probed_at": "2026-11-03T16:44:52.454Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 9,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Rogers (CHE), Palmer (CHE)\nAssists: Fofana (CHE), Lavia (CHE)\nRed cards: Martinez (MAN)\nYellow cards: Penders (CHE), Maguire (MAN), Mbeumo (MAN), Mainoo (MAN), Zirkzee (MAN)\nSaves: Lammens (MAN) 8, Penders (CHE) 3\nFPL bonus: Acheampong (CHE) +3, Fofana (CHE) +2, Rogers (CHE) +1\nTop BPS: Acheampong (CHE) 47, Fofana (CHE) 46, Rogers (CHE) 38\nLeague table: Chelsea 4th on 0 points from 0 | Man Utd 17th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401878762",
+      "game_recap_epl_401879246",
+      "game_recap_epl_401879250",
+      "game_recap_epl_401878761",
+      "game_recap_epl_401879245",
+      "game_recap_epl_401878763",
+      "game_recap_epl_401879247",
+      "game_recap_epl_401879249",
+      "game_recap_epl_401879251",
+      "game_recap_epl_401879248",
+      "game_recap_epl_401878764",
+      "game_recap_epl_401879252",
+      "game_recap_epl_401878765",
+      "game_recap_epl_401878766",
+      "game_recap_epl_401879254",
+      "game_recap_epl_401878767",
+      "game_recap_epl_401879255",
+      "game_recap_epl_401878768",
+      "game_recap_epl_401879256",
+      "game_recap_epl_401879253"
+    ],
+    "claim_minute": [
+      "game_recap_epl_401878767"
+    ],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401879245: overcome the",
+      "game_recap_epl_401879245: to overcome",
+      "game_recap_epl_401879247: overcome the",
+      "game_recap_epl_401879247: to overcome",
+      "game_recap_epl_401879255: to overcome",
+      "game_recap_epl_401878768: extended their"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401878762, game_recap_epl_401879246, game_recap_epl_401879250 | archived briefs claim a minute: game_recap_epl_401878767 | archived briefs use a banned phrase: game_recap_epl_401879245: overcome the, game_recap_epl_401879245: to overcome, game_recap_epl_401879247: overcome the"
+}
