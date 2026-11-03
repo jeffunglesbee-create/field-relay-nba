@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-03 (14:04Z) — the real patent-watch.yml read the settled week 2026-10-27 and filed issue #2: 0 grant hits, 5 application hits
+
+**HEAD:** `9d2dc379` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-03-patent-watch-dispatch.md (task: the staged dispatch of the real `patent-watch.yml` with `week=2026-10-27`, TASK 4b of `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md`)
+
+No Worker code changed, so there is no deploy. 0 Odds API credits.
+
+- **The dispatch.** One, on the owner's reply "Next approved" (Tuesday 08:53 ET, 13:53Z) to a message that asked for exactly those words. Run 41648663568 in jubilant-bassoon, `workflow_dispatch`, `week=2026-10-27`, created 13:55:08Z, `success` at 13:59:49Z; `watch` succeeded and `followup` was skipped (no grant hit).
+- **What it read.** Five controls passed; `USPAT` 2026-10-27 held 5,827 families and `US-PGPUB` 2026-10-22 held 9,476; 0 grants and 5 applications matched. Those are the figures of the laboratory's 06:42Z rehearsal. The log holds no `NOT READ`, no retry and no HTTP 4xx or 5xx line.
+- **What it left.** Issue #2, "Patent watch (applications): 5 hit(s) - 2026-10-27", assigned to the owner; and `outbox/patents/watch-2026-10-27.json` with `read_complete` true (runner commit `f691948`). The five matches: US20260332641 (assignee Dynatrace LLC), and US20260329571, US20260329660, US20260329977 and US20260333040 (text).
+- **Not established.** A scheduled run, and whether Tuesday's grants are searchable at Wednesday 16:00Z: the 11-04 scheduled task (`trig_01EeLZTDbdyihnpkjnH6kMdw`) reads it, Done condition 6 stays open and the CC-CMD stays PARTIAL. A grant hit: `followup` and the Dropbox upload through the caller have not run since the caller was fixed. Whether the push reached the owner's phone.
+- **Observed, not changed.** The issue says "week ending 2026-10-27" for the applications scan, which read the Thursday 2026-10-22. Cosmetic, client code, Rule 69.
+- **Final check.** `Repo guards` run 41632828254 `success` on `b59a07ba` (56 of 56 steps); every red newest run in the three repositories is accounted for in the session doc; `/budget/odds` still equals the record of the 11:57Z call.
+- **Open, the owner's call:** the `session_health` additive fields (`eligible`, `flat_bar`, `reachable_ceiling` beside `degraded`), about 30 minutes with its check and a relay deploy.
+
 ## SESSION CLOSE-OUT — 2026-11-03 (12:03Z) — the live-version check of /cfl/odds-probs: one call answered HTTP 200 on ad8f5cc7, and the ledger recorded exactly that call
 
 **HEAD:** `e2c9e434` → this close-out · **Branch:** main
@@ -13,7 +28,7 @@ No Worker code changed, so there is no deploy. 6 Odds API credits spent by this 
 - **The approval is a reading.** The canonical `APPROVED: up to 6 Odds API credits for one /cfl/odds-probs check on version ad8f5cc7` was not typed. I took "Next approved" as approval of the one step the previous message named, with its cap, and did not ask again. If that was not the owner's meaning, the cost was 6 credits, once.
 - **Not established.** The 0-credit `HIT` path of this version, the 502 and 503 branches, an abandoned request and a real client request (this was a self-fetch) were not exercised. Why the day's single `error` row (a `HIT` whose reconcile threw) threw is unread. Who calls the route in the hours the tally shows traffic is not known.
 - **Not changed.** No second call, no dispatch of `cfl-abort-experiment.yml` or `odds-daily-vs-vendor.yml`, no `POST /analytics/morning-report/recompute`, nothing the calendar experiment's VOID window (2026-11-08 to 2026-11-23) lists.
-- **Open, the owner's call**, unchanged from the entry below: the 5 patent matches of week 2026-10-27 (for example `APPROVED: dispatch patent-watch.yml with week=2026-10-27`; one issue assigned to the owner, and a run of `patent-fulltext.yml` for grant hits) and the `session_health` additive fields (about 30 minutes with its check and a relay deploy).
+- **Open, the owner's call**, unchanged from the entry below: the 5 patent matches of week 2026-10-27 (for example `APPROVED: dispatch patent-watch.yml with week=2026-10-27`; one issue assigned to the owner, and a run of `patent-fulltext.yml` for grant hits) [Done 2026-11-03 13:55Z on the owner's "Next approved": see the first entry above] and the `session_health` additive fields (about 30 minutes with its check and a relay deploy).
 
 ## SESSION CLOSE-OUT — 2026-11-03 (08:45Z) — the owner's could-not-verify list: five items closed with evidence, three stated as not established, and TASK 4b built
 
@@ -28,7 +43,7 @@ No Worker code changed, so there is no deploy. 0 Odds API credits.
 - **The 08:30Z wake, read (`2e38980c`).** `Odds daily vs vendor` run 41591246150 (2026-11-03) compared its first closed day: `consistent`, 2026-11-02 daily sum 339 against a monthly delta of 997 (per-day row 339 against 300, excess 39). The 2026-10-27 note in `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` stands on one data point; its item 8 is closed and its Status stays PARTIAL. No further wake: the workflow exits 1 on `daily-exceeds-monthly`.
 - **Corrections in my own work.** The Task 2b artifact has nine non-aborted calls, not ten. A workflow run's actor is not proof of who dispatched it. The script etag is not a proven hash. Three red guards runs since 11-01, not two. The first odds-probs draft named artifact indexes before listing them. I wrote that the "Task 2b approved" phrase was in no file or API; copies exist (found at 08:51Z), and the vendor-residual paragraph now says so.
 - **STAGED, the live-version check.** [Done 2026-11-03 11:57Z on the owner's reply "Next approved": the call answered HTTP 200 with `reconciled` in the body and the day's `handleCFLOddsProbs` tally rose by one, so the Verify clause below was met; see the first entry above.] Blocked by: the owner's approval text. Unblocked when: the owner sends `APPROVED: up to 6 Odds API credits for one /cfl/odds-probs check on version ad8f5cc7`. Verify: the call answers HTTP 200 with `reconciled` in the body, and the day's `handleCFLOddsProbs` tally rises by one.
-- **STAGED, the 5 patent matches of week 2026-10-27.** Blocked by: the owner's word. Unblocked when: the owner approves a dispatch of the real `patent-watch.yml` with `week=2026-10-27`. Verify: an issue assigned to the owner exists for the week and `outbox/patents/watch-2026-10-27.json` is committed with `read_complete` true.
+- **STAGED, the 5 patent matches of week 2026-10-27.** [Done 2026-11-03 13:55Z on the owner's "Next approved": run 41648663568 filed issue #2 and committed the manifest with `read_complete` true, so the Verify clause below was met; see the first entry above.] Blocked by: the owner's word. Unblocked when: the owner approves a dispatch of the real `patent-watch.yml` with `week=2026-10-27`. Verify: an issue assigned to the owner exists for the week and `outbox/patents/watch-2026-10-27.json` is committed with `read_complete` true.
 - **Open, the owner's call:** the `session_health` additive fields (`eligible`, `flat_bar`, `reachable_ceiling` beside `degraded`), about 30 minutes with its check and a relay deploy.
 
 ## SESSION CLOSE-OUT — 2026-11-03 (04:08Z) — patent-watch.yml started its first job after 21 startup failures, and the job read nothing; the repair waits for the owner
