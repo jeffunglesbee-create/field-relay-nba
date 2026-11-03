@@ -48,12 +48,13 @@ Offline, on the committed tree: the 50 `guards.yml` steps pass except two that c
 
 ## Open
 
-- The owner's approval for the repeat (above). A one-line reply "APPROVED: up to 12 Odds API credits for the CFL abort experiment" is the approval; I will not dispatch without it.
-- Not decided here: whether `getWCPregameLambdas` (gap non-zero in 12 of 38 samples, range -20 to +44, reached from `handleV2Games` as well as AmbientDO) gets the same registration.
+- ~~The owner's approval for the repeat.~~ **RAN 2026-11-02, see above** (the owner's "Task 2b approved" of 00:24Z; run 41413685131; done condition 4 MET).
+- The busy-day read of 2026-11-07 (done condition 5): carried to `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` (Note 2026-11-02, item 1), read by `trig_01E9kMQiyKXENeyzuxNFBNsV` at 2026-11-08T08:00Z, result recorded in the vendor-residual CC-CMD's Data points.
+- Not decided here: whether `getWCPregameLambdas` (gap non-zero in 12 of 38 samples, range -20 to +44, reached from `handleV2Games` as well as AmbientDO) gets the same registration. Carried with its numbers in the same Note, item 2, with a recommendation: land TASK 1 of `docs/CC-CMD-2026-10-23-odds-spend-without-need.md` first.
 
 ## Seen, not fixed
 
-- The header comment above `handleCFLOddsProbs` says the route costs 2 credits per call; it charges 6 (`check-odds-calls-guarded` pins 6).
+- The header comment above `handleCFLOddsProbs` says the route costs 2 credits per call; it charges 6 (`check-odds-calls-guarded` pins 6). **Fixed 2026-11-03** (comment-only, with the same line above `handleWCOddsProbs`, 4 not 2).
 - A vendor fetch that throws goes to the catch branch: the charge stands with no reconcile. Not changed (the route's existing behaviour; named in the prediction document as a reason the stranded figure will not be exactly 0).
-- `scripts/watch-odds-daily-vs-vendor.mjs` sums `credits_kept` with `Number(r.credits_kept) || 0` in a loop the absence-collapse gate cannot see.
+- `scripts/watch-odds-daily-vs-vendor.mjs` sums `credits_kept` with `Number(r.credits_kept) || 0` in a loop the absence-collapse gate cannot see. **Fixed 2026-11-03** (`noHeaderCredits` returns null for a row it cannot sum).
 - The jubilant-bassoon client does not read `reconciled`, so no client change was needed or made.

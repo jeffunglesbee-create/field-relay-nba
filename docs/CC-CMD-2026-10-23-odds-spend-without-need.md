@@ -57,8 +57,10 @@ it or `check-odds-calls-guarded.mjs` (10-18 FORBIDDEN). Keep the anchors of
 `scripts/mutate-deploy-odds-wrappers.mjs` inside `getWCPregameLambdas` unique.
 A check red before and green after, and a mutation that removes the window.
 The stranded part of the ledger stays with option 2 of
-`docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` (HELD): this
-removes calls and touches no counter path.
+`docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` (option 2 was UNHELD on
+2026-11-01 and built for the CFL route only; whether the lambdas get the same
+registration is that document's Note 2026-11-02, item 2, which recommends landing
+this TASK first): this removes calls and touches no counter path.
 
 ## Done condition (Rule 90 artifacts)
 

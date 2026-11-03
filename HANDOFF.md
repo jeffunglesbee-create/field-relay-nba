@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-03 (01:10Z) — the vendor-residual CC-CMD is wrapped up: DONE with done condition 5 carried, the 11-07 read now uses the stranded figure, and every leftover has an outcome
+
+**HEAD:** `c96d007` → `72ef452` → `247e77a` → `6b6ff60` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-03-vendor-residual-wrapup.md (task: docs/CC-CMD-2026-10-13-vendor-residual-window.md, the owner's order "wrap up entire cc-cmd")
+
+Worker code changed (`src/index.js`, two comments only), so there is a deploy: Deploy RELAY Worker run 41555964661 success (its `deploy` job, including the deploy gate "confirm relay is live" at 01:03:07Z, and its post-deploy `verify` job; commit `6b6ff60`). 0 Odds API credits.
+
+- **Status.** The vendor-residual CC-CMD is DONE (conditions 1 to 4 MET). Condition 5, the busy-day read of 2026-11-07, is CARRIED to `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md`, which is now PARTIAL until 2026-11-24 (the judge's day). An independent audit before closing returned 35 confirmed findings; the session doc lists what was done for each cluster.
+- **The 11-07 criterion moved from the raw gap to `stranded`** (`by_site` less the kept of the non-`error` rows) before any 11-07 data exist, because an `error` call's kept lowers the raw gap by 6 per call; they differ on 2 of 14 days (10-22: 90 vs 96; 11-01: 18 vs 24). `node scripts/analyze-cfl-reconcile-gap.mjs --day <date>` prints both, the unread hours after the day's last sample and a verdict, and writes `outbox/cfl-stranded-day-<date>.json`. A bare run still overwrites the committed 2026-11-01 record; `--out` does not.
+- **Where the result goes.** `trig_01E9kMQiyKXENeyzuxNFBNsV` (2026-11-08T08:00Z) was rewritten: five `--day` runs (11-03 to 11-07, the 11-07 line is the criterion), result recorded in the vendor CC-CMD's Data points, not in the carrier (the carrier is on the calendar experiment's VOID list and takes no commit from 11-08 to 11-23). The judge's prompt got one additive paragraph, quoted in the prediction document under "Added 2026-11-03".
+- **Leftovers, each with an outcome** (carrier Note 2026-11-02, items 1 to 9): P2 (CI credits not in the ledger) measured, 10 of 11 windows; window-drift refusal kept (1 of 34 logs); `noHeaderCredits` no longer sums a missing field as 0 (`72ef452`, 53 of 53 mutants); the "2 credits per call" comments fixed (`6b6ff60`); Note 2026-10-27's second reading carried by `trig_01Kc6YEYyFDtRDsuQzjtrHxW` (11-03 08:30Z); option 3's revisit carried by the judge.
+- **Corrections in older entries.** Task 2b's pair of +6 and -6 does not cancel (net -6; fixed in the sandbox session doc); the 14:05Z heading now says "supported by one call"; this file's 08:15Z entry now states its credits (6, the repeat's warm-up) and that its stamp is when it was first written.
+- **STAGED, done condition 5.** Blocked by: 2026-11-07 itself. Unblocked when: the 11-08T08:00Z wake fires. Verify: `node scripts/analyze-cfl-reconcile-gap.mjs --day 2026-11-07` prints `verdict: pass`.
+- **Open, the owner's call:** whether `getWCPregameLambdas` gets the same `waitUntil` registration (recommendation, in the carrier: land TASK 1 of `docs/CC-CMD-2026-10-23-odds-spend-without-need.md` first, which gates those calls to the tournament window). The dead-cron ratchet's two new entries belong to another session.
+
 ## SESSION CLOSE-OUT — 2026-11-02 (21:55Z) — the EPA route probe was skipped on 66 of 66 scheduled runs and the dead-cron watch could not count it; both are fixed, and the watch is now red on purpose
 
 **HEAD:** `7eff9a20` → `dfb123f3` → `9b82593e` → `e228c22c` → the wording commit → the first close-out → `db9fb0cd` → `f0ebaa0e` → this update · **Branch:** main
@@ -19,7 +34,7 @@ No Worker code changed, so there is no deploy. 0 Odds API credits.
 **HEAD:** `6796a95` → this close-out · **Branch:** main
 **Session doc:** outbox/cc-session-2026-11-01-vendor-residual-window.md (task: docs/CC-CMD-2026-10-13-vendor-residual-window.md, done condition 3)
 
-No Worker code changed, so there is no deploy. 0 Odds API credits so far today.
+No Worker code changed, so there is no deploy. 6 Odds API credits today, all of them the repeat of Task 2b's warm-up at 08:31Z (the heading's 08:15Z is when this entry was first written; it was amended after the repeat finished at 08:39Z).
 
 - **Done condition 3 MET.** Scheduled run 41396684994 (05:54Z): window 2026-11-01T05:54Z to 2026-11-02T05:54Z, vendor billed 895, ledger 697, known CI 220, **residual -22, tolerance 50, `tracks-the-bill`**; the UTC-day diagnostic reads -85 and is labelled not the verdict; the stored series row has `ledger_month_used` 886 and `ledger_source` d1. The staged verdict `vendor_watch_window_aligned` reads PASS on the committed files. One window, with Task 2b's run and the Task 3 deploy inside it and no CFL game that day: not a measurement of the fix.
 - **Correction.** The 17:31Z and 14:05Z entries said Task 2b's 6 vendor credits and 6 of over-record cancel as a pair. The warm-up's 6 credits are in the ledger too, so only the stranded charge moves the residual, by -6.
@@ -41,7 +56,7 @@ Worker code changed (`src/index.js`), so there is a deploy: Deploy RELAY Worker 
 - **CFB reading (the follow-up wake of `trig_012m8cVxrTDADcYsyo8kBQeB`, step 4).** Backfill run 41327396208 prints, for 2026-10-31 `americanfootball_ncaaf`, 14 paired by name and 33 unmatched of the slate's 47 rows (the same 47 as D1). That `unmatched` counts rows with no vendor pair, not unpriced rows (2 of 47 in D1), so the CC-CMD's expectation that it would sit near 2 was wrong; recorded under Results in `docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md`.
 - **Also pushed:** the vendor-watch verifier (check 8) rebuilt after the review (a relay error is PENDING; the judged run's own series row is joined by its `utc=` stamp); `check-refusal-streak` now knows the watch's three newer refusal states (`84be1f5`).
 
-## SESSION CLOSE-OUT — 2026-11-01 (14:05Z) — the CFL abort experiment ran with the owner's approval: a client that abandons the request stops the reconcile before its tally
+## SESSION CLOSE-OUT — 2026-11-01 (14:05Z) — the CFL abort experiment ran with the owner's approval: one abandoned request stopped the reconcile before its tally and left a charge standing (supported by one call)
 
 **HEAD:** `527a5f6` → this close-out · **Branch:** main
 **Session doc:** outbox/cc-session-2026-11-01-relay-from-the-sandbox.md (task: docs/CC-CMD-2026-10-13-vendor-residual-window.md, Task 2b)
