@@ -2,7 +2,7 @@
 
 ## SESSION CLOSE-OUT — 2026-11-03 (21:08Z) — the Drive upload can no longer hang for hours: a 120 s request limit, a 15-minute job limit, and a check that fails when either is removed
 
-**HEAD:** `91dd2276` → the CC-CMD, the parser lift, the fix, the guard, then this close-out · **Branch:** main
+**HEAD:** `91dd2276` → `19222f30` (the CC-CMD) → `d39235ca` (the parser lift) → `1e079936` (the fix) → `579bfd9a` (the guard) → `d3cbbd7b` (the close-out) → this addendum · **Branch:** main
 **Session doc:** outbox/cc-session-2026-11-03-job-timeouts.md (task: TASK 1 of `docs/CC-CMD-2026-11-03-workflow-jobs-have-no-time-limit.md`, filed in this session)
 
 No Worker code changed, so there is no deploy. 0 Odds API credits.
@@ -11,7 +11,8 @@ No Worker code changed, so there is no deploy. 0 Odds API credits.
 - **Proven locally.** The step's script against a server that accepts the request and never answers: as it was, still waiting at 150 s (stopped by the harness); as edited, failed at 120 s with `{"error": "timed out"}`, `Results: 0 uploaded, 1 failed`, exit 1, nothing written to the ledger file. The check on the workflow as it was before the fix: 2 findings, exit 1; on the fixed one: none. 28 of 28 mutations caught, and the test that the gate step and the guards step exist goes red without either.
 - **Found by probing.** `urlopen`'s timeout is a wait for the peer, not a deadline for the exchange: a response that took 8.0 s to arrive was read with `timeout=3`. The request limit ends a silent peer, and the job limit ends one that sends a byte at a time. A total deadline on the process was not added, because the approved scope was a request timeout and a job limit.
 - **Measured, and a correction.** The "79 of 200 workflow files" I gave the owner was a text count that included 13 files which only call reusable workflows. By a parse, 68 jobs in 66 files lacked a limit; at this push's base, 67 in 65 (the Drive job is bounded, and `worker-cpu-read.yml`, added today by another session, arrived with a 5-minute limit). 14 scheduled files have such a job. The baseline TASK 2 would write is 69.
-- **Not established.** Why the Apps Script request hung (one occurrence). Whether the ledger step runs after a job-level timeout. A real timeout in production. The runs of this push: the next commit reads `Repo guards`, `Workflow YAML Gate` and `FIELD Outbox to Drive` and records them.
+- **Not established.** Why the Apps Script request hung (one occurrence). Whether the ledger step runs after a job-level timeout. A real timeout in production.
+- **Final check.** The push `d3cbbd7b` ran `Repo guards` run 41719446378 `success`, 57 of 57 steps (the new step 50 ran 9 s: self-test 63/63, the baseline, the wiring test and 28 of 28 mutations caught); `Workflow YAML Gate` run 41719446389 `success`, its new step 7 green; `FIELD Outbox to Drive` run 41719446427 `success` on the edited workflow, delivering this session's document (`Results: 1 uploaded, 0 failed`, upload step 3 s). The addendum's own runs are not recorded here.
 - **Not changed.** The other 67 jobs without a limit and the five files whose `urlopen` calls lack `timeout=` (TASKS 2 and 3, not started). No dispatch, no Odds API call, no `session_health` change, nothing on the calendar experiment's VOID list (2026-11-08 to 2026-11-23).
 - **Open, the owner's call:** TASK 2 of the CC-CMD, a ratchet at 69 so no new job lands without a limit (about 30 minutes with its check and mutants, plus CI); and the `session_health` additive fields (`eligible`, `flat_bar`, `reachable_ceiling` beside `degraded`), about 30 minutes with its check and a relay deploy.
 

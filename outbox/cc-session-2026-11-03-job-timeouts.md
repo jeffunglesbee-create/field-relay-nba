@@ -1,6 +1,6 @@
 # CC session — 2026-11-03 — the Drive upload cannot hang for hours, and a check holds it
 
-**State:** TASK 1 of `docs/CC-CMD-2026-11-03-workflow-jobs-have-no-time-limit.md` is built and pushed with this record. `drive-upload-outbox.yml` now carries a 120 s request limit and a 15-minute job limit, and a new check fails when either is removed or raised past its cap. Run against a local server that accepts the request and never answers, the unedited upload step was still waiting at 150 s; the edited step failed at 120 s with exit 1 and wrote nothing to the ledger file. The CI runs of the push itself are read in the next commit. TASKS 2 and 3 of the CC-CMD are not started.
+**State:** TASK 1 of `docs/CC-CMD-2026-11-03-workflow-jobs-have-no-time-limit.md` is built and pushed with this record. `drive-upload-outbox.yml` now carries a 120 s request limit and a 15-minute job limit, and a new check fails when either is removed or raised past its cap. Run against a local server that accepts the request and never answers, the unedited upload step was still waiting at 150 s; the edited step failed at 120 s with exit 1 and wrote nothing to the ledger file. The CI runs of the push (`Repo guards`, `Workflow YAML Gate`, `FIELD Outbox to Drive`) all finished `success`, and the Drive run delivered this document. TASKS 2 and 3 of the CC-CMD are not started.
 
 ## Why
 
@@ -54,8 +54,19 @@ The "79 of 200" in that message was a text count that included 13 files which on
 - **Whether the ledger step runs after a job-level timeout.** GitHub's behaviour for `if: always()` when the job itself times out was not tested, and cannot be from here. It matters only if the job limit is reached, which takes about seven timed-out requests in a row (7 × 120 s is 840 of the 900 s) or a peer that sends slowly. If the ledger step does not run then, documents that landed earlier in that job would not be recorded, and the next sweep would upload them again (the Apps Script does not dedupe).
 - **A peer that sends a byte at a time.** Bounded by the job limit only, by the probe above. A total deadline on the process (for example `timeout 150 python3 …`) would bound it at the request level; it was not added, because the approved scope was a request timeout and a job limit.
 - **A real timeout in production.** Done condition 6 of the CC-CMD. It may never be observable on demand.
-- **The push's own runs.** `Repo guards`, `Workflow YAML Gate` and `FIELD Outbox to Drive` on the head of this push are read in the next commit, which ticks done conditions 1 and 3. The new session document in this push is the one the Drive run should deliver (`Results: 1 uploaded, 0 failed`).
 - **That the live check fails in CI.** It was shown red locally on the pre-fix file. A red run in CI is not produced on purpose, because it would put `main` red.
+
+## The push
+
+`d3cbbd7b`, five commits on top of `91dd2276` and one other session's `e2ae17d5`, pushed at 21:11Z. Read from the Actions API by head sha:
+
+| run | result |
+|---|---|
+| `Repo guards` 41719446378 | `success`, 57 of 57 steps, 12 min 48 s. The new step 50 ran 9 s: self-test 63/63, baseline and wiring, 28 of 28 mutations caught. Step 31, the HANDOFF claims check, `success` |
+| `Workflow YAML Gate` 41719446389 | `success`; the new step 7, "The Drive upload workflow keeps its request and job time limits", `success` |
+| `FIELD Outbox to Drive` 41719446427 | `success` on the edited workflow: `Found 1 new file(s): outbox/cc-session-2026-11-03-job-timeouts.md`, the upload step 3 s, `Results: 1 uploaded, 0 failed`; the ledger step pushed on attempt 2 |
+
+Done conditions 1, 2 and 3 of the CC-CMD are met. The edited workflow ran for real against Apps Script once, and the answer was the ordinary one; nothing in that run exercised a timeout.
 
 ## Docs changed
 

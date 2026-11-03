@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** B (a defect found in operation, with a check that holds the repair)
 **Confidence gate:** >= 95 before any commit
-**Status:** IN PROGRESS 2026-11-03 — TASK 1 (the fix, the check, its mutants and the wiring) is pushed with this record and proven locally; the CI runs of that push are read in the next commit, which ticks done conditions 1 and 3. TASKS 2 and 3 are open.
+**Status:** PARTIAL 2026-11-03 — TASK 1 (the fix, the check, its mutants and the wiring) landed and was verified, locally and by the CI runs of its push (run ids under Observed). TASKS 2 and 3 are open, and done condition 6 is not observed.
 **Filed by:** the owner's `Next approved` (Tuesday 2026-11-03 15:33 ET), which answered a message that named this scope: file one CC-CMD for the missing job timeouts and build its first task, nothing else. Searched first, by content (BUILD-ON-A), over `docs/` and `HANDOFF.md`: `timeout-minutes`, `urlopen`, `drive-upload-outbox`, `hung`, `runner minutes`, `Actions minutes`, `6 hours`, `360 min`, `cancel-in-progress`. No CC-CMD owns the subject. The one mention of `timeout-minutes` is TASK 4b of `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md`, which prescribes `timeout-minutes: 30` for the client's `patent-watch.yml` job; this work does not touch it.
 
 ---
@@ -70,9 +70,9 @@ For each of the 14 scheduled files with a job lacking a limit (15 before TASK 1 
 
 ## Done conditions
 
-1. [ ] TASK 1 landed; `Repo guards` and `Workflow YAML Gate` `success` on the push (run ids under Observed). Pending: the next commit reads them.
+1. [x] TASK 1 landed; `Repo guards` and `Workflow YAML Gate` `success` on the push (run ids under Observed).
 2. [x] The local run of the step's script against a never-answering server recorded under Observed with the seconds it waited before and after (150 s and still waiting; 120 s and failed).
-3. [ ] The push's `FIELD Outbox to Drive` run delivered the session document with the limits live (`Results: 1 uploaded, 0 failed`). Pending: the next commit reads it.
+3. [x] The push's `FIELD Outbox to Drive` run delivered the session document with the limits live (`Results: 1 uploaded, 0 failed`).
 4. [ ] TASK 2 landed with the baseline at the measured number.
 5. [ ] TASK 3: the 14 scheduled files have limits, then the rest; the baseline is empty.
 6. [ ] A real timeout met in production: a request that exceeds 120 s, logged as the FAIL branch, the document delivered by the next sweep. **May never be observable on demand**; it is stated as not observed until a run logs it.
@@ -86,4 +86,5 @@ For each of the 14 scheduled files with a job lacking a limit (15 before TASK 1 
 - **The mutants.** 28 of 28 caught (20 of the judge, 8 of the live check), anchors unique and applied, the control green before and after, about 12 s. Ten fixtures made from the real workflow's text. With the self-test layer off for a one-off run, the fixtures alone catch 17. The wiring test (the gate step and the guards step are present in the parsed workflows) goes red when either is taken out.
 - **The parser lift.** `scripts/workflow-yaml-check.mjs` prints the same line before and after; `scripts/mutate-workflow-if-eval.mjs` is still 25 of 25.
 - **Found while building.** The request limit is a wait for the peer, not a deadline (the probe under "What was measured"). The census moved while this was built, so the baseline of TASK 2 is 69, not 70.
-- **Not established.** Why the Apps Script request hung. Whether the ledger step runs after a job-level timeout. A real timeout in production (done condition 6). The push's own runs (done conditions 1 and 3).
+- **The push** (`d3cbbd7b`, five commits, 21:11Z; done conditions 1 and 3): `Repo guards` run 41719446378 `success`, 57 of 57 steps (the new step 50 ran 9 s: self-test 63/63, the baseline, the wiring test and 28 of 28 mutations caught); `Workflow YAML Gate` run 41719446389 `success`, its new step 7 green; `FIELD Outbox to Drive` run 41719446427 `success` on the edited workflow: `Found 1 new file(s): outbox/cc-session-2026-11-03-job-timeouts.md`, upload step 3 s, `Results: 1 uploaded, 0 failed`; the ledger step pushed on attempt 2.
+- **Not established.** Why the Apps Script request hung. Whether the ledger step runs after a job-level timeout. A real timeout in production (done condition 6).
