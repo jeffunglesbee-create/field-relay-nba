@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-03 (08:45Z) — the owner's could-not-verify list: five items closed with evidence, three stated as not established, and TASK 4b built
+
+**HEAD:** `72bbd45c` → `488cb3af` → `dbfe974c` → `4abd1a3e` → `74e18a83` → `df51e29d` → `838cdb37` → `e3a6442b` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-03-could-not-verify-list.md (task: the owner's order of 2026-11-02 23:35 ET, "Go with Claudes best recommendations. Then fix the following from the Could not verify list."; the CC-CMDs it touched are named in the bullets)
+
+No Worker code changed, so there is no deploy. 0 Odds API credits.
+
+- **Closed with evidence.** The axis-check timeout (laboratory pin `8bc1831`; the live-check run 41597373225 green in the failing condition). The C7 timer margin (relay `e88a012d`: a 60 ms timer against a 50 ms read left about 8 ms, now 2000 ms; `docs/CC-CMD-2026-10-13-vendor-residual-window.md`, Data points). The `session_health` degraded list (the flat 240 on group averages, 24 to 55 entries a day, 50 inside it; `docs/CC-CMD-2026-08-15-quality-bar-scale.md`, Addendum 2026-11-03). Worker version ids (the laboratory's `worker-deployments-probe`, run 41599991950: 25 upload/final pairs, each inside one `deploy.yml` run's window; live `ad8f5cc7`). `/budget/odds` for 10-29 (HTTP 400 by design, `age_days` 5; D1 holds the same 1184; `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`).
+- **Not established.** Why ESPN answered the Drama backfill with 403: it is intermittent, and `docs/CC-CMD-2026-11-03-drama-backfill-error-is-not-a-score.md` is DONE for conditions 1 to 3 with condition 4 not observed. The "Task 2b approved" message itself: the run 41413685131 is checkable, and its actor is the account every session acts as. `/cfl/odds-probs` on the live `ad8f5cc7`: the same code as `daf274f8`, which answered 9 of 9, read four ways; today's reconcile tally shows the handler running (469 steps) and cannot show a status.
+- **TASK 4b built.** The client's patent watcher reads PPUBS and ends red on a week it did not read (client `9b1170d`, laboratory `58c6581`; check 206 of 206, mutants 44 of 44). The rehearsal read the settled week 2026-10-27 on the real host: 5 matches, filed nowhere. The first scheduled run is Wednesday 2026-11-04, and `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md` stays PARTIAL until its log is read.
+- **Corrections in my own work.** The Task 2b artifact has nine non-aborted calls, not ten. A workflow run's actor is not proof of who dispatched it. The script etag is not a proven hash. Three red guards runs since 11-01, not two. The first odds-probs draft named artifact indexes before listing them.
+- **STAGED, the live-version check.** Blocked by: the owner's approval text. Unblocked when: the owner sends `APPROVED: up to 6 Odds API credits for one /cfl/odds-probs check on version ad8f5cc7`. Verify: the call answers HTTP 200 with `reconciled` in the body, and the day's `handleCFLOddsProbs` tally rises by one.
+- **STAGED, the 5 patent matches of week 2026-10-27.** Blocked by: the owner's word. Unblocked when: the owner approves a dispatch of the real `patent-watch.yml` with `week=2026-10-27`. Verify: an issue assigned to the owner exists for the week and `outbox/patents/watch-2026-10-27.json` is committed with `read_complete` true.
+- **Open, the owner's call:** the `session_health` additive fields (`eligible`, `flat_bar`, `reachable_ceiling` beside `degraded`), about 30 minutes with its check and a relay deploy.
+
 ## SESSION CLOSE-OUT — 2026-11-03 (04:08Z) — patent-watch.yml started its first job after 21 startup failures, and the job read nothing; the repair waits for the owner
 
 **HEAD:** `0384ead5` → this close-out · **Branch:** main
