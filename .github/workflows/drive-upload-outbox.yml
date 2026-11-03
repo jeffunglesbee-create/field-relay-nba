@@ -65,6 +65,25 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     name: Upload CC output to Drive
+    # BOUNDED, on a demonstrated hang (2026-11-03). Run 41650246688, attempt 1: one
+    # Apps Script request got no answer for 941 s and ended "Connection reset by
+    # peer". Neither the request nor the job had a limit, so GitHub's default job
+    # limit (360 minutes) was the only bound. Measured over the last 100 runs of
+    # this workflow: the slowest upload step 46 s, the slowest job 112 s.
+    #   request  120 s   (urlopen below)  2.6x the slowest step, an eighth of the hang.
+    #                                     A wait for the peer, not a deadline for the whole
+    #                                     exchange (probed: timeout=3 read a response that
+    #                                     took 8 s to arrive): it ends a silent peer.
+    #   job      15 min                   8x the slowest job; ends a peer that answers a
+    #                                     byte at a time, and bounds several timed-out
+    #                                     requests in a row
+    # A timed-out request takes the existing FAIL path: the document stays off the
+    # ledger and the next sweep retries it. scripts/check-workflow-timeouts.mjs
+    # fails when either limit is removed or raised past its cap. A dispatch with an
+    # empty file_pattern uploads every outbox .md (899 on 2026-11-03, about 45
+    # minutes at the median): raise the job limit before doing that on purpose.
+    # docs/CC-CMD-2026-11-03-workflow-jobs-have-no-time-limit.md
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -132,7 +151,7 @@ jobs:
           echo 'payload=json.dumps({"secret":sec,"title":ttl,"content":open(fp).read(),"folderId":fid}).encode()' >> /tmp/upload.py
           echo 'req=urllib.request.Request(url,data=payload,headers={"Content-Type":"application/json"},method="POST")' >> /tmp/upload.py
           echo 'try:' >> /tmp/upload.py
-          echo '  resp=urllib.request.urlopen(req); print(resp.read().decode())' >> /tmp/upload.py
+          echo '  resp=urllib.request.urlopen(req,timeout=120); print(resp.read().decode())' >> /tmp/upload.py
           echo 'except urllib.error.HTTPError as e:' >> /tmp/upload.py
           echo '  print(json.dumps({"error":str(e),"code":e.code,"body":e.read().decode()[:200]}))' >> /tmp/upload.py
           echo 'except Exception as e:' >> /tmp/upload.py
