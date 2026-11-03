@@ -1,7 +1,7 @@
 # CC session 2026-11-02 — a scheduled job skipped on every tick, and the watch that could not count it
 
-**Task:** `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md`, TASKs 1 to 3 and 6. Built on the owner's "Next approved" (2026-11-02, 13:30 ET), which approved the step proposed for finding 1 of that day's read of the client, relay and laboratory outbox files, and the appending of the evidence for findings 3 and 5 to their owning CC-CMDs in the same push. TASK 6 (the heartbeat's no-game path) is beyond the literal approval: it repairs a defect in the path that approval switched on, and is stated as such here and in the report. TASK 4 (patent-watch, client) is held for the owner's go; TASK 5's first reading is in (the first scheduled run, 41538005001, and a dispatched watch run after it, 41538545029) and its second reading belongs to two scheduled tasks.
-**HEAD progression:** `7eff9a20` → `dfb123f3` (the watch) → `9b82593e` (the EPA `if:`) → `e228c22c` (the scheduled-job check) → the wording commit → the first docs commit and its close-out → `db9fb0cd` (the heartbeat's no-game path) → `f0ebaa0e` (its docs) → this update.
+**Task:** `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md`, TASKs 1 to 4 and 6 (TASK 4b is the owner's go). Built on the owner's "Next approved" (2026-11-02, 13:30 ET), which approved the step proposed for finding 1 of that day's read of the client, relay and laboratory outbox files, and the appending of the evidence for findings 3 and 5 to their owning CC-CMDs in the same push. TASK 6 (the heartbeat's no-game path) is beyond the literal approval: it repairs a defect in the path that approval switched on, and is stated as such here and in the report. TASK 4 (patent-watch, client) was executed on the owner's second "Next approved" (2026-11-02, 22:43 ET) and has its own addendum at the end of this file; TASK 5's first reading is in (the first scheduled run, 41538005001, and a dispatched watch run after it, 41538545029) and its second reading belongs to two scheduled tasks.
+**HEAD progression:** `7eff9a20` → `dfb123f3` (the watch) → `9b82593e` (the EPA `if:`) → `e228c22c` (the scheduled-job check) → the wording commit → the first docs commit and its close-out → `db9fb0cd` (the heartbeat's no-game path) → `f0ebaa0e` (its docs) → `eb0d4556` (the 22:40Z reading) → the addendum at the end of this file.
 **Credits:** 0. No Worker code changed (`src/**` untouched), so there is no deploy. Cost in CI: the probe now runs about one minute a day; the repo guards run took about 8 minutes at `e228c22c`, and one new step adds the check and 13 mutants (seconds).
 
 ## Premises (Rule 100), each with the command that could refute it
@@ -16,7 +16,7 @@
 | the step after it survives that manifest | the `run:` text of "Surface the verdict", taken out of the workflow by a YAML parse and run under `bash --noprofile --norc -eo pipefail` in that directory | **exit 1**: `TypeError: Cannot read properties of undefined (reading 'name')`; the notice line read "undefined route plays". Reproduced before any edit; the new check fails 8 of 35 on that workflow, all of them this step |
 | the fixed step still shows a manifest that has a game | the same step on the newest committed manifest with a game (`nfl-epa-route-probe-2026-11-01T17-27-16-542Z.json`) | exit 0; `::notice::ROUTE MATCHES CLIENT — 158 route plays, 158 client plays, 0 disagreement(s)` and `game: Carolina Panthers at Green Bay Packers (401873023, post)` |
 | the defect is confined to days with no observable game | the sweep in the probe script: 15 scoreboard days, the first event whose state is not `pre` | **Derived, not observed.** ESPN is unreachable from the sandbox. The 2026-11-01 manifest above found a finished game, so the sweep finds games in season; no day without one was observed. Tomorrow's tick (Tuesday) should find Monday's or Sunday's, and that is not verified until it runs. Update 22:40Z: the 11-02 tick (Monday, run 41538005001) found Sunday's game, Ravens at Bills of 2026-11-01, so a day in season is now observed on the heartbeat; a day with no observable game is still not observed |
-| GitHub runs a `run:` step under `bash -e` or under `bash -eo pipefail` | the documentation page could not be fetched (not on this session's allowlist) | **Not verified.** The check runs the step under both, so its result does not depend on which |
+| GitHub runs a `run:` step under `bash -e` or under `bash -eo pipefail` | the documentation page could not be fetched (not on this session's allowlist) | **Observed 2026-11-03:** a bare `run:` step in the client's run 41574599866 prints `shell: /usr/bin/bash -e {0}`, so `bash -e` with no pipefail. The check runs both, so its result never depended on it |
 | the one skipped root job in the real tree is not a false positive | a one-off script over the same library listing scheduled workflows with a skipped root job and no finding | exactly one: `auto-merge-stray-branches.yml`, two root jobs split by event (`auto-merge-on-push` skipped on a schedule, `auto-merge-sweep` runs). It is why the rule is "every root job" |
 | the old watch could not see a skipped window | `grep -l nfl-epa-route-probe outbox/silently-dead-crons-*.log` | 54 logs on disk at the time; only the 2026-11-02 dispatch log names the probe. The 53 before it (2026-09-15 to 2026-11-01) never do |
 | the new watch names both on live data | dispatch of `silently-dead-crons.yml` (run 41506676878), then the first scheduled run (41530556202) | both read the same: **NEW 2** (`nfl-epa-route-probe.yml` SKIPPED, `patent-watch.yml` STARTUP_FAILURE), carried 1 (`nba-clutch-update.yml`), exit 1. 100 judged: 95 healthy, 2 declared detectors, 3 reported |
@@ -54,7 +54,7 @@
 | the heartbeat's no-game branch ends neutral, in the script and in the workflow | **VERIFIED**, locally with a stubbed scoreboard and on every push | the check above; guards run 41534847499. No live tick has taken this branch |
 | the heartbeat's branch with a game works (sweep, route, table, summary, commit step) | **VERIFIED**, one run | run 41538005001: the sweep found Baltimore Ravens at Buffalo Bills (401873026, 2026-11-01, post); 150 route plays against 150 client plays, 0 disagreements, 12 pairs all agreeing, 19 of 19 checks; "Surface the verdict" printed both of its lines; "Commit the artifact" wrote `9d4c29b0`. One run is not a pattern; the second is read by the 11-03 scheduled task |
 | the watch no longer lists the probe once a scheduled run works | **VERIFIED**, by a dispatched run | run 41538545029 (premise row above). The first cron-fired reading is the 11-04 scheduled task's (`trig_01EeLZTDbdyihnpkjnH6kMdw`, 22:30Z) |
-| `patent-watch.yml` starts once `skip_drive` is fixed | **NOT VERIFIED** | the fix is held for the owner's go (CC-CMD TASK 4) |
+| `patent-watch.yml` starts once `skip_drive` is fixed | **VERIFIED**, one dispatched run | run 41574599866: the `watch` job started and finished `success` (addendum below) |
 
 ## Evidence appended to other CC-CMDs (BUILD-ON-A: added where the finding already lives, not filed again)
 
@@ -74,7 +74,63 @@
 
 ## Not changed, and why
 
-- `patent-watch.yml`: the one-line caller fix waits for the owner (it starts a weekly automation with an issue, commits and a Dropbox upload).
-- `docs/dead-cron-baseline.json`: no entry added for either workflow. The probe's first working tick has landed (run 41538005001) and the watch run after it no longer lists the probe; the watch stays red (exit 1) until `patent-watch.yml` is fixed, and an entry would make it quiet, not right.
+- `patent-watch.yml`: the one-line caller fix was made on the owner's go (2026-11-02, 22:43 ET); see the addendum.
+- `docs/dead-cron-baseline.json`: no entry added for either workflow. The probe's first working tick has landed (run 41538005001) and the watch run after it no longer lists the probe; the watch stays red (exit 1) until `patent-watch.yml` is fixed, and an entry would make it quiet, not right. (After the first scheduled `success` of `patent-watch.yml` the watch goes quiet by itself while the watcher still reads nothing: see the addendum.)
 - `docs/declared-detectors.json`: its stale `red_because` text for the Rule 90 monitor (the triage CC-CMD's TASK 3) is reported, not edited; a figure that ages daily should not be rewritten as another figure.
 - Out of this task: finding 4 (a C7 timer margin; proposal only), the laboratory's phase-check matcher, the 2026-10-31 Drama backfill, the Serie A classifier skip.
+
+## Addendum 2026-11-03 — TASK 4 executed, and what the run read
+
+**Task:** TASK 4 of the CC-CMD, on the owner's "Next approved" (2026-11-02, 22:43 ET), given to the single step proposed in the previous report: in the client's `patent-watch.yml`, change the `followup` job's `skip_drive: false` to `skip_dropbox: false`, push to main, dispatch once, read the result. The side effects were stated before the go: a weekly issue assigned to the owner (mobile push), commits to `outbox/patents/` on the client's main, a PatentsView call, a Dropbox upload where its secrets are set.
+**Code:** jubilant-bassoon `8ff34ac` (the workflow) and `3e7f07d` (the README). Its own session doc is `outbox/cc-session-2026-11-02-patent-watch-caller.md` in that repository. Relay: docs only.
+**Credits:** 0. No Worker code changed, so there is no deploy.
+
+### Premises (Rule 100), each with the command that could refute it
+
+| premise | the command | result |
+|---|---|---|
+| the one-line change is what GitHub rejected | `actionlint` on the client's file before and after; one dispatch | before: exit 1, one finding (input "skip_drive" not defined in the callee). After: exit 0. **Dispatch 41574599866: the `watch` job started and finished `success`.** One change, one effect; the unfixed file was not dispatched, so this is not a controlled pair |
+| nothing else in the client's workflows has the same shape | this repository's workflow YAML gate, run over the client's `.github/workflows` | 138 files, 0 failing |
+| the client's smoke, units and hook pass | `node smoke.js index.html`, the units, `scripts/pre-commit`, in the clone | smoke 1066/0, units 70/0, hook passed |
+| the dispatched run read the week's USPTO files | the run's `Run watcher` log | **No.** `Failed to resolve 'bulkdata.uspto.gov' ([Errno -5] No address associated with hostname)` for both files; `0 grant matches`, `0 PGPub matches`; exit 0. Verbatim in the CC-CMD, TASK 4, "The green run read nothing" |
+| a failed fetch always ends green | `patent_watch.py`, unmodified, in an empty directory with `.github/patent-watchlist.txt`, both base URLs pointed at a local server answering every request with 404, then with 500 | **Executed.** Exit code 0 both times; `outbox/patents/watch-2026-10-27.json` written; `matches = []`; keys `matches`, `watchlist`, `week_thursday`, `week_tuesday`; the script's message for a 500 reads "file may not exist yet". The probe (`pw-probe.py`, session scratchpad) is not committed |
+| the Wednesday schedule asks for a pre-grant file that can exist | `last_tuesday` and `thursday_of_week` from the script, called with a fixed clock | **Executed.** At 2026-11-03T03:51Z: Tuesday 2026-10-27, Thursday 2026-10-29 (what the log shows). At 2026-11-04T16:00Z and at 20:30Z: Tuesday 2026-11-03, Thursday 2026-11-05, a date after the run. That a file dated tomorrow is not published yet follows from its date; the host cannot be asked |
+| the Drive workflow does not deliver the false-negative file | read of the client's `drive-upload-outbox.yml` | it triggers on `outbox/**/*.md` and uploads added `.md` files; the manifest is `.json` |
+| the dead host is already a known fact in the client | a search of the client for `bulkdata.uspto.gov` | `.github/adr/ADR-PATENT-001-ppubs-source.md` (Accepted 2026-06-04) records the removed DNS record, the PatentsView shutdown (2026-03-20), PPUBS as the chosen source for `patent_fetch.py`, "Bulk XML revival" as not chosen, and the ODP API as future work behind an ID.me-verified key. `patent_watch.py` and `patent-watch.yml` still use the host |
+| a scheduled `success` will clear `patent-watch.yml` from the watch | the watch's rule (a window holding a success is healthy; dispatched runs do not count) and the log | **Derived, not observed.** The first scheduled tick is 2026-11-04 |
+
+### Built
+
+- jubilant-bassoon `8ff34ac`: `.github/workflows/patent-watch.yml` line 85, `skip_drive: false` → `skip_dropbox: false`.
+- jubilant-bassoon `3e7f07d` (beyond the literal approval): `outbox/patents/README.md`, two commands that passed `-f skip_drive=true` now pass `-f skip_dropbox=true`, with the two sentences that introduce them. The README's other Drive wording is unchanged.
+- This repository's workflow YAML gate run over the client's 138 workflows (read-only; beyond the literal approval).
+- The 2026-11-04 scheduled task (`trig_01EeLZTDbdyihnpkjnH6kMdw`) rewritten: it reads `patent-watch.yml`'s own scheduled run and its `Run watcher` log before it treats a `success` as a working run, and writes "false green, not a fix" if the watch cleared the workflow on a run that fetched nothing.
+- The CC-CMD: Status, TASK 4 rewritten, TASK 4b added, the Done list, an Observed entry, and the shell default recorded as observed.
+
+### What the dispatch did to the client's repository
+
+One commit I did not write: `8e94848` (title "patent-watch: 2026-11-03", with the skip directive in its message), pushed by the workflow's own `Commit results` step. It adds `outbox/patents/watch-2026-10-27.json` (22 lines, `matches: []`). It is a false negative: the fetch failed and the file has no field that says so. It stays on main until the owner decides; TASK 4b, Part 1 removes it.
+
+### Verified, and what was not
+
+| claim | status | evidence |
+|---|---|---|
+| `patent-watch.yml` starts a job once `skip_drive` is fixed | **VERIFIED**, one dispatched run | run 41574599866 |
+| the client's CI for the README commit is green | **VERIFIED** | at `3e7f07d`: Smoke Test + Live Verify 41574578585, FIELD Outbox to Drive 41574578708, Desktop Chrome Viewport Audit 41574578634, Desktop Safari Viewport Audit 41574578686, all `success` |
+| the watcher read the week's USPTO files | **REFUTED** | the log |
+| a failed fetch ends green on both swallow paths | **VERIFIED** | the CI run (connection error); the offline run (404 and 500) |
+| the Wednesday run will find a pre-grant file | **DERIVED** | dates only |
+| the watch will clear `patent-watch.yml` after the first scheduled `success` | **DERIVED** | the watch's rule; the tick is 2026-11-04 |
+| the `followup` job and the Dropbox upload work through the caller | **NOT VERIFIED** | no grant hit exists to chain, so `patent-fulltext.yml` has not been called through the caller |
+| GitHub's own message for the 21 startup failures | **NOT VERIFIED** | not readable from the API; the cause is derived from actionlint, and one change followed by one effect agrees with it |
+
+### Mistakes in my own work
+
+- I proposed the caller fix as the single next step, and stated its side effects, without having searched the client for the data source the watcher fetches from. One search for `bulkdata.uspto.gov` finds ADR-PATENT-001, which has recorded the dead host since 2026-06-04. I read the ADR after the dispatch. The side effects the owner approved against did not include "commits a manifest that says no matches for a week it did not read". The consumer audit (Rule 39) read what the workflow calls; it did not read what the called script depends on.
+- The dispatch left `8e94848` on the client's main. I did not foresee that the commit could be false.
+
+### Not changed, and why
+
+- `patent_watch.py`: the client's Rule 69 (TOUCH-ONLY-A) limits a session to the code its prompt names, and asks that adjacent defects be documented for a future prompt. The CC-CMD's TASK 4b is that document.
+- `outbox/patents/watch-2026-10-27.json`: stays until the owner decides.
+- Seen, not fixed, recorded in the client's session doc: `README.md` and the header of `patent-fulltext.yml` still describe a Drive upload that the workflow does not do; `field-data.yml` line 57 column 33 fails actionlint (`force_date` is not a declared `workflow_dispatch` input).
