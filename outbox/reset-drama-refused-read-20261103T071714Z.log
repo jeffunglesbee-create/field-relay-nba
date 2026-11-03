@@ -1,0 +1,8 @@
+=== Reset the Drama row stored from a refused read: Bundesliga_2026-10-31_e401884754 ===
+
+[before] {"id":"Bundesliga_2026-10-31_e401884754","sport":"Bundesliga","date":"2026-10-31","home":"Bayern","away":"Dortmund","home_score":2,"away_score":2,"drama_peak":0,"drama_arc":"null","espn_event_id":"401884754","finalized_at":"2026-10-31 19:30:26"}
+[proof] ESPN summary 200 through the relay, 40 key events (final score in D1: 2-2)
+[reset] changes=1
+[after]  {"id":"Bundesliga_2026-10-31_e401884754","sport":"Bundesliga","date":"2026-10-31","home":"Bayern","away":"Dortmund","home_score":2,"away_score":2,"drama_peak":null,"drama_arc":null,"espn_event_id":"401884754","finalized_at":"2026-10-31 19:30:26"}
+
+Done: the row is NULL / NULL and is listed by /archive/drama-missing.
