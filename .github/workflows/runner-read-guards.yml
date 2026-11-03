@@ -6,8 +6,8 @@ name: Runner read path and CFL gap guards
 #
 #   scripts/relay-read.mjs / mutate-relay-read.mjs   an exact allow-list of five routes, no override, no credential; 29 mutations
 #   scripts/relay-look.sh / check-relay-look.mjs     the sandbox helper against a fake gh and a local git remote; 9 mutations
-#   scripts/analyze-cfl-reconcile-gap.mjs            the P5 arithmetic; 9 mutations
-#   scripts/cfl-abort-experiment.mjs                 the approval-gated experiment against a fake relay that can lose a continuation; 14 mutations
+#   scripts/analyze-cfl-reconcile-gap.mjs            the P5 arithmetic and the done-condition-5 day read (--day), P2 and --out; 35 mutations
+#   scripts/cfl-abort-experiment.mjs                 the approval-gated experiment against a fake relay that can lose a continuation; 23 mutations
 # docs/relay-from-the-sandbox.md and docs/CC-CMD-2026-10-13-vendor-residual-window.md say what each is for.
 
 on:
