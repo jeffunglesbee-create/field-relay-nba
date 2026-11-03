@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-03 (21:00Z) — Worker CPU measured: no FIELD Worker hit a CPU limit; the relay hit the memory limit 45 times
+
+**HEAD:** `d5434eb` → `2d21340` → `1256099` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-03-worker-cpu-read.md
+
+- **New, dispatch-only:** `worker-cpu-read.yml` / `scripts/worker-cpu-read.mjs` reads Cloudflare GraphQL analytics per Worker per UTC day and per Durable Object namespace. Self-test 19/19, 9/9 mutations. No deploy path touched.
+- **Result, 30 days (`outbox/worker-cpu-read-2026-11-03T2050.log`):** relay success CPU worst daily p50/p99/p999 = 2.5 / 41.8 / 372.6 ms against a 300 s limit; 0 exceededResources. **45 exceededMemory**, cause unknown → `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md` (FILED). The only CPU-limit hits on the account are stat-job-watcher's (394), which is not FIELD.
+- The `T2047` and `T2049` logs are SUPERSEDED: the first version counted exceededResources only and pooled percentiles across statuses (fixed in `1256099`).
+- field-laboratory has no Worker script (no `main`, static assets only), so there is no Worker CPU to measure there.
+
 ## SESSION CLOSE-OUT — 2026-11-03 (14:04Z) — the real patent-watch.yml read the settled week 2026-10-27 and filed issue #2: 0 grant hits, 5 application hits
 
 **HEAD:** `9d2dc379` → `40bf5aad` (the close-out) → this addendum · **Branch:** main
