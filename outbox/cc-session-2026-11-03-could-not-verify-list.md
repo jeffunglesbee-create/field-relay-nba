@@ -48,9 +48,13 @@ The relay tallies every `handleCFLOddsProbs` reconcile step in D1 `odds_reconcil
 
 ## Not changed, and why
 
-- Anything the calendar experiment's VOID window (2026-11-08 to 2026-11-23) lists: `chargeOdds`, `consumeOddsCredit`, `reconcileOddsCredit`, `handleCFLOddsProbs` and `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` were not touched.
+- Anything the calendar experiment's VOID window (2026-11-08 to 2026-11-23) lists: `chargeOdds`, `consumeOddsCredit`, `reconcileOddsCredit`, `handleCFLOddsProbs` and `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` were not touched in the work for the owner's list. The CC-CMD took one dated edit afterwards, the Second reading of its item 8 (`2e38980c`, 2026-11-03), which the document provides for and which lies before the window.
 - No call to `/cfl/odds-probs`, no dispatch of `cfl-abort-experiment.yml` or `odds-daily-vs-vendor.yml`, no `POST /analytics/morning-report/recompute`.
 - The real `patent-watch.yml` was not dispatched (it files an issue assigned to the owner and chains a second workflow). No rehearsal of the watcher is scheduled for Tuesday: Wednesday's run is the observation, and the 11-04 scheduled task (`trig_01EeLZTDbdyihnpkjnH6kMdw`) reads its log; a Tuesday rehearsal would change nothing anyone does before then.
+
+## Also done, not on the owner's list: the 08:30Z wake
+
+`trig_01Kc6YEYyFDtRDsuQzjtrHxW`, the one-shot this session armed on 2026-11-02 for the odds-charge note (item 8 of Note 2026-11-02 in `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md`), fired at 08:30:45Z into this session; I read it from the queue at 08:50:53Z. It was read-only until its last step and spent no credit. Run 41591246150, the scheduled 2026-11-03 run of `Odds daily vs vendor` (created 06:39:18Z, sha `09677a77`), is `success` with every step `success`. `outbox/odds-daily-vs-monthly-20261103T063934Z.log` reads `verdict: consistent` with one contained day, 2026-11-02: daily sum 339 against a monthly delta of 997, and a per-day row of 339 against 300 (excess 39, floor 50). The Note's refuting condition did not occur, so it stands on one data point. The vendor watch in the same run (step 5) read `tracks-the-bill`: residual 0 against a tolerance of 50, known CI spend 180. Recorded as the "Second reading, 2026-11-03" sub-bullet in the CC-CMD (`2e38980c`), before the calendar experiment's VOID window. The approval-record correction found in the same hour is `4f015d4e`.
 
 ## Open, the owner's call
 
