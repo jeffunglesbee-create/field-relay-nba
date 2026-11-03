@@ -1,0 +1,50 @@
+name: Reset the Drama row stored from a refused read (one-shot)
+
+# CC-CMD-2026-11-03-drama-backfill-error-is-not-a-score TASK 2. Dispatch only, no schedule:
+# scripts/reset-drama-refused-read.mjs resets ONE row (Bayern v Dortmund, 2026-10-31), refuses
+# unless the row is exactly the stored refusal and ESPN answers for the event now, and writes
+# its log to outbox/. The pattern is reset-mlb-drama-array-shape.yml.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run reset
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          node scripts/reset-drama-refused-read.mjs 2>&1 | tee "outbox/reset-drama-refused-read-${TS}.log"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/reset-drama-refused-read-*.log
+          git diff --staged --quiet && { echo "(nothing new)"; exit 0; }
+          git commit -m "reset: Drama row stored from a refused read, Bayern v Dortmund 2026-10-31"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop above exits 0 when ALL THREE attempts fail: its last command is `sleep`.
+          # is-ancestor, not HEAD equality: another bot pushing after us is normal here.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
