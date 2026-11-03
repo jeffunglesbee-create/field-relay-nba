@@ -2,7 +2,7 @@
 
 ## SESSION CLOSE-OUT — 2026-11-03 (14:04Z) — the real patent-watch.yml read the settled week 2026-10-27 and filed issue #2: 0 grant hits, 5 application hits
 
-**HEAD:** `9d2dc379` → this close-out · **Branch:** main
+**HEAD:** `9d2dc379` → `40bf5aad` (the close-out) → this addendum · **Branch:** main
 **Session doc:** outbox/cc-session-2026-11-03-patent-watch-dispatch.md (task: the staged dispatch of the real `patent-watch.yml` with `week=2026-10-27`, TASK 4b of `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md`)
 
 No Worker code changed, so there is no deploy. 0 Odds API credits.
@@ -12,8 +12,9 @@ No Worker code changed, so there is no deploy. 0 Odds API credits.
 - **What it left.** Issue #2, "Patent watch (applications): 5 hit(s) - 2026-10-27", assigned to the owner; and `outbox/patents/watch-2026-10-27.json` with `read_complete` true (runner commit `f691948`). The five matches: US20260332641 (assignee Dynatrace LLC), and US20260329571, US20260329660, US20260329977 and US20260333040 (text).
 - **Not established.** A scheduled run, and whether Tuesday's grants are searchable at Wednesday 16:00Z: the 11-04 scheduled task (`trig_01EeLZTDbdyihnpkjnH6kMdw`) reads it, Done condition 6 stays open and the CC-CMD stays PARTIAL. A grant hit: `followup` and the Dropbox upload through the caller have not run since the caller was fixed. Whether the push reached the owner's phone.
 - **Observed, not changed.** The issue says "week ending 2026-10-27" for the applications scan, which read the Thursday 2026-10-22. Cosmetic, client code, Rule 69.
-- **Final check.** `Repo guards` run 41632828254 `success` on `b59a07ba` (56 of 56 steps); every red newest run in the three repositories is accounted for in the session doc; `/budget/odds` still equals the record of the 11:57Z call.
+- **Final check.** `Repo guards` run 41632828254 `success` on `b59a07ba` (56 of 56 steps); every red newest run in the three repositories is accounted for in the session doc; `/budget/odds` still equals the record of the 11:57Z call. [Update 14:24Z: this entry's own push ran `Repo guards` 41650246696 on `40bf5aad`, `success`, 56 of 56 steps; its sibling `FIELD Outbox to Drive` 41650246688 failed on attempt 1 (an Apps Script request that hung 15 min 41 s) and succeeded on the one rerun.]
 - **Open, the owner's call:** the `session_health` additive fields (`eligible`, `flat_bar`, `reachable_ceiling` beside `degraded`), about 30 minutes with its check and a relay deploy.
+- **Open, small:** `drive-upload-outbox.yml` has no request timeout and no job timeout (one hung request held a run for 15 min 41 s; the session doc has the numbers). The fix is two lines, no document covers it, and it was not made.
 
 ## SESSION CLOSE-OUT — 2026-11-03 (12:03Z) — the live-version check of /cfl/odds-probs: one call answered HTTP 200 on ad8f5cc7, and the ledger recorded exactly that call
 
