@@ -32,6 +32,18 @@ class EspnStatusError extends Error {
 }
 const ESPN_EVENT_ABSENT = new Set([404, 410]);
 
+// Where a refused read came from, for the log line. The relay stamps its own ESPN pass-through
+// with X-RELAY-Error (`espn-summary-403` = the relay reached ESPN and ESPN answered 403; `none` =
+// the answer did not come from that path), and the last segment of cf-ray names the Cloudflare
+// data centre that served it. The 403s of 2026-10-31 (this script) and 2026-11-03 (the reset) stayed
+// unattributed because only the status was logged: ESPN's edge, the relay, or Cloudflare in front
+// of it could not be told apart (CC-CMD-2026-11-03-drama-backfill-error-is-not-a-score).
+function servedBy(res) {
+  const relayError = res.headers.get('x-relay-error') || 'none';
+  const dataCentre = (res.headers.get('cf-ray') || '').split('-').pop() || 'unknown';
+  return `X-RELAY-Error: ${relayError}; data centre: ${dataCentre}`;
+}
+
 // === Drama scoring — exact port from CC-CMD v2, verbatim ===
 function dramaScoreLive(st, sport, homeRank, awayRank) {
   const homeScore = st.homeScore ?? 0;
@@ -108,7 +120,7 @@ function computeDramaRetroactive(states, sport, homeRank, awayRank) {
 async function fetchMLBHistoricalStates(espnEventId) {
   const url = `${RELAY}/espn-summary/sports/baseball/mlb/summary?event=${espnEventId}`;
   const res = await fetch(url);
-  if (!res.ok) throw new EspnStatusError(`ESPN MLB ${res.status} for event ${espnEventId}`, res.status);
+  if (!res.ok) throw new EspnStatusError(`ESPN MLB ${res.status} for event ${espnEventId} [${servedBy(res)}]`, res.status);
   const data = await res.json();
   const plays = data.plays || [];
   if (plays.length === 0) return [];
@@ -138,7 +150,7 @@ async function fetchMLBHistoricalStates(espnEventId) {
 async function fetchWNBAHistoricalStates(espnEventId) {
   const url = `${RELAY}/espn-summary/sports/basketball/wnba/summary?event=${espnEventId}`;
   const res = await fetch(url);
-  if (!res.ok) throw new EspnStatusError(`ESPN WNBA ${res.status} for event ${espnEventId}`, res.status);
+  if (!res.ok) throw new EspnStatusError(`ESPN WNBA ${res.status} for event ${espnEventId} [${servedBy(res)}]`, res.status);
   const data = await res.json();
   const plays = data.plays || [];
   if (plays.length === 0) return [];
@@ -207,7 +219,7 @@ async function getAFLScoreboardIndex() {
 async function fetchSoccerHistoricalStates(espnEventId, leagueSlug) {
   const url = `${RELAY}/espn-summary/sports/soccer/${leagueSlug}/summary?event=${espnEventId}`;
   const res = await fetch(url);
-  if (!res.ok) throw new EspnStatusError(`ESPN soccer ${res.status} for event ${espnEventId} (${leagueSlug})`, res.status);
+  if (!res.ok) throw new EspnStatusError(`ESPN soccer ${res.status} for event ${espnEventId} (${leagueSlug}) [${servedBy(res)}]`, res.status);
   const data = await res.json();
 
   const comps     = data.header?.competitions?.[0]?.competitors ?? [];
