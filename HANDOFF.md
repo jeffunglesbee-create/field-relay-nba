@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-03 (21:08Z) — the Drive upload can no longer hang for hours: a 120 s request limit, a 15-minute job limit, and a check that fails when either is removed
+
+**HEAD:** `91dd2276` → the CC-CMD, the parser lift, the fix, the guard, then this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-03-job-timeouts.md (task: TASK 1 of `docs/CC-CMD-2026-11-03-workflow-jobs-have-no-time-limit.md`, filed in this session)
+
+No Worker code changed, so there is no deploy. 0 Odds API credits.
+
+- **What changed.** On the owner's "Next approved" (Tuesday 15:33 ET), which answered a message that named this scope: one CC-CMD filed after a search by content, and its first task built. `drive-upload-outbox.yml` job `upload` has `timeout-minutes: 15` and its `urlopen` has `timeout=120`; the ledger step is untouched. `scripts/check-workflow-timeouts.mjs` fails when either limit is removed, or raised past 30 minutes or 300 s. `workflow-yaml-gate.yml` runs it when a workflow changes, and `guards.yml` runs its 63-case self-test and 28 mutations on every push. The parser the gate uses moved unchanged to `scripts/lib/parse-workflow-yaml.mjs`.
+- **Proven locally.** The step's script against a server that accepts the request and never answers: as it was, still waiting at 150 s (stopped by the harness); as edited, failed at 120 s with `{"error": "timed out"}`, `Results: 0 uploaded, 1 failed`, exit 1, nothing written to the ledger file. The check on the workflow as it was before the fix: 2 findings, exit 1; on the fixed one: none. 28 of 28 mutations caught, and the test that the gate step and the guards step exist goes red without either.
+- **Found by probing.** `urlopen`'s timeout is a wait for the peer, not a deadline for the exchange: a response that took 8.0 s to arrive was read with `timeout=3`. The request limit ends a silent peer, and the job limit ends one that sends a byte at a time. A total deadline on the process was not added, because the approved scope was a request timeout and a job limit.
+- **Measured, and a correction.** The "79 of 200 workflow files" I gave the owner was a text count that included 13 files which only call reusable workflows. By a parse, 68 jobs in 66 files lacked a limit; at this push's base, 67 in 65 (the Drive job is bounded, and `worker-cpu-read.yml`, added today by another session, arrived with a 5-minute limit). 14 scheduled files have such a job. The baseline TASK 2 would write is 69.
+- **Not established.** Why the Apps Script request hung (one occurrence). Whether the ledger step runs after a job-level timeout. A real timeout in production. The runs of this push: the next commit reads `Repo guards`, `Workflow YAML Gate` and `FIELD Outbox to Drive` and records them.
+- **Not changed.** The other 67 jobs without a limit and the five files whose `urlopen` calls lack `timeout=` (TASKS 2 and 3, not started). No dispatch, no Odds API call, no `session_health` change, nothing on the calendar experiment's VOID list (2026-11-08 to 2026-11-23).
+- **Open, the owner's call:** TASK 2 of the CC-CMD, a ratchet at 69 so no new job lands without a limit (about 30 minutes with its check and mutants, plus CI); and the `session_health` additive fields (`eligible`, `flat_bar`, `reachable_ceiling` beside `degraded`), about 30 minutes with its check and a relay deploy.
+
 ## SESSION CLOSE-OUT — 2026-11-03 (21:00Z) — Worker CPU measured: no FIELD Worker hit a CPU limit; the relay hit the memory limit 45 times
 
 **HEAD:** `d5434eb` → `2d21340` → `1256099` → this close-out · **Branch:** main
@@ -25,7 +40,7 @@ No Worker code changed, so there is no deploy. 0 Odds API credits.
 - **Observed, not changed.** The issue says "week ending 2026-10-27" for the applications scan, which read the Thursday 2026-10-22. Cosmetic, client code, Rule 69.
 - **Final check.** `Repo guards` run 41632828254 `success` on `b59a07ba` (56 of 56 steps); every red newest run in the three repositories is accounted for in the session doc; `/budget/odds` still equals the record of the 11:57Z call. [Update 14:24Z: this entry's own push ran `Repo guards` 41650246696 on `40bf5aad`, `success`, 56 of 56 steps; its sibling `FIELD Outbox to Drive` 41650246688 failed on attempt 1 (an Apps Script request that hung 15 min 41 s) and succeeded on the one rerun.] [Update 14:38Z: the push that recorded that, `2a8d3fd4`, ran `Repo guards` 41653324667 and it failed at step 31, the HANDOFF claims check. It read the sentence under "Not established" about `followup` as a claim about the next workflow file named below it, `drive-upload-outbox.yml`, which had succeeded at 14:24Z. The sentence is about the client's `patent-fulltext.yml` (newest run 2026-06-09; the caller fix `8ff34ac` is of 2026-11-03T03:50Z) and was true; it now names that file on its own line.]
 - **Open, the owner's call:** the `session_health` additive fields (`eligible`, `flat_bar`, `reachable_ceiling` beside `degraded`), about 30 minutes with its check and a relay deploy.
-- **Open, small:** `drive-upload-outbox.yml` has no request timeout and no job timeout (one hung request held a run for 15 min 41 s; the session doc has the numbers). The fix is two lines, no document covers it, and it was not made.
+- **Open, small:** `drive-upload-outbox.yml` has no request timeout and no job timeout (one hung request held a run for 15 min 41 s; the session doc has the numbers). The fix is two lines, no document covers it, and it was not made. [Done 2026-11-03 21:08Z on the owner's "Next approved" (15:33 ET): the request and job limits are in, with a check that fails when either is removed; see the first entry above.]
 
 ## SESSION CLOSE-OUT — 2026-11-03 (12:03Z) — the live-version check of /cfl/odds-probs: one call answered HTTP 200 on ad8f5cc7, and the ledger recorded exactly that call
 
