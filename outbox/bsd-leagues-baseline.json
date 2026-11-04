@@ -1,20 +1,20 @@
 {
-  "ts": "2026-10-04T14:08:27.432Z",
+  "ts": "2026-11-04T16:25:21.491Z",
   "base": "https://sports.bzzoiro.com",
-  "callsMade": 25,
+  "callsMade": 27,
   "callBudget": 60,
   "surfacesProbed": 8,
   "surfacesAnswered": 8,
   "surfacesFailed": [],
   "totals": {
-    "football": 90,
+    "football": 98,
     "basketball": 7,
     "hockey": 13,
-    "tennis": 685,
-    "darts": 178,
-    "csgo": 384,
-    "padel": 517,
-    "horseracing": 232
+    "tennis": 733,
+    "darts": 185,
+    "csgo": 408,
+    "padel": 598,
+    "horseracing": 236
   },
   "classifierFieldsSeen": {
     "football": [
@@ -42,7 +42,7 @@
     ],
     "horseracing": []
   },
-  "total": 2106,
+  "total": 2278,
   "leagues": {
     "football": {
       "1": {
@@ -404,6 +404,38 @@
       "100": {
         "name": "Serie B",
         "country": "Italy"
+      },
+      "101": {
+        "name": "Serie C, Girone A",
+        "country": "Italy"
+      },
+      "102": {
+        "name": "Serie C, Girone C",
+        "country": "Italy"
+      },
+      "103": {
+        "name": "Serie C, Girone B",
+        "country": "Italy"
+      },
+      "104": {
+        "name": "A-League Men",
+        "country": "Australia"
+      },
+      "105": {
+        "name": "Ligue 3",
+        "country": "France"
+      },
+      "106": {
+        "name": "Superettan",
+        "country": "Sweden"
+      },
+      "107": {
+        "name": "Trendyol 1. Lig",
+        "country": "Turkey"
+      },
+      "108": {
+        "name": "Eerste Divisie",
+        "country": "Netherlands"
       }
     },
     "basketball": {
@@ -1554,7 +1586,7 @@
         "surface": "hard"
       },
       "178": {
-        "name": "WTA 125K Mallorca, Spain Women Singles",
+        "name": "Mallorca, Spain",
         "category": "wta_250",
         "circuit": "WTA",
         "surface": "clay"
@@ -1650,13 +1682,13 @@
         "surface": "hard"
       },
       "194": {
-        "name": "WTA 125K Rovereto, Italy Women Singles",
+        "name": "Rovereto, Italy",
         "category": "wta_250",
         "circuit": "WTA",
         "surface": "hard"
       },
       "195": {
-        "name": "WTA 125K Queretaro, Mexico Women Singles",
+        "name": "Queretaro, Mexico",
         "category": "wta_250",
         "circuit": "WTA",
         "surface": "clay"
@@ -2191,6 +2223,12 @@
       },
       "412": {
         "name": "UTR Yokohama M02",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "413": {
+        "name": "UTR Boca Raton W01",
         "category": "utr",
         "circuit": "ATP",
         "surface": "hard"
@@ -4590,10 +4628,293 @@
       "813": {
         "name": "UTR PTT Le Cap d Agde Women 01",
         "category": "utr",
-        "circuit": "ATP"
+        "circuit": "ATP",
+        "surface": "clay"
       },
       "814": {
         "name": "UTR PTT San Diego Women 01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "815": {
+        "name": "Jinan  China",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "816": {
+        "name": "Roanne, France,",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "817": {
+        "name": "Catania, Italy",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "818": {
+        "name": "Lisbon, Portugal",
+        "category": "wta_250",
+        "circuit": "WTA",
+        "surface": "clay"
+      },
+      "819": {
+        "name": "Santa Cruz 2, Bolivia",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "820": {
+        "name": "UTR PTT Concord Men 02",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "821": {
+        "name": "UTR PTT Newport Beach Men 24",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "822": {
+        "name": "UTR PTT Saitama Men 11",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "823": {
+        "name": "UTR PTT Newport Beach Women 24",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "824": {
+        "name": "UTR PTT Saitama Women 05",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "825": {
+        "name": "UTR Norman M01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "826": {
+        "name": "UTR PTT Saitama Women 06",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "827": {
+        "name": "Florence, Italy",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "828": {
+        "name": "Lyon",
+        "category": "atp_250",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "829": {
+        "name": "Lisbon, Portugal",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "830": {
+        "name": "UTR PTT Lubbock Men 01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "831": {
+        "name": "UTR PTT Newport Beach Men 25",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "832": {
+        "name": "UTR PTT Lubbock Women 01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "833": {
+        "name": "UTR PTT Newport Beach Women 25",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "834": {
+        "name": "Cali, Colombia",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "835": {
+        "name": "Fort Worth, USA",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "836": {
+        "name": "UTR PTT Bengaluru Men 03",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "837": {
+        "name": "UTR PTT Trnava Men 04",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "838": {
+        "name": "UTR PTT Trnava Women 05",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "839": {
+        "name": "Seoul, South Korea",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "840": {
+        "name": "Ningbo, China",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "841": {
+        "name": "Courmayeur, Italy",
+        "category": "wta_250",
+        "circuit": "WTA",
+        "surface": "hard"
+      },
+      "842": {
+        "name": "Curitiba, Brazil",
+        "category": "wta_250",
+        "circuit": "WTA",
+        "surface": "clay"
+      },
+      "843": {
+        "name": "UTR PTT Philadelphia Men 03",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "844": {
+        "name": "UTR PTT Columbia Women 01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "845": {
+        "name": "Guayaquil, Ecuador",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "846": {
+        "name": "Sioux Falls, USA",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "847": {
+        "name": "UTR PTT Knoxville Women 04",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "848": {
+        "name": "UTR Olomouc M04",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "carpet"
+      },
+      "849": {
+        "name": "UTR PTT Trnava Women 06",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "850": {
+        "name": "Taipei, Chinese Taipei Men Singles",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "851": {
+        "name": "Luanda, Angola",
+        "category": "wta_250",
+        "circuit": "WTA",
+        "surface": "hard"
+      },
+      "852": {
+        "name": "Taranto, Italy",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "853": {
+        "name": "Villa Maria, Argentina",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "854": {
+        "name": "Charlottesville, USA",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "855": {
+        "name": "Costa do Sauipe, Brazil",
+        "category": "challenger",
+        "circuit": "ATP",
+        "surface": "clay"
+      },
+      "856": {
+        "name": "UTR PTT Fayetteville Men 01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "857": {
+        "name": "UTR PTT Newport Beach Men 26",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "858": {
+        "name": "UTR PTT Saitama Men 12",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "859": {
+        "name": "UTR PTT Chapel Hill Women 01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "860": {
+        "name": "UTR PTT Fayetteville Women 01",
+        "category": "utr",
+        "circuit": "ATP",
+        "surface": "hard"
+      },
+      "861": {
+        "name": "UTR PTT Newport Beach Women 26",
         "category": "utr",
         "circuit": "ATP",
         "surface": "hard"
@@ -5328,6 +5649,34 @@
       "182": {
         "name": "World Grand Prix 2026",
         "category": "pdc_major"
+      },
+      "183": {
+        "name": "Swiss Darts Trophy",
+        "category": "other"
+      },
+      "184": {
+        "name": "ANZ Premier League 2026",
+        "category": "pdc_major"
+      },
+      "185": {
+        "name": "ANZ Premier League 2026, Round 5",
+        "category": "pdc_major"
+      },
+      "186": {
+        "name": "ANZ Premier League 2026, Playoffs",
+        "category": "pdc_major"
+      },
+      "187": {
+        "name": "Players Championship 31 2026",
+        "category": "pdc_protour"
+      },
+      "188": {
+        "name": "Players Championship 32 2026",
+        "category": "pdc_protour"
+      },
+      "189": {
+        "name": "Players Championship 33 2026",
+        "category": "pdc_protour"
       }
     },
     "csgo": {
@@ -6482,6 +6831,78 @@
       },
       "467": {
         "name": "eXTREMESLAND 2026: Oceanic Qualifier"
+      },
+      "468": {
+        "name": "Private Club #2: Closed Qualifier"
+      },
+      "469": {
+        "name": "ESL Challenger League Season 52: Europe - Cup #8"
+      },
+      "470": {
+        "name": "ESL Challenger League Season 52: South America - Cup #3"
+      },
+      "471": {
+        "name": "Majstrovstvá SR 2026"
+      },
+      "472": {
+        "name": "ANZC Locals Brisbane 2026 Season 2"
+      },
+      "473": {
+        "name": "Roman Imperium Cup IX"
+      },
+      "474": {
+        "name": "Stake Pulse Beat III"
+      },
+      "475": {
+        "name": "Stake Ranked Episode 6: Open Qualifier"
+      },
+      "476": {
+        "name": "FRAG University 2026"
+      },
+      "477": {
+        "name": "TP World Championship 2026"
+      },
+      "478": {
+        "name": "PGL Bucharest 2027: Open Qualifier"
+      },
+      "479": {
+        "name": "NODWIN Clutch Series #13"
+      },
+      "480": {
+        "name": "Elisa BreakOut Series #2"
+      },
+      "481": {
+        "name": "Logitech G Pro Series 2026"
+      },
+      "482": {
+        "name": "PGL Bucharest 2027: Closed Qualifier"
+      },
+      "483": {
+        "name": "CyberClash Season 2: Closed Qualifier"
+      },
+      "484": {
+        "name": "DraculaN Season 7"
+      },
+      "485": {
+        "name": "Private Club #2"
+      },
+      "486": {
+        "name": "Stake Ranked Episode 6: Closed Qualifier"
+      },
+      "487": {
+        "name": "CCT Europe 2026 Series #12"
+      },
+      "488": {
+        "name": "Circuit X Curitiba #4"
+      },
+      "489": {
+        "name": "CIS LAN Championship #9"
+      },
+      "490": {
+        "name": "Hotspawn 10k Showdown"
+      },
+      "491": {
+        "name": "PGL Masters Bucharest 2026"
       }
     },
     "padel": {
@@ -9045,6 +9466,409 @@
         "name": "Germany P2 Men - Qualification",
         "category": "Premier Padel",
         "gender": "M"
+      },
+      "518": {
+        "name": "Germany P2 Women - Qualification",
+        "category": "Premier Padel",
+        "gender": "F"
+      },
+      "519": {
+        "name": "FIP Bronze Rovigo Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "520": {
+        "name": "Germany P2 Men - Main Draw",
+        "category": "Premier Padel",
+        "gender": "M"
+      },
+      "521": {
+        "name": "FIP Bronze DBC COFFEE COPENHAGEN Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "522": {
+        "name": "FIP Silver Porec Parenzo Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "523": {
+        "name": "FIP Bronze Rovigo Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "524": {
+        "name": "FIP Bronze Paraguay IV Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "525": {
+        "name": "FIP Bronze Paraguay IV Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "526": {
+        "name": "Germany P2 Women - Main Draw",
+        "category": "Premier Padel",
+        "gender": "F"
+      },
+      "527": {
+        "name": "FIP Silver R3 BULLPADEL CUP STRATFORD Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "528": {
+        "name": "FIP Bronze DBC COFFEE COPENHAGEN Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "529": {
+        "name": "FIP Bronze DBC COFFEE COPENHAGEN Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "530": {
+        "name": "FIP Bronze Rovigo Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "531": {
+        "name": "FIP Silver Porec Parenzo Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "532": {
+        "name": "FIP Silver R3 BULLPADEL CUP STRATFORD Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "533": {
+        "name": "FIP Silver R3 BULLPADEL CUP STRATFORD Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "534": {
+        "name": "FIP Silver Porec Parenzo Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "535": {
+        "name": "FIP Bronze Rovigo HUB 12 OCCHIOBELLO Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "536": {
+        "name": "FIP Bronze Rovigo HUB 12 OCCHIOBELLO Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "537": {
+        "name": "Milano P1 Men - Qualification",
+        "category": "Premier Padel",
+        "gender": "M"
+      },
+      "538": {
+        "name": "Milano P1 Women - Qualification",
+        "category": "Premier Padel",
+        "gender": "F"
+      },
+      "539": {
+        "name": "Milano P1 Men - Main Draw",
+        "category": "Premier Padel",
+        "gender": "M"
+      },
+      "540": {
+        "name": "FIP Bronze Oeiras Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "541": {
+        "name": "Milano P1 Women - Main Draw",
+        "category": "Premier Padel",
+        "gender": "F"
+      },
+      "542": {
+        "name": "FIP Gold CIUDAD DE Sevilla Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "543": {
+        "name": "FIP Gold CIUDAD DE Sevilla Women - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "544": {
+        "name": "FIP Bronze COTONOU Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "545": {
+        "name": "FIP Bronze RACOURT Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "546": {
+        "name": "FIP Bronze INTERPADEL OPEN Oslo Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "547": {
+        "name": "FIP Bronze INTERPADEL OPEN Oslo Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "548": {
+        "name": "FIP Bronze INTERPADEL OPEN Oslo Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "549": {
+        "name": "FIP Bronze RACOURT Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "550": {
+        "name": "FIP Bronze RACOURT Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "551": {
+        "name": "FIP Bronze HIGH VELOCITY CEBU Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "552": {
+        "name": "FIP Gold CIUDAD DE Sevilla Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "553": {
+        "name": "FIP Bronze Oeiras Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "554": {
+        "name": "FIP Gold CIUDAD DE Sevilla Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "555": {
+        "name": "FIP Bronze Oeiras Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "556": {
+        "name": "FIP Bronze COTONOU Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "557": {
+        "name": "FIP Bronze HIGH VELOCITY CEBU Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "558": {
+        "name": "FIP Gold Melilla CIUDAD DEL DEPORTE 2026 Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "559": {
+        "name": "FIP Bronze QNB CUP Antalya Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "560": {
+        "name": "FIP Bronze EWH CITY PÁDEL Taunton Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "561": {
+        "name": "FIP Gold Melilla CIUDAD DEL DEPORTE 2026 Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "562": {
+        "name": "FIP Gold Melilla CIUDAD DEL DEPORTE 2026 Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "563": {
+        "name": "FIP Bronze HIGH VELOCITY Samui Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "564": {
+        "name": "FIP Bronze VIÑA DEL MAR - Qualification",
+        "category": "Cupra FIP Tour"
+      },
+      "565": {
+        "name": "FIP Bronze VIÑA DEL MAR - Main Draw",
+        "category": "Cupra FIP Tour"
+      },
+      "566": {
+        "name": "FIP Bronze HIGH VELOCITY Samui Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "567": {
+        "name": "FIP Bronze QNB CUP Antalya Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "568": {
+        "name": "FIP Bronze EWH CITY PÁDEL Taunton Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "569": {
+        "name": "FIP Bronze QNB CUP Antalya Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "570": {
+        "name": "FIP Bronze EWH CITY PÁDEL Taunton Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "571": {
+        "name": "Kuwait MAJOR Men - Qualification",
+        "category": "Premier Padel",
+        "gender": "M"
+      },
+      "572": {
+        "name": "FIP Bronze HIGH VELOCITY Samui Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "573": {
+        "name": "Kuwait MAJOR Women - Qualification",
+        "category": "Premier Padel",
+        "gender": "F"
+      },
+      "574": {
+        "name": "Kuwait MAJOR Men - Main Draw",
+        "category": "Premier Padel",
+        "gender": "M"
+      },
+      "575": {
+        "name": "FIP Gold MEDIOLANUM PADEL CUP Torino Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "576": {
+        "name": "Kuwait MAJOR Women - Main Draw",
+        "category": "Premier Padel",
+        "gender": "F"
+      },
+      "577": {
+        "name": "FIP Silver DAMAC Dubai II Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "578": {
+        "name": "FIP Bronze CYPRUS III Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "579": {
+        "name": "FIP Bronze JC FERRERO ACADEMY Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "580": {
+        "name": "FIP Bronze Tashkent Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "581": {
+        "name": "FIP Gold MEDIOLANUM PADEL CUP Torino Women - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "582": {
+        "name": "FIP Silver DAMAC Dubai II Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "583": {
+        "name": "FIP Gold MEDIOLANUM PADEL CUP Torino Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "584": {
+        "name": "FIP Bronze CYPRUS III Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "585": {
+        "name": "FIP Gold MEDIOLANUM PADEL CUP Torino Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "586": {
+        "name": "FIP Silver DAMAC Dubai II Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "587": {
+        "name": "FIP Bronze HIGH VELOCITY Phangan Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "588": {
+        "name": "FIP Bronze JC FERRERO ACADEMY Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "589": {
+        "name": "FIP Bronze JC FERRERO ACADEMY Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "590": {
+        "name": "FIP Bronze Tashkent Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "591": {
+        "name": "FIP Bronze CYPRUS III Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "592": {
+        "name": "FIP Bronze HIGH VELOCITY Phangan Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
+      },
+      "593": {
+        "name": "FIP WORLD CUP 2026 Women - Main Draw",
+        "category": "FIP Championship",
+        "gender": "F"
+      },
+      "594": {
+        "name": "FIP WORLD CUP 2026 Men - Main Draw",
+        "category": "FIP Championship",
+        "gender": "M"
+      },
+      "595": {
+        "name": "FIP Bronze CYPRUS IV Men - Qualification",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "596": {
+        "name": "FIP Bronze CYPRUS IV Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "597": {
+        "name": "FIP Bronze ESC PADEL Men - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "M"
+      },
+      "598": {
+        "name": "FIP Bronze ESC PADEL Women - Main Draw",
+        "category": "Cupra FIP Tour",
+        "gender": "F"
       }
     },
     "horseracing": {
@@ -9743,638 +10567,223 @@
       },
       "232": {
         "name": "Meadowlands"
+      },
+      "233": {
+        "name": "Rambouillet"
+      },
+      "234": {
+        "name": "Far Hills"
+      },
+      "235": {
+        "name": "Abu Dhabi"
+      },
+      "236": {
+        "name": "Prunelli"
       }
     }
   },
   "baseline": {
-    "ts": "2026-09-06T05:42:52.740Z",
-    "total": 1531
+    "ts": "2026-10-04T14:08:27.432Z",
+    "total": 2106
   },
   "diff": {
     "added": {
       "football": [
-        "94: 2. Bundesliga [country=Germany]",
-        "95: Campeonato de Portugal [country=Portugal]",
-        "96: Austrian Bundesliga [country=Austria]",
-        "97: Challenger Pro League [country=Belgium]",
-        "98: Girabola [country=Angola]",
-        "99: Czech First League [country=Czech Republic]",
-        "100: Serie B [country=Italy]"
+        "101: Serie C, Girone A [country=Italy]",
+        "102: Serie C, Girone C [country=Italy]",
+        "103: Serie C, Girone B [country=Italy]",
+        "104: A-League Men [country=Australia]",
+        "105: Ligue 3 [country=France]",
+        "106: Superettan [country=Sweden]",
+        "107: Trendyol 1. Lig [country=Turkey]",
+        "108: Eerste Divisie [country=Netherlands]"
       ],
       "tennis": [
-        "765: Barranquilla, Colombia [category=wta_250 circuit=WTA surface=hard]",
-        "766: UTR PTT Budapest Men 03 [category=utr circuit=ATP surface=clay]",
-        "767: UTR PTT Essen Men 01 [category=utr circuit=ATP surface=clay]",
-        "768: UTR PTT Sydney Men 03 [category=utr circuit=ATP surface=hard]",
-        "769: UTR PTT Budapest Women 03 [category=utr circuit=ATP surface=clay]",
-        "770: UTR PTT Essen Women 01 [category=utr circuit=ATP surface=clay]",
-        "771: UTR PTT Sydney Women 03 [category=utr circuit=ATP surface=hard]",
-        "772: Guangzhou, China [category=challenger circuit=ATP surface=hard]",
-        "773: Phan Thiet 4, Vietnam [category=challenger circuit=ATP surface=hard]",
-        "774: Biella, Italy Men Singles [category=challenger circuit=ATP surface=clay]",
-        "775: UTR PTT Chicago Men 01 [category=utr circuit=ATP surface=hard]",
-        "776: UTR PTT Newport Beach Men 22 [category=utr circuit=ATP surface=hard]",
-        "777: UTR PTT Chicago Women 01 [category=utr circuit=ATP surface=hard]",
-        "778: UTR PTT Newport Beach Women 22 [category=utr circuit=ATP surface=hard]",
-        "779: Tiburon, USA [category=challenger circuit=ATP surface=hard]",
-        "780: UTR PTT Essen Men 02 [category=utr circuit=ATP surface=clay]",
-        "781: UTR PTT Essen Women 02 [category=utr circuit=ATP surface=clay]",
-        "782: WTA 125k Ankara, Turkiye Women Singles [category=wta_250 circuit=WTA surface=hard]",
-        "783: Plovdiv 4, Bulgaria [category=challenger circuit=ATP surface=clay]",
-        "784: Genoa 2, Italy [category=challenger circuit=ATP surface=clay]",
-        "785: UTR College Station M01 [category=utr circuit=ATP surface=hard]",
-        "786: UTR PTT Norfolk Men 01 [category=utr circuit=ATP surface=clay]",
-        "787: UTR PTT Saitama Men 09 [category=utr circuit=ATP surface=hard]",
-        "788: UTR PTT College Station Women 01 [category=utr circuit=ATP surface=hard]",
-        "789: San Diego 2, USA, [category=challenger circuit=ATP surface=hard]",
-        "790: Adana, Turkiye [category=wta_250 circuit=WTA surface=hard]",
-        "791: Bari, Italy [category=challenger circuit=ATP surface=clay]",
-        "792: Porto 2, Portugal [category=challenger circuit=ATP surface=hard]",
-        "793: Curitiba, Brazil [category=challenger circuit=ATP surface=clay]",
-        "794: UTR PTT Ithaca Men 01 [category=utr circuit=ATP surface=hard]",
-        "795: UTR PTT Le Cap d Agde Men 02 [category=utr circuit=ATP surface=clay]",
-        "796: UTR Lincoln M01 [category=utr circuit=ATP surface=hard]",
-        "797: UTR PTT Newport Beach Men 23 [category=utr circuit=ATP surface=hard]",
-        "798: UTR PTT Saitama Men 10 [category=utr circuit=ATP surface=hard]",
-        "799: UTR PTT Ithaca Women 01 [category=utr circuit=ATP surface=hard]",
-        "800: UTR PTT Lincoln Women 01 [category=utr circuit=ATP surface=hard]",
-        "801: UTR PTT Newport Beach Women 23 [category=utr circuit=ATP surface=hard]",
-        "802: Colombus, USA Men Singles [category=challenger circuit=ATP surface=hard]",
-        "803: Jingshan, China, [category=challenger circuit=ATP surface=hard]",
-        "804: UTR PTT Cordoba Men +H 06 [category=utr circuit=ATP surface=clay]",
-        "805: UTR PTT Belgrade Women 05 [category=utr circuit=ATP surface=clay]",
-        "806: Australian Open, Boys [category=other circuit=ATP surface=hard]",
-        "807: Australian Open, Girls [category=other circuit=ATP surface=hard]",
-        "808: Wuning 3, China [category=challenger circuit=ATP surface=hard]",
-        "809: Palermo, Italy Men Singles [category=challenger circuit=ATP surface=clay]",
-        "810: Braga, Portugal  [category=challenger circuit=ATP surface=clay]",
-        "811: UTR Boca Raton M06 [category=utr circuit=ATP surface=hard]",
-        "812: UTR PTT San Diego Men 01 [category=utr circuit=ATP surface=hard]",
-        "813: UTR PTT Le Cap d Agde Women 01 [category=utr circuit=ATP]",
-        "814: UTR PTT San Diego Women 01 [category=utr circuit=ATP surface=hard]"
+        "413: UTR Boca Raton W01 [category=utr circuit=ATP surface=hard]",
+        "815: Jinan  China [category=challenger circuit=ATP surface=hard]",
+        "816: Roanne, France, [category=challenger circuit=ATP surface=hard]",
+        "817: Catania, Italy [category=challenger circuit=ATP surface=clay]",
+        "818: Lisbon, Portugal [category=wta_250 circuit=WTA surface=clay]",
+        "819: Santa Cruz 2, Bolivia [category=challenger circuit=ATP surface=clay]",
+        "820: UTR PTT Concord Men 02 [category=utr circuit=ATP surface=clay]",
+        "821: UTR PTT Newport Beach Men 24 [category=utr circuit=ATP surface=hard]",
+        "822: UTR PTT Saitama Men 11 [category=utr circuit=ATP surface=hard]",
+        "823: UTR PTT Newport Beach Women 24 [category=utr circuit=ATP surface=hard]",
+        "824: UTR PTT Saitama Women 05 [category=utr circuit=ATP surface=hard]",
+        "825: UTR Norman M01 [category=utr circuit=ATP surface=hard]",
+        "826: UTR PTT Saitama Women 06 [category=utr circuit=ATP surface=hard]",
+        "827: Florence, Italy [category=challenger circuit=ATP surface=clay]",
+        "828: Lyon [category=atp_250 circuit=ATP surface=hard]",
+        "829: Lisbon, Portugal [category=challenger circuit=ATP surface=clay]",
+        "830: UTR PTT Lubbock Men 01 [category=utr circuit=ATP surface=hard]",
+        "831: UTR PTT Newport Beach Men 25 [category=utr circuit=ATP surface=hard]",
+        "832: UTR PTT Lubbock Women 01 [category=utr circuit=ATP surface=hard]",
+        "833: UTR PTT Newport Beach Women 25 [category=utr circuit=ATP surface=hard]",
+        "834: Cali, Colombia [category=challenger circuit=ATP surface=clay]",
+        "835: Fort Worth, USA [category=challenger circuit=ATP surface=hard]",
+        "836: UTR PTT Bengaluru Men 03 [category=utr circuit=ATP surface=hard]",
+        "837: UTR PTT Trnava Men 04 [category=utr circuit=ATP surface=hard]",
+        "838: UTR PTT Trnava Women 05 [category=utr circuit=ATP surface=hard]",
+        "839: Seoul, South Korea [category=challenger circuit=ATP surface=hard]",
+        "840: Ningbo, China [category=challenger circuit=ATP surface=hard]",
+        "841: Courmayeur, Italy [category=wta_250 circuit=WTA surface=hard]",
+        "842: Curitiba, Brazil [category=wta_250 circuit=WTA surface=clay]",
+        "843: UTR PTT Philadelphia Men 03 [category=utr circuit=ATP surface=hard]",
+        "844: UTR PTT Columbia Women 01 [category=utr circuit=ATP surface=hard]",
+        "845: Guayaquil, Ecuador [category=challenger circuit=ATP surface=clay]",
+        "846: Sioux Falls, USA [category=challenger circuit=ATP surface=hard]",
+        "847: UTR PTT Knoxville Women 04 [category=utr circuit=ATP surface=hard]",
+        "848: UTR Olomouc M04 [category=utr circuit=ATP surface=carpet]",
+        "849: UTR PTT Trnava Women 06 [category=utr circuit=ATP surface=hard]",
+        "850: Taipei, Chinese Taipei Men Singles [category=challenger circuit=ATP surface=hard]",
+        "851: Luanda, Angola [category=wta_250 circuit=WTA surface=hard]",
+        "852: Taranto, Italy [category=challenger circuit=ATP surface=hard]",
+        "853: Villa Maria, Argentina [category=challenger circuit=ATP surface=clay]",
+        "854: Charlottesville, USA [category=challenger circuit=ATP surface=hard]",
+        "855: Costa do Sauipe, Brazil [category=challenger circuit=ATP surface=clay]",
+        "856: UTR PTT Fayetteville Men 01 [category=utr circuit=ATP surface=hard]",
+        "857: UTR PTT Newport Beach Men 26 [category=utr circuit=ATP surface=hard]",
+        "858: UTR PTT Saitama Men 12 [category=utr circuit=ATP surface=hard]",
+        "859: UTR PTT Chapel Hill Women 01 [category=utr circuit=ATP surface=hard]",
+        "860: UTR PTT Fayetteville Women 01 [category=utr circuit=ATP surface=hard]",
+        "861: UTR PTT Newport Beach Women 26 [category=utr circuit=ATP surface=hard]"
       ],
       "darts": [
-        "176: European Tour 12 - Czech Darts Open 2026 [category=pdc_euro]",
-        "177: Flanders Darts Trophy [category=other]",
-        "178: European Tour 13 - Flanders Darts Trophy 2026 [category=pdc_euro]",
-        "179: World Grand Prix [category=pdc_major]",
-        "180: Players Championship 29 2026 [category=pdc_protour]",
-        "181: Players Championship 30 2026 [category=pdc_protour]",
-        "182: World Grand Prix 2026 [category=pdc_major]"
+        "183: Swiss Darts Trophy [category=other]",
+        "184: ANZ Premier League 2026 [category=pdc_major]",
+        "185: ANZ Premier League 2026, Round 5 [category=pdc_major]",
+        "186: ANZ Premier League 2026, Playoffs [category=pdc_major]",
+        "187: Players Championship 31 2026 [category=pdc_protour]",
+        "188: Players Championship 32 2026 [category=pdc_protour]",
+        "189: Players Championship 33 2026 [category=pdc_protour]"
       ],
       "csgo": [
-        "425: Private Club #1 Closed Qualifier",
-        "426: PGL Masters Bucharest 2026: European Qualifier",
-        "427: PGL Masters Bucharest 2026: East Asian Qualifier",
-        "428: PGL Masters Bucharest 2026: South American Qualifier",
-        "429: PGL Masters Bucharest 2026: North American Qualifier",
-        "430: TP World Championship 2026: Global Qualifier",
-        "431: CCT Europe 2026 Series #9 Play-In",
-        "432: Halyk Cyber Games Cup 2026",
-        "433: Roman Imperium Cup VIII",
-        "434: Fiesta Series 2",
-        "435: CIS LAN Championship #7",
-        "436: PGL Masters Bucharest 2026: Asian Final Qualifier",
-        "437: Logitech G Play Connect 2026",
-        "438: NODWIN Clutch Series #12",
-        "439: StarLadder StarSeries Fall 2026",
-        "440: Stake Ranked Episode 5: Open Qualifier",
-        "441: CCT Europe 2026 Series #9",
-        "442: Stake Pulse Beat III: Open Qualifier",
-        "443: Gamers Club Liga Serie A: September 2026",
-        "444: Circuit X Curitiba #3",
-        "445: Stake Pulse Beat II",
-        "446: TS Open Cup #2",
-        "447: FERJEE In House #2",
-        "448: CCT South America 2026 Series #6",
-        "449: ESL Challenger League Season 52: South America - Cup #2",
-        "450: LB Masters Season 1",
-        "451: ESL Challenger League Season 52: Europe - Cup #7",
-        "452: ESL Challenger League Season 52: Oceania - Cup #2",
-        "453: CCT Europe 2026 Series #10 Play-In",
-        "454: ESL Challenger League Season 52: North America - Cup #2",
-        "455: Private Club #1",
-        "456: Stake Ranked Episode 5: Closed Qualifier",
-        "457: iBUYPOWER Masters fl0m's Mythical LAN 2026",
-        "458: Hotspawn 10K Showdown: Closed Qualifier",
-        "459: Urban Riga Open #7",
-        "460: CCT Europe 2026 Series #10",
-        "461: CIS LAN Championship #8",
-        "462: Stake Ranked Episode 4",
-        "463: FOX Legacy Cup #1",
-        "464: ESEA Season 58: European Finals",
-        "465: ESL Pro League Season 24",
-        "466: Journey Autumn 2026",
-        "467: eXTREMESLAND 2026: Oceanic Qualifier"
+        "468: Private Club #2: Closed Qualifier",
+        "469: ESL Challenger League Season 52: Europe - Cup #8",
+        "470: ESL Challenger League Season 52: South America - Cup #3",
+        "471: Majstrovstvá SR 2026",
+        "472: ANZC Locals Brisbane 2026 Season 2",
+        "473: Roman Imperium Cup IX",
+        "474: Stake Pulse Beat III",
+        "475: Stake Ranked Episode 6: Open Qualifier",
+        "476: FRAG University 2026",
+        "477: TP World Championship 2026",
+        "478: PGL Bucharest 2027: Open Qualifier",
+        "479: NODWIN Clutch Series #13",
+        "480: Elisa BreakOut Series #2",
+        "481: Logitech G Pro Series 2026",
+        "482: PGL Bucharest 2027: Closed Qualifier",
+        "483: CyberClash Season 2: Closed Qualifier",
+        "484: DraculaN Season 7",
+        "485: Private Club #2",
+        "486: Stake Ranked Episode 6: Closed Qualifier",
+        "487: CCT Europe 2026 Series #12",
+        "488: Circuit X Curitiba #4",
+        "489: CIS LAN Championship #9",
+        "490: Hotspawn 10k Showdown",
+        "491: PGL Masters Bucharest 2026"
       ],
       "padel": [
-        "49: Paris MAJOR Men - Qualification [category=Premier Padel gender=M]",
-        "50: Paris MAJOR Women - Qualification [category=Premier Padel gender=F]",
-        "51: Paris MAJOR Men - Main Draw [category=Premier Padel gender=M]",
-        "52: FIP Gold Bucharest Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "53: FIP Bronze HIGH VELOCITY Phuket Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "54: FIP Silver Lisboa RACKET CENTRE BY AVA CR7 Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "55: Paris MAJOR Women - Main Draw [category=Premier Padel gender=F]",
-        "56: FIP Silver PADEL COPA Utrecht 2026 Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "57: FIP Bronze Casablanca Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "58: FIP Gold Bucharest Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "59: FIP Silver PADEL COPA Utrecht 2026 Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "60: FIP Silver San Luis - Main Draw [category=Cupra FIP Tour]",
-        "61: FIP Silver San Luis - Qualification [category=Cupra FIP Tour]",
-        "62: FIP Gold Bucharest Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "63: FIP Bronze HIGH VELOCITY Phuket Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "64: FIP Bronze HIGH VELOCITY Phuket Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "65: FIP Silver Lisboa RACKET CENTRE BY AVA CR7 Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "66: FIP Silver Lisboa RACKET CENTRE BY AVA CR7 Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "67: FIP Silver PADEL COPA Utrecht 2026 Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "68: FIP Bronze SHELL Casablanca Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "69: FIP Bronze SHELL Casablanca Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "70: FIP Bronze QNB CUP Izmir Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "71: FIP Silver Guimaraes Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "72: FIP Silver HIGH VELOCITY Bangkok Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "73: FIP Silver Budapest OPEN II Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "74: FIP Silver Nairobi B-ACTIVE Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "75: FIP Bronze SPORTCLUB Alicante Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "76: FIP Silver Guimaraes Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "77: FIP Silver Nairobi B-ACTIVE Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "78: FIP Gold Sao Paulo Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "79: FIP Gold Sao Paulo Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "80: FIP Silver Guimaraes Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "81: FIP Silver Nairobi B-ACTIVE Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "82: FIP Silver Budapest OPEN II Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "83: FIP Bronze SPORTCLUB Alicante Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "84: FIP Silver Budapest OPEN II Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "85: FIP Bronze SPORTCLUB Alicante Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "86: FIP Silver HIGH VELOCITY Bangkok Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "87: FIP Silver HIGH VELOCITY Bangkok Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "88: FIP Bronze QNB CUP Izmir Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "89: FIP Bronze QNB CUP Izmir Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "90: FIP Gold Sao Paulo Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "91: GIJÓN P2 Women - Qualification [category=Premier Padel gender=F]",
-        "92: GIJÓN P2 Men - Qualification [category=Premier Padel gender=M]",
-        "93: FIP Bronze PADEL SHOP OPEN Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "94: FIP Bronze Singapore Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "95: FIP Bronze Burriana Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "96: FIP Bronze WEPADEL TOURNAMENT Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "97: GIJÓN P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "98: GIJÓN P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "99: FIP Gold PONTA DELGADA Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "100: FIP Gold PONTA DELGADA Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "101: FIP Bronze Burriana Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "102: FIP Gold PONTA DELGADA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "103: FIP Bronze Singapore Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "104: FIP Gold PONTA DELGADA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "105: FIP Bronze Burriana Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "106: FIP Bronze Burriana Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "107: FIP Bronze WEPADEL TOURNAMENT Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "108: FIP Bronze PADEL SHOP OPEN Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "109: FIP Bronze PADEL SHOP OPEN Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "110: FIP Bronze Singapore Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "111: FIP Bronze GAÚCHO Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "112: FIP Bronze WEPADEL TOURNAMENT Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "113: FIP Bronze GAÚCHO Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "114: FIP Bronze Siracusa Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "115: FIP Silver Joinville - Qualification [category=Cupra FIP Tour]",
-        "116: FIP Bronze Siracusa Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "117: FIP Silver Manila Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "118: FIP Silver Joinville - Main Draw [category=Cupra FIP Tour]",
-        "119: FIP Bronze Siracusa Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "120: FIP Silver Manila Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "121: FIP Bronze Joinville Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "122: CANCÚN P2 Men - Qualification [category=Premier Padel gender=M]",
-        "123: CANCÚN P2 Women - Qualification [category=Premier Padel gender=F]",
-        "124: FIP Bronze GO PARK Hong Kong Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "125: FIP Silver MEDIOLANUM PADEL CUP Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "126: CANCÚN P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "127: CANCÚN P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "128: FIP Bronze ELITE PADEL Nairobi Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "129: FIP Bronze LITAS Kaunas Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "130: FIP Bronze Sweden I Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "131: FIP Bronze GO PARK Hong Kong Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "132: FIP Silver MEDIOLANUM PADEL CUP Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "133: FIP Silver MEDIOLANUM PADEL CUP Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "134: FIP Bronze GO PARK Hong Kong Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "135: FIP Bronze ELITE PADEL Nairobi Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "136: FIP Bronze Sweden I Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "137: FIP Bronze Sweden I Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "138: FIP Bronze LITAS Kaunas Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "139: FIP Bronze LITAS Kaunas Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "140: FIP Bronze ELITE PADEL Nairobi Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "141: Miami P1 Women - Qualification [category=Premier Padel gender=F]",
-        "142: Miami P1 Men - Qualification [category=Premier Padel gender=M]",
-        "143: Miami P1 Women - Main Draw [category=Premier Padel gender=F]",
-        "144: Miami P1 Men - Main Draw [category=Premier Padel gender=M]",
-        "145: FIP Bronze Viseu Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "146: FIP Bronze Viseu Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "147: FIP Silver KALAT Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "148: FIP Bronze Hong Kong II Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "149: FIP Bronze Viseu Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "150: FIP Bronze Viseu Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "151: FIP Silver KALAT Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "152: FIP Bronze Hong Kong II Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "153: FIP Silver KALAT Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "154: FIP Bronze Hong Kong II Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "155: FIP Bronze Netherlands Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "156: FIP Gold Almaty Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "157: FIP Silver BETCLIC Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "158: FIP Gold Almaty Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "159: FIP Gold Almaty Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "160: FIP Bronze Netherlands Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "161: FIP Silver BETCLIC Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "162: FIP Bronze Netherlands Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "163: FIP Gold Almaty Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "164: FIP Bronze Netherlands Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "165: FIP Silver BETCLIC Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "166: FIP Bronze Mumbai II Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "167: FIP Silver Aguascalientes - Qualification [category=Cupra FIP Tour]",
-        "168: FIP Bronze Elche Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "169: FIP Silver Mumbai Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "170: FIP Bronze Rivesaltes Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "171: FIP Silver Aguascalientes - Main Draw [category=Cupra FIP Tour]",
-        "172: FIP Bronze Baku Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "173: FIP Bronze Elche Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "174: FIP Bronze S4SPORT OPEN Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "175: FIP Bronze Rivesaltes Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "176: FIP Silver Mumbai Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "177: FIP Bronze Baku Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "178: FIP Bronze Elche Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "179: FIP Bronze Elche Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "180: FIP Bronze S4SPORT OPEN Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "181: FIP Silver Mumbai Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "182: FIP Bronze Rivesaltes Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "183: FIP Bronze Baku Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "184: FIP Bronze S4SPORT OPEN Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "185: NEWGIZA P2 Men - Qualification [category=Premier Padel gender=M]",
-        "186: NEWGIZA P2 Women - Qualification [category=Premier Padel gender=F]",
-        "187: FIP Platinum Lyon Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "188: FIP Platinum Lyon Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "189: NEWGIZA P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "190: NEWGIZA P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "191: FIP Bronze Kuala Lumpur Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "192: FIP Silver Nola Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "193: FIP Bronze ICÓNICO SPORTS Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "194: FIP Bronze Cyprus I Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "195: FIP Bronze Marrakech - Qualification [category=Cupra FIP Tour]",
-        "196: FIP Silver Nola Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "197: FIP Bronze ICÓNICO SPORTS Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "198: FIP Bronze Cyprus I Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "199: FIP Bronze IJUÍ Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "200: FIP Silver Nola Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "201: FIP Bronze ICÓNICO SPORTS Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "202: FIP Bronze Kuala Lumpur Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "203: FIP Bronze Marrakech - Main Draw [category=Cupra FIP Tour]",
-        "204: FIP Bronze Kuala Lumpur Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "205: FIP Bronze IJUÍ Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "206: FIP Bronze Cyprus I Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "207: Brussels P2 Men - Qualification [category=Premier Padel gender=M]",
-        "208: Brussels P2 Women - Qualification [category=Premier Padel gender=F]",
-        "209: FIP Silver Kuala Lumpur Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "210: Brussels P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "211: Brussels P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "212: FIP Bronze Cyprus II Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "213: FIP Silver MEDIOLANUM PADEL CUP Bari Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "214: FIP Bronze AQUAHOBBY Isla De La Palma Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "215: FIP Bronze AQUAHOBBY Isla De La Palma Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "216: FIP Bronze Chile II - Main Draw [category=Cupra FIP Tour]",
-        "217: FIP Bronze Chile II - Qualification [category=Cupra FIP Tour]",
-        "218: FIP Bronze Cyprus II Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "219: FIP Silver MEDIOLANUM PADEL CUP Bari Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "220: FIP Silver Kuala Lumpur Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "221: FIP Silver Kuala Lumpur Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "222: FIP Silver MEDIOLANUM PADEL CUP Bari Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "223: FIP Bronze Cyprus II Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "224: FIP Bronze Paraguay I Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "225: FIP Bronze Paraguay I Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "226: FIP Silver Leiria MASTER PADEL Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "227: FIP Silver Leiria MASTER PADEL Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "228: FIP Silver Mendoza - Qualification [category=Cupra FIP Tour gender=M]",
-        "229: FIP Silver BMW MARMOTOR 26º ANIVERSARIO CLUB LA CALZADA Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "230: FIP Bronze Singapore II Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "231: FIP Silver Cyprus I Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "232: FIP Silver Leiria MASTER PADEL Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "233: FIP Silver Leiria MASTER PADEL Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "234: FIP Silver Mendoza - Main Draw [category=Cupra FIP Tour gender=M]",
-        "235: FIP Silver BMW MARMOTOR 26º ANIVERSARIO CLUB LA CALZADA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "236: FIP Bronze Singapore II Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "237: FIP Silver Cyprus I Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "238: FIP Bronze Montesilvano Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "239: FIP Silver BMW MARMOTOR 26º ANIVERSARIO CLUB LA CALZADA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "240: FIP Bronze Singapore II Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "241: FIP Bronze Montesilvano Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "242: FIP Bronze Montesilvano Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "243: FIP Silver Cyprus I Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "244: ASUNCION P2 Men - Qualification [category=Premier Padel gender=M]",
-        "245: ASUNCION P2 Women - Qualification [category=Premier Padel gender=F]",
-        "246: FIP Silver Vila Real De Santo Antonio Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "247: ASUNCION P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "248: ASUNCION P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "249: FIP Bronze Samui Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "250: FIP Silver HORAMA 2026 Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "251: FIP Silver HORAMA 2026 Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "252: FIP Bronze Prishtina Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "253: FIP Bronze London Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "254: FIP Silver HORAMA 2026 Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "255: FIP Silver Vila Real De Santo Antonio Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "256: FIP Silver Vila Real De Santo Antonio Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "257: FIP Bronze Prishtina Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "258: FIP Bronze MOS MOSH GALLERY KIF PADEL MASTERS Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "259: FIP Bronze London Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "260: FIP Bronze Samui Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "261: FIP Bronze London Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "262: FIP Bronze Samui Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "263: FIP Bronze MOS MOSH GALLERY KIF PADEL MASTERS Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "264: FIP Bronze MOS MOSH GALLERY KIF PADEL MASTERS Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "265: FIP Bronze Prishtina Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "266: Buenos Aires P1 Men - Qualification [category=Premier Padel gender=M]",
-        "267: Buenos Aires P1 Women - Qualification [category=Premier Padel gender=F]",
-        "268: Buenos Aires P1 Men - Main Draw [category=Premier Padel gender=M]",
-        "269: FIP Bronze Bratislava Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "270: FIP Bronze LOTTO Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "271: Buenos Aires P1 Women - Main Draw [category=Premier Padel gender=F]",
-        "272: FIP Bronze Bratislava Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "273: FIP Silver Timisoara Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "274: FIP Bronze Phangan Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "275: FIP Bronze Egypt III Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "276: FIP Bronze Miami Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "277: FIP Bronze Miami Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "278: FIP Bronze Bratislava Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "279: FIP Bronze LOTTO Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "280: FIP Silver Timisoara Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "281: FIP Bronze LOTTO Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "282: FIP Silver Timisoara Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "283: FIP Bronze Miami Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "284: FIP Bronze Egypt III Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "285: FIP Bronze Phangan Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "286: FIP Bronze Phangan Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "287: FIP Bronze Yogyakarta Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "288: FIP Bronze Marnes Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "289: FIP Silver Oeiras Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "290: FIP Bronze Marnes Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "291: FIP Silver HOP London PADEL OPEN Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "292: FIP Bronze Marnes Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "293: FIP Silver Oeiras Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "294: FIP Bronze Yogyakarta Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "295: FIP Bronze Latina Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "296: FIP Silver Oeiras Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "297: FIP Silver HOP London PADEL OPEN Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "298: FIP Bronze Yogyakarta Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "299: FIP Silver HOP London PADEL OPEN Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "300: FIP Silver Oeiras Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "301: FIP Bronze Latina Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "302: FIP Bronze Latina Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "303: FIP Platinum Albania Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "304: FIP Platinum Albania Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "305: FIP Platinum Albania Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "306: FIP Platinum Albania Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "307: FIP Bronze DAMAC Abu Dhabi Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "308: FIP Bronze CASTELLÓN - AUTOMOCIÓN CANO KIA Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "309: FIP Silver HOGANAS Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "310: FIP Bronze Pembroke Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "311: FIP Bronze DAMAC Abu Dhabi Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "312: FIP Bronze CASTELLÓN - AUTOMOCIÓN CANO KIA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "313: FIP Bronze HELLO PADEL Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "314: FIP Bronze HELLO PADEL Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "315: FIP Bronze DAMAC Abu Dhabi Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "316: FIP Silver HOGANAS Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "317: FIP Bronze Chile III - Main Draw [category=Cupra FIP Tour]",
-        "318: FIP Bronze Chile III - Qualification [category=Cupra FIP Tour]",
-        "319: FIP Bronze CASTELLÓN - AUTOMOCIÓN CANO KIA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "320: FIP Silver HOGANAS Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "321: FIP Bronze HELLO PADEL Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "322: FIP Bronze Pembroke Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "323: Italy MAJOR Men - Qualification [category=Premier Padel gender=M]",
-        "324: Italy MAJOR Women - Qualification [category=Premier Padel gender=F]",
-        "325: Italy MAJOR Men - Main Draw [category=Premier Padel gender=M]",
-        "326: Italy MAJOR Women - Main Draw [category=Premier Padel gender=F]",
-        "327: FIP Bronze QNB CUP Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "328: FIP Bronze DECATHLON Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "329: FIP Bronze Hamburg Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "330: FIP Bronze Hamburg Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "331: FIP Silver DAMAC Dubai Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "332: FIP Bronze QNB CUP Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "333: FIP Bronze Dakar Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "334: FIP Silver DAMAC Dubai Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "335: FIP Silver DAMAC Dubai Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "336: FIP Silver Bandol Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "337: FIP Bronze QNB CUP Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "338: FIP Bronze Matosinhos OPEN HOSPITAL SANTA MARIA DO PORTO Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "339: FIP Bronze Matosinhos OPEN HOSPITAL SANTA MARIA DO PORTO Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "340: FIP Bronze Hamburg Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "341: FIP Bronze DECATHLON Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "342: FIP Bronze Dakar Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "343: FIP Silver Bandol Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "344: FIP Bronze Dakar Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "345: FIP Bronze DECATHLON Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "346: FIP Silver Bandol Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "347: Valencia P1 Men - Qualification [category=Premier Padel gender=M]",
-        "348: Valencia P1 Men - Main Draw [category=Premier Padel gender=M]",
-        "349: Valencia P1 Women - Qualification [category=Premier Padel gender=F]",
-        "350: Valencia P1 Women - Main Draw [category=Premier Padel gender=F]",
-        "351: FIP Bronze Slovenia Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "352: FIP Silver MEDIOLANUM PADEL CUP Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "353: FIP Gold Shanghai Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "354: FIP Bronze UNOMAS Lanzarote I Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "355: FIP Bronze Slovenia Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "356: FIP Silver MEDIOLANUM PADEL CUP Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "357: FIP Gold Shanghai Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "358: FIP Bronze UNOMAS Lanzarote I Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "359: FIP Bronze UNOMAS Lanzarote I Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "360: FIP Silver MEDIOLANUM PADEL CUP Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "361: FIP Gold Shanghai Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "362: FIP Bronze Slovenia Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "363: FIP Platinum LUSITANIA Portugal MASTER PADEL Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "364: FIP Platinum LUSITANIA Portugal MASTER PADEL Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "365: FIP Bronze HIGH VELOCITY Osaka Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "366: FIP Platinum LUSITANIA Portugal MASTER PADEL Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "367: FIP Platinum LUSITANIA Portugal MASTER PADEL Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "368: FIP Silver Narbona Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "369: FIP Bronze HIGH VELOCITY Osaka Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "370: FIP JUNIOR AFRICA PADEL CUP 2026 Men - Main Draw [category=FIP Championship gender=M]",
-        "371: FIP JUNIOR AFRICA PADEL CUP 2026 Women - Main Draw [category=FIP Championship gender=F]",
-        "372: FIP Silver Narbona Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "373: FIP Bronze HIGH VELOCITY Osaka Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "374: FIP Silver Narbona Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "375: FIP Bronze Cordenons Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "376: FIP Bronze Cordenons Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "377: FIP Bronze Morocco PADEL INTERNATIONAL TOUR FRMT 3 - Main Draw [category=Cupra FIP Tour]",
-        "378: Valladolid P2 Men - Qualification [category=Premier Padel gender=M]",
-        "379: Valladolid P2 Women - Qualification [category=Premier Padel gender=F]",
-        "380: FIP Bronze HIGH VELOCITY Selangor Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "381: FIP Gold Abidjan Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "382: FIP Bronze Astorga Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "383: Valladolid P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "384: Valladolid P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "385: FIP Gold Abidjan Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "386: FIP Silver Giulianova Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "387: FIP Bronze HIGH VELOCITY Selangor Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "388: FIP Silver Giulianova Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "389: FIP Bronze Astorga Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "390: FIP Gold Abidjan Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "391: FIP Bronze HIGH VELOCITY Selangor Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "392: FIP Bronze Astorga Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "393: FIP Bronze Iquique - Main Draw [category=Cupra FIP Tour]",
-        "394: FIP Silver Giulianova Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "395: FIP JUNIOR EURO PADEL CUP 2026 Men - Main Draw [category=FIP Championship gender=M]",
-        "396: FIP JUNIOR EURO PADEL CUP 2026 Women - Main Draw [category=FIP Championship gender=F]",
-        "397: Bordeaux P2 Men - Qualification [category=Premier Padel gender=M]",
-        "398: Bordeaux P2 Women - Qualification [category=Premier Padel gender=F]",
-        "399: FIP Bronze Baku II Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "400: Bordeaux P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "401: Bordeaux P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "402: FIP Silver R3 BULL PADEL CUP Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "403: FIP Bronze LA NUCÍA Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "404: FIP Bronze Baku II Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "405: FIP Bronze LA NUCÍA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "406: FIP Bronze Baku II Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "407: FIP Bronze LA NUCÍA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "408: FIP Silver R3 BULL PADEL CUP Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "409: FIP Silver R3 BULL PADEL CUP Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "410: FIP Bronze Chieti Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "411: FIP Bronze Chieti Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "412: FIP Bronze Jakarta Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "413: FIP Silver ALCALA DE GUADAIRA Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "414: FIP Silver ALCALA DE GUADAIRA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "415: FIP Silver Koksijde Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "416: FIP Silver ALCALA DE GUADAIRA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "417: FIP Bronze Jakarta Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "418: FIP Bronze Hungary Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "419: FIP Bronze Georgia Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "420: FIP Silver Pingyuan Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "421: FIP Bronze Jakarta Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "422: FIP Silver Koksijde Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "423: FIP Bronze Hungary Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "424: FIP Bronze Georgia Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "425: FIP Bronze Hungary Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "426: FIP Silver Koksijde Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "427: FIP Bronze Georgia Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "428: FIP Silver Pingyuan Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "429: FIP Bronze Jakarta Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "430: Malaga P1 Men - Qualification [category=Premier Padel gender=M]",
-        "431: Malaga P1 Men - Main Draw [category=Premier Padel gender=M]",
-        "432: Malaga P1 Women - Qualification [category=Premier Padel gender=F]",
-        "433: FIP Bronze Banten Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "434: Malaga P1 Women - Main Draw [category=Premier Padel gender=F]",
-        "435: FIP Bronze Dronten Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "436: FIP Bronze A CORUÑA Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "437: FIP Silver HISCOX PADEL IRISH OPEN Dublin Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "438: FIP Bronze Banten Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "439: FIP Bronze Banten Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "440: FIP Bronze Banten Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "441: FIP Bronze Dronten Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "442: FIP Bronze A CORUÑA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "443: FIP Silver HISCOX PADEL IRISH OPEN Dublin Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "444: FIP Bronze A CORUÑA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "445: FIP Silver HISCOX PADEL IRISH OPEN Dublin Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "446: FIP Bronze Dronten Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "447: FIP Bronze ALLESVOORPADEL Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "448: FIP Bronze HUB 4.0 ROVATO Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "449: FIP Bronze SAN JUAN DE ALICANTE – EL SALT Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "450: FIP Silver MIMOSA OPEN PORTO Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "451: FIP Bronze ALLESVOORPADEL Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "452: FIP Bronze HUB 4.0 ROVATO Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "453: FIP Bronze SAN JUAN DE ALICANTE – EL SALT Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "454: FIP Silver MIMOSA OPEN PORTO Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "455: FIP Silver MIMOSA OPEN PORTO Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "456: FIP Silver MIMOSA OPEN PORTO Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "457: FIP Bronze HUB 4.0 ROVATO Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "458: FIP Bronze SAN JUAN DE ALICANTE – EL SALT Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "459: FIP Bronze SAN JUAN DE ALICANTE – EL SALT Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "460: FIP Bronze ALLESVOORPADEL Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "461: FIP Silver Camboriu - Main Draw [category=Cupra FIP Tour]",
-        "462: FIP Bronze Copiapo - Main Draw [category=Cupra FIP Tour]",
-        "463: FIP Bronze Camboriu Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "464: Pretoria P1 Men - Qualification [category=Premier Padel gender=M]",
-        "465: Pretoria P1 Women - Qualification [category=Premier Padel gender=F]",
-        "466: Pretoria P1 Men - Main Draw [category=Premier Padel gender=M]",
-        "467: Pretoria P1 Women - Main Draw [category=Premier Padel gender=F]",
-        "468: FIP Silver SLAM COLLBATÓ Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "469: FIP Silver SLAM COLLBATÓ Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "470: FIP Silver RATHBONES ISLAND PADEL Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "471: FIP Bronze Frascati Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "472: FIP Silver SLAM COLLBATÓ Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "473: FIP Silver SLAM COLLBATÓ Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "474: FIP Bronze Frascati Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "475: FIP Bronze PLAYA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "476: FIP Bronze PLAYA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "477: FIP Silver RATHBONES ISLAND PADEL Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "478: FIP Bronze Frascati Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "479: FIP Bronze Paraguay II - Main Draw [category=Cupra FIP Tour]",
-        "480: FIP Silver RATHBONES ISLAND PADEL Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "481: London P1 Men - Qualification [category=Premier Padel gender=M]",
-        "482: London P1 Men - Main Draw [category=Premier Padel gender=M]",
-        "483: London P1 Women - Qualification [category=Premier Padel gender=F]",
-        "484: London P1 Women - Main Draw [category=Premier Padel gender=F]",
-        "485: FIP Bronze Portimao Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "486: FIP Bronze Portimao Women - Qualification [category=Cupra FIP Tour gender=F]",
-        "487: FIP Bronze Portimao Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "488: FIP Bronze Portimao Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "489: FIP Bronze DAMAC Dubai Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "490: FIP Bronze VIÑA DEL MAR - Main Draw [category=Cupra FIP Tour]",
-        "491: FIP Platinum Lyon Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "492: FIP Platinum Lyon Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "493: FIP Silver SÂO JOÂO DA MADEIRA Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "494: FIP Bronze Tunisia I Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "495: FIP Bronze DAMAC Dubai Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "496: FIP Bronze DAMAC Dubai Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "497: FIP Silver SÂO JOÂO DA MADEIRA Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "498: FIP Silver SÂO JOÂO DA MADEIRA Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "499: FIP Silver Houten Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "500: FIP Bronze Tunisia I Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "501: FIP Bronze PADEL GAMMARTH Tunisia I Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "502: CUPRA Rotterdam Premier Padel P2 Men - Qualification [category=Premier Padel gender=M]",
-        "503: CUPRA Rotterdam Premier Padel P2 Women - Qualification [category=Premier Padel gender=F]",
-        "504: CUPRA Rotterdam Premier Padel P2 Men - Main Draw [category=Premier Padel gender=M]",
-        "505: CUPRA Rotterdam Premier Padel P2 Women - Main Draw [category=Premier Padel gender=F]",
-        "506: FIP Bronze Almeirim Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "507: FIP Bronze THE MORA Tunisia II Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "508: FIP Bronze Almeirim Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "509: FIP Bronze Almeirim Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "510: FIP Gold MEDIOLANUM PADEL CUP Perugia Men - Qualification [category=Cupra FIP Tour gender=M]",
-        "511: FIP Gold MEDIOLANUM PADEL CUP Perugia Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "512: FIP Gold MEDIOLANUM PADEL CUP Perugia Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "513: FIP Bronze Pakistan I Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "514: FIP Bronze THE MORA Tunisia II Men - Main Draw [category=Cupra FIP Tour gender=M]",
-        "515: FIP Bronze THE MORA Tunisia II Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "516: FIP Bronze Pakistan I Women - Main Draw [category=Cupra FIP Tour gender=F]",
-        "517: Germany P2 Men - Qualification [category=Premier Padel gender=M]"
+        "518: Germany P2 Women - Qualification [category=Premier Padel gender=F]",
+        "519: FIP Bronze Rovigo Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "520: Germany P2 Men - Main Draw [category=Premier Padel gender=M]",
+        "521: FIP Bronze DBC COFFEE COPENHAGEN Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "522: FIP Silver Porec Parenzo Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "523: FIP Bronze Rovigo Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "524: FIP Bronze Paraguay IV Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "525: FIP Bronze Paraguay IV Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "526: Germany P2 Women - Main Draw [category=Premier Padel gender=F]",
+        "527: FIP Silver R3 BULLPADEL CUP STRATFORD Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "528: FIP Bronze DBC COFFEE COPENHAGEN Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "529: FIP Bronze DBC COFFEE COPENHAGEN Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "530: FIP Bronze Rovigo Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "531: FIP Silver Porec Parenzo Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "532: FIP Silver R3 BULLPADEL CUP STRATFORD Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "533: FIP Silver R3 BULLPADEL CUP STRATFORD Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "534: FIP Silver Porec Parenzo Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "535: FIP Bronze Rovigo HUB 12 OCCHIOBELLO Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "536: FIP Bronze Rovigo HUB 12 OCCHIOBELLO Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "537: Milano P1 Men - Qualification [category=Premier Padel gender=M]",
+        "538: Milano P1 Women - Qualification [category=Premier Padel gender=F]",
+        "539: Milano P1 Men - Main Draw [category=Premier Padel gender=M]",
+        "540: FIP Bronze Oeiras Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "541: Milano P1 Women - Main Draw [category=Premier Padel gender=F]",
+        "542: FIP Gold CIUDAD DE Sevilla Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "543: FIP Gold CIUDAD DE Sevilla Women - Qualification [category=Cupra FIP Tour gender=F]",
+        "544: FIP Bronze COTONOU Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "545: FIP Bronze RACOURT Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "546: FIP Bronze INTERPADEL OPEN Oslo Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "547: FIP Bronze INTERPADEL OPEN Oslo Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "548: FIP Bronze INTERPADEL OPEN Oslo Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "549: FIP Bronze RACOURT Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "550: FIP Bronze RACOURT Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "551: FIP Bronze HIGH VELOCITY CEBU Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "552: FIP Gold CIUDAD DE Sevilla Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "553: FIP Bronze Oeiras Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "554: FIP Gold CIUDAD DE Sevilla Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "555: FIP Bronze Oeiras Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "556: FIP Bronze COTONOU Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "557: FIP Bronze HIGH VELOCITY CEBU Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "558: FIP Gold Melilla CIUDAD DEL DEPORTE 2026 Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "559: FIP Bronze QNB CUP Antalya Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "560: FIP Bronze EWH CITY PÁDEL Taunton Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "561: FIP Gold Melilla CIUDAD DEL DEPORTE 2026 Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "562: FIP Gold Melilla CIUDAD DEL DEPORTE 2026 Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "563: FIP Bronze HIGH VELOCITY Samui Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "564: FIP Bronze VIÑA DEL MAR - Qualification [category=Cupra FIP Tour]",
+        "565: FIP Bronze VIÑA DEL MAR - Main Draw [category=Cupra FIP Tour]",
+        "566: FIP Bronze HIGH VELOCITY Samui Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "567: FIP Bronze QNB CUP Antalya Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "568: FIP Bronze EWH CITY PÁDEL Taunton Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "569: FIP Bronze QNB CUP Antalya Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "570: FIP Bronze EWH CITY PÁDEL Taunton Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "571: Kuwait MAJOR Men - Qualification [category=Premier Padel gender=M]",
+        "572: FIP Bronze HIGH VELOCITY Samui Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "573: Kuwait MAJOR Women - Qualification [category=Premier Padel gender=F]",
+        "574: Kuwait MAJOR Men - Main Draw [category=Premier Padel gender=M]",
+        "575: FIP Gold MEDIOLANUM PADEL CUP Torino Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "576: Kuwait MAJOR Women - Main Draw [category=Premier Padel gender=F]",
+        "577: FIP Silver DAMAC Dubai II Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "578: FIP Bronze CYPRUS III Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "579: FIP Bronze JC FERRERO ACADEMY Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "580: FIP Bronze Tashkent Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "581: FIP Gold MEDIOLANUM PADEL CUP Torino Women - Qualification [category=Cupra FIP Tour gender=F]",
+        "582: FIP Silver DAMAC Dubai II Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "583: FIP Gold MEDIOLANUM PADEL CUP Torino Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "584: FIP Bronze CYPRUS III Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "585: FIP Gold MEDIOLANUM PADEL CUP Torino Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "586: FIP Silver DAMAC Dubai II Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "587: FIP Bronze HIGH VELOCITY Phangan Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "588: FIP Bronze JC FERRERO ACADEMY Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "589: FIP Bronze JC FERRERO ACADEMY Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "590: FIP Bronze Tashkent Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "591: FIP Bronze CYPRUS III Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "592: FIP Bronze HIGH VELOCITY Phangan Women - Main Draw [category=Cupra FIP Tour gender=F]",
+        "593: FIP WORLD CUP 2026 Women - Main Draw [category=FIP Championship gender=F]",
+        "594: FIP WORLD CUP 2026 Men - Main Draw [category=FIP Championship gender=M]",
+        "595: FIP Bronze CYPRUS IV Men - Qualification [category=Cupra FIP Tour gender=M]",
+        "596: FIP Bronze CYPRUS IV Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "597: FIP Bronze ESC PADEL Men - Main Draw [category=Cupra FIP Tour gender=M]",
+        "598: FIP Bronze ESC PADEL Women - Main Draw [category=Cupra FIP Tour gender=F]"
       ],
       "horseracing": [
-        "231: Belmont Park",
-        "232: Meadowlands"
+        "233: Rambouillet",
+        "234: Far Hills",
+        "235: Abu Dhabi",
+        "236: Prunelli"
       ]
     },
-    "removed": {
-      "hockey": [
-        "84: Korisliiga",
-        "85: A-League Men"
-      ],
-      "tennis": [
-        "413: UTR Boca Raton W01"
-      ]
-    },
+    "removed": {},
     "renamed": {
       "tennis": [
-        "117: WTA 125K Porto, Portugal Women Singles -> Porto, Portugal",
-        "160: WTA 125K Caldas da Rainha, Portugal Women Singles -> Caldas da Rainha, Portugal",
-        "161: WTA 125K Tolentino, Italy Women Singles -> Tolentino, Italy",
-        "164: WTA 125K Jingshan, China Women Singles -> Jingshan, China",
-        "170: WTA 125K Suzhou, China Women Singles -> Suzhou, China",
-        "174: WTA 125K Samsun, Turkiye Women Singles -> Samsun, Turkiye"
+        "178: WTA 125K Mallorca, Spain Women Singles -> Mallorca, Spain",
+        "194: WTA 125K Rovereto, Italy Women Singles -> Rovereto, Italy",
+        "195: WTA 125K Queretaro, Mexico Women Singles -> Queretaro, Mexico"
       ]
     },
     "recategorised": {
       "tennis": [
-        "18 Singapore: category wta_250 -> wta_500",
-        "157 Seoul: category wta_500 -> wta_250",
-        "753 UTR PTT Sydney Men 02: surface (absent) -> hard",
-        "754 UTR PTT Tallahassee Men 03: surface (absent) -> hard",
-        "755 UTR PTT Sydney Women 02: surface (absent) -> hard",
-        "756 UTR PTT Tallahassee Women 03: surface (absent) -> hard",
-        "757 Phan Thiet 3, Vietnam: surface (absent) -> hard",
-        "758 Antalya 4, Turkiye: surface (absent) -> clay",
-        "760 Istanbul 3, Turkiye: surface (absent) -> hard",
-        "762 UTR PTT Newport Beach Men 21: surface (absent) -> hard",
-        "764 UTR PTT Newport Beach Women 21: surface (absent) -> hard"
+        "813 UTR PTT Le Cap d Agde Women 01: surface (absent) -> clay"
       ]
     },
     "surfacesCompared": [
