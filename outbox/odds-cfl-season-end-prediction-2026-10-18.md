@@ -206,10 +206,35 @@ watch of 2026-11-02 and the read of the 2026-11-07 CFL day on 2026-11-08.
 
 **Added 2026-11-03, before the window, and additive in the same sense.** Four facts and one change of where a result is written; no test is re-statused and no rule above is changed.
 1. *The busy-day figure.* The criterion in the paragraph above ("the gap added across a busy CFL day stays at or below 48 credits") is read on the error-adjusted `stranded` figure, `by_site` less the `credits_kept` of the non-`error` rows, because an `error` row's kept is an intent with no standing charge and lowers the raw gap by 6 per call. Both figures are printed; the 48, the 100 HIT calls and the "fewer is inconclusive" are unchanged, and a day whose last drift sample is before 21:00Z cannot pass (`docs/CC-CMD-2026-10-13-vendor-residual-window.md`, done condition 5). It was moved before any 2026-11-07 data existed.
-2. *Where it is recorded.* The read of 2026-11-08 is recorded in the vendor-residual CC-CMD's Data points, not in `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md`. That document ("any option of" it) is on the VOID list above, so it takes no commit from 2026-11-08 to 11-23; its last edit before the window is dated 2026-11-03.
+2. *Where it is recorded.* The read of 2026-11-08 is recorded in the vendor-residual CC-CMD's Data points, not in `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md`. That document ("any option of" it) is on the VOID list above, so it takes no commit from 2026-11-08 to 11-23; its last edit before the window is dated 2026-11-03 (corrected below: 2026-11-05).
 3. *The known CI spend is not in the ledger.* Measured, where it had been read from source: residual + CFL gap is nearer 0 than nearer -CI in 10 of 11 windows (`outbox/cfl-reconcile-gap-2026-11-03.json`, `p2`). The residual sums quoted above therefore do not contain the CI credits.
 4. *After the deploy, before the window:* between the 17:17Z and 21:24Z samples of 2026-11-01 the stranded figure stayed at 24 while the tally grew from 15 to 134 calls; 2026-11-02 to 20:55Z, 0 of 39 calls. Neither is a busy day.
 5. *The judge's prompt (`trig_019aQvU36rYwZ7PqjaMnV5ut`) was given one additive paragraph on 2026-11-03*, after the 2026-11-01 sentence above that it was not edited. The scoring text is untouched. The paragraph, verbatim: "ADDED 2026-11-03 (additive; nothing above is changed, and the scoring stays exactly as committed on 2026-10-18): (a) the prediction document now carries paragraphs headed "Added"; they record facts and annotations, not rules, so read them with the rest. (b) After judging, read Decision 5 of docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md (option 3, held until this judgment) and record in a new Note there whether option 3 should proceed. Flip that CC-CMD's Status from PARTIAL to DONE only if the busy-day result of its Note 2026-11-02 item 1 is recorded in docs/CC-CMD-2026-10-13-vendor-residual-window.md (Data points); if it is not, say so and leave the Status." The reason: the 2026-11-01 paragraph assigned the judging run duties its prompt did not name.
+
+**Added 2026-11-05, before the window, and additive in the same sense.** No
+prediction, number or test above changes. One fact about what the residual
+contains, and one date. `getWCPregameLambdas` is not on the VOID list and is not CFL,
+but its stranded estimates were in the residual sums (the CC-CMD that filed it says
+so). `docs/CC-CMD-2026-10-23-odds-spend-without-need.md` TASK 1 gated that call on the
+tournament window and was pushed on 2026-11-05, three days before the window opens;
+the commit, the deploy run and the result of its done condition (read on 2026-11-08
+for the closed day 2026-11-07) are recorded in that document, not here. So:
+1. Rows from before the deploy include the lambdas (its net `by_site` credits were
+   232 over 2026-10-08..11-04, at most 76 on one day, 10-18). The expectation, which
+   that CC-CMD's read of 2026-11-07 confirms or refutes, is that rows from
+   2026-11-06 on do not, and neither does the 2026-11-08..11-23 window the judge
+   scores. If it is refuted the judge reads the lambdas as still present.
+   If it holds, the judge reads a drop of at most that size in the non-CFL share
+   of the residual across the 11-05/11-06 boundary as this change, not as the
+   season ending.
+2. Criterion (b)'s tolerance, max(350, 10%), is far above that size; it is not a
+   reason to widen it, and it is not widened.
+3. The CC-CMD's own deadline ("land before 2026-11-08, or declare it") is met by
+   landing, so nothing is declared late.
+4. *A date.* Item 2 of "Added 2026-11-03" says the carrier's last edit before the
+   window is dated 2026-11-03. It is dated 2026-11-05: one pointer sentence in
+   Note 2026-11-02, item 2, naming this CC-CMD's new Status. No option of the carrier
+   was touched.
 
 ## How this will be judged
 

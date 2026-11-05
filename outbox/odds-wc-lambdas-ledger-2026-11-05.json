@@ -1,0 +1,338 @@
+{
+ "artifact": "docs/CC-CMD-2026-10-23-odds-spend-without-need.md TASK 0",
+ "read_at": "2026-11-05T17:55Z (approx)",
+ "database": "ARCHIVE_DB field-archive cc49101c-0569-4d41-8e7a-be139cde4f26, read-only SELECT",
+ "denominators": {
+  "ledger_days_with_any_reconcile_row": 29,
+  "ledger_first_day": "2026-10-08",
+  "ledger_last_day": "2026-11-05",
+  "days_with_getWCPregameLambdas_rows": 26,
+  "days_without_getWCPregameLambdas_rows": [
+   "2026-10-08",
+   "2026-10-13",
+   "2026-11-05"
+  ],
+  "note": "odds_reconcile_state starts 2026-10-08 (b5e8f8a5); \"since 2026-07-20\" returns no rows before that. Absence of a lambdas row on a day is not evidence of zero calls: stranded calls are never tallied.",
+  "days_used_0_with_attempts_range": "the 14 days with used 0 had 13 to 390 attempts; the 26 days span 13 to 932"
+ },
+ "query": "SELECT r.day, SUM(r.n) attempts, SUM(CASE WHEN r.state='reconciled' THEN r.n ELSE 0 END) reconciled, SUM(CASE WHEN r.state='cache-hit' THEN r.n ELSE 0 END) cache_hit, SUM(CASE WHEN r.state='error' THEN r.n ELSE 0 END) err, SUM(r.credits_kept) kept, (SELECT used FROM odds_budget_site s WHERE s.day=r.day AND s.site='getWCPregameLambdas') used, (SELECT SUM(n) FROM odds_reconcile_state o WHERE o.day=r.day AND o.site<>'getWCPregameLambdas') other_sites_n FROM odds_reconcile_state r WHERE r.site='getWCPregameLambdas' GROUP BY r.day ORDER BY r.day",
+ "columns": {
+  "attempts": "tallied calls (stranded calls are not tallied, so a lower bound)",
+  "used": "odds_budget_site.used: the NET counter after refunds, in credits (4 per attempt), NOT a call count",
+  "kept": "credits the vendor kept; for state=error the estimate recorded as intent, not vendor billing"
+ },
+ "totals": {
+  "attempts": 6261,
+  "reconciled": 1801,
+  "cache_hit": 4445,
+  "error": 14,
+  "kept": 60,
+  "used_net_credits": 232,
+  "days_used_0_with_attempts": 14,
+  "of_days": 26,
+  "no_header": 1
+ },
+ "rows": [
+  {
+   "day": "2026-10-09",
+   "attempts": 77,
+   "reconciled": 31,
+   "cache_hit": 46,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 2552
+  },
+  {
+   "day": "2026-10-10",
+   "attempts": 297,
+   "reconciled": 96,
+   "cache_hit": 201,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 1852
+  },
+  {
+   "day": "2026-10-11",
+   "attempts": 147,
+   "reconciled": 47,
+   "cache_hit": 99,
+   "err": 1,
+   "kept": 4,
+   "used": 36,
+   "other_sites_n": 1744
+  },
+  {
+   "day": "2026-10-12",
+   "attempts": 132,
+   "reconciled": 54,
+   "cache_hit": 78,
+   "err": 0,
+   "kept": 0,
+   "used": 4,
+   "other_sites_n": 1291
+  },
+  {
+   "day": "2026-10-14",
+   "attempts": 56,
+   "reconciled": 9,
+   "cache_hit": 47,
+   "err": 0,
+   "kept": 0,
+   "used": 4,
+   "other_sites_n": 520
+  },
+  {
+   "day": "2026-10-15",
+   "attempts": 18,
+   "reconciled": 5,
+   "cache_hit": 13,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 238
+  },
+  {
+   "day": "2026-10-16",
+   "attempts": 121,
+   "reconciled": 31,
+   "cache_hit": 90,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 994
+  },
+  {
+   "day": "2026-10-17",
+   "attempts": 644,
+   "reconciled": 146,
+   "cache_hit": 498,
+   "err": 0,
+   "kept": 0,
+   "used": 20,
+   "other_sites_n": 1185
+  },
+  {
+   "day": "2026-10-18",
+   "attempts": 800,
+   "reconciled": 169,
+   "cache_hit": 629,
+   "err": 2,
+   "kept": 8,
+   "used": 76,
+   "other_sites_n": 1445
+  },
+  {
+   "day": "2026-10-19",
+   "attempts": 99,
+   "reconciled": 52,
+   "cache_hit": 47,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 514
+  },
+  {
+   "day": "2026-10-20",
+   "attempts": 98,
+   "reconciled": 12,
+   "cache_hit": 86,
+   "err": 0,
+   "kept": 0,
+   "used": 8,
+   "other_sites_n": 375
+  },
+  {
+   "day": "2026-10-21",
+   "attempts": 77,
+   "reconciled": 40,
+   "cache_hit": 37,
+   "err": 0,
+   "kept": 0,
+   "used": 8,
+   "other_sites_n": 244
+  },
+  {
+   "day": "2026-10-22",
+   "attempts": 83,
+   "reconciled": 11,
+   "cache_hit": 72,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 384
+  },
+  {
+   "day": "2026-10-23",
+   "attempts": 143,
+   "reconciled": 30,
+   "cache_hit": 113,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 177
+  },
+  {
+   "day": "2026-10-24",
+   "attempts": 932,
+   "reconciled": 167,
+   "cache_hit": 761,
+   "err": 4,
+   "kept": 16,
+   "used": 8,
+   "other_sites_n": 851
+  },
+  {
+   "day": "2026-10-25",
+   "attempts": 390,
+   "reconciled": 175,
+   "cache_hit": 215,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 340
+  },
+  {
+   "day": "2026-10-26",
+   "attempts": 71,
+   "reconciled": 52,
+   "cache_hit": 19,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 68
+  },
+  {
+   "day": "2026-10-27",
+   "attempts": 57,
+   "reconciled": 47,
+   "cache_hit": 10,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 76
+  },
+  {
+   "day": "2026-10-28",
+   "attempts": 85,
+   "reconciled": 50,
+   "cache_hit": 35,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 274
+  },
+  {
+   "day": "2026-10-29",
+   "attempts": 248,
+   "reconciled": 117,
+   "cache_hit": 131,
+   "err": 0,
+   "kept": 0,
+   "used": 44,
+   "other_sites_n": 525
+  },
+  {
+   "day": "2026-10-30",
+   "attempts": 319,
+   "reconciled": 55,
+   "cache_hit": 263,
+   "err": 1,
+   "kept": 4,
+   "used": 4,
+   "other_sites_n": 539
+  },
+  {
+   "day": "2026-10-31",
+   "attempts": 711,
+   "reconciled": 129,
+   "cache_hit": 576,
+   "err": 5,
+   "kept": 24,
+   "used": 4,
+   "other_sites_n": 353
+  },
+  {
+   "day": "2026-11-01",
+   "attempts": 451,
+   "reconciled": 165,
+   "cache_hit": 285,
+   "err": 1,
+   "kept": 4,
+   "used": 16,
+   "other_sites_n": 272
+  },
+  {
+   "day": "2026-11-02",
+   "attempts": 178,
+   "reconciled": 102,
+   "cache_hit": 76,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 118
+  },
+  {
+   "day": "2026-11-03",
+   "attempts": 14,
+   "reconciled": 4,
+   "cache_hit": 10,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 517
+  },
+  {
+   "day": "2026-11-04",
+   "attempts": 13,
+   "reconciled": 5,
+   "cache_hit": 8,
+   "err": 0,
+   "kept": 0,
+   "used": 0,
+   "other_sites_n": 48
+  }
+ ],
+ "readers": {
+  "command": "grep -an 'getWCPregameLambdas\\|_wcLambdaCache\\|wcLambdas' src/*.js ; git grep -an 'getWCPregameLambdas\\|wcLambdas\\|_wcLambdaCache' origin/main -- . ':!docs' ':!outbox' ':!HANDOFF.md'  (in jubilant-bassoon and field-laboratory, each fetched first)",
+  "relay": "one definition (src/index.js getWCPregameLambdas), ONE call (handleV2Games, the _wcWpPossible line), four reads of the returned Map (the truthiness test, .has, .get, and one for-of), all inside the live loop of handleV2Games; none in game-do.js, ambient-do.js or wp-resolver.js. The Map is module-local: no other module can read it.",
+  "jubilant_bassoon": {
+   "origin_main": "facbf28b 2026-11-05T17:28:57Z",
+   "hits": 0,
+   "note": "zero hits outside docs, outbox and HANDOFF (the command excludes them); the only matches in the repo are 14 lines of one report, outbox/cc-odds-audit-results.md"
+  },
+  "field_laboratory": {
+   "origin_main": "0f7f2b75 2026-11-05T14:54:16Z",
+   "hits": 0
+  },
+  "meaning": "the client can only see winProb (source label odds-blended vs shots-proxy), never the lambdas. A null Map, an empty Map and a Map matching no live game all give pregameLh/pregameLa null."
+ },
+ "unverified": "The raw vendor list for the World Cup key outside the tournament was not seen (a call costs credits and needs owner approval). Evidence it is empty: credits_kept 0 on 1801 of 1801 reconciled calls, and the sister route /wc/odds-probs (same URL, same h2h skip) returned probs: [] in 186 of 206 committed provenance-runtime-probe artifacts (201 of them carry the route; none non-empty).",
+ "by_state": {
+  "query": "SELECT state, SUM(n) n, SUM(credits_kept) kept FROM odds_reconcile_state WHERE site='getWCPregameLambdas' GROUP BY state",
+  "rows": [
+   {
+    "state": "cache-hit",
+    "n": 4445,
+    "kept": 0
+   },
+   {
+    "state": "error",
+    "n": 14,
+    "kept": 56
+   },
+   {
+    "state": "no-header",
+    "n": 1,
+    "kept": 4
+   },
+   {
+    "state": "reconciled",
+    "n": 1801,
+    "kept": 0
+   }
+  ],
+  "reading": "1801 of 1801 reconciled calls kept 0 credits. The 60 kept credits are 14 error calls (6 rows, 56 credits) and 1 no-header call (4): the estimate recorded as intent, not vendor billing. cache-hit rows kept 0 because the provider was never contacted (creditsKeptBy), so only the reconciled 0s say anything about vendor billing."
+ }
+}
