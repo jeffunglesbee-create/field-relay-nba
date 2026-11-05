@@ -1,0 +1,28 @@
+# Calibration of the done-condition demand control — 2026-11-05
+# docs/CC-CMD-2026-10-23-odds-spend-without-need.md. Input rows are odds_reconcile_state (field-archive), read 2026-11-05: day, fetchSportOddsLive SUM(n), getWCPregameLambdas SUM(n).
+
+## SCRIPT
+// Replay of the done-condition rule on the closed ledger days, with the worker UNFIXED on every one of them.
+// Rule: a day "passes" when getWCPregameLambdas has no rows AND fetchSportOddsLive n >= T.
+// Every pass on an unfixed worker is a FALSE pass. Input: odds_reconcile_state, 2026-10-08..2026-11-04 (28 closed days).
+const rows = [[ '2026-10-08',77,0],['2026-10-09',200,77],['2026-10-10',339,297],['2026-10-11',238,147],['2026-10-12',121,132],['2026-10-13',54,0],['2026-10-14',41,56],['2026-10-15',179,18],['2026-10-16',154,121],['2026-10-17',293,644],['2026-10-18',320,800],['2026-10-19',86,99],['2026-10-20',99,98],['2026-10-21',121,77],['2026-10-22',174,83],['2026-10-23',136,143],['2026-10-24',358,932],['2026-10-25',254,390],['2026-10-26',39,71],['2026-10-27',44,57],['2026-10-28',61,85],['2026-10-29',85,248],['2026-10-30',30,319],['2026-10-31',115,711],['2026-11-01',78,451],['2026-11-02',48,178],['2026-11-03',13,14],['2026-11-04',3,13]];
+const days = rows.map(([day, live, lam]) => ({ day, live, lam, dow: new Date(day + 'T00:00:00Z').getUTCDay() }));
+console.log(`closed days read: ${days.length} (2026-10-08..2026-11-04)`);
+for (const T of [0, 54, 77, 78, 115]) {
+  const eligible = days.filter(d => d.live >= T);
+  const falsePass = eligible.filter(d => d.lam === 0);
+  console.log(`T=${String(T).padEnd(3)} eligible days ${String(eligible.length).padEnd(2)} of ${days.length}; false passes ${falsePass.length}${falsePass.length ? ' (' + falsePass.map(d => `${d.day} live_n ${d.live}`).join(', ') + ')' : ''}`);
+}
+const sat = days.filter(d => d.dow === 6);
+console.log(`Saturdays: ${sat.map(d => `${d.day} live ${d.live} lambdas ${d.lam}`).join('; ')}`);
+console.log(`Saturday minima: live_n ${Math.min(...sat.map(d => d.live))}, lambdas ${Math.min(...sat.map(d => d.lam))}`);
+
+## OUTPUT
+closed days read: 28 (2026-10-08..2026-11-04)
+T=0   eligible days 28 of 28; false passes 2 (2026-10-08 live_n 77, 2026-10-13 live_n 54)
+T=54  eligible days 21 of 28; false passes 2 (2026-10-08 live_n 77, 2026-10-13 live_n 54)
+T=77  eligible days 19 of 28; false passes 1 (2026-10-08 live_n 77)
+T=78  eligible days 18 of 28; false passes 0
+T=115 eligible days 14 of 28; false passes 0
+Saturdays: 2026-10-10 live 339 lambdas 297; 2026-10-17 live 293 lambdas 644; 2026-10-24 live 358 lambdas 932; 2026-10-31 live 115 lambdas 711
+Saturday minima: live_n 115, lambdas 297

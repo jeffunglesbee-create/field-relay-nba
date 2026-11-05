@@ -1,0 +1,62 @@
+# winProb is the same for a null, an empty and an unmatched wcLambdas Map — 2026-11-05
+# docs/CC-CMD-2026-10-23-odds-spend-without-need.md TASK 1. Review finding: the equivalence claim had no artifact (Rule 89).
+# Runs the REAL lookup block of handleV2Games, the REAL teamNameMatch (both sliced out of src/index.js) and the REAL computeLiveWP. No network.
+# Run from the repo root at the commit that carries this file:  node <script below saved as winprob-equivalence.mjs>
+
+## SCRIPT
+// Is winProb the same when wcLambdas is null, an empty Map, or a Map that matches no live game?
+// Runs the REAL lookup block of handleV2Games (sliced out of src/index.js by anchors) and the REAL
+// computeLiveWP and teamNameMatch. No network, no clock, no randomness.
+// usage (repo root): node <this file>
+import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+const root = process.cwd();
+const { computeLiveWP } = await import(pathToFileURL(`${root}/src/soccer-wp.js`));
+const src = readFileSync(`${root}/src/index.js`, 'utf8');
+const { resolveTeamKey } = await import(pathToFileURL(`${root}/src/identity-resolver.js`));
+// The REAL teamNameMatch, sliced out of src/index.js (it is a module-private function there).
+const t0 = src.indexOf('function teamNameMatch(oddsName, fieldName) {'), t1 = src.indexOf('\n}\n', t0) + 3;
+if (t0 < 0 || src.indexOf('function teamNameMatch(', t0 + 10) !== -1) throw new Error('teamNameMatch anchor missing or not unique');
+const teamNameMatch = new Function('resolveTeamKey', `${src.slice(t0, t1)}\nreturn teamNameMatch;`)(resolveTeamKey);
+const a = src.indexOf('let pregameLh = null, pregameLa = null;\n            if (wcLambdas) {');
+const b = src.indexOf('const wp = computeLiveWP({', a);
+if (a < 0 || b < 0 || src.indexOf('let pregameLh = null, pregameLa = null;', a + 10) !== -1 && src.indexOf('let pregameLh = null, pregameLa = null;', a + 10) < b) throw new Error('anchors not unique or not found');
+const block = src.slice(a, b);
+const lookup = new Function('wcLambdas', 'g', 'teamNameMatch', `${block}\nreturn { pregameLh, pregameLa };`);
+const games = [
+  { home: { name: 'Arsenal' }, away: { name: 'Chelsea' }, sit: { homeSOT: 3, awaySOT: 1, elapsed: 55 }, hg: 1, ag: 0 },
+  { home: { name: 'Inter Miami CF' }, away: { name: 'Atlanta United' }, sit: { homeSOT: 0, awaySOT: 2, elapsed: 30 }, hg: 0, ag: 0 },
+  { home: { name: 'Bayern Munich' }, away: { name: 'Borussia Dortmund' }, sit: { homeSOT: 5, awaySOT: 4, elapsed: 80, isStoppage: false }, hg: 2, ag: 2 },
+  { home: { name: 'Real Madrid' }, away: { name: 'Barcelona' }, sit: { homeSOT: 1, awaySOT: 1, elapsed: 10, manAdvantage: null }, hg: 0, ag: 1 },
+];
+const wcFixtures = new Map([['Mexico|South Africa', { lh: 1.7, la: 0.8 }], ['Brazil|Morocco', { lh: 1.5, la: 0.9 }]]);
+const variants = { 'null': null, 'empty Map': new Map(), 'Map of 2 WC fixtures that match no live game': wcFixtures };
+const wpOf = (g, m) => { const { pregameLh, pregameLa } = lookup(m, g, teamNameMatch);
+  return JSON.stringify(computeLiveWP({ homeGoals: g.hg, awayGoals: g.ag, homeSOT: g.sit.homeSOT || 0, awaySOT: g.sit.awaySOT || 0,
+    elapsedMin: g.sit.elapsed || 0, isStoppage: g.sit.isStoppage || false, manAdvantage: g.sit.manAdvantage || null, isShootout: false, pregameLh, pregameLa })); };
+let same = 0;
+for (const g of games) {
+  const out = Object.entries(variants).map(([k, m]) => [k, wpOf(g, m)]);
+  const eq = out.every(([, w]) => w === out[0][1]); if (eq) same++;
+  console.log(`${g.home.name} v ${g.away.name}: ${eq ? 'IDENTICAL' : 'DIFFERENT'} across ${out.length} variants  ${out[0][1]}`);
+}
+console.log(`\ngames identical across null / empty / unmatched: ${same} of ${games.length}`);
+const hit = new Map([['Arsenal|Chelsea', { lh: 1.9, la: 0.7 }]]);
+const w0 = wpOf(games[0], null), w1 = wpOf(games[0], hit);
+console.log(`CONDITION: a Map entry that matches the live pair changes the result -> ${w0 === w1 ? 'NO (unexpected)' : 'YES'}`);
+console.log(`  null     : ${w0}\n  matching : ${w1}`);
+console.log('So the equivalence holds while the Map is empty or matches no live game, which is what the gate relies on.');
+process.exit(same === games.length && w0 !== w1 ? 0 : 1);
+
+## OUTPUT
+Arsenal v Chelsea: IDENTICAL across 3 variants  {"homeWin":0.7740511164244409,"draw":0.17736102665864964,"awayWin":0.048587856916909415,"source":"shots-proxy"}
+Inter Miami CF v Atlanta United: IDENTICAL across 3 variants  {"homeWin":0.2944846636699082,"draw":0.35132257157579616,"awayWin":0.3541927647542956,"source":"shots-proxy"}
+Bayern Munich v Borussia Dortmund: IDENTICAL across 3 variants  {"homeWin":0.14459757396791492,"draw":0.7420118120578131,"awayWin":0.11339061397427207,"source":"shots-proxy"}
+Real Madrid v Barcelona: IDENTICAL across 3 variants  {"homeWin":0.1756682177669106,"draw":0.1843220830550963,"awayWin":0.6400096991779931,"source":"shots-proxy"}
+
+games identical across null / empty / unmatched: 4 of 4
+CONDITION: a Map entry that matches the live pair changes the result -> YES
+  null     : {"homeWin":0.7740511164244409,"draw":0.17736102665864964,"awayWin":0.048587856916909415,"source":"shots-proxy"}
+  matching : {"homeWin":0.8641918572380127,"draw":0.1150446407048369,"awayWin":0.020763502057150322,"source":"odds-blended"}
+So the equivalence holds while the Map is empty or matches no live game, which is what the gate relies on.
+exit=0

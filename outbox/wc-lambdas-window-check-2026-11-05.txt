@@ -1,0 +1,72 @@
+# check-wc-lambdas-gated.mjs, the window half — 2026-11-05 (hardened after the pre-push review)
+# docs/CC-CMD-2026-10-23-odds-spend-without-need.md TASK 1
+# Before = 'git show b59b469:src/index.js' (relay HEAD when the work began).
+
+## 1. RED BEFORE: node scripts/check-wc-lambdas-gated.mjs  (RELAY_SRC = src/index.js at b59b469)
+FAIL  4 finding(s) in src/index.js@b59b469:
+   the gate does not test wcWindowOpenNow() as an un-negated top-level && term — a live club soccer game outside the tournament would charge for the World Cup key
+   _wcOpen is declared 1 time(s), 0 at module scope — it must be declared exactly once, at module scope, in code
+   _wcClose is declared 1 time(s), 0 at module scope — it must be declared exactly once, at module scope, in code
+   wcWindowOpenNow is declared 0 time(s), 0 at module scope — it must be declared exactly once, at module scope, in code
+exit=1
+
+## 2. GREEN AFTER: node scripts/check-wc-lambdas-gated.mjs  (src/index.js with the change)
+PASS  the WC lambda call is gated on both halves and the sport list is one list (src/index.js)
+COVERAGE: source only, scoped to handleV2Games's body. The charge it prevents
+is visible as by_site.getWCPregameLambdas on /budget/odds, not here.
+exit=0
+
+## 3. SELF-TEST: node scripts/check-wc-lambdas-gated.mjs --self-test
+  PASS  the fixed shape has no findings
+  PASS  a copy in ANOTHER function is not read as the defect
+  PASS  M1 the gate removed is CAUGHT
+  PASS  M2 the liveness half dropped is CAUGHT
+  PASS  M3 the sport half dropped is CAUGHT
+  PASS  M4 a second copy of the list literal is CAUGHT
+  PASS  M5 the constant undeclared is CAUGHT
+  PASS  M6 an INVERTED gate is CAUGHT
+  PASS  M7 a missing handler refuses rather than passing
+  PASS  M8 the loop losing the constant is CAUGHT
+  PASS  M9 the window conjunct removed from the gate is CAUGHT
+  PASS  M10 the window tested only INSIDE the callee is CAUGHT
+  PASS  M11 a predicate that is always true is CAUGHT (the gate text alone cannot tell)
+  PASS  M12 an inclusive close (<=) is CAUGHT at the close instant
+  PASS  M13 an OR in place of the AND is CAUGHT
+  PASS  M14 a second copy of the Dates (a local in scheduled()) is CAUGHT
+  PASS  M15 the Dates moved out of module scope (indented) is CAUGHT
+  PASS  M16 _isWCWindow no longer reading the module Dates is CAUGHT
+  PASS  M17 a window predicate that throws is CAUGHT, not passed
+  PASS  M18 a NEGATED conjunct (&& !wcWindowOpenNow()) is CAUGHT
+  PASS  M19 a LINE-COMMENTED conjunct is CAUGHT
+  PASS  M20 a BLOCK-COMMENTED conjunct is CAUGHT
+  PASS  M21 a conjunct that is or-ed with true is CAUGHT
+  PASS  M22 a conjunct behind the comma operator is CAUGHT
+  PASS  M23 the window joined by a top-level || is CAUGHT
+  PASS  M24 the Dates and the predicate inside a BLOCK COMMENT are CAUGHT
+  PASS  M25 the predicate inside a TEMPLATE LITERAL is CAUGHT
+  PASS  C1 the same predicate written with Date.now() is NOT a finding (a refactor must not read as a defect)
+  PASS  R0 the real source is clean (control for R1-R10)
+  PASS  R1 the window conjunct removed from the real gate is CAUGHT
+  PASS  R2 the real predicate made always-true is CAUGHT
+  PASS  R3 the real close made inclusive is CAUGHT
+  PASS  R4 the hoist undone (local Dates back in scheduled()) is CAUGHT
+  PASS  R5 the conjunct moved from the gate to the call line is CAUGHT
+  PASS  R6 scheduled() left reading nothing (_isWCWindow = false) is CAUGHT
+  PASS  R7 the real conjunct negated is CAUGHT
+  PASS  R8 the real conjunct commented out is CAUGHT
+  PASS  R9 the real conjunct or-ed with true is CAUGHT
+  PASS  R10 the real Dates and predicate inside a block comment are CAUGHT
+
+self-test: 39/39
+COVERAGE: 39 assertion(s): 35 mutants (fixture M-series and real-source R-series) and 4 unmutated controls.
+The window predicate is evaluated at 5 instants, with Date.now() pinned too.
+It reads source only — it cannot see what the
+deployed worker charges, which is what /budget/odds by_site reports.
+exit=0
+
+## 4. RULE 90: the first version of this check (as first committed, before the pre-push review) against four hand-made defects in the REAL source.
+##    'PASS (defect shipped)' = the old check missed it. Each defect is one line of src/index.js changed; node --check passes on all of them.
+X1 negated (&& !wcWindowOpenNow())             old check: PASS (defect shipped)  new check: FAIL (caught)
+X2 line-commented                              old check: PASS (defect shipped)  new check: FAIL (caught)
+X3 or-true (&& (wcWindowOpenNow() || true))    old check: PASS (defect shipped)  new check: FAIL (caught)
+X4 comma (&& (wcWindowOpenNow(), true))        old check: PASS (defect shipped)  new check: FAIL (caught)

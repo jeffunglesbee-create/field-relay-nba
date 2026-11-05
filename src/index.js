@@ -1344,6 +1344,22 @@ let _wcLambdaCache = null;      // Map: 'home|away' → { lh, la }
 let _wcLambdaCacheTs  = 0;
 const WC_LAMBDA_CACHE_TTL_MS = 5 * 60 * 1000;
 
+// The World Cup window: the two Dates, declared ONCE, at module scope. scheduled()
+// gates the WC projections and the BSD WC endgame capture on them, and
+// handleV2Games gates getWCPregameLambdas on them
+// (docs/CC-CMD-2026-10-23-odds-spend-without-need.md). They were locals of
+// scheduled() until 2026-11-05, so the gate could not reach them; they were
+// MOVED, not copied, because scripts/measure-odds-consumer-demand.mjs reads these
+// two literals out of this file and throws on any count but one. Only the Dates
+// live here. A boolean computed at module scope would be fixed for the isolate's
+// life, so every reader compares against the clock itself.
+const _wcOpen  = new Date('2026-06-11T00:00:00Z');
+const _wcClose = new Date('2026-07-20T00:00:00Z');
+function wcWindowOpenNow() {
+    const t = new Date();
+    return t >= _wcOpen && t < _wcClose;
+}
+
 async function getWCPregameLambdas(env) {
     if (_wcLambdaCache && (Date.now() - _wcLambdaCacheTs) < WC_LAMBDA_CACHE_TTL_MS) {
         return _wcLambdaCache;
@@ -4698,7 +4714,22 @@ async function handleV2Games(url, env, ctx, request = null) {
         // behaviour: when nothing passes the guards the value was never read.
         // The sport test is request-scoped (cfg is one league per request), so
         // it alone removes every /v2/games?sport=nfl|mlb|nba|afl call.
+        //
+        // THE WINDOW HALF (2026-11-05). The sport test left every live club
+        // soccer game charging for the WORLD CUP key after the tournament:
+        // 6261 calls on 26 of 29 ledger days from 2026-10-08, 1801 of them
+        // reconciled and every one kept 0 credits (odds_reconcile_state).
+        // Outside the window no World Cup fixture exists, so the Map is empty
+        // or matches no live game, and a null Map, an empty Map and an
+        // unmatched Map all leave pregameLh/pregameLa null. The raw vendor
+        // list was not seen (a call costs credits), but the sister route
+        // /wc/odds-probs fetches the same URL and skips a game on the same
+        // h2h test, and returned probs: [] in 186 of 206 committed probe
+        // artifacts, none non-empty. Inside the window nothing changes.
+        // wcWindowOpenNow() reads the clock per request, not the request's
+        // `date`, and the Dates are the ones scheduled() already gates on.
         const _wcWpPossible = !V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)
+            && wcWindowOpenNow()
             && games.some(g => g.state === 'live' && g.situation);
         const wcLambdas = _wcWpPossible ? await getWCPregameLambdas(env) : null;
 
@@ -9884,8 +9915,6 @@ export default {
         }
         // WC Tournament Projections — run every 15 min during group stage (June 11–26),
         // every 15 min during knockout phase (June 27+). Stores in FIELD_JOURNALISM KV.
-        const _wcOpen  = new Date('2026-06-11T00:00:00Z');
-        const _wcClose = new Date('2026-07-20T00:00:00Z');
         const _isWCWindow = _now >= _wcOpen && _now < _wcClose;
         if (_isWCWindow && env.FIELD_JOURNALISM) {
             ctx.waitUntil(runWCTournamentProjections(env).catch(e =>
