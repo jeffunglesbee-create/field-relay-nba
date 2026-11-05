@@ -6,7 +6,7 @@
 **Type:** C (infrastructure) — ledger and ceiling consumption by a call the vendor bills 0 for.
 Re-typed 2026-11-05 from "A (real vendor spend above need)": see Audit 2026-11-05, row 4.
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL 2026-11-05 — TASK 0 and TASK 1 BUILT and committed 04dc077 (deploy RUN-PENDING). The done condition
+**Status:** PARTIAL 2026-11-05 — TASK 0 and TASK 1 BUILT and committed 04dc077 and deployed 2026-11-05T20:39Z (Deploy RELAY Worker run 42103983396, success; Repo guards run 42103983255, success). The done condition
 is the two-sided call-count read below, scheduled for 2026-11-08; flips to DONE when it is recorded here.
 **Filed by:** the Task 3 premise test of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`
 (workflow `wf_c984c219-a1f`, 2026-10-23), Rule 87.4. The opening-line cron's

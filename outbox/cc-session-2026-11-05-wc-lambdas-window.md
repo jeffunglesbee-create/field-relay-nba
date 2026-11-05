@@ -3,7 +3,7 @@
 **Date:** 2026-11-05 · **Repo:** field-relay-nba · **Branch:** main
 **HEAD progression:** `b59b469` (when the work began) → `04dc077` (the gate and its check) → `d05d7fd` (the by_hour data point for 2026-11-04) → the documents and this close-out (one commit) → a docs-only commit after the deploy that replaces the two PENDING tokens below
 **Task:** the owner's order "It's been 2 weeks, check the freshness and suitability of the 10-23 cc-cmd before beginning." Audit first, then begin.
-**Odds API credits spent:** 0. **Deploy:** Deploy RELAY Worker run RUN-PENDING, deployed DEPLOYTIME-PENDING (commit `04dc077`). Both tokens are replaced by the next commit, before 2026-11-08.
+**Odds API credits spent:** 0. **Deploy:** Deploy RELAY Worker run 42103983396, success (deploy job 2026-11-05T20:30:21Z to 20:39:21Z, post-deploy verify job to 20:40:02Z); Repo guards run 42103983255, success (commit `04dc077`, pushed 20:30Z with the two docs commits; the gate steps that cannot run in the sandbox, `every BSD frame...` and `Every archived game is dated...`, ran in that guards run and passed).
 
 ## What was asked, and what the audit said
 
@@ -39,7 +39,7 @@ Not touched: `consumeOddsCredit`, `checkAndIncrementDailyOdds`, `chargeMonthlyOd
 
 **VERIFIED on the committed tree:** the check red/green and its self-test; `node scripts/measure-odds-consumer-demand.mjs --self-test` (the moved Dates still read exactly once); `node --check src/index.js`; the odds checks on `src/index.js`; every deploy-job and guards-job step (170 steps) on a clean clone named `field-relay-nba`: 143 green on the first pass, which ran on a `.git`-less export; the 27 reds were re-run in a real clone and 23 went green. The 4 that stayed red were 3 distinct causes, none about this change: HANDOFF currency (two entries, one script, `check-handoff-current.mjs`), which passes with this close-out written; `every BSD frame the contract declares matches the captures` (`list page 1 failed: HTTP 0`, no network here); and `Every archived game is dated on the ET day of its own kickoff` (`RELAY_SHARED_SECRET must be set`). The last two run in CI after the push. That gate run predates the review fixes; the check, the source comment and the documents were re-run after them (self-test 39/39, the doc gates).
 
-**Started, not finished at the time of writing:** `scripts/mutate-deploy-odds-wrappers.mjs` on the clean clone. Its control (HEAD unmutated) is GREEN; its case verdicts had not printed after 50 minutes. The two anchors inside `getWCPregameLambdas` occur exactly once each in the committed `src/index.js`: `grep -c` of the consume line printed 1 and of the reconcile line printed 1, on both `b59b469` and the change. So the change cannot turn a case into NOTHING MUTATED. The final verdict is recorded in the commit after the deploy.
+**`scripts/mutate-deploy-odds-wrappers.mjs`, finished, on a clean clone at the gate commit: 34 of 39 cases as expected, control GREEN.** All four `getWCPregameLambdas` cases behave as expected (S5 CAUGHT, R1 CAUGHT, R2 CAUGHT, the equivalent rewrite GREEN), so the two anchors inside the function still bite. The 5 that do not are FAIL with `anchor matched 0 times ... NOTHING MUTATED`: `fetchSportOddsLive` (S1), `fetchSportOddsHistorical` (S3 and E7) and the ambient closing capture (S4 and `the refusal logs and no longer returns`). **They fail identically at `b59b469`, before this change** (each run alone with `--only=` in a clean clone of that commit, control GREEN first), so they are pre-existing harness drift, not caused here. Cause, from the source: the consume calls at those sites now continue onto a second line, and the harness anchors are single-line text. Those five cases therefore test nothing today; the deploy gates they were written to prove are not shown to fail on a moved guard at those five sites. Noted in `docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md`, which owns the S cases.
 
 **STAGED, done condition (Rule 74).** Staged: the two-sided read of closed day 2026-11-07. Blocked by: the day itself. Unblocked when: `trig_018UGzSA57zJmCwKSywz8SzX` fires at 2026-11-08T09:15Z. Verify, exactly as in the CC-CMD:
 
@@ -61,6 +61,6 @@ with Saturdays 2026-10-24 (932) and 2026-10-31 (711) and Sunday 2026-11-01 (451)
 ## Open
 
 - The done condition (above). `trig_018UGzSA57zJmCwKSywz8SzX` records the result in the CC-CMD, not in the carrier.
-- Replace RUN-PENDING and DEPLOYTIME-PENDING (this document, the 10-23 CC-CMD) in the commit after the deploy, and record the wrappers-harness verdict, before 2026-11-08.
+- DONE in the docs commit after the deploy: the two PENDING tokens are replaced and the wrappers-harness verdict is recorded (next section).
 - Not mine and not started: the dead-cron ratchet (`patent-watch.yml`), another session's.
 - The waitUntil registration of the lambdas calls (carrier Note 2026-11-02, item 2) is moot outside the tournament now and stays the owner's call for a day inside it.

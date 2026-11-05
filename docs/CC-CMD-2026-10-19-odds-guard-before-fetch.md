@@ -83,3 +83,7 @@ In `scan()` and in `proxyGuarded()`:
 
 - No change to `src/` behaviour.
 - Do not loosen any existing assertion to make room.
+
+## Note 2026-11-05 — five harness cases no longer mutate anything
+
+`node scripts/mutate-deploy-odds-wrappers.mjs` was run in full on 2026-11-05 on a clean clone (34 of 39 cases as expected, control GREEN; `outbox/cc-session-2026-11-05-wc-lambdas-window.md`). Five cases FAIL with `anchor matched 0 times ... NOTHING MUTATED`: S1 (`fetchSportOddsLive`), S3 and E7 (`fetchSportOddsHistorical`), S4 and "the refusal logs and no longer returns" (the ambient closing capture). Each fails identically at `b59b469`, run alone in a clean clone of that commit. The consume calls at those sites (`src/index.js`, `fetchSportOddsLive` and `fetchSportOddsHistorical`) now continue onto a second line and the cases quote single-line text, so those five proofs of "the deploy gate stops a moved guard" currently prove nothing at those sites (Rule 90: a check that cannot fail is not trusted). The harness is not wired into a workflow, so nothing has gone red. **Not fixed here**: re-pointing five anchors is its own change with its own control-and-mutant run (about 100 minutes for a full pass). The unblock is the owner's order to do it; the verify command is `node scripts/mutate-deploy-odds-wrappers.mjs`, which must print `39 of 39 cases as expected`.
