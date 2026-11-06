@@ -1,0 +1,18 @@
+name: Probe FA Cup season (eng.fa)
+
+# Dispatch-only. Is ESPN serving the 2026-27 FA Cup, by the criterion of
+# docs/CC-CMD-2026-08-08-fa-cup-coverage.md (season.year >= 2026, type != Final)?
+# No secrets, no credits, no relay call. See scripts/probe-fa-cup-season.mjs.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-fa-cup-season.mjs
+      commit_message: "chore: fa cup season probe"
