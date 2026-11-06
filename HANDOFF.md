@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-06 (06:00Z) — five stale odds-harness anchors re-pointed; the harness's anchors now checked on every deploy
+
+**HEAD:** `d9b4f5a` → `71a1fd3` (the five anchors) → `edbf0c6` (anchors-only mode, deploy.yml) → `f229f01` (guards.yml) → `5b15144` (the review's fixes) → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-06-odds-harness-anchors.md (task: the owner's order "Fix the anchors", the open item of the 2026-11-05 close-out)
+
+No Worker code changed (`src/` untouched), so there is no deploy. 0 Odds API credits.
+
+- **What was wrong.** 5 of 39 cases of `scripts/mutate-deploy-odds-wrappers.mjs` quoted single-line text that later src edits had re-wrapped (the per-site labels of 2026-10-28; the closing-capture refusal returning `false` since 2026-10-24), so they mutated nothing and proved nothing, for 17 days, identically at `b59b469`. Nobody read the verdict because the harness is a 100-minute manual run.
+- **What changed.** The anchors are re-pointed, each mutation keeping its meaning. Each case alone is CAUGHT by the odds gates (no gate gap behind them). Full run on a clean clone: `39 of 39 cases as expected`. New: `--anchors-only` (about 4 s; every anchor matches once, every mutant parses), a step in `deploy.yml` (src-only pushes, where the drift comes from) and in `guards.yml`; the harness excludes that step from the odds steps it runs inside each mutant.
+- **Proven.** The tripwire failed on purpose five ways (re-wrapped guard, renamed wrapper, wrapper declared twice, unparsable replacement, a case checked by nothing) and passes on the unmutated tree. A pre-push review (`wf_e548f66c-ae1`) found no blocker and one major (the tripwire did not parse the mutants), fixed.
+- **Not verified.** The two new steps on a real runner until the guards run for this push finishes. `--anchors-only` still loads `deploy.yml` and runs `git archive` before its own branch; moving that would touch the run path the 39-of-39 verdict covers.
+- **Open, the owner's call:** the `sport === 'wc26'` gate instead of the date (2026-11-05 close-out). The done condition of the 10-23 CC-CMD is read at 2026-11-08T09:15Z by `trig_018UGzSA57zJmCwKSywz8SzX`.
+
 ## SESSION CLOSE-OUT — 2026-11-05 (18:30Z) — the World Cup odds lambdas are now gated on the tournament window; TASK 0 and TASK 1 of the 10-23 CC-CMD
 
 **HEAD:** `b59b469` → `04dc077` (the gate and its check) → `d05d7fd` (the by_hour data point for 2026-11-04) → `87beb36` (this close-out) → the docs commit after the deploy (run id, harness verdict, a note on five stale harness anchors) · **Branch:** main
