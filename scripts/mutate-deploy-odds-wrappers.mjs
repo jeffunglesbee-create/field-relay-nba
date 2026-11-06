@@ -97,7 +97,17 @@ const AMB_CHARGE = "            if (!(await _consumeAmbientOddsCredit(this.env, 
 const PROXY_IF = "if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(targetUrl), 'oddsProxyRoute'))) {";
 const PROXY_RET = "                return new Response(JSON.stringify({ ok: false, guarded: true,\n                    error: 'odds credit guard declined this call' }),\n                    { status: 429, headers: { 'X-RELAY-Error': 'odds-credit-guard', ...CORS, 'Content-Type': 'application/json' } });";
 const PROXY_HEAD = "        if (pathname.startsWith('/odds')) {";
-const HIST_IF = "  if (!(await consumeOddsCredit(env, oddsCreditCost(url), 'fetchSportOddsHistorical'))) {";
+// The three guarded fetches below were single-line calls when the cases were written (2026-10-19).
+// Since the per-site labels (2026-10-28, identityMismatches / archiveOddsBackfill / archiveGameClosing)
+// the site argument is a closed ternary that continues onto a second or third line, so the anchors are
+// the multi-line text. Re-pointed 2026-11-06: five cases had reported NOTHING MUTATED, and so proved
+// nothing, since then (they failed identically at b59b469; docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md).
+const HIST_SITE = "site === 'archiveOddsBackfill' ? 'archiveOddsBackfill'\n      : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical'";
+const HIST_IF = `  if (!(await consumeOddsCredit(env, oddsCreditCost(url),\n        ${HIST_SITE}))) {`;
+const LIVE_SITE = "site === 'identityMismatches' ? 'identityMismatches' : 'fetchSportOddsLive'";
+const LIVE_GUARD = `  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl),\n        ${LIVE_SITE}))) {\n    return { games: [], quotaRemaining: null, ok: false, guarded: true };\n  }\n`;
+const LIVE_RECONCILE = `  await reconcileOddsCredit(env, _est, r,\n    ${LIVE_SITE});`;
+const CLOSING_REFUSAL = "            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return false;";
 const WC_IF = "    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas'))) return null;";
 const WP_IF = "    if (!(await consumeOddsCredit(env, oddsCreditCost(_url), 'wpResolver'))) {";
 const SITES = [
@@ -114,15 +124,14 @@ const SITES = [
   { expect: 'red', file: 'src/wp-resolver.js', label: 'wp-resolver: the refusal only logs',
     from: '        return { games: [], quotaRemaining: null, ok: false, guarded: true };', to: "        console.warn('[wp-resolver] over budget');" },
   { expect: 'red', file: 'src/ambient-do.js', label: 'closing capture: the refusal logs and no longer returns',
-    from: "            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return;",
+    from: CLOSING_REFUSAL,
     to: "            console.warn('[closing-odds] odds credit guard declined — skipping capture');" },
   // The guard moved BELOW its fetch, or the fetch started above it: the refusal
   // arrives after the vendor has billed. Six shapes from the 2026-10-19 second
   // review, most plausible first. All six must turn deploy.yml red.
   { expect: 'red', file: 'src/index.js', label: 'fetchSportOddsLive: the guard moved below the fetch (S1)', edits: [
-    [`  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'fetchSportOddsLive'))) {\n    return { games: [], quotaRemaining: null, ok: false, guarded: true };\n  }\n`, ''],
-    [`  await reconcileOddsCredit(env, _est, r, 'fetchSportOddsLive');`,
-     `  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'fetchSportOddsLive'))) {\n    return { games: [], quotaRemaining: null, ok: false, guarded: true };\n  }\n  await reconcileOddsCredit(env, _est, r, 'fetchSportOddsLive');`],
+    [LIVE_GUARD, ''],
+    [LIVE_RECONCILE, LIVE_GUARD + LIVE_RECONCILE],
   ] },
   { expect: 'red', file: 'src/index.js', label: '/odds/* proxy: a special case returns relayFetch above the guard (P1)', edits: [
     [PROXY_IF, `if (cleanPath.startsWith('/v4/events/')) return relayFetch(targetUrl, { 'Accept': 'application/json' }, 60, 'odds', ctx);\n            ${PROXY_IF}`],
@@ -132,9 +141,9 @@ const SITES = [
     [`            ${PROXY_IF}`, `            const _proxyResp = await relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);\n            ${PROXY_IF}`],
   ] },
   { expect: 'red', file: 'src/ambient-do.js', label: 'closing capture: the guard moved below the fetch (S4)', edits: [
-    [`        if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {\n            console.warn('[closing-odds] odds credit guard declined — skipping capture');\n            return;\n        }\n`, ''],
+    [`        if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {\n${CLOSING_REFUSAL}\n        }\n`, ''],
     [`            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, 'ambientCaptureClosingOdds');`,
-     `            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {\n                console.warn('[closing-odds] odds credit guard declined — skipping capture');\n                return;\n            }\n            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, 'ambientCaptureClosingOdds');`],
+     `            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {\n                console.warn('[closing-odds] odds credit guard declined — skipping capture');\n                return false;\n            }\n            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, 'ambientCaptureClosingOdds');`],
   ] },
   { expect: 'red', file: 'src/wp-resolver.js', label: 'wp-resolver: the fetch started above the guard, awaited below it (S2)', edits: [
     [`    const r = await fetch(\n        _url,\n        { cf: { cacheTtl: 900, cacheEverything: true } }\n    );`, `    const r = await _p;`],
@@ -176,7 +185,7 @@ const SITES = [
   ] },
   { expect: 'red', file: 'src/index.js', label: 'fetchSportOddsHistorical: the refusal throws into a catch that only logs (E7) [ce]', edits: [
     [HIST_IF + "\n    return { games: [], quotaRemaining: null, ok: false, guarded: true };\n  }",
-     "  try {\n    if (!(await consumeOddsCredit(env, oddsCreditCost(url), 'fetchSportOddsHistorical'))) throw new Error('declined');\n  } catch (e) { console.warn('[odds-hist]', e.message); }"],
+     `  try {\n    if (!(await consumeOddsCredit(env, oddsCreditCost(url),\n        ${HIST_SITE}))) throw new Error('declined');\n  } catch (e) { console.warn('[odds-hist]', e.message); }`],
   ] },
   // [ce] BILLED CALLS BUILT BY A HELPER (TASK 3). The vendor-URL scan cannot
   // see oddsUrl() / oddsFetchWithFallback(); these add one each, unguarded.
