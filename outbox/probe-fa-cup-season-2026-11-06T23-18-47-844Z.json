@@ -1,0 +1,137 @@
+{
+  "at": "2026-11-06T23:18:47.844Z",
+  "reads": [
+    {
+      "host": "web",
+      "label": "default scoreboard, browser headers",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard",
+      "status": 200,
+      "verdict": {
+        "state": "UNBLOCKED",
+        "year": 2026,
+        "type": "First Round"
+      },
+      "leagueName": "English FA Cup",
+      "seasonDisplayName": "2026-27 English FA Cup",
+      "eventCount": 2,
+      "events": [
+        {
+          "date": "2026-11-06T19:30Z",
+          "home": "Bristol Rovers",
+          "away": "Cambridge United",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        },
+        {
+          "date": "2026-11-06T19:45Z",
+          "home": "Oxford City",
+          "away": "Leicester City",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        }
+      ]
+    },
+    {
+      "host": "web",
+      "label": "default scoreboard, no headers",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard",
+      "status": 200,
+      "verdict": {
+        "state": "UNBLOCKED",
+        "year": 2026,
+        "type": "First Round"
+      },
+      "leagueName": "English FA Cup",
+      "seasonDisplayName": "2026-27 English FA Cup",
+      "eventCount": 2,
+      "events": [
+        {
+          "date": "2026-11-06T19:30Z",
+          "home": "Bristol Rovers",
+          "away": "Cambridge United",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        },
+        {
+          "date": "2026-11-06T19:45Z",
+          "home": "Oxford City",
+          "away": "Leicester City",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        }
+      ]
+    },
+    {
+      "host": "web",
+      "label": "dates=20261101-20261231, browser headers",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard?dates=20261101-20261231",
+      "status": 400
+    },
+    {
+      "host": "api",
+      "label": "default scoreboard, browser headers",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard",
+      "status": 200,
+      "verdict": {
+        "state": "UNBLOCKED",
+        "year": 2026,
+        "type": "First Round"
+      },
+      "leagueName": "English FA Cup",
+      "seasonDisplayName": "2026-27 English FA Cup",
+      "eventCount": 2,
+      "events": [
+        {
+          "date": "2026-11-06T19:30Z",
+          "home": "Bristol Rovers",
+          "away": "Cambridge United",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        },
+        {
+          "date": "2026-11-06T19:45Z",
+          "home": "Oxford City",
+          "away": "Leicester City",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        }
+      ]
+    },
+    {
+      "host": "api",
+      "label": "default scoreboard, no headers",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard",
+      "status": 200,
+      "verdict": {
+        "state": "UNBLOCKED",
+        "year": 2026,
+        "type": "First Round"
+      },
+      "leagueName": "English FA Cup",
+      "seasonDisplayName": "2026-27 English FA Cup",
+      "eventCount": 2,
+      "events": [
+        {
+          "date": "2026-11-06T19:30Z",
+          "home": "Bristol Rovers",
+          "away": "Cambridge United",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        },
+        {
+          "date": "2026-11-06T19:45Z",
+          "home": "Oxford City",
+          "away": "Leicester City",
+          "status": "STATUS_FULL_TIME",
+          "neutral": null
+        }
+      ]
+    },
+    {
+      "host": "api",
+      "label": "dates=20261101-20261231, browser headers",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.fa/scoreboard?dates=20261101-20261231",
+      "status": 400
+    }
+  ]
+}
