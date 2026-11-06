@@ -78,7 +78,9 @@ const cut = all.findIndex((s) => s.name === DEPLOY_STEP);
 if (cut < 0) { console.log(`FAIL — no "${DEPLOY_STEP}" step in deploy.yml's deploy job`); process.exit(1); }
 const before = all.slice(0, cut);
 const runnable = before.filter((s) => typeof s.run === 'string' && !(s.env && Object.values(s.env).some((v) => String(v).includes('secrets.'))));
-const steps = runnable.filter((s) => ODDS_SCRIPT.test(s.run));
+// Not this harness's own --anchors-only step: it reads the source a mutant has just edited, so it would be red in
+// every case and every must-red verdict would be a false catch.
+const steps = runnable.filter((s) => ODDS_SCRIPT.test(s.run) && !/mutate-deploy-odds-wrappers/.test(s.run));
 if (!steps.length) { console.log('FAIL — no odds step found before the deploy step'); process.exit(1); }
 
 const W = {
@@ -220,6 +222,37 @@ function replaceWrapper(text, w, body) {
   if (i < 0 || j < 0) return null;
   const sig = text.slice(i, text.indexOf('\n', i));
   return `${text.slice(0, i)}${sig}\n${body.map((l) => `    ${l}`).join('\n')}\n}${text.slice(j + 2)}`;
+}
+
+// --anchors-only: the FAST half of this harness, for deploy.yml. It runs no step and mutates nothing: it applies every
+// case's edits, in order, to the working tree's source IN MEMORY and fails when an anchor matches other than once, or a
+// wrapper is not found. Why it exists: from 2026-10-28 five site cases reported NOTHING MUTATED and nobody knew for 17
+// days, because the harness is a 100-minute manual run and the only thing that ever read its verdict was a person. A case
+// whose anchor no longer matches proves nothing; this makes that a red build at the commit that moves the text.
+if (process.argv.includes('--anchors-only')) {
+  const bad = [];
+  for (const c of CASES) {
+    if (c.key) {
+      const w = W[c.key];
+      if (replaceWrapper(readFileSync(join(ROOT, w.path), 'utf8'), w, c.body) == null) bad.push(`${c.name}: ${w.name} was not found in ${w.path}`);
+    } else if (c.site) {
+      let t = readFileSync(join(ROOT, c.site.file), 'utf8');
+      for (const [from, to] of c.site.edits || [[c.site.from, c.site.to]]) {
+        const k = t.split(from).length - 1;
+        if (k !== 1) { bad.push(`${c.name}: anchor matched ${k} times in ${c.site.file}, expected 1: ${from.trim().slice(0, 70)}`); break; }
+        t = t.replace(from, to);
+      }
+    }
+  }
+  if (bad.length) {
+    console.log(`FAIL  ${bad.length} of ${CASES.length} harness cases would mutate NOTHING:`);
+    for (const b of bad) console.log(`   ${b}`);
+    console.log('A case that mutates nothing proves nothing (Rule 90). Re-point its anchor to the current source text.');
+    process.exit(1);
+  }
+  console.log(`PASS  every anchor of ${CASES.length} of ${CASES.length} harness cases matches the source exactly once (${CASES.filter((c) => c.key).length} wrapper cases, ${CASES.filter((c) => c.site).length} site cases)`);
+  console.log('COVERAGE: anchors only, on the working tree. It does NOT run the odds steps, so it does not say a mutant is caught; that is the full run.');
+  process.exit(0);
 }
 
 const runStep = (dir, s) => new Promise((res) => {

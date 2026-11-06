@@ -133,6 +133,18 @@ jobs:
       - name: Every odds call is charged to the monthly ledger
         run: node scripts/check-odds-calls-guarded.mjs
 
+      # Blocking, and fast (about a second): every case of the odds-wrapper
+      # mutation harness still has an anchor that matches the source exactly once.
+      # From 2026-10-28 five of its 39 cases quoted text that a later src edit had
+      # re-wrapped onto a second line, reported NOTHING MUTATED, and proved nothing
+      # for 17 days, because the harness is a 100-minute manual run that only a
+      # person reads (docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md, Note
+      # 2026-11-05). This is the half of it that can run on every push. It does
+      # NOT say a mutant is caught; the full run does. src-only pushes are where the
+      # drift comes from and guards.yml ignores src/**, so it lives here.
+      - name: The odds harness's mutation anchors still match the source
+        run: node scripts/mutate-deploy-odds-wrappers.mjs --anchors-only
+
       # Blocking. CC-CMD-2026-10-14-push-cron-gambit-path, ruled 2026-10-18:
       # the push cron's live-game loop was deleted as a STATED absence. It
       # polled a path /espn-gambit refuses, so every poll 403'd and looked like
