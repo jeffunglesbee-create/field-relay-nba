@@ -597,3 +597,10 @@ jobs:
       - name: HANDOFF.md is not stale
         if: always()
         run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
+
+      # The same step deploy.yml carries (it runs there on every src push, which
+      # this workflow ignores). Here it also covers a push that edits the harness
+      # or the workflows only, and it is how the step is first run on a real runner.
+      - name: The odds harness's mutation anchors still match the source
+        if: always()
+        run: node scripts/mutate-deploy-odds-wrappers.mjs --anchors-only
