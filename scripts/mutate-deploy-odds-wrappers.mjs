@@ -33,8 +33,18 @@
 // tree's deploy.yml while running HEAD's source would test wiring the commit
 // does not contain (2026-10-19 review). Each case runs in a fresh committed
 // `git archive` copy, so scripts that refuse a dirty tree see a clean one.
+// One step is never run inside a mutant: deploy.yml's own `--anchors-only` step
+// (it names this script, so ODDS_SCRIPT matches it, and it reads the source the
+// mutant has just edited, so it would be red in every case).
 //
-//   node scripts/mutate-deploy-odds-wrappers.mjs
+// `--anchors-only` is the FAST half, for deploy.yml and guards.yml (about two
+// seconds, no step run): it applies every case's edits to the WORKING TREE's
+// source in memory, requires each anchor to match exactly once and each mutant
+// to parse, and exits 1 otherwise. It does not say a mutant is caught; the full
+// run does. Added 2026-11-06 after five cases mutated nothing for 17 days.
+//
+//   node scripts/mutate-deploy-odds-wrappers.mjs                 (the full run, ~100 minutes)
+//   node scripts/mutate-deploy-odds-wrappers.mjs --anchors-only  (the fast half)
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, symlinkSync, existsSync } from 'node:fs';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -59,7 +69,7 @@ async function loadYaml(file) {
 const git = (cwd, ...a) => execFileSync('git', a, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
 const head = git(ROOT, 'rev-parse', '--short', 'HEAD').trim();
 const dirty = git(ROOT, 'status', '--porcelain', '--', 'src', 'scripts', '.github').trim();
-if (dirty) console.log(`NOTE: uncommitted changes under src/, scripts/ or .github/ are NOT tested; this runs HEAD ${head}.\n`);
+if (dirty && !process.argv.includes('--anchors-only')) console.log(`NOTE: uncommitted changes under src/, scripts/ or .github/ are NOT tested; this runs HEAD ${head}.\n`);
 
 function freshCopy() {
   const dir = mkdtempSync(join(tmpdir(), 'deploy-odds-'));
@@ -99,10 +109,11 @@ const AMB_CHARGE = "            if (!(await _consumeAmbientOddsCredit(this.env, 
 const PROXY_IF = "if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(targetUrl), 'oddsProxyRoute'))) {";
 const PROXY_RET = "                return new Response(JSON.stringify({ ok: false, guarded: true,\n                    error: 'odds credit guard declined this call' }),\n                    { status: 429, headers: { 'X-RELAY-Error': 'odds-credit-guard', ...CORS, 'Content-Type': 'application/json' } });";
 const PROXY_HEAD = "        if (pathname.startsWith('/odds')) {";
-// The three guarded fetches below were single-line calls when the cases were written (2026-10-19).
-// Since the per-site labels (2026-10-28, identityMismatches / archiveOddsBackfill / archiveGameClosing)
-// the site argument is a closed ternary that continues onto a second or third line, so the anchors are
-// the multi-line text. Re-pointed 2026-11-06: five cases had reported NOTHING MUTATED, and so proved
+// Two guarded fetches (fetchSportOddsLive, fetchSportOddsHistorical) were single-line calls when the cases
+// were written (2026-10-19). Since the per-site labels (2026-10-28, identityMismatches / archiveOddsBackfill /
+// archiveGameClosing) their site argument is a closed ternary that continues onto a second or third line, so
+// the anchors are the multi-line text. The ambient closing capture drifted for another reason: its refusal
+// now returns false (retryable, so _poll may try again; 2026-10-24), not a bare return. Re-pointed 2026-11-06: five cases had reported NOTHING MUTATED, and so proved
 // nothing, since then (they failed identically at b59b469; docs/CC-CMD-2026-10-19-odds-guard-before-fetch.md).
 const HIST_SITE = "site === 'archiveOddsBackfill' ? 'archiveOddsBackfill'\n      : site === 'archiveGameClosing' ? 'archiveGameClosing' : 'fetchSportOddsHistorical'";
 const HIST_IF = `  if (!(await consumeOddsCredit(env, oddsCreditCost(url),\n        ${HIST_SITE}))) {`;
@@ -231,27 +242,44 @@ function replaceWrapper(text, w, body) {
 // whose anchor no longer matches proves nothing; this makes that a red build at the commit that moves the text.
 if (process.argv.includes('--anchors-only')) {
   const bad = [];
+  let checked = 0;
+  // The mutant must also PARSE, as the full run's `node --check` requires. .mjs because the Worker source is an ES module.
+  const parses = (text) => {
+    const f = join(mkdtempSync(join(tmpdir(), 'anchors-')), 'mutant.mjs');
+    writeFileSync(f, text);
+    const r = spawnSync('node', ['--check', f], { encoding: 'utf8' });
+    rmSync(join(f, '..'), { recursive: true, force: true });
+    return r.status === 0 ? null : (r.stderr.split('\n').find(Boolean) || 'does not parse');
+  };
   for (const c of CASES) {
+    let note = null, text = null;
     if (c.key) {
       const w = W[c.key];
-      if (replaceWrapper(readFileSync(join(ROOT, w.path), 'utf8'), w, c.body) == null) bad.push(`${c.name}: ${w.name} was not found in ${w.path}`);
+      const src = readFileSync(join(ROOT, w.path), 'utf8');
+      const sigs = src.split(`async function ${w.name}(`).length - 1;
+      if (sigs !== 1) note = `${w.name} is declared ${sigs} times in ${w.path}, expected 1`;
+      else { text = replaceWrapper(src, w, c.body); if (text == null) note = `${w.name} was not found in ${w.path}`; }
     } else if (c.site) {
-      let t = readFileSync(join(ROOT, c.site.file), 'utf8');
+      text = readFileSync(join(ROOT, c.site.file), 'utf8');
       for (const [from, to] of c.site.edits || [[c.site.from, c.site.to]]) {
-        const k = t.split(from).length - 1;
-        if (k !== 1) { bad.push(`${c.name}: anchor matched ${k} times in ${c.site.file}, expected 1: ${from.trim().slice(0, 70)}`); break; }
-        t = t.replace(from, to);
+        const k = text.split(from).length - 1;
+        if (k !== 1) { note = `anchor matched ${k} times in ${c.site.file}, expected 1: ${JSON.stringify(from.trim().slice(0, 70))}`; break; }
+        text = text.replace(from, to);
       }
-    }
+    } else { bad.push(`${c.name}: neither a wrapper case nor a site case, so nothing was checked`); continue; }
+    if (!note && text != null) { const e = parses(text); if (e) note = `the mutant does not parse: ${e}`; }
+    checked++;
+    if (note) bad.push(`${c.name}: ${note}`);
   }
+  if (checked !== CASES.length) bad.push(`checked ${checked} of ${CASES.length} cases`);
   if (bad.length) {
-    console.log(`FAIL  ${bad.length} of ${CASES.length} harness cases would mutate NOTHING:`);
+    console.log(`FAIL  ${bad.length} problem(s) in ${CASES.length} harness cases; a case that mutates nothing, or a mutant that does not parse, proves nothing:`);
     for (const b of bad) console.log(`   ${b}`);
-    console.log('A case that mutates nothing proves nothing (Rule 90). Re-point its anchor to the current source text.');
+    console.log('Re-point the anchor to the current source text (Rule 90).');
     process.exit(1);
   }
-  console.log(`PASS  every anchor of ${CASES.length} of ${CASES.length} harness cases matches the source exactly once (${CASES.filter((c) => c.key).length} wrapper cases, ${CASES.filter((c) => c.site).length} site cases)`);
-  console.log('COVERAGE: anchors only, on the working tree. It does NOT run the odds steps, so it does not say a mutant is caught; that is the full run.');
+  console.log(`PASS  every anchor of ${checked} of ${CASES.length} harness cases matches the source exactly once and every mutant parses (${CASES.filter((c) => c.key).length} wrapper cases, ${CASES.filter((c) => c.site).length} site cases)`);
+  console.log('COVERAGE: anchors and parse only, on the WORKING TREE (equal to HEAD in CI). It does NOT run the odds steps, so it does not say a mutant is caught; that is the full run.');
   process.exit(0);
 }
 
@@ -333,5 +361,5 @@ const guardCases = SITES.filter((t) => !t.newCall);
 const redSites = new Set(guardCases.filter((t) => t.expect === 'red').map(siteOf));
 const greenOnly = new Set(guardCases.filter((t) => t.expect === 'green').map(siteOf).filter((x) => !redSites.has(x)));
 const newCalls = SITES.filter((t) => t.newCall).length;
-console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each, plus ${SITES.length} site cases: a must-red edit at ${redSites.size} of the ${guardSites} guard sites in HEAD (${[...redSites].join(', ')}), must-stay-green edits only at ${[...greenOnly].join(', ') || 'none'}; and ${newCalls} case(s) that add a new unguarded call rather than edit a guard site. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
+console.log(`COVERAGE: ${steps.length} of ${runnable.length} runnable pre-deploy steps (the odds ones, not counting this harness's own ${runnable.filter((x) => /mutate-deploy-odds-wrappers/.test(x.run)).length} anchors step), ${Object.keys(W).length} of 3 wrappers mutated, ${BODIES.length} bodies each, plus ${SITES.length} site cases: a must-red edit at ${redSites.size} of the ${guardSites} guard sites in HEAD (${[...redSites].join(', ')}), must-stay-green edits only at ${[...greenOnly].join(', ') || 'none'}; and ${newCalls} case(s) that add a new unguarded call rather than edit a guard site. Every guard site, these included, is also made log-only and moved below its fetch by check-odds-calls-guarded's own self-test, which is one of the steps run. Not run: the other ${runnable.length - steps.length} runnable steps, ${before.length - runnable.length} steps needing a secret or with no command, the deploy, and the live verify job.`);
 process.exit(ok === RUN.length ? 0 : 1);
