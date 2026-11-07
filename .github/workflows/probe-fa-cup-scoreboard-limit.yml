@@ -1,0 +1,17 @@
+name: Probe FA Cup scoreboard limit
+
+# Dispatch-only, read-only, no secret. Does the client's limit=30 cut an FA Cup day short, and what does ESPN say per game about the
+# broadcast? See scripts/probe-fa-cup-scoreboard-limit.mjs.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-fa-cup-scoreboard-limit.mjs
+      commit_message: "chore: fa cup scoreboard limit probe"
