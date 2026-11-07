@@ -111,7 +111,9 @@ after 2026-11-24.
    '2026-07-19'`. Record both in the outbox. Nothing in `wc_group` is a club team, so Defect A leaves nothing to clean there. One residue the
    guard cannot reach: a club game that was live at the deploy keeps the `openingAdvanceProb` GameDO stored for it (found by review, run on
    the real GameDO): the first poll after the deploy sends `null` and the stored value stays until the game ends.
-4. **Execute inside the session (Rule 87.3):** after the deploy, `probe_relay_route /v2/games?sport=efltrophy&date=<a matchday>` still answers,
+4. **Execute inside the session (Rule 87.3):** deployed 2026-11-07 (Deploy RELAY Worker run `42333550176` `success`, Repo guards `42333550146` `success`); after
+   the deploy `SELECT COUNT(*) ... outside the tournament's dates` read 61 of 218 (the baseline) and `/v2/games?sport=wc26&date=2026-07-19` answered 200 with
+   `"league":"FIFA World Cup"`, the control. Still STAGED, as written next: after the deploy, `probe_relay_route /v2/games?sport=efltrophy&date=<a matchday>` still answers,
    and the first FA Cup or UEFA final after the deploy writes no `wc_results` row (STAGED: the next club cup tie reaching `final`; verify with the
    first query below, which must stay at 61 until the cleanup and then 0).
 
