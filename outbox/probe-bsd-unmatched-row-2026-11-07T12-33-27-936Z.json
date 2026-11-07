@@ -1,0 +1,45 @@
+{
+  "at": "2026-11-07T12:33:27.936Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "days": {
+    "2026-11-06": {
+      "httpStatus": 200,
+      "pages": 2,
+      "eventsRead": 62,
+      "complete": true,
+      "hits": []
+    },
+    "2026-11-07": {
+      "httpStatus": 200,
+      "pages": 5,
+      "eventsRead": 227,
+      "complete": true,
+      "hits": [
+        {
+          "id": 210519,
+          "home": "AJ Auxerre",
+          "away": "Paris FC",
+          "homeKey": "ajauxerre",
+          "awayKey": "parisfc",
+          "event_date": "2026-11-07T18:00:00+00:00",
+          "status": "notstarted"
+        }
+      ]
+    },
+    "2026-11-08": {
+      "httpStatus": 200,
+      "pages": 5,
+      "eventsRead": 232,
+      "complete": true,
+      "hits": []
+    }
+  },
+  "row": {
+    "home": "Auxerre",
+    "away": "Paris FC",
+    "homeKey": "auxerre",
+    "awayKey": "parisfc",
+    "start_time": "2026-11-07T18:00Z"
+  },
+  "coverage": "3 day(s) read in full pages of 50 via /bsd/events/by-date; only events naming Auxerre or Paris FC are listed"
+}
