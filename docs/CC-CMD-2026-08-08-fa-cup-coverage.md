@@ -13,10 +13,10 @@
   Task 3's artifact: `check-leagues-label-contract.mjs` prints SOCCER_LEAGUE_LABELS 18 -> 19, LEAGUES rows 21 -> 22 (15 -> 16 soccer),
   V2_LEAGUES soccer keys 17 -> 18, `uncovered=[]`. The "scope boundary" below is amended: those extra sites were required, and
   `check-individual-sports-not-archived.mjs` `EXPECTED` 22 -> 23.
-- **Task 5, live verification of the relay: STAGED.** Blocked by: the deploy. Unblocked when the Deploy RELAY Worker run for the push is `success`.
-  Verify: `probe_relay_route /v2/games?sport=facup&date=<a date with fixtures>` returns HTTP 200 and `"league":"FA Cup"`; the dates to try are
-  2026-11-07, 2026-11-08 and 2026-11-09 (the first round proper runs that weekend; the probe saw only the two Friday ties). If none returns a
-  game, the artifact is INCONCLUSIVE, not a pass: re-run the probe workflow and read the dates ESPN lists. The archive row check is
+- **Task 5, live verification of the relay: DONE for the route, STAGED for the archive.** Deploy RELAY Worker run `42322923778` `success`.
+  `probe_relay_route /v2/games?sport=facup&date=2026-11-06` returned HTTP 200, `"league":"FA Cup"`, `"round":"English FA Cup, First Round"`,
+  `count: 2` (Bristol Rovers 2-0 Cambridge United; Oxford City 2-4 Leicester City; the home side is the venue's club in both); the route was read 2026-11-07 for the game date 2026-11-06.
+  Still owed: a date that was not already over (2026-11-07..09) and the archive rows. The archive row check is
   `SELECT sport, COUNT(*) FROM regular_season_games WHERE sport = 'FA Cup' GROUP BY sport` after the 10:00Z row creation of a day with fixtures.
 - **Task 4, the client half: NOT BUILT.** Blocked by: Rule 70 (the relay deploys first) and the live verification above. The laboratory half
   (LAB-FIRST: `Sport.FACup` in `Desk.fs`, `sport-registry-check` count) is the consumer the owner named on 2026-11-06 ("fa cup is missing").
