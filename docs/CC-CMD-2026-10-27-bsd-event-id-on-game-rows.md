@@ -25,20 +25,51 @@ rows waited for the next midnight UTC (855 minutes in the simulation that reprod
 day per date through a KV marker with a 36 h TTL") is what produced it. Fixed in commit `533090e` (see
 `outbox/cc-session-2026-11-07-lineup-join-and-fa-cup.md`): an empty date's marker is an hour and an empty pass no longer ends
 the tick; the check `scripts/check-bsd-join-window-timing.mjs` is the artifact (80 scenarios; the old behaviour fails 72).
-Task 4's cadence sentence now reads: a date WITH rows is read from BSD once per UTC day, one such date per tick; a date with
-nothing pending is looked at again within the hour and makes no BSD call.
+Task 4's cadence sentence then read: a date WITH rows is read from BSD once per UTC day, one such date per tick; a date with
+nothing pending is looked at again within the hour and makes no BSD call. (Superseded the same day by Residual R1 below: a date left with
+unjoined rows is held 6 h, not 36 h, and a date whose rows were all joined an hour.)
 
-**Residual R1, measured 2026-11-07 on the real function with a stand-in for the matcher (reviewer scratch `variants.mjs`,
-wf_753e8877-a88), not fixed:** a pass that HAD rows to join holds the date for 36 h even when some rows stayed unjoined.
-(a) A second batch of rows created after a date's first row-seeing pass (V4: five rows at 10:00Z, two more at 16:00Z) waits
-for the next UTC day: 495 minutes for the second batch. (b) Rows BSD cannot match yet, because it lists the event later
-(V5: BSD can match them from 12:00Z), wait 735 minutes after they become matchable. Both are the pre-change behaviour, not a
-regression. Whether either happens in production is UNVERIFIED (no read of when rows are created after 10:00Z). Unblock
-criterion: a D1 read of `regular_season_games.created_at` for soccer rows grouped by hour of day over the last 14 days, which
-decides whether (a) occurs; and of `bsd_event_id IS NULL` rows older than 6 hours at the time of the 00:xxZ join, which
-decides (b). If either is non-trivial the change is a shorter hold (for example 6 h) for a pass that left rows unjoined,
-bounded by Rule 78 against BSD's page budget (24 pages per pass), and must come with its own scenario in
-`scripts/check-bsd-join-window-timing.mjs`.
+**Second correction 2026-11-07 (live; BUILD-ON-A: added here, not filed again).** The first correction's fix (`533090e`, deployed
+01:13Z to 01:24Z) did not join that day's rows either. At 12:11Z all 34 pending soccer rows of 2026-11-07 (19 big-five, 15 MLS), created
+10:00:29Z to 10:00:39Z, were `bsd_event_id IS NULL`, and `change_log` held no `bsd_game_join` write since 00:30Z. Measured, in order:
+(1) the window pass WAS called at 10:01Z and again at 11:15Z: `/journalism/brief` has `generatedAt` 2026-11-07T11:15:23Z, so that tick got past
+the context-unchanged gate, and the pass sits after it; (2) the same function, run through the deployed admin route at 12:24Z, joined 33 of the
+34 pending rows (459 BSD events read, 10 upstream pages, 0 cache hits), so the join is not the defect
+(`outbox/probe-bsd-join-today-2026-11-07T12-24-33-411Z.json`, run 42372338945); (3) a marker held the date. KV, listed by
+`scripts/probe-bsd-join-markers.mjs` (run 42372697452, `outbox/probe-bsd-join-markers-2026-11-07T12-29-26-048Z.json`): `bsd-join:2026-11-07:2026-11-07` holds
+`{"written":0,"pending":0}` and expires 2026-11-08T12:45:30Z, which is 36 h after 00:45:30Z the same day. The fixed code writes 3600 s for
+`pending: 0`; only the pre-fix code wrote 36 h for it; the fix went live about 01:14Z. So a marker written by the OLD code 28 minutes before the
+deploy outlived it (a deploy does not clear KV) and held the date through both passes. `bsd-join:2026-11-08:2026-11-07` and
+`bsd-join:2026-11-09:2026-11-07` have the same signature. That cause cannot recur on UTC day 2026-11-08 (its keys do not exist yet, and the pre-fix code is gone); a separate latent
+defect found while reading D1 for it is Residual R1 below, closed by the 6 h hold.
+The probe's `EMPTY-DATE-HOURLY` class cannot tell a fixed-code hour marker from an old 36 h marker with under an hour left (it reads the
+remaining TTL): `bsd-join:2026-11-06:2026-11-06`, 0.28 h left, is such a marker. (4) The one row that stayed unmatched, Ligue 1 Auxerre v Paris FC (18:00Z), is
+an alias gap: BSD serves the home side as "AJ Auxerre" (event 210519; `outbox/probe-bsd-unmatched-row-2026-11-07T12-33-27-936Z.json`). `['AJ Auxerre', 'Auxerre']`
+is in `src/identity-resolver.js` (`7a55ee1`, Deploy RELAY Worker run 42373918077), check S10 in `scripts/check-bsd-game-join.mjs` written first (20/21, then 21/21, then 20/21 with the alias removed).
+
+**Residual R1, CLOSED 2026-11-07 (commits `0ba3d4c`, `f505be6`).** Measured on the real function 2026-11-07 (reviewer scratch `variants.mjs`,
+wf_753e8877-a88): a pass that HAD rows to join held the date 36 h even when some rows stayed unjoined. The unblock criterion was read the same
+day (`outbox/d1-bsd-join-reads-2026-11-07.md`, with the queries and their output): (a) a second batch, rows created after a date's first row-seeing
+pass: 0 of 184 soccer rows with a date since 2026-10-24 were created outside UTC hour 10 (all at 10:00:29Z to 10:00:49Z on the days read), so
+none is on record; (b) rows BSD cannot match: D1 holds seeded rows that are unjoined and months old for 2026-10-24 (1), 10-31 (3) and 11-05 (1)
+(MLS, seeded 2026-06-30 and 07-06), and 2026-11-07's Ligue 1 row before its alias. Such a row keeps its date pending at the day's first pass near
+00:00Z, which would hold the date 36 h and the 10:00Z rows with it. No miss of that kind is on record (the rows of 10-30 to 11-02 were joined at
+00:xxZ the next day whether the cause was an empty date or a stuck row; change_log cannot separate them). The fix: a pass that left nothing
+unjoined holds its date an hour (the next pass finds nothing pending and reads only D1); one that left rows unjoined holds it 6 h, which ends
+before 10:00Z for any pass in live hours; the window is read today first and yesterday last (review: yesterday's expired hold otherwise takes the
+tick's one BSD slot ahead of today); a pass that throws is a failed date (the failure marker holds it an hour) instead of being retried on every
+tick while the dates behind it are never visited. Cost, Rule 78, in pages and not only reads: a stuck row is read at most 4 times a UTC day at
+about 10 upstream pages each (10 measured 2026-11-07 for two event days, 0 cache hits), so at most 20 passes and 480 pages a day if all five window
+dates carry one, about 200 at the measured size, against about 50 before. BSD's own pages disagree on limits (`docs/CC-CMD-2026-10-29-bsd-live-shot-source.md`:
+"7,500 per day" on one, "None" on another, "100 req/day" on a third; 10 requests/second per IP is the one figure two pages agree on), so
+"BSD has no documented rate limit", written in the session doc of 2026-10-27, is not to be repeated. The artifact: `scripts/check-bsd-join-window-timing.mjs`,
+896 scenarios, 21 of 21 self-test (18 mutants), red on `src/index.js` as of `7a55ee1` (before this fix) for the seeded and second-batch families (372 findings) and on the
+pre-review order (12). **Still not modelled, and named in that check's header:** (1) two or more dates holding an unmatchable row ahead of a date with
+fresh rows on a cadence of three reaches in nine hours: a stuck date's 6 h re-read takes the scarce reach and the later date waits about 10 h;
+(2) a FAILED date (a pass that threw or answered non-200) on a cadence of one reach an hour or sparser: its failure marker ends at the next
+reach, so it is tried again at every reach and takes the tick. A `continue` after a failed pass with a page budget shared across the tick would
+cure (2); not built. Unblock for both: a measured reach cadence, i.e. how often a tick passes the slate-context gate
+(`journalism:<date>` `contextHash` changes) on a real day; without it neither can be said to occur.
 
 Three corrections this work produced, recorded so the document is not read as still-true:
 
@@ -217,9 +248,10 @@ and print both counts; they must be equal.
   `UPDATE ... SET bsd_event_id = ? WHERE id = ? AND bsd_event_id IS NULL`. Never overwrite.
   Return `{ date, soccerRows, joined, ambiguous, unmatched: [names], refusedKickoff, unjudgedKickoff, upstreamPages }`.
 - One admin route, authenticated exactly as Task 0 found, calling that function for `?date=`.
-- One call from the scheduled handler Task 0 chose: window today-1 to today+3, **once per UTC day
-  per date that has rows to join** through a KV marker with a 36 h TTL (a date with nothing pending: an hour, and it does not
-  end the tick; corrected 2026-11-07, see the Correction under Status), capped at 24 upstream pages per run (Rule 78),
+- One call from the scheduled handler Task 0 chose: window today..today+3 and then yesterday, one date that reads BSD per tick,
+  held by a KV marker after a pass: an hour when the pass left nothing unjoined (and a date with nothing pending does not end the
+  tick), 6 h when it left rows unjoined (as built 2026-10-27 this was **once per UTC day per date that has rows to join**, 36 h; corrected
+  twice on 2026-11-07, see the Corrections under Status), capped at 24 upstream pages per run (Rule 78),
   inside its own try/catch. The scheduled path and the admin path call the SAME function; only the
   trigger differs, and the offline check exercises the hook with a mock `env`.
 

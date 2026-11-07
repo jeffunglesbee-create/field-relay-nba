@@ -1,6 +1,6 @@
 # CC-CMD-2026-08-08-fa-cup-coverage
 
-**Status 2026-11-07: PARTIAL. UNBLOCKED 2026-11-06; relay half BUILT, not yet deployed or verified live; client half not built.**
+**Status 2026-11-07: PARTIAL. UNBLOCKED 2026-11-06; relay half BUILT, DEPLOYED and VERIFIED live (route and archive); laboratory half LIVE; client half not built (needs the owner's bundle pick, below).**
 - **Task 1, the unblock probe: DONE.** The criterion below is measured, not inferred: `scripts/probe-fa-cup-season.mjs` (runner run
   `42311014646`), artifact `outbox/probe-fa-cup-season-2026-11-06T23-18-47-844Z.json`. 4 of 6 reads answered with a payload (the `dates=` range
   shape answered HTTP 400 on both hosts, so the first fixture date came from the default scoreboard): all 4 `UNBLOCKED`, `season.year` 2026,
@@ -18,7 +18,18 @@
   `count: 2` (Bristol Rovers 2-0 Cambridge United; Oxford City 2-4 Leicester City; the home side is the venue's club in both); the route was read 2026-11-07 for the game date 2026-11-06.
   Still owed: a date that was not already over (2026-11-07..09) and the archive rows. The archive row check is
   `SELECT sport, COUNT(*) FROM regular_season_games WHERE sport = 'FA Cup' GROUP BY sport` after the 10:00Z row creation of a day with fixtures.
-- **Task 4, the client half: NOT BUILT.** Blocked by: Rule 70 (the relay deploys first) and the live verification above. The laboratory half
+- **Task 5, archive and a day not over: VERIFIED 2026-11-07.** `regular_season_games` holds `sport = 'FA Cup'` rows: 2 for 2026-11-06 and 33 for
+  2026-11-07 (D1 read 12:11Z, after the 10:00Z creation); `/v2/games?sport=facup&date=2026-11-07` returned HTTP 200, `"league":"FA Cup"`, `"state":"pre"`,
+  `"round":"English FA Cup, First Round"`, 15:00Z kickoffs; `date=2026-11-08` returned 4 games (Stafford Rangers v Grimsby Town 12:00Z, Cray Wanderers v
+  Stockport County 14:15Z, Wimborne Town v Crawley Town 15:00Z, Oldham Athletic v Sheffield Wednesday 17:15Z).
+- **The laboratory half is LIVE as of 2026-11-07 12:50Z** (see the deploy note in `outbox/cc-session-2026-11-07-lineup-join-and-fa-cup.md`): the page for 2026-11-07
+  holds 75 soccer cards, 42 BSD-covered plus 33 FA Cup by arithmetic (`outbox/lineups-live-manifest-2026-11-07T12-57-19.json`); a read of the FA Cup sport group
+  itself was not made.
+- **Task 4, the client half: NOT BUILT, and the CC-CMD's bundle is contradicted by the probe.** Task 4 below says `bundle: 'EFL'` (Paramount+/Fubo/Hulu).
+  `/v2/games?sport=facup&date=2026-11-08` serves `"streams":[{"label":"ESPN+","market":"National","type":"STREAMING"}]` on all 4 games. The only `BUNDLES` key
+  in `src/legacy/field.js` that lists `espnplus` for soccer is `LALIGA` (`["espnplus","fubo","hulu","sling","youtubetv"]`), a misnomer for this use, and a new key is
+  an invention the task forbids. Needs the owner's pick: reuse `LALIGA`, or add a dedicated key. Everything else in Task 4 is specified and unblocked.
+- **Task 4, the client half (as written before that probe):** Blocked by: Rule 70 (the relay deploys first) and the live verification above. The laboratory half
   (LAB-FIRST: `Sport.FACup` in `Desk.fs`, `sport-registry-check` count) is the consumer the owner named on 2026-11-06 ("fa cup is missing").
   The jubilant-bassoon `SOCCER_LEAGUES` entry (card creation on the served page) remains owed by this CC-CMD.
 - **Found while building, filed:** `docs/CC-CMD-2026-11-07-wc-results-club-contamination.md` (club games are written into the World Cup tables,
