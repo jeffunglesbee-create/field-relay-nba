@@ -2,7 +2,7 @@
   PASS  V2_LEAGUES parsed to real rows
   PASS  the two tables are not the same table
 
-  26 fetchable competition(s): 20 seeded, 2 excluded, 4 undecided
+  27 fetchable competition(s): 21 seeded, 2 excluded, 4 undecided
 
     UNDECIDED  eflchamp (eng.2)
     UNDECIDED  eflone (eng.3)
@@ -13,21 +13,22 @@
   PASS  no manifest entry names a competition the relay cannot fetch
   PASS  every exclusion states a reason
   PASS  every undecided entry states the question that decides it
-  /integrity/games covers 7 of 22 seeded competition(s).
-  Blind to 15: La Liga, Serie A, Bundesliga, Ligue 1, EFL Cup, EFL Trophy, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League, UEFA Champions League Qualifying, UEFA Europa League Qualifying, UEFA Europa Conference League Qualifying, NFL, CFB, PGA Tour
+  /integrity/games covers 7 of 23 seeded competition(s).
+  Blind to 16: La Liga, Serie A, Bundesliga, Ligue 1, EFL Cup, EFL Trophy, FA Cup, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League, UEFA Champions League Qualifying, UEFA Europa League Qualifying, UEFA Europa Conference League Qualifying, NFL, CFB, PGA Tour
   Tracked by CC-CMD-2026-08-27-integrity-leagues-drift. Not failed here.
 
   PASS  LEAGUES_LOCAL contains nothing the cron does not seed
 
-  Live half, 2026-11-03 (4 day(s) ago)
+  Live half, 2026-11-04 (4 day(s) ago)
 
   PASS  the archive answers for that date
   PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
-  NHL                      11       11
-  EFL Trophy                4        4
+  NBA                      14       14
+  NHL                       4        4
   UEFA Champions League     9        9
-  CFB                       2        2
+  UEFA Europa League        1        1
+  CFB                       3        3
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
   PASS  the archive returned rows for that date
