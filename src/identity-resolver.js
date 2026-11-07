@@ -451,6 +451,11 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY, AMBIGUOUS_TEAM } = (() => {
         // unclaimed event with "Stade Rennais" in the same position: Paris FC v Rennes (210497), Lyon v Rennes (210478),
         // Rennes v Strasbourg (210507).
         ['Stade Rennais',              'Rennes'],
+        // A fixture-dates pair found live, not in a fixture: 2026-11-07, Ligue 1, ESPN "Auxerre" v "Paris FC" (18:00Z). The join left
+        // that row unmatched while it joined 33 of the day's other 34. BSD serves the home side as "AJ Auxerre" (event 210519,
+        // read from /bsd/events/by-date, outbox/probe-bsd-unmatched-row-*.json); "Paris FC" is spelled alike on both sides. The
+        // canonical is the archive's form, so no archive name's key changes.
+        ['AJ Auxerre',                 'Auxerre'],
     ];
     const strip = {};
     const display = {};
