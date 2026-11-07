@@ -6391,7 +6391,12 @@ async function runBsdGameJoinWindow(env, dateKey) {
     // A date that failed (BSD down, a page that did not answer) is skipped for an hour, so one bad date cannot hold
     // the four behind it, and a BSD outage costs one upstream call an hour per date, not one per tick.
     if (await env.FIELD_JOURNALISM.get(failKey)) continue;
-    const result = await runBsdGameJoinForDate(env, date);
+    // A pass that THROWS (a BSD fetch that times out, a body that is not JSON, a D1 error) is a failed date like one that answered
+    // non-200. Uncaught it wrote no marker, so it was retried on every tick, and the loop reaches it before every date behind it,
+    // which were never visited (found by review 2026-11-07, reproduced on this function with a stand-in that throws).
+    let result;
+    try { result = await runBsdGameJoinForDate(env, date); }
+    catch (e) { result = { ok: false, reason: `the pass threw: ${e.message}`, date }; }
     console.log(`[BSD-GAME-JOIN] ${JSON.stringify({ ...result, unmatched: result.unmatched ? result.unmatched.length : undefined })}`);
     // What a pass LEFT decides how long its date is held. The archive creates a day's game rows at about 10:00Z, and a date's
     // first pass of each UTC day runs near 00:00Z, ten hours earlier. A pass that held the date for 36 h, whatever it found,

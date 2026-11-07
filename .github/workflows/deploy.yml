@@ -347,7 +347,7 @@ jobs:
       - name: The BSD game join joins what it should, and each rule can fail
         run: |
           # docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md: the join over the captured fixture and a synthetic
-          # corpus, the I/O wiring as source, and 23 mutations (7 of the rule, 16 of the wiring), each of which must
+          # corpus, the I/O wiring as source, and 24 mutations (7 of the rule, 17 of the wiring), each of which must
           # turn one of the two checks red.
           node scripts/check-bsd-game-join.mjs --offline
           node scripts/check-bsd-game-join-wiring.mjs
@@ -359,7 +359,7 @@ jobs:
           # window position and cadence; the same when a date already carries an unmatchable row at the day's first pass
           # (a latent defect found in D1, not a miss on record: such rows exist for 10-24, 10-31 and 11-05), with that row
           # on another window date, or when a date gets a second batch; a date left with unjoined rows is read at most 4
-          # times a UTC day; and no tick reads BSD for more than one date (Rule 78). 864 scenarios; 16 mutants of the real
+          # times a UTC day; a pass that throws is held an hour and the dates behind it run; and no tick reads BSD for more than one date (Rule 78). 896 scenarios; 18 mutants of the real
           # function, one designed-to-pass case and one refusal. (The 2026-11-07 miss was a 36 h marker the pre-fix code
           # wrote at 00:45Z, which no simulation of this code can reproduce.)
           node scripts/check-bsd-join-window-timing.mjs --self-test

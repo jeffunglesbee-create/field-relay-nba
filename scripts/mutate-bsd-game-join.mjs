@@ -78,6 +78,7 @@ const WIRING = [
   { id: 'W13 an unconditional continue (no date ever returns)', find: "if (result.ok && result.pending === 0) continue;", replace: "continue;" },
   { id: 'W15 yesterday first in the loop (its expired 6 h hold takes the tick\'s one BSD slot ahead of today)', find: "[0, 1, 2, 3, -1].map(shift)", replace: "[-1, 0, 1, 2, 3].map(shift)" },
   { id: 'W16 the failure marker is written but never read (a BSD outage retried every tick)', find: "if (await env.FIELD_JOURNALISM.get(failKey)) continue;", replace: "" },
+  { id: 'W17 a throwing pass left uncaught (no marker, retried every tick, the dates behind never visited)', find: "try { result = await runBsdGameJoinForDate(env, date); }\n    catch (e) { result = { ok: false, reason: `the pass threw: ${e.message}`, date }; }", replace: "result = await runBsdGameJoinForDate(env, date);" },
   { id: 'W8 a failed date retried every tick (no failure marker)', find: "else await env.FIELD_JOURNALISM.put(failKey, String(result.reason || 'failed'), { expirationTtl: 3600 });", replace: "" },
   { id: 'W9 an unparseable body swallowed as null (a bare catch)', find: "try { body = await request.json(); }\n            catch (e) {\n                return new Response(JSON.stringify({ ok: false, error: `body is not JSON: ${e.message}` }),\n                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });\n            }", replace: "body = await request.json().catch(() => null);" },
 ]
