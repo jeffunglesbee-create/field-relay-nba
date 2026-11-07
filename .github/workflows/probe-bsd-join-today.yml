@@ -16,3 +16,6 @@ jobs:
     with:
       script: scripts/probe-bsd-join-today.mjs
       commit_message: "chore: bsd join today probe"
+    # The reusable runner passes RELAY_SHARED_SECRET only when the caller inherits secrets; without it the script
+    # refuses to run (run 42372118055: "RELAY_SHARED_SECRET is not set").
+    secrets: inherit
