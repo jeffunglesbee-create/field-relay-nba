@@ -4793,7 +4793,10 @@ async function handleV2Games(url, env, ctx, request = null) {
             });
             g.winProb = wp;
 
-            if (env.WC2026_DB) {
+            // The World Cup's group table is read for a World Cup game only: a live
+            // club game whose round string holds "Group F" took World Cup Group F's
+            // standings and an advancement probability computed from them.
+            if (env.WC2026_DB && cfg.espnLeague === 'fifa.world') {
                 const gLetter = extractWCGroup(g.round, g.home?.name, g.away?.name);
                 if (gLetter) {
                     try {
@@ -4869,10 +4872,16 @@ async function handleV2Games(url, env, ctx, request = null) {
             }
         }
 
-        // A World Cup result can only come off a soccer board. Until NBA joined
-        // this branch only the soccer adapter emitted 'final'; NBA's finals now
-        // carry it too and must not reach the WC writer.
-        if (env.WC2026_DB && !V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)) {
+        // A World Cup result can only come off the World Cup's own board. This
+        // gate once excluded only the non-soccer sports, so EVERY soccer final
+        // reached the writer: measured 2026-11-07 on production D1, wc_results
+        // held club cup rows (58 'third' from UEFA "Third Qualifying Round" ties,
+        // 3 'final' from May). The EFL Trophy's round string "Group Southern
+        // Group F" also parses as World Cup Group F (reproduced on the real
+        // worker with a stubbed ESPN; no such row is in production yet). The
+        // league is the test, not the sport: wc26 is the only key routed to
+        // fifa.world. scripts/check-wc-tables-world-cup-only.mjs holds it.
+        if (env.WC2026_DB && cfg.espnLeague === 'fifa.world') {
             const finals = games.filter(g => g.state === 'final');
             if (finals.length > 0) {
                 if (ctx?.waitUntil) {

@@ -436,6 +436,17 @@ jobs:
           node scripts/check-v2-games-nba-board.mjs
           node scripts/check-v2-games-nba-board.mjs --mutate
 
+      # docs/CC-CMD-2026-11-07-wc-results-club-contamination.md. writeWCResult ran
+      # for every soccer final and the live loop read the World Cup group table for
+      # every live soccer game, so production wc_results held club cup rows (58
+      # 'third' from UEFA qualifying, 3 May 'final') and wc_group held groups of five
+      # and six teams. The real worker, every soccer key read from V2_LEAGUES at five
+      # rounds, with wc26 as the control, and eight mutants of the two gates.
+      - name: The World Cup tables hold the World Cup, and only the World Cup
+        run: |
+          node scripts/check-wc-tables-world-cup-only.mjs
+          node scripts/check-wc-tables-world-cup-only.mjs --mutate
+
       # Same CC-CMD, review finding G2. The slate date steps back one calendar
       # day before 4am ET; 24 hours back on the instant named the wrong day for
       # an hour after spring-forward. src/field-date.js is shared by index.js

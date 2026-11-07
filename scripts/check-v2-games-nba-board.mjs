@@ -15,7 +15,8 @@
 //
 // Coverage, printed with the result (Rule 91): sport=nba on the ESPN branch,
 // breaks read by ESPN's type.state, WNBA's final word as the control for NBA's,
-// and the WC writer's sport guard with EPL and wc26 as its controls. Not
+// and the WC writer's guard: NBA and EPL finals are not handed to it, wc26 is
+// (the full club matrix is scripts/check-wc-tables-world-cup-only.mjs). Not
 // checked: the /nba/* passthrough and its readers, which do not read
 // /v2/games; the status NAME live ESPN uses for an NBA break (the mapping
 // keys on type.state 'in', so the name does not decide it).
@@ -155,17 +156,19 @@ async function selfTest() {
   eq("N7 a WNBA final still carries 'post'", (wnba.body?.games ?? []).map(x => x.state), ['post']);
 
   // N8: the WC writer is the branch's only waitUntil. An NBA final must not
-  // reach it; an EPL final and a World Cup final still do, which shows the NBA
-  // zero is not the harness failing to reach the writer, and the World Cup row
-  // shows the guard keeps the one league the writer exists for.
+  // reach it, and since 2026-11-07 neither must an EPL final (the writer serves
+  // the World Cup only: club games had been filling the World Cup tables); a
+  // World Cup final still does, which shows the zeros are not the harness
+  // failing to reach the writer, and shows the guard keeps the one league the
+  // writer exists for.
   eq('N8 an NBA final is not handed to the WC writer', [ok.waits, ok.wcInserts], [0, 0]);
   const epl = await get('epl', 'ok');
-  eq('N8 control: an EPL final is', [(epl.body?.games ?? []).map(x => x.state), epl.waits], [['final'], 1]);
+  eq('N8 an EPL final is not handed to the WC writer either', [(epl.body?.games ?? []).map(x => x.state), epl.waits, epl.wcInserts], [['final'], 0, 0]);
   const wc = await get('wc26', 'ok');
   eq('N8 control: a World Cup group final is, and writes its result',
     [(wc.body?.games ?? []).map(x => x.state), wc.waits, wc.wcInserts > 0], [['final'], 1, true]);
 
-  console.log(`\nchecked sport=nba on the ESPN branch (served, empty, refused, thrown; breaks and a postponement), WNBA's final word, and the WC writer guard with EPL and wc26 as controls`);
+  console.log(`\nchecked sport=nba on the ESPN branch (served, empty, refused, thrown; breaks and a postponement), WNBA's final word, and the WC writer guard: NBA and EPL finals refused, wc26 kept`);
   console.log(failed ? `SELF-TEST FAILED: ${failed}` : 'self-test passed');
   return failed;
 }
@@ -189,11 +192,11 @@ const MUTATIONS = [
     "const espnDate = date.replace(/-/g, '');\n        const _espnSportPath",
     "const espnDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');\n        const _espnSportPath"]]],
   ['the WC writer takes every final again', [[
-    "if (env.WC2026_DB && !V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)) {",
-    "if (env.WC2026_DB) {"]]],
+    "if (env.WC2026_DB && cfg.espnLeague === 'fifa.world') {\n            const finals = games.filter(g => g.state === 'final');",
+    "if (env.WC2026_DB) {\n            const finals = games.filter(g => g.state === 'final');"]]],
   ['the WC writer keys on cfg.sport and drops the World Cup', [[
-    "if (env.WC2026_DB && !V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)) {",
-    "if (env.WC2026_DB && cfg.sport === 'soccer') {"]]],
+    "if (env.WC2026_DB && cfg.espnLeague === 'fifa.world') {\n            const finals = games.filter(g => g.state === 'final');",
+    "if (env.WC2026_DB && cfg.sport === 'soccer') {\n            const finals = games.filter(g => g.state === 'final');"]]],
   ['a break reads as pre again', [[
     "stt === 'STATUS_IN_PROGRESS' || st.type?.state === 'in' ? 'live'",
     "stt === 'STATUS_IN_PROGRESS' ? 'live'"]]],
@@ -201,8 +204,8 @@ const MUTATIONS = [
     "stt === 'STATUS_FINAL'                              ? (sportKey === 'nba' ? 'final' : 'post')",
     "stt === 'STATUS_FINAL' || st.type?.state === 'post' ? (sportKey === 'nba' ? 'final' : 'post')"]]],
   ['the WC writer takes no final', [[
-    "if (env.WC2026_DB && !V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)) {",
-    "if (env.WC2026_DB && false) {"]]],
+    "if (env.WC2026_DB && cfg.espnLeague === 'fifa.world') {\n            const finals = games.filter(g => g.state === 'final');",
+    "if (env.WC2026_DB && false) {\n            const finals = games.filter(g => g.state === 'final');"]]],
 ];
 
 function mutate() {
