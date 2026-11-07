@@ -1,0 +1,33 @@
+name: Probe BSD join markers
+
+# Dispatch-only, READ-ONLY. Lists the `bsd-join*` keys in FIELD_JOURNALISM and classifies each by who could have written
+# it (scripts/probe-bsd-join-markers.mjs). Uses the CLOUDFLARE_API_TOKEN the deploy already uses; writes nothing to KV and
+# never prints the token. No Odds API call, no relay call.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Self-test, then read the markers
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node scripts/probe-bsd-join-markers.mjs --self-test
+          node scripts/probe-bsd-join-markers.mjs
+      - name: Commit result
+        if: always()
+        run: |
+          bash scripts/probe-commit-retry.sh "chore: bsd join markers probe"
