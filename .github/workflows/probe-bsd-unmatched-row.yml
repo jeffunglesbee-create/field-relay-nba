@@ -1,0 +1,17 @@
+name: Probe BSD unmatched row
+
+# Dispatch-only, read-only, no secret. Lists the BSD events naming Auxerre or Paris FC for three UTC days
+# (scripts/probe-bsd-unmatched-row.mjs), to say why the join left that Ligue 1 row unmatched on 2026-11-07.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-bsd-unmatched-row.mjs
+      commit_message: "chore: bsd unmatched row probe"
