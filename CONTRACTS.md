@@ -1635,8 +1635,10 @@ game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-mat
 - The join is `resolveTeamKey` on both sides, same orientation, one candidate; the kickoff instant may refuse a pair
   more than 180 minutes apart and never chooses one (owner ruling 2026-10-19). A row with no `start_time` is joined on
   names alone and counted as unjudged. Two candidates is `null`, not the first. Source: `src/bsd-game-join.js`.
-- Written by `runBsdGameJoinForDate` (`POST /admin/bsd-game-join {"date":"YYYY-MM-DD"}`, and once per UTC day per date
-  from the journalism cycle, one date per tick), only where `bsd_event_id IS NULL`, through `reconcile()` with
+- Written by `runBsdGameJoinForDate` (`POST /admin/bsd-game-join {"date":"YYYY-MM-DD"}`, and from the journalism cycle:
+  a date with rows to join is read from BSD once per UTC day, one such date per tick; a date with nothing pending is
+  looked at again within the hour and makes no BSD call, so a day's rows, created about 10:00Z, are joined in the first
+  cycle that reaches the join after they exist, not at the next midnight UTC; corrected 2026-11-07), only where `bsd_event_id IS NULL`, through `reconcile()` with
   change_log source `bsd_game_join`. Never overwritten.
 - Two archive rows that are the SAME fixture written under two id schemes both carry the one event id; that is correct
   and is the archive's duplicate problem, not this field's.

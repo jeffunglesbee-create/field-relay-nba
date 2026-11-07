@@ -347,12 +347,19 @@ jobs:
       - name: The BSD game join joins what it should, and each rule can fail
         run: |
           # docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md: the join over the captured fixture and a synthetic
-          # corpus, the I/O wiring as source, and 15 mutations (7 of the rule, 8 of the wiring), each of which must
+          # corpus, the I/O wiring as source, and 20 mutations (7 of the rule, 13 of the wiring), each of which must
           # turn one of the two checks red.
           node scripts/check-bsd-game-join.mjs --offline
           node scripts/check-bsd-game-join-wiring.mjs
           node scripts/mutate-bsd-game-join.mjs
           node scripts/check-bsd-game-join-live.mjs --self-test
+          # 2026-11-06: how long a day's games wait for their join. The real marker logic against simulated days: rows
+          # created at 10:00Z (and off the hour) must be joined by the first cycle after one marker hour, not at the next
+          # midnight UTC (it was 855 minutes, the cause of "No lineup source for this game" on a finished game), at every
+          # window position and cadence; a date BSD cannot finish is still read once per UTC day; and no tick reads BSD for
+          # more than one date (Rule 78). 384 scenarios; eleven mutants of the real function.
+          node scripts/check-bsd-join-window-timing.mjs --self-test
+          node scripts/check-bsd-join-window-timing.mjs
 
       - name: No new bare empty catch
         run: |

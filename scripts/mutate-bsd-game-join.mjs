@@ -71,6 +71,10 @@ const WIRING = [
   { id: 'W5 remove the upstream page cap', find: "if (budget.upstreamPages >= budget.maxUpstreamPages) return null;", replace: "" },
   { id: 'W6 an unauthenticated admin route', find: "if (!relaySecretMatches(request.headers.get('X-FIELD-Relay'), env))\n                return new Response('Unauthorized', { status: 401, headers: CORS });\n            let body;\n            try { body = await request.json(); }", replace: "let body;\n            try { body = await request.json(); }" },
   { id: 'W7 the cycle hook outside its try/catch', find: "try { await runBsdGameJoinWindow(env, dateKey); }\n    catch (e) { console.error(\"[BSD-GAME-JOIN] window failed:\", e.message); /* a lineup id is an enrichment, not a requirement */ }", replace: "await runBsdGameJoinWindow(env, dateKey);" },
+  { id: 'W10 an empty date held for 36 h (the 2026-11-06 lineup defect)', find: "{ expirationTtl: result.pending === 0 ? 3600 : 36 * 3600 }", replace: "{ expirationTtl: 36 * 3600 }" },
+  { id: 'W11 the loop goes on after EVERY ok pass (five dates read BSD in one tick)', find: "if (result.ok && result.pending === 0) continue;", replace: "if (result.ok) continue;" },
+  { id: 'W12 the loop goes on after a pass that left one row pending', find: "if (result.ok && result.pending === 0) continue;", replace: "if (result.ok && result.pending <= 1) continue;" },
+  { id: 'W13 an unconditional continue (no date ever returns)', find: "if (result.ok && result.pending === 0) continue;", replace: "continue;" },
   { id: 'W8 a failed date retried every tick (no failure marker)', find: "else await env.FIELD_JOURNALISM.put(failKey, String(result.reason || 'failed'), { expirationTtl: 3600 });", replace: "" },
   { id: 'W9 an unparseable body swallowed as null (a bare catch)', find: "try { body = await request.json(); }\n            catch (e) {\n                return new Response(JSON.stringify({ ok: false, error: `body is not JSON: ${e.message}` }),\n                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });\n            }", replace: "body = await request.json().catch(() => null);" },
 ]
