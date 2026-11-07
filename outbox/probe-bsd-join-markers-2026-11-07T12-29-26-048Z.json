@@ -1,0 +1,80 @@
+{
+  "at": "2026-11-07T12:29:26.048Z",
+  "nowUnix": 1794054565,
+  "namespace": "FIELD_JOURNALISM",
+  "prefix": "bsd-join",
+  "keysListed": 10,
+  "markers": [
+    {
+      "key": "bsd-join:2026-11-05:2026-11-06",
+      "value": "{\"written\":0,\"pending\":1}",
+      "expiration": "2026-11-07T13:31:06.000Z",
+      "secondsLeft": 3701,
+      "verdict": "PENDING-ROWS-HELD (0 written of 1; 36 h by the rule, a date with rows is read once per UTC day)"
+    },
+    {
+      "key": "bsd-join:2026-11-05:2026-11-07",
+      "value": "{\"written\":0,\"pending\":1}",
+      "expiration": "2026-11-08T12:15:27.000Z",
+      "secondsLeft": 85562,
+      "verdict": "PENDING-ROWS-HELD (0 written of 1; 36 h by the rule, a date with rows is read once per UTC day)"
+    },
+    {
+      "key": "bsd-join:2026-11-06:2026-11-06",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-07T12:46:02.000Z",
+      "secondsLeft": 997,
+      "verdict": "EMPTY-DATE-HOURLY (the fixed rule)"
+    },
+    {
+      "key": "bsd-join:2026-11-06:2026-11-07",
+      "value": "{\"written\":5,\"pending\":5}",
+      "expiration": "2026-11-08T12:30:29.000Z",
+      "secondsLeft": 86464,
+      "verdict": "PENDING-ROWS-HELD (5 written of 5; 36 h by the rule, a date with rows is read once per UTC day)"
+    },
+    {
+      "key": "bsd-join:2026-11-07:2026-11-06",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-07T13:00:35.000Z",
+      "secondsLeft": 1870,
+      "verdict": "EMPTY-DATE-HOURLY (the fixed rule)"
+    },
+    {
+      "key": "bsd-join:2026-11-07:2026-11-07",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-08T12:45:30.000Z",
+      "secondsLeft": 87365,
+      "verdict": "EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the fixed code writes 3600 s)"
+    },
+    {
+      "key": "bsd-join:2026-11-08:2026-11-06",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-07T13:15:41.000Z",
+      "secondsLeft": 2776,
+      "verdict": "EMPTY-DATE-HOURLY (the fixed rule)"
+    },
+    {
+      "key": "bsd-join:2026-11-08:2026-11-07",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-08T13:00:29.000Z",
+      "secondsLeft": 88264,
+      "verdict": "EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the fixed code writes 3600 s)"
+    },
+    {
+      "key": "bsd-join:2026-11-09:2026-11-06",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-07T22:02:00.000Z",
+      "secondsLeft": 34355,
+      "verdict": "EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the fixed code writes 3600 s)"
+    },
+    {
+      "key": "bsd-join:2026-11-09:2026-11-07",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-08T13:15:28.000Z",
+      "secondsLeft": 89163,
+      "verdict": "EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the fixed code writes 3600 s)"
+    }
+  ],
+  "coverage": "10 key(s) under prefix \"bsd-join\" listed and each value read; keys outside the prefix are not examined"
+}
