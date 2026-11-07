@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-10-29 (relay copy → client: the client reader of `bsd:ball` / `bsd:stats` and the shot placement `transformReference.sharedPitch`; before that, 2026-10-28, the `bsd:stats` and `bsd:ball` SSE events, and the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
+Last synced: 2026-11-07 (relay copy → client: the join cadence of the `bsd_event_id` section on `/context/date` game rows, corrected; before that, 2026-10-29: the client reader of `bsd:ball` / `bsd:stats` and the shot placement `transformReference.sharedPitch`; before that, 2026-10-28, the `bsd:stats` and `bsd:ball` SSE events, and the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
 
 ---
 
