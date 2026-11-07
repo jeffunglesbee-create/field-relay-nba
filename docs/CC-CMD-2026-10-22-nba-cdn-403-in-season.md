@@ -165,8 +165,11 @@ The CDN refuses the Worker, so the board moved to ESPN. `5919cab`, deploy run
 - **Checks:**
   - `scripts/check-v2-games-nba-board.mjs`, in `deploy.yml`: 16 checks, 10
     red on the old source, 10 of 10 mutations caught. Its fixture date is a
-    past one and is asserted not to be today. EPL and a World Cup group match
-    are the WC writer's controls.
+    past one and is asserted not to be today. A World Cup group match is the
+    WC writer's control; since 2026-11-07 an EPL final is asserted NOT to reach
+    the writer (it served the World Cup only in intent: club games had been
+    filling the World Cup tables), see
+    `docs/CC-CMD-2026-11-07-wc-results-club-contamination.md`.
   - `check-v2-games-ambient-no-briefs.mjs`: now 1 of 1 sites.
   - `check-ambient-capture-dedup.mjs` S18 uses the `espn:` id.
   - Gates: 132 of 134 deploy and guards steps on a clean tree. The 2
