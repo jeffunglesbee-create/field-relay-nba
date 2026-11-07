@@ -1,6 +1,6 @@
 # CC-CMD-2026-08-08-fa-cup-coverage
 
-**Status 2026-11-07: PARTIAL. UNBLOCKED 2026-11-06; relay half BUILT, DEPLOYED and VERIFIED live (route and archive); laboratory half LIVE; client half not built (needs the owner's bundle pick, below).**
+**Status 2026-11-07: BUILT. UNBLOCKED 2026-11-06; relay half BUILT, DEPLOYED and VERIFIED live (route and archive); laboratory half LIVE; client half BUILT and pushed (jubilant-bassoon `dfd5712`, owner's order "Add a new key"), LIVE: the first push `dfd5712` failed the deploy gate's Rule 99 ratchet (a `|| 0` in the render harness under `outbox/`) and deployed nothing; the fix `bbed0c0` plus a dispatched Deploy gate (run `42386741813`) `success`, its own confirm step reading the live site serving `SW_VERSION 2026-11-07a`; the Live Deploy Verify Probe (run `42387005410`, `outbox/live-deploy-verify-20261107T153503Z.txt` in jubilant-bassoon) read HTTP 200, 2139112 bytes, `SW_VERSION = "2026-11-07a"`, slugs `eng.fa`, `eng.league_cup`, `eng.trophy` and labels `"EFL Cup"`, `"EFL Trophy"`, `"FA Cup"` in the deployed bundle; Smoke Test + Live Verify (run `42386735228`) `success`. Open: Task 6 (past-date navigation), and the first live FA Cup match on the deployed page (2026-11-08).**
 - **Task 1, the unblock probe: DONE.** The criterion below is measured, not inferred: `scripts/probe-fa-cup-season.mjs` (runner run
   `42311014646`), artifact `outbox/probe-fa-cup-season-2026-11-06T23-18-47-844Z.json`. 4 of 6 reads answered with a payload (the `dates=` range
   shape answered HTTP 400 on both hosts, so the first fixture date came from the default scoreboard): all 4 `UNBLOCKED`, `season.year` 2026,
@@ -25,10 +25,24 @@
 - **The laboratory half is LIVE as of 2026-11-07 12:50Z** (see the deploy note in `outbox/cc-session-2026-11-07-lineup-join-and-fa-cup.md`): the page for 2026-11-07
   holds 75 soccer cards, 42 BSD-covered plus 33 FA Cup by arithmetic (`outbox/lineups-live-manifest-2026-11-07T12-57-19.json`); a read of the FA Cup sport group
   itself was not made.
-- **Task 4, the client half: NOT BUILT, and the CC-CMD's bundle is contradicted by the probe.** Task 4 below says `bundle: 'EFL'` (Paramount+/Fubo/Hulu).
-  `/v2/games?sport=facup&date=2026-11-08` serves `"streams":[{"label":"ESPN+","market":"National","type":"STREAMING"}]` on all 4 games. The only `BUNDLES` key
-  in `src/legacy/field.js` that lists `espnplus` for soccer is `LALIGA` (`["espnplus","fubo","hulu","sling","youtubetv"]`), a misnomer for this use, and a new key is
-  an invention the task forbids. Needs the owner's pick: reuse `LALIGA`, or add a dedicated key. Everything else in Task 4 is specified and unblocked.
+- **Task 4, the client half: BUILT 2026-11-07 in jubilant-bassoon `dfd5712`; the CC-CMD's bundle was contradicted by the probe and the owner ruled "Add a new key".**
+  Task 4 below says `bundle: 'EFL'` (Paramount+/Fubo/Hulu). `/v2/games?sport=facup&date=2026-11-08` serves ESPN+ on all 4 games, but ESPN's own scoreboard for
+  2026-11-07 lists ESPN+ on only 2 of 33 (`outbox/probe-fa-cup-scoreboard-limit-2026-11-07T14-27-37-477Z.json`: 31 empty broadcasts arrays), so "every FA Cup game
+  streams on ESPN+" is false (it was said to the owner, from the 4 games of 11-08, and is corrected here). Built: `BUNDLES.FA_CUP = ["espnplus"]` (a new key, the
+  only one that is ESPN+ alone); the `SOCCER_LEAGUES` entry `{ league: 'eng.fa', section: 'FA Cup', bundle: 'FA_CUP', leagueLabel: 'FA Cup', limit: 100,
+  bundleIfListed: 'espn+' }` (`limit` because the default of 30 dropped 3 of the 33 games of 11-07; `bundleIfListed` so ESPN+ is attached only where ESPN lists it,
+  in `fetchSoccerFixtures` and the date sweep; delete it for the static behaviour of every other entry); and the `'fa cup'` token at ten soccer routers
+  (`classifySport` first: without it `findScore` returns null for a live game, found by an independent review before the push; executed on a live 2-1,
+  HEAD `null`, now `2-1`). Task 4's artifact, executed (smoke FA-6): `isDomesticLeagueInBreak('FA Cup', d)` false on 2026-11-07, 2027-01-10, 2027-03-07 and
+  2027-05-16, `Bundesliga` control true on 2026-07-01. Smoke 1066 -> 1074, units 70 -> 76, 25 of 25 mutants caught, `SW_VERSION` 2026-11-07a.
+  Session doc `outbox/cc-session-2026-11-07-fa-cup-client.md` in jubilant-bassoon.
+- **Task 6 (open, added 2026-11-07 by the review of the client half): past-date navigation has no FA Cup.** `goToDate` for a date before today calls
+  `fetchRelayDateSections`, which walks `FIELD_V2_SOURCES` and looks each key up in `V2_SECTION_LABEL`; neither has `facup`, `eflcup` or `efltrophy`, so
+  "Yesterday" on 2026-11-08 shows no FA Cup games (the same gap the two EFL cups already have; reproduced by the review, not a regression). Blocked by: nothing on the
+  relay (`/v2/games?sport=facup&date=` already answers); it is a client edit in `FIELD_V2_SOURCES` and `V2_SECTION_LABEL` plus the injector pair
+  `scripts/check-v2-section-labels.mjs` enforces, and a decision whether the two EFL cups join it. Verify: on a past date with FA Cup games, `goToDate(iso)` renders
+  a section labelled `FA Cup` (`scripts/check-relay-date-sections.mjs` is the executed home for it). Also recorded: the date sweep caches its result for the tab
+  session, so a stream decision made from ESPN's listing at first load is not revisited (pre-existing cache behaviour, consequence not shown).
 - **Task 4, the client half (as written before that probe):** Blocked by: Rule 70 (the relay deploys first) and the live verification above. The laboratory half
   (LAB-FIRST: `Sport.FACup` in `Desk.fs`, `sport-registry-check` count) is the consumer the owner named on 2026-11-06 ("fa cup is missing").
   The jubilant-bassoon `SOCCER_LEAGUES` entry (card creation on the served page) remains owed by this CC-CMD.
