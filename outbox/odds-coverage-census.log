@@ -1,33 +1,40 @@
 
-=== 2026-11-05 — 52 row(s) across regular+postseason
+=== 2026-11-06 — 26 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  CFB                       2        1        1     0     1        0           0
-  MLS                       1        0        0     0     0        0           0
-  NBA                       2        2        2     0     2        0           0
-  NFL                       1        1        1     0     1        0           0
-  NHL                      11       11       11     0    11        0           0
-  UEFA Europa Conference League   18        0        0     0     0        0           0
-  UEFA Europa League       17        0        0     0     0        0           0
+  Bundesliga                1        0        1     0     0        1           0
+  CFB                       5        5        5     0     5        0           0
+  EPL                       1        1        1     1     1        0           0
+  FA Cup                    2        0        0     0     0        0           0
+  La Liga                   1        1        1     1     1        0           0
+  Ligue 1                   1        1        1     1     1        0           0
+  NBA                       9        9        9     0     9        0           0
+  NHL                       3        3        3     0     3        0           0
+  PGA Tour                  1        0        0     0     0        0           0
+  Serie A                   1        1        1     1     1        0           0
+  golf                      1        0        0     0     0        0           0
 
-  of 15 closing snapshot(s): 15 a verified sequence, 0 unverifiable, 0 out of order
-
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-11-05T10:01:05.601Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":470,"away":-650},"spread":{"home":14.5,"away":-14.5,"homePrice"
-
-  checked 7 distinct sport label(s) on this date — every label present, not a sample
-
-=== 2026-11-06 — 22 row(s) across regular+postseason
-  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  Bundesliga                1        0        0     0     0        0           0
-  CFB                       5        5        0     0     0        0           0
-  EPL                       1        1        0     1     0        0           0
-  La Liga                   1        1        0     1     0        0           0
-  Ligue 1                   1        1        0     1     0        0           0
-  NBA                       9        9        0     0     0        0           0
-  NHL                       3        3        0     0     0        0           0
-  Serie A                   1        1        0     1     0        0           0
-
-  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+  of 22 closing snapshot(s): 21 a verified sequence, 1 unverifiable, 0 out of order
 
   one real opening_odds payload: {"source":"draftkings","captured_at":"2026-11-06T10:01:56.669Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-225,"away":185},"spread":{"home":-6.5,"away":6.5,"homePrice":-
 
-  checked 8 distinct sport label(s) on this date — every label present, not a sample
+  checked 11 distinct sport label(s) on this date — every label present, not a sample
+
+=== 2026-11-07 — 146 row(s) across regular+postseason
+  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
+  Bundesliga                5        5        2     5     2        0           0
+  CFB                      51       47        0     0     0        0           0
+  EPL                       4        4        3     4     3        0           0
+  FA Cup                   33        0        0     0     0        0           0
+  La Liga                   4        4        0     4     0        0           0
+  Ligue 1                   2        2        0     2     0        0           0
+  MLS                      23       22        0    22     0        0           0
+  NBA                       7        7        0     0     0        0           0
+  NHL                      12       12        0     0     0        0           0
+  Serie A                   4        4        2     4     2        0           0
+  golf                      1        0        0     0     0        0           0
+
+  of 7 closing snapshot(s): 7 a verified sequence, 0 unverifiable, 0 out of order
+
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-11-07T10:01:18.502Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-330,"away":650,"draw":450}}
+
+  checked 11 distinct sport label(s) on this date — every label present, not a sample
