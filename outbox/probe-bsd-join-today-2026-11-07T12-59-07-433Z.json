@@ -1,0 +1,94 @@
+{
+  "at": "2026-11-07T12:59:07.433Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "dates": {
+    "2026-11-07": {
+      "verdict": "JOINED 1 of 1 pending",
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 459,
+        "upstreamPages": 10,
+        "cacheHits": 0,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      },
+      "before": {
+        "read": true,
+        "contextRows": 146,
+        "soccerRows": 42,
+        "joined": 41,
+        "bySport": {
+          "MLS": {
+            "rows": 23,
+            "joined": 23
+          },
+          "EPL": {
+            "rows": 4,
+            "joined": 4
+          },
+          "La Liga": {
+            "rows": 4,
+            "joined": 4
+          },
+          "Serie A": {
+            "rows": 4,
+            "joined": 4
+          },
+          "Bundesliga": {
+            "rows": 5,
+            "joined": 5
+          },
+          "Ligue 1": {
+            "rows": 2,
+            "joined": 1
+          }
+        }
+      },
+      "after": {
+        "read": true,
+        "contextRows": 146,
+        "soccerRows": 42,
+        "joined": 42,
+        "bySport": {
+          "MLS": {
+            "rows": 23,
+            "joined": 23
+          },
+          "EPL": {
+            "rows": 4,
+            "joined": 4
+          },
+          "La Liga": {
+            "rows": 4,
+            "joined": 4
+          },
+          "Serie A": {
+            "rows": 4,
+            "joined": 4
+          },
+          "Bundesliga": {
+            "rows": 5,
+            "joined": 5
+          },
+          "Ligue 1": {
+            "rows": 2,
+            "joined": 2
+          }
+        }
+      }
+    }
+  },
+  "coverage": "1 date(s): 2026-11-07; each read from /context/date before and after one admin-route pass, plus a second pass to prove the IS NULL scope"
+}
