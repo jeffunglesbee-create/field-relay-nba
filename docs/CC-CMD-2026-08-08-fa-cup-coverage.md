@@ -59,6 +59,14 @@
   Unblocked when: any CFB Saturday (2026-11-14) or a day with 20+ games in one sport. Verify: `node outbox/fa-cup-findscore-collision-2026-11-07.cjs <manifest>` in jubilant-bassoon
   on a manifest of that sport's real games (the probe script is FA-Cup specific; its ESPN read and `games` list are the template) prints `wrong OLD n`, `wrong NEW 0`, and
   `right-before-wrong-after 0`.
+  **Measured 2026-11-07 (owner approved item 1; a college football Saturday, not 11-14).** Runner read of ESPN's real scoreboards at 20:22Z (jubilant-bassoon
+  `scoreboard_games_probe.js`, run `42410656723`): **CFB 51 games, 17 colliding pairs, 15 games in at least one**; NBA 7, NHL 12, NCAAB 2 games, none; NFL no games. `/v2/games?sport=cfb`
+  serves the same ESPN display names, so a CFB card has an exact entry in both slots. Old against new `findScore`, five seeding scenarios (`outbox/fuzzy-match-measurement-2026-11-07.txt`
+  in jubilant-bassoon): OLD wrong on 3 to 6 cards (three scenarios with nothing flagged: both slots carry the other game's score and the page calls it verified); NEW `ad5d4b9`
+  (ESPN slot only) 0 wrong with the ESPN slot alone, **3 and 6 wrong, flagged `⚠`, when the api-sports slot is fresher (the realistic CFB case)**. Candidate, NOT applied
+  (`outbox/fuzzy-match-both-slots-candidate-2026-11-07.patch`): the exact-pair preference in the api-sports slot too, 0 wrong in all five. Every api-sports writer keys on the relay's names
+  (V2 loop, the cascade, and the SSE write, which is guarded to a key that already exists), so the preference should drop only other games' witnesses. **Waits for the owner's go: it changes
+  scoring for every V2 sport.** Coverage: one snapshot; the V2 slot modelled from ESPN's data; the live page's CFB cards not read; NBA and NHL slates small, so "none today" is not "none possible".
 - **Task 4, the client half (as written before that probe):** Blocked by: Rule 70 (the relay deploys first) and the live verification above. The laboratory half
   (LAB-FIRST: `Sport.FACup` in `Desk.fs`, `sport-registry-check` count) is the consumer the owner named on 2026-11-06 ("fa cup is missing").
   The jubilant-bassoon `SOCCER_LEAGUES` entry (card creation on the served page) remains owed by this CC-CMD.
