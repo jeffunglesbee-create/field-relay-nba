@@ -33,6 +33,27 @@
 // test the matcher (scripts/check-bsd-game-join.mjs does). The field date key is UTC minus five hours, an approximation of
 // the cron's Eastern key; the property under test does not depend on the exact rollover.
 //
+// A LATENT DEFECT THE HOURLY MARKER DID NOT REACH, found by reading D1 on 2026-11-07, not by a miss. The hourly marker fixed an
+// EMPTY date. A date that already carries a row BSD will never match (a game the archive seeded months ahead, later moved or
+// cancelled: D1 holds such rows for 2026-10-24, 10-31 and 11-05) is not empty at the day's first pass near 00:00Z. That pass has
+// something pending, reads BSD, joins nothing it can, and would hold the date 36 h, so the rows the archive creates at 10:00Z
+// would wait for the next midnight UTC. The scenarios above created every row, stuck or not, at 10:00Z, so none had a row that
+// was already there and unjoinable at the first pass. `seeded` is that row. No miss of this kind is on record: the 2026-11-07
+// miss was a different thing, a 36 h marker written at 00:45Z by the pre-fix code that survived the deploy, which no simulation
+// of the fixed code can show (scripts/probe-bsd-join-markers.mjs read it from KV).
+//
+// THE RULE THE FIX GIVES, and the second bound. A pass that leaves nothing unjoined holds the date an hour: its next pass finds
+// nothing pending and reads only D1. A pass that leaves rows unjoined holds it LEFTOVER_HOLD_HOURS (6): a stuck row costs one
+// BSD read per 6 h, never one per tick, and the hold ends before the 10:00Z rows (the cycle returns before the join from 03:00Z
+// to 09:59Z, so a pass at 02:45Z holds until 08:45Z). So a date is read from BSD at most MAX_READS_PER_DAY (24 / 6 = 4) times
+// in a UTC day. The loop visits today first and yesterday LAST: yesterday's 6 h hold has ended by 10:00Z, and in front of today
+// it would take the tick's one BSD slot (found by review; the `unmatchable row already there at -1` scenarios fail on the old order).
+//
+// NOT MODELLED, named so a green run is not read as covering it: two or more dates with an unmatchable row ahead of a date with
+// fresh rows on the SPARSE cadence (three reaches in nine hours). A stuck date's 6 h re-read takes the scarce reach, and a later
+// date's rows wait about 10 h. The five-date seeded family therefore leaves that cadence out. In production the reach cadence
+// is the slate-context gate, which is not measured here.
+//
 // Usage:  node scripts/check-bsd-join-window-timing.mjs [--self-test] [--source <index.js>]
 
 import { readFileSync } from 'node:fs'
@@ -52,6 +73,8 @@ const DAY0 = '2026-11-06'                                 // the field date the 
 const STEP_MIN = 15
 const MARKER_MS = 3600 * 1000                             // an empty date's marker, and the bound's one hour
 const JITTER_MS = 30_000
+const LEFTOVER_HOLD_HOURS = 6                             // how long a pass that left rows unjoined holds its date
+const MAX_READS_PER_DAY = 24 / LEFTOVER_HOLD_HOURS        // BSD-reading passes over one date in one UTC day
 const addDays = (iso, n) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10)
 
 // Reach cadences: which 15-minute ticks actually call runBsdGameJoinWindow. Production gates it behind
@@ -61,10 +84,18 @@ export const REACH = {
   'every tick': () => true,
   'live hours only (UTC 10-02)': (ms) => { const h = new Date(ms).getUTCHours(); return h >= 10 || h <= 2 },
   'once an hour, at :00': (ms) => new Date(ms).getUTCMinutes() === 0,
+  'live hours, once an hour at :00 (UTC 10-02)': (ms) => { const d = new Date(ms), h = d.getUTCHours(); return d.getUTCMinutes() === 0 && (h >= 10 || h <= 2) },
   'sparse (10:00, 14:00, 19:00Z, then every tick from 20:00Z)': (ms) => {
     const d = new Date(ms), h = d.getUTCHours(), m = d.getUTCMinutes()
     return (m === 0 && (h === 10 || h === 14 || h === 19)) || h >= 20 || h <= 2
   },
+}
+
+/** The nth reach at or after tMs (the tick that CREATES the rows runs the pass after creating them: the seed precedes the join). */
+const nthReachAtOrAfter = (reach, from, tMs, n) => {
+  let seen = 0
+  for (let slot = Date.parse(from); slot < Date.parse(from) + 5 * 86400000; slot += STEP_MIN * 60000) if (slot >= tMs && reach(slot) && ++seen === n) return slot
+  return Infinity
 }
 
 /** The nth reach (a tick that calls the function) strictly after tMs. */
@@ -75,9 +106,11 @@ const nthReachAfter = (reach, from, tMs, n) => {
 }
 
 /**
- * One simulated UTC span. `dates` is [{ date, rows, stuck }]: for each, `rows` games BSD lists and `stuck` games it never
- * does (a row the join can never match; it keeps the date `pending` after every pass, which is what the 36 h marker
- * exists to stop re-reading from BSD every tick). All rows are created at DAY0 10:00Z plus `createdOffsetMin`.
+ * One simulated UTC span. `dates` is [{ date, rows, stuck, seeded }]: for each, `rows` games BSD lists, `stuck` games it never
+ * does (a row the join can never match; it keeps the date `pending` after every pass, which is what the hold on a date
+ * with leftovers exists to stop re-reading from BSD every tick), and `seeded` such unmatchable rows that already exist
+ * before the simulation starts. `rows` and `stuck` are created at DAY0 10:00Z plus `createdOffsetMin`; `late: { rows, afterMin }`
+ * is a second batch of joinable rows created `afterMin` minutes after that (a game the slate adds later in the day).
  * Returns what happened, as data, so the assertions below read numbers and not logs.
  */
 export async function simulate(fnText, {
@@ -96,7 +129,11 @@ export async function simulate(fnText, {
     put: async (k, v, o = {}) => { kv.set(k, { v, exp: nowMs + (o.expirationTtl ?? 1e12) * 1000 }) },
   }
   const createdMs = Date.parse(`${DAY0}T10:00:00Z`) + createdOffsetMin * 60000
-  const tables = new Map(dates.map(d => [d.date, Array.from({ length: d.rows + d.stuck }, (_, i) => ({ stuck: i >= d.rows, joinedAt: null }))]))
+  const tables = new Map(dates.map(d => [d.date, [
+    ...Array.from({ length: d.seeded ?? 0 }, () => ({ stuck: true, created: 0, joinedAt: null })),     // there before the first pass
+    ...Array.from({ length: d.rows + d.stuck }, (_, i) => ({ stuck: i >= d.rows, created: createdMs, joinedAt: null })),
+    ...Array.from({ length: d.late?.rows ?? 0 }, () => ({ stuck: false, created: createdMs + d.late.afterMin * 60000, joinedAt: null })),
+  ]]))
   const attempts = []                                     // every runBsdGameJoinForDate call: { at, tick, date, pending }
   const visits = new Map()                                // date -> [ms of every pass over it]
   let tick = -1
@@ -104,7 +141,7 @@ export async function simulate(fnText, {
     if (!visits.has(date)) visits.set(date, [])
     visits.get(date).push(nowMs)
     const table = tables.get(date)
-    const pending = table && nowMs >= createdMs ? table.filter(r => r.joinedAt === null) : []
+    const pending = table ? table.filter(r => r.created <= nowMs && r.joinedAt === null) : []
     attempts.push({ at: nowMs, tick, date, pending: pending.length })
     for (const r of pending) if (!r.stuck) r.joinedAt = nowMs
     return { ok: true, date, pending: pending.length, written: pending.filter(r => !r.stuck).length }
@@ -123,7 +160,7 @@ export async function simulate(fnText, {
     const dateKey = new Date(nowMs - 5 * 3600000).toISOString().slice(0, 10)   // an Eastern-like field date
     await fn(env, dateKey)
   }
-  return { createdMs, tables, attempts, visits, endMs, reaches, from, reach }
+  return { createdMs, createdOffsetMin, tables, attempts, visits, endMs, reaches, from, reach }
 }
 
 const iso = (ms) => new Date(ms).toISOString().slice(0, 16) + 'Z'
@@ -132,17 +169,30 @@ const iso = (ms) => new Date(ms).toISOString().slice(0, 16) + 'Z'
 export async function scenarioFindings(fnText, opts) {
   const out = []
   const r = await simulate(fnText, opts)
-  const heavyDates = [...r.tables].filter(([, t]) => t.length).length
-  const boundMs = nthReachAfter(r.reach, r.from, r.createdMs + MARKER_MS + JITTER_MS, Math.max(1, heavyDates)) - r.createdMs + JITTER_MS
+  const heavyDates = [...r.tables.values()].filter(t => t.some(x => !x.stuck)).length     // dates with something to join; a stuck-only date is not waiting
+  // Without a row that was already there, the longest an earlier pass can hold a date is an empty pass's hour. With one, an earlier
+  // pass left rows unjoined and holds LEFTOVER_HOLD_HOURS. Rows created by the day's own 10:00Z tick are created BEFORE that tick's
+  // pass (offset 0), so the hold must have ended by then and the nth reach at or after creation joins them; rows created later
+  // (a second batch) wait for the hold a pass in the meantime started, which is the stated residual bound.
+  const seeded = [...r.tables.values()].some(t => t.some(x => x.created === 0))
+  const nDates = Math.max(1, heavyDates)
+  // The longest a row created at `at` may wait, as a duration after `at`.
+  const boundFor = (at) => (!seeded
+    ? nthReachAfter(r.reach, r.from, at + MARKER_MS + JITTER_MS, nDates)
+    : r.createdOffsetMin === 0
+      ? nthReachAtOrAfter(r.reach, r.from, at, nDates)
+      : nthReachAfter(r.reach, r.from, at + LEFTOVER_HOLD_HOURS * 3600 * 1000 + JITTER_MS, nDates)) - at + JITTER_MS
   for (const [date, table] of r.tables) {
-    const joinable = table.filter(x => !x.stuck).map(x => x.joinedAt)
+    const joinable = table.filter(x => !x.stuck)
     if (joinable.length) {
-      if (joinable.some(x => x === null)) out.push(`date ${date}: ${joinable.filter(x => x === null).length} of ${joinable.length} joinable rows were still unjoined at ${iso(r.endMs)}`)
+      if (joinable.some(x => x.joinedAt === null)) out.push(`date ${date}: ${joinable.filter(x => x.joinedAt === null).length} of ${joinable.length} joinable rows were still unjoined at ${iso(r.endMs)}`)
       else {
-        const last = Math.max(...joinable)
-        const waitMin = Math.round((last - r.createdMs) / 60000)
-        if (last - r.createdMs > boundMs) out.push(`date ${date}: the last joinable row waited ${waitMin} minutes after its creation (${iso(r.createdMs)}) for its join, at ${iso(last)}; the bound is ${Math.round(boundMs / 60000)}`)
-        if (joinable.some(x => x < r.createdMs)) out.push(`date ${date}: a row was joined before it existed (the stand-in or the clock is wrong)`)
+        // One finding per row, against the bound for ITS creation time: a second batch has its own.
+        for (const x of joinable) {
+          const bound = boundFor(x.created)
+          if (x.joinedAt - x.created > bound) { out.push(`date ${date}: a joinable row waited ${Math.round((x.joinedAt - x.created) / 60000)} minutes after its creation (${iso(x.created)}) for its join, at ${iso(x.joinedAt)}; the bound is ${Math.round(bound / 60000)}`); break }
+        }
+        if (joinable.some(x => x.joinedAt < x.created)) out.push(`date ${date}: a row was joined before it existed (the stand-in or the clock is wrong)`)
       }
     }
     // A date never visited is absent from the map, and absence is not an empty list: it is its own finding.
@@ -150,11 +200,11 @@ export async function scenarioFindings(fnText, opts) {
     if (!visited) out.push(`date ${date}: never passed over`)
     else if (!visited.some(t => t >= r.createdMs)) out.push(`date ${date}: not passed over after its rows existed`)
   }
-  // A date WITH rows is read from BSD once per UTC day, not on every tick: the upstream bound the marker exists for.
+  // A date is read from BSD at most MAX_READS_PER_DAY times in a UTC day, not on every tick: the upstream bound the hold exists for.
   const heavy = r.attempts.filter(a => a.pending > 0)
   const perDay = new Map()
   for (const a of heavy) { const k = `${a.date}@${new Date(a.at).toISOString().slice(0, 10)}`; perDay.set(k, (perDay.get(k) || 0) + 1) }
-  for (const [k, n] of perDay) if (n > 1) out.push(`the date ${k.split('@')[0]} was re-attempted ${n} times with rows pending on UTC day ${k.split('@')[1]}`)
+  for (const [k, n] of perDay) if (n > MAX_READS_PER_DAY) out.push(`the date ${k.split('@')[0]} was re-attempted ${n} times with rows pending on UTC day ${k.split('@')[1]} (the limit is ${MAX_READS_PER_DAY})`)
   // The other bound: ONE pass that reads BSD per tick (a pass with rows pending is the one that reads; an empty pass reads
   // only D1). Several in a tick is up to 5 x 24 upstream pages in 15 minutes where the comment above the function says 24.
   const perTick = new Map()
@@ -165,6 +215,7 @@ export async function scenarioFindings(fnText, opts) {
 }
 
 const SINGLE_OFFSETS = [-1, 0, 1, 2, 3]
+const GATED_NAMES = new Set(['live hours only (UTC 10-02)', 'live hours, once an hour at :00 (UTC 10-02)', 'sparse (10:00, 14:00, 19:00Z, then every tick from 20:00Z)'])   // the cadences that obey the live-hours gate
 const CREATED_OFFSETS_MIN = [0, 7, 29, 59]                // on the hour, and off it: markers expire at other phases
 /** The scenario list. Each is { label, opts }. */
 export function scenarios() {
@@ -179,6 +230,33 @@ export function scenarios() {
   for (const [name, dates] of [['all five dates hold rows', all(3, 0)], ['all five dates hold one unmatched row', all(0, 1)]]) for (const createdOffsetMin of [0, 29]) for (const k of knobs) {
     out.push({ label: `${name}, rows created 10:${String(createdOffsetMin).padStart(2, '0')}Z, ${k.tie} expiry, ${k.jitter ? 'jittered' : 'exact'} ticks, reached: ${k.reachName}`,
       opts: { createdOffsetMin, tie: k.tie, jitter: k.jitter, reach: k.reach, dates } })
+  }
+  // A second batch: a game the slate adds after the day's first rows were joined (R1 a; 0 of 184 soccer rows since 2026-10-24 were
+  // created outside hour 10, so this is a bound on a case not yet seen). The marker after a pass that left nothing unjoined is an hour.
+  for (const offset of SINGLE_OFFSETS) for (const afterMin of [90, 360]) for (const k of knobs) {
+    out.push({ label: `one date, ${offset >= 0 ? '+' : ''}${offset}, 3 rows at 10:00Z and 2 more ${afterMin} minutes later, ${k.tie} expiry, ${k.jitter ? 'jittered' : 'exact'} ticks, reached: ${k.reachName}`,
+      opts: { createdOffsetMin: 0, tie: k.tie, jitter: k.jitter, reach: k.reach, dates: [{ date: addDays(DAY0, offset), rows: 3, stuck: 0, late: { rows: 2, afterMin } }] } })
+  }
+  // Rows on today and an unmatchable row already there on ANOTHER window date. Yesterday's hold has ended by 10:00Z, so it must not
+  // sit in front of today in the loop and take the tick's one BSD slot: today's rows are joined by the creating tick's own pass.
+  for (const stuckOffset of [-1, 1, 2, 3]) for (const k of knobs.filter(k => GATED_NAMES.has(k.reachName))) {
+    out.push({ label: `rows on the field date, an unmatchable row already there at ${stuckOffset >= 0 ? '+' : ''}${stuckOffset}, ${k.tie} expiry, ${k.jitter ? 'jittered' : 'exact'} ticks, reached: ${k.reachName}`,
+      opts: { createdOffsetMin: 0, tie: k.tie, jitter: k.jitter, reach: k.reach, dates: [{ date: addDays(DAY0, 0), rows: 5, stuck: 0 }, { date: addDays(DAY0, stuckOffset), rows: 0, stuck: 0, seeded: 1 }] } })
+  }
+  // Rows that were already there, unmatchable, when the day's first pass ran. Only the cadences that obey
+  // production's live-hours gate (no pass 03:00Z-09:59Z) are run: a 6 h hold from a pass at 09:45Z would end at 15:45Z, and no such
+  // pass exists, because the cron's handler returns before the join outside `hour >= 10 || hour <= 2`.
+  const gatedKnobs = knobs.filter(k => GATED_NAMES.has(k.reachName))
+  for (const offset of SINGLE_OFFSETS) for (const createdOffsetMin of [0, 29]) for (const k of gatedKnobs) {
+    out.push({ label: `one date, ${offset >= 0 ? '+' : ''}${offset}, 2 unmatchable rows already there, rows created 10:${String(createdOffsetMin).padStart(2, '0')}Z, ${k.tie} expiry, ${k.jitter ? 'jittered' : 'exact'} ticks, reached: ${k.reachName}`,
+      opts: { createdOffsetMin, tie: k.tie, jitter: k.jitter, reach: k.reach, dates: [{ date: addDays(DAY0, offset), rows: 5, stuck: 0, seeded: 2 }] } })
+  }
+  // Five dates at once: not the sparse cadence. A date left with an unmatchable row is re-read when its hold ends, and on a cadence
+  // of three reaches in nine hours that re-read takes a reach a later date was waiting for; the nth-reach bound has no term for it.
+  // On the 15-minute and hourly cadences the five dates are served by the first five reaches, before any hold ends.
+  for (const createdOffsetMin of [0, 29]) for (const k of gatedKnobs.filter(k => !k.reachName.startsWith('sparse'))) {
+    out.push({ label: `all five dates, each with an unmatchable row already there and 3 rows created 10:${String(createdOffsetMin).padStart(2, '0')}Z, ${k.tie} expiry, ${k.jitter ? 'jittered' : 'exact'} ticks, reached: ${k.reachName}`,
+      opts: { createdOffsetMin, tie: k.tie, jitter: k.jitter, reach: k.reach, dates: SINGLE_OFFSETS.map(o => ({ date: addDays(DAY0, o), rows: 3, stuck: 0, seeded: 1 })) } })
   }
   return out
 }
@@ -211,21 +289,21 @@ if (argv.includes('--self-test')) {
     if (n !== 1) throw new Error(`mutant anchor occurs ${n} times, expected 1: ${find.slice(0, 60)}`)
     return findings(real.replace(find, replace))
   }
-  const TTL = 'expirationTtl: result.pending === 0 ? 3600 : 36 * 3600'
+  const TTL = 'expirationTtl: result.pending - result.written > 0 ? 6 * 3600 : 3600'
   const SKIP = 'if (result.ok && result.pending === 0) continue;'
   const caught = (fs, re) => fs.some(f => re.test(f))
-  ok('M1 an empty date held 36 h (the 2026-11-06 defect) is CAUGHT, and names the wait',
+  ok('M1 every pass held 36 h (the 2026-11-06 defect: an empty date held 36 h) is CAUGHT, and names the wait',
      caught(await M(TTL, 'expirationTtl: 36 * 3600'), /waited \d+ minutes|still unjoined/))
-  ok('M2 an empty date held for the whole window of 24 h is CAUGHT',
-     caught(await M(TTL, 'expirationTtl: result.pending === 0 ? 86400 : 36 * 3600'), /waited \d+ minutes|still unjoined/))
+  ok('M2 a pass that left nothing unjoined held 24 h is CAUGHT',
+     caught(await M(TTL, 'expirationTtl: result.pending - result.written > 0 ? 6 * 3600 : 86400'), /waited \d+ minutes|still unjoined/))
   ok('M3 no done marker at all is CAUGHT (a date with rows re-read on every tick)',
      caught(await M(TTL, 'expirationTtl: 1'), /re-attempted \d+ times/))
-  ok('M4 a date with rows held only an hour is CAUGHT (the BSD read happens more than once a day)',
+  ok('M4 a date left with unjoined rows held only an hour is CAUGHT (a stuck row read from BSD 24 times a day)',
      caught(await M(TTL, 'expirationTtl: 3600'), /re-attempted \d+ times/))
   ok('M5 the done marker never read (the guard removed) is CAUGHT',
      caught(await M('if (await env.FIELD_JOURNALISM.get(doneKey)) continue;', ''), /re-attempted \d+ times|passed over/))
   ok('M6 a window that never reaches the game date is CAUGHT as never visited, not as an empty list',
-     caught(await M('[-1, 0, 1, 2, 3].map(shift)', '[7, 8].map(shift)'), /never passed over/))
+     caught(await M('[0, 1, 2, 3, -1].map(shift)', '[7, 8].map(shift)'), /never passed over/))
   // The first review's finding: the first fix (an hour's marker on an empty date) without the `continue`. It passed the single
   // window position the first version tested (+1) and starves the +3 date.
   const starved = await M(SKIP, '')
@@ -240,11 +318,25 @@ if (argv.includes('--self-test')) {
      caught(await M(SKIP, 'if (result.ok && result.pending <= 1) continue;'), /passes that read BSD in one tick/))
   ok('M11 an unconditional `continue` (no date ever returns) is CAUGHT',
      caught(await M(SKIP, 'continue;'), /passes that read BSD in one tick/))
+  // The 2026-11-07 failure the first fix did not reach: an unmatchable row already there at the day's first pass.
+  ok('M13 a date left with unjoined rows held 36 h (the pre-fix rule for such a date) is CAUGHT in the seeded scenarios, and names the wait',
+     caught(await M(TTL, 'expirationTtl: result.pending - result.written > 0 ? 36 * 3600 : 3600'), /unmatchable rows? already there.*waited \d+ minutes/))
+  ok('M14 a date left with unjoined rows held 12 h (past the 10:00Z rows) is CAUGHT',
+     caught(await M(TTL, 'expirationTtl: result.pending - result.written > 0 ? 12 * 3600 : 3600'), /unmatchable rows? already there.*waited \d+ minutes/))
+  ok('M15 a date left with unjoined rows held 8 h (the 10:00Z pass then holds the 10:29Z rows past the 6 h bound) is CAUGHT',
+     caught(await M(TTL, 'expirationTtl: result.pending - result.written > 0 ? 8 * 3600 : 3600'), /unmatchable rows? already there.*waited \d+ minutes/))
+  ok('M16 a date left with unjoined rows held 3 h (more than 4 BSD reads a day for a stuck row) is CAUGHT',
+     caught(await M(TTL, 'expirationTtl: result.pending - result.written > 0 ? 3 * 3600 : 3600'), /re-attempted \d+ times/))
+  ok('M17 a pass that joined something held 6 h whatever it left (a second batch waits for the hold) is CAUGHT by the second-batch scenarios',
+     caught(await M(TTL, 'expirationTtl: result.pending > 0 ? 6 * 3600 : 3600'), /2 more \d+ minutes later.*waited \d+ minutes/))
+  ok('M18 yesterday FIRST in the loop (the order before review) is CAUGHT: its expired hold takes the tick\'s one BSD slot ahead of today',
+     caught(await M('[0, 1, 2, 3, -1].map(shift)', '[-1, 0, 1, 2, 3].map(shift)'), /an unmatchable row already there at -1.*waited \d+ minutes/))
   ok('M12 a missing function refuses rather than passing', (await findings(null))[0].includes('was not found'))
   console.log(fail ? `\n${fail} FAILED of ${ran}` : `\nself-test: ${ran}/${ran}`)
-  console.log(`COVERAGE: ${ran} assertion(s): 1 control, 11 mutant/refusal cases of the real runBsdGameJoinWindow. Each control or mutant`)
-  console.log(`runs ${scenarioCount} scenarios (one date at each of 5 window positions x 4 creation minutes, and all five dates together x 2, each x 2 expiry`)
-  console.log('rules x exact/jittered ticks x 4 reach cadences) over 2026-11-06T00:00Z to 2026-11-07T12:00Z at 15-minute ticks. It does not call BSD.')
+  console.log(`COVERAGE: ${ran} assertion(s): 1 control, 1 designed-to-pass case (M8), 1 refusal (M12) and ${ran - 3} mutants of the real runBsdGameJoinWindow. Each control or mutant`)
+  console.log(`runs ${scenarioCount} scenarios, each x 2 expiry rules x exact/jittered ticks: one date at each of 5 window positions x 4 creation minutes and ${Object.keys(REACH).length} reach cadences; all five dates`)
+  console.log(`together x 2 x ${Object.keys(REACH).length}; a second batch of rows x 2 x ${Object.keys(REACH).length}; an unmatchable row already there on the ${GATED_NAMES.size} live-hours-gated cadences only (one date x 2, five dates x 2 without`)
+  console.log('the sparse cadence, another date holding the row x 4); over 2026-11-06T00:00Z to 2026-11-07T12:00Z at 15-minute ticks. It does not call BSD.')
   process.exit(fail ? 1 : 0)
 }
 
@@ -259,12 +351,12 @@ if (found.length) {
 // What the PASS means, in numbers: the largest wait over every single-date scenario, and the largest number of passes that
 // read BSD in any tick over every scenario.
 const fnText = sliceFn(text)
-let worstWait = 0, worstTick = 0
+let worstWait = 0, worstTick = 0, worstLabel = ''
 for (const s of scenarios()) {
   const r = await simulate(fnText, s.opts)
-  for (const [, table] of r.tables) { const j = table.filter(x => !x.stuck).map(x => x.joinedAt); if (j.length) worstWait = Math.max(worstWait, Math.round((Math.max(...j) - r.createdMs) / 60000)) }
+  for (const [, table] of r.tables) for (const x of table.filter(x => !x.stuck)) { const w = Math.round((x.joinedAt - x.created) / 60000); if (w > worstWait) { worstWait = w; worstLabel = s.label } }
   const perTick = new Map(); for (const a of r.attempts.filter(a => a.pending > 0)) perTick.set(a.tick, (perTick.get(a.tick) || 0) + 1)
   worstTick = Math.max(worstTick, 0, ...perTick.values())
 }
-console.log(`PASS  ${findings.scenarios} of ${findings.scenarios} scenarios: every joinable row was joined by the first reach after its creation plus one marker hour (the nth, for n dates holding rows); the longest wait in any scenario was ${worstWait} minutes; the most passes that read BSD in any one tick was ${worstTick}; no date with rows was re-read within a UTC day (${SRC})`)
-console.log('COVERAGE: the real marker logic and loop, simulated days, a fake KV and a fake runBsdGameJoinForDate, four stated reach cadences. It does not call BSD, test the matcher, or see the real cron gates.')
+console.log(`PASS  ${findings.scenarios} of ${findings.scenarios} scenarios: every joinable row was joined by the first reach after its creation plus one marker hour (the nth, for n dates holding rows; with an unmatchable row already there, by the creating tick's own pass, or one hold later for a second batch); the longest wait in any scenario was ${worstWait} minutes (the nth reach of n dates, inside its bound: ${worstLabel}); the most passes that read BSD in any one tick was ${worstTick}; no date was read from BSD more than ${MAX_READS_PER_DAY} times in a UTC day (${SRC})`)
+console.log(`COVERAGE: the real marker logic and loop, simulated days, a fake KV and a fake runBsdGameJoinForDate, ${Object.keys(REACH).length} stated reach cadences (the seeded families use the ${GATED_NAMES.size} that obey the live-hours gate; the five-date seeded family also leaves out the sparse one: see NOT MODELLED in the header). It does not call BSD, test the matcher, or see the real cron gates.`)

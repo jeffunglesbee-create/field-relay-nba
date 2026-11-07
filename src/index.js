@@ -6372,15 +6372,20 @@ async function runBsdGameJoinForDate(env, isoDate, { maxUpstreamPages = 24 } = {
   };
 }
 
-// The scheduled path: ONE date that reads BSD per call, from the window yesterday..today+3, each at most once per UTC day
-// once it has rows to join (a KV marker, 36 h; an empty date's marker lasts an hour), so a 15-minute tick spends at most
-// 24 upstream pages and the dates that have rows spread over the ticks. A date with nothing pending makes no BSD call, so
-// it does not use up the tick: the loop moves on. The admin route and this call the same function; only the trigger differs.
+// The scheduled path: ONE date that reads BSD per call, from the window today..today+3 and then yesterday, so a 15-minute tick spends at
+// most 24 upstream pages and the dates that have rows spread over the ticks. A date is held by a KV marker after a pass: an
+// hour when the pass left nothing unjoined (its next pass finds nothing pending and reads only D1), 6 h when it left rows
+// unjoined (BSD does not list them, or lists them twice), so a stuck row costs one BSD read per 6 h and never one per tick.
+// A date with nothing pending makes no BSD call, so it does not use up the tick: the loop moves on. The admin route and this
+// call the same function; only the trigger differs.
 async function runBsdGameJoinWindow(env, dateKey) {
   if (!env.ARCHIVE_DB || !env.BSD_API_TOKEN || !env.FIELD_JOURNALISM) return null;
   const today = new Date().toISOString().slice(0, 10);
   const shift = n => new Date(Date.parse(`${dateKey}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
-  for (const date of [-1, 0, 1, 2, 3].map(shift)) {
+  // Yesterday is last: a date left with an unjoined row is eligible again 6 h after its pass, so by 10:00Z yesterday's hold has
+  // ended, and in front of today it would take the tick's one BSD slot and leave the rows the 10:00Z tick just created waiting
+  // for the next tick that gets past the slate-context gate (found by review 2026-11-07; scripts/check-bsd-join-window-timing.mjs).
+  for (const date of [0, 1, 2, 3, -1].map(shift)) {
     const doneKey = `bsd-join:${date}:${today}`, failKey = `bsd-join-fail:${date}`;
     if (await env.FIELD_JOURNALISM.get(doneKey)) continue;
     // A date that failed (BSD down, a page that did not answer) is skipped for an hour, so one bad date cannot hold
@@ -6388,13 +6393,17 @@ async function runBsdGameJoinWindow(env, dateKey) {
     if (await env.FIELD_JOURNALISM.get(failKey)) continue;
     const result = await runBsdGameJoinForDate(env, date);
     console.log(`[BSD-GAME-JOIN] ${JSON.stringify({ ...result, unmatched: result.unmatched ? result.unmatched.length : undefined })}`);
-    // A date with NOTHING PENDING has had nothing to join; it has not been joined. The archive creates a day's game rows
-    // at about 10:00Z, and a date's first pass of each UTC day runs near 00:00Z, ten hours earlier. Held for 36 h, that
-    // empty pass kept the whole day's games without a lineup source until the next midnight UTC: measured 2026-11-06,
-    // when all five big-five rows (created 10:00Z) were unjoined at 22:50Z, and the rows of each game day 2026-10-30, 10-31,
-    // 11-01 and 11-02 (created 10:00Z) had been joined at 00:xxZ of the following day. So an empty date is looked at again within the hour, and only
-    // a pass that had rows to join holds the day (one BSD read per date per UTC day, as before).
-    if (result.ok) await env.FIELD_JOURNALISM.put(doneKey, JSON.stringify({ written: result.written, pending: result.pending }), { expirationTtl: result.pending === 0 ? 3600 : 36 * 3600 });
+    // What a pass LEFT decides how long its date is held. The archive creates a day's game rows at about 10:00Z, and a date's
+    // first pass of each UTC day runs near 00:00Z, ten hours earlier. A pass that held the date for 36 h, whatever it found,
+    // kept the whole day's games without a lineup source until the next midnight UTC. Measured 2026-11-06 for a date that was
+    // EMPTY at that pass (all five big-five rows, created 10:00Z, unjoined at 22:50Z). Not measured as a miss, but the same
+    // mechanism and found in D1: unmatchable rows seeded months ahead (2026-10-24, 10-31, 11-05) keep a date pending at the
+    // 00:xxZ pass, which reads BSD, joins nothing it can, and would hold 36 h. So a pass that left nothing unjoined (including
+    // one with nothing pending) holds an hour, and its next pass finds nothing pending and makes no BSD call; a pass that left
+    // rows unjoined holds 6 h. 6 h ends before 10:00Z for any pass in the live hours (the cycle returns before this call from
+    // 03:00Z to 09:59Z), and costs a stuck row at most 4 BSD reads in a UTC day, about 10 upstream pages each (measured
+    // 2026-11-07: 10 pages for two event days), at most 20 passes and 480 pages a day if all five window dates carry one.
+    if (result.ok) await env.FIELD_JOURNALISM.put(doneKey, JSON.stringify({ written: result.written, pending: result.pending }), { expirationTtl: result.pending - result.written > 0 ? 6 * 3600 : 3600 });
     else await env.FIELD_JOURNALISM.put(failKey, String(result.reason || 'failed'), { expirationTtl: 3600 });
     // An empty pass read only D1, so it must not use up the tick's one slot. If it did, the empty dates ahead of a date with
     // rows would take one tick each and hold hourly markers that expire in lockstep, and a date late in the window could be
@@ -9119,8 +9128,8 @@ async function handleJournalismCycle(env, opts = {}) {
     catch (e) { console.error("[ODDS-SNAPSHOT] snapshot failed:", e.message); /* odds snapshot failure cannot break journalism */ }
 
     // ── BSD event ids on the soccer rows of the next few days (CC-CMD-2026-10-27-bsd-event-id-on-game-rows) ──
-    // One date with rows to join per tick, once per UTC day each; an empty date is looked at hourly (a D1 read, no BSD call).
-    // See runBsdGameJoinWindow. Archive enrichment: failure cannot break journalism.
+    // One date that reads BSD per tick; a date is held an hour after a pass that left nothing unjoined (its next look is a D1 read,
+    // no BSD call) and 6 h after one that left rows unjoined. See runBsdGameJoinWindow. Archive enrichment: failure cannot break journalism.
     try { await runBsdGameJoinWindow(env, dateKey); }
     catch (e) { console.error("[BSD-GAME-JOIN] window failed:", e.message); /* a lineup id is an enrichment, not a requirement */ }
 

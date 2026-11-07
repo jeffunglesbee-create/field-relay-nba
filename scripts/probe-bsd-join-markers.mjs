@@ -19,7 +19,7 @@
 // Usage: node scripts/probe-bsd-join-markers.mjs   |   --self-test
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 
-const HOUR = 3600, SLACK = 120
+const HOUR = 3600, LEFTOVER_HOLD = 6 * 3600, SLACK = 120
 
 /** What one marker says about the code that wrote it. `now` and `expiration` are unix seconds. */
 export function classifyMarker({ key, value, expiration, now }) {
@@ -28,14 +28,21 @@ export function classifyMarker({ key, value, expiration, now }) {
   try { v = JSON.parse(value) } catch (_) { return 'UNREADABLE-VALUE' } // not JSON: classified, never guessed at
   if (typeof expiration !== 'number') return 'NO-EXPIRY-REPORTED'
   const left = expiration - now
-  if (v.pending === 0) return left > HOUR + SLACK ? 'EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the fixed code writes 3600 s)' : 'EMPTY-DATE-HOURLY (the fixed rule)'
-  if (typeof v.pending === 'number' && v.pending > 0) return `PENDING-ROWS-HELD (${v.written} written of ${v.pending}; 36 h by the rule, a date with rows is read once per UTC day)`
+  // The remaining TTL is all this can read, so a marker near its expiry cannot be told from one the newer rule wrote: the classes
+  // that name a writer are only those whose remaining TTL the newer rule cannot produce.
+  if (v.pending === 0) return left > HOUR + SLACK ? 'EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the current rule writes 3600 s)' : 'EMPTY-DATE-HOURLY (the current rule, or a 36 h marker within an hour of expiry: not distinguishable)'
+  if (typeof v.pending === 'number' && typeof v.written === 'number' && v.pending > 0) {
+    // The current rule writes 3600 s when everything pending was joined and 21600 s when rows were left, never longer.
+    const leftover = v.pending - v.written > 0
+    if (left > (leftover ? LEFTOVER_HOLD : HOUR) + SLACK) return `PENDING-ROWS-HELD-OVER-THEIR-HOLD (${v.written} written of ${v.pending}; the pre-change 36 h rule: the current rule holds ${leftover ? '6 h' : '1 h'} here)`
+    return `PENDING-ROWS-HELD (${v.written} written of ${v.pending}; the current ${leftover ? '6 h' : '1 h'} rule, or a 36 h marker nearer its expiry: not distinguishable)`
+  }
   return 'UNREADABLE-VALUE'
 }
 
 if (process.argv.includes('--self-test')) {
-  let bad = 0
-  const eq = (label, got, want) => { const ok = got.split(' ')[0] === want; if (!ok) bad++; console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}: ${got.split(' ')[0]}${ok ? '' : ` (wanted ${want})`}`) }
+  let bad = 0, n = 0
+  const eq = (label, got, want) => { n++; const ok = got.split(' ')[0] === want; if (!ok) bad++; console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}: ${got.split(' ')[0]}${ok ? '' : ` (wanted ${want})`}`) }
   const now = 1_000_000
   const m = (key, value, left) => ({ key, value: typeof value === 'string' ? value : JSON.stringify(value), expiration: left === undefined ? undefined : now + left, now })
   eq('pending 0 with 35 h left was written by the 36 h rule', classifyMarker(m('bsd-join:2026-11-07:2026-11-07', { written: 0, pending: 0 }, 35 * HOUR)), 'EMPTY-DATE-HELD-OVER-AN-HOUR')
@@ -44,11 +51,18 @@ if (process.argv.includes('--self-test')) {
   // Literal seconds, not HOUR/SLACK: a test written in the constants moves with a mutated constant and proves nothing about it.
   eq('pending 0 with 3720 s left (an hour plus the 2-minute slack) is still hourly', classifyMarker(m('k', { written: 0, pending: 0 }, 3720)), 'EMPTY-DATE-HOURLY')
   eq('pending 0 with 3721 s left is the 36 h rule', classifyMarker(m('k', { written: 0, pending: 0 }, 3721)), 'EMPTY-DATE-HELD-OVER-AN-HOUR')
-  eq('pending 5 is a date held with rows', classifyMarker(m('k', { written: 5, pending: 5 }, 30 * HOUR)), 'PENDING-ROWS-HELD')
+  eq('pending 5 all joined with 30 h left was written by the 36 h rule', classifyMarker(m('k', { written: 5, pending: 5 }, 30 * HOUR)), 'PENDING-ROWS-HELD-OVER-THEIR-HOLD')
+  eq('pending 5 all joined with 50 minutes left is the current 1 h rule or a near-expiry 36 h marker', classifyMarker(m('k', { written: 5, pending: 5 }, 3000)), 'PENDING-ROWS-HELD')
+  eq('pending 5, 4 written, with 30 h left was written by the 36 h rule', classifyMarker(m('k', { written: 4, pending: 5 }, 30 * HOUR)), 'PENDING-ROWS-HELD-OVER-THEIR-HOLD')
+  eq('pending 5, 4 written, with 5 h left is the current 6 h rule or a near-expiry 36 h marker', classifyMarker(m('k', { written: 4, pending: 5 }, 5 * HOUR)), 'PENDING-ROWS-HELD')
+  eq('pending 5, 4 written, with 21720 s left (6 h plus the slack) is still the current rule', classifyMarker(m('k', { written: 4, pending: 5 }, 21720)), 'PENDING-ROWS-HELD')
+  eq('pending 5, 4 written, with 21721 s left is the 36 h rule', classifyMarker(m('k', { written: 4, pending: 5 }, 21721)), 'PENDING-ROWS-HELD-OVER-THEIR-HOLD')
+  eq('pending 5, all joined, with 5 h left is the 36 h rule (the current rule holds 1 h here)', classifyMarker(m('k', { written: 5, pending: 5 }, 5 * HOUR)), 'PENDING-ROWS-HELD-OVER-THEIR-HOLD')
+  eq('a marker with no written count is unreadable, not classed', classifyMarker(m('k', { pending: 5 }, 5 * HOUR)), 'UNREADABLE-VALUE')
   eq('a fail marker is named as one', classifyMarker(m('bsd-join-fail:2026-11-07', 'BSD events for 2026-11-07 not fully read', 1800)), 'FAIL-MARKER')
   eq('a non-JSON done value is unreadable, not empty', classifyMarker(m('k', 'oops', 30 * HOUR)), 'UNREADABLE-VALUE')
   eq('a missing expiry is reported, not defaulted', classifyMarker(m('k', { written: 0, pending: 0 })), 'NO-EXPIRY-REPORTED')
-  console.log(bad ? `\n${bad} FAILED` : '\nself-test: 9/9')
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${n}/${n}`)
   process.exit(bad ? 1 : 0)
 }
 

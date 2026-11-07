@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-11-07 (relay copy → client: the join cadence of the `bsd_event_id` section on `/context/date` game rows, corrected; before that, 2026-10-29: the client reader of `bsd:ball` / `bsd:stats` and the shot placement `transformReference.sharedPitch`; before that, 2026-10-28, the `bsd:stats` and `bsd:ball` SSE events, and the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
+Last synced: 2026-11-07 (relay copy → client: the join cadence of the `bsd_event_id` section on `/context/date` game rows, corrected again: a pass that leaves rows unjoined holds its date 6 h, not 36 h, and the window is read today first; before that, 2026-10-29: the client reader of `bsd:ball` / `bsd:stats` and the shot placement `transformReference.sharedPitch`; before that, 2026-10-28, the `bsd:stats` and `bsd:ball` SSE events, and the `bsd_event_id` section on `/context/date` game rows, added 2026-10-27)
 
 ---
 
@@ -1636,9 +1636,12 @@ game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-mat
   more than 180 minutes apart and never chooses one (owner ruling 2026-10-19). A row with no `start_time` is joined on
   names alone and counted as unjudged. Two candidates is `null`, not the first. Source: `src/bsd-game-join.js`.
 - Written by `runBsdGameJoinForDate` (`POST /admin/bsd-game-join {"date":"YYYY-MM-DD"}`, and from the journalism cycle:
-  a date with rows to join is read from BSD once per UTC day, one such date per tick; a date with nothing pending is
-  looked at again within the hour and makes no BSD call, so a day's rows, created about 10:00Z, are joined in the first
-  cycle that reaches the join after they exist, not at the next midnight UTC; corrected 2026-11-07), only where `bsd_event_id IS NULL`, through `reconcile()` with
+  one date that reads BSD per tick, today first, then the next three days, then yesterday; after a pass a date is held an
+  hour when the pass left nothing unjoined (its next pass finds nothing pending and makes no BSD call) and 6 h when it
+  left rows unjoined, so an unmatchable row costs at most 4 BSD reads a day and does not hold back the day's rows, created
+  about 10:00Z, which are joined by the tick that creates them (the first date to read BSD in a tick; a second date waits
+  for its own tick), not at the next midnight UTC; corrected 2026-11-07: an empty date held an hour, not 36 h, and a date
+  left with unjoined rows 6 h), only where `bsd_event_id IS NULL`, through `reconcile()` with
   change_log source `bsd_game_join`. Never overwritten.
 - Two archive rows that are the SAME fixture written under two id schemes both carry the one event id; that is correct
   and is the archive's duplicate problem, not this field's.
