@@ -67,6 +67,21 @@ that references to "item N" stay valid.
    estimate. Rows seen: getWCPregameLambdas 10-18 (n 2, kept 8),
    handleCFLOddsProbs 10-14 and 10-22 (n 1, kept 6 each). Source-read;
    whether each refund landed is UNVERIFIED.
+   **Measured 2026-11-07, the first measurement of whether the refund landed.**
+   `handleCFLOddsProbs` rows in state `error`, cache `HIT`, kept 6 each: 1 call
+   at the 09:20Z site-drift reading, 20 by 17:03Z, still 20 at 18:34Z
+   (`GET /budget/odds`). The test: `used` against the sum of `credits_kept`
+   over the cells that are NOT `error`. 09:20Z: used 36, kept 42, 42-6 = 36.
+   17:03Z: used 468, kept 588, 588-120 = 468. 18:34Z: used 528, kept 648,
+   648-120 = 528. 2026-11-06, which had no `error` rows: used 282, kept 282.
+   In all four readings `used` equals the kept of the non-`error` cells
+   exactly, so those estimates are not in `used`: the D1 refund landed and only
+   the tally overstates (`credits_kept` 648 against `used` 528 today). Coverage:
+   four readings of one site on two days. The cause of the throw is unread (the
+   tally stores no `note`), and the KV mirror is the only step after the D1
+   batch, so the source-read account stands but is not proven. For the CFL
+   experiment: read an `error`/`HIT` row as a cache hit whose refund landed,
+   not as a receipt. Not fixed: 11-08..11-23 is the VOID window above.
    **Same commit:** `scripts/check-odds-reconciled.mjs` (deploy.yml:428)
    pins "a KV failure is reported, not thrown" as state `error`. The fix has
    to tell a refund that landed from one that did not, and keep reporting the
