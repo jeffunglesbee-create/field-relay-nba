@@ -48,12 +48,22 @@ const UNCOVERED_BY_DESIGN = new Set([
 function fail(msg) { console.error(`FAIL: ${msg}`); process.exitCode = 1; }
 
 // ── parse SOCCER_LEAGUE_LABELS ──────────────────────────────────────────────
-// Body class excludes braces deliberately -- same constraint deploy.yml's
-// check documents, and the reason that object's comments must not contain
-// curly braces.
-const lblMatch = src.match(/const SOCCER_LEAGUE_LABELS = \{([^{}]*)\};/);
-if (!lblMatch) { fail('SOCCER_LEAGUE_LABELS constant not found'); process.exit(1); }
-const labels = Object.fromEntries([...lblMatch[1].matchAll(/(\w+):\s*'([^']+)'/g)].map(m => [m[1], m[2]]));
+// EVALUATED, NOT PATTERN-MATCHED (the way check-morning-report-cite.mjs and check-sport-canonicaliser.mjs read the same
+// constants). Until 2026-11-07 this read the literal with a regex whose body class excluded braces, so a comment holding
+// a quote or a brace made phantom keys or a loud "not found", and a COMMENTED-OUT entry was invisible: found by review,
+// reproduced by commenting out V2_LEAGUES.facup, which passed. Evaluating the literal sees what the worker sees.
+const grab = (a, z) => {
+    const i = src.indexOf(a);
+    if (i < 0) { fail(`marker not found in ${SRC}: ${a}`); process.exit(1); }
+    const j = src.indexOf(z, i);
+    if (j < 0) { fail(`end marker not found after: ${a}`); process.exit(1); }
+    return src.slice(i, j + z.length);
+};
+const evalConst = (name) => {
+    try { return new Function(`${grab(`const ${name} = {`, '\n};')}\nreturn ${name};`)(); }
+    catch (e) { fail(`${name} did not evaluate: ${e.message}`); process.exit(1); }
+};
+const labels = evalConst('SOCCER_LEAGUE_LABELS');
 const labelValues = new Set(Object.values(labels));
 
 // ── parse the cron LEAGUES table ────────────────────────────────────────────
@@ -64,17 +74,16 @@ const rows = [...lgMatch[1].matchAll(/\{sport:'([^']+)',\s*league:'([^']+)',\s*l
 const leagueSlugs = new Set(rows.map(r => r.league));
 
 // ── parse V2_LEAGUES ────────────────────────────────────────────────────────
-const v2Match = src.match(/const V2_LEAGUES = \{(.*?)\n\};/s);
-if (!v2Match) { fail('V2_LEAGUES constant not found'); process.exit(1); }
-const v2 = [...v2Match[1].matchAll(/'(\w+)':\s*\{([^{}]*)\}/g)].map(m => ({ key: m[1], body: m[2] }));
+const v2obj = evalConst('V2_LEAGUES');
+const v2 = Object.entries(v2obj).map(([key, cfg]) => ({ key, cfg }));
 
 // Soccer = espnLeague present AND sport:'soccer'. espnSport-carrying entries
 // (baseball/football/basketball/australian-football) are other sports; wc26
 // declares sport:'football' and is excluded here for that reason, matching the
 // existing check's EXCLUDED_ESPN_SPORTS logic rather than inventing a new rule.
 const soccerKeys = v2
-    .filter(e => /espnLeague:\s*'/.test(e.body) && /sport:\s*'soccer'/.test(e.body))
-    .map(e => ({ key: e.key, slug: e.body.match(/espnLeague:\s*'([^']+)'/)[1] }));
+    .filter(e => typeof e.cfg.espnLeague === 'string' && e.cfg.sport === 'soccer')
+    .map(e => ({ key: e.key, slug: e.cfg.espnLeague }));
 
 console.log(`SOCCER_LEAGUE_LABELS: ${Object.keys(labels).length} entries`);
 console.log(`LEAGUES: ${rows.length} rows (${rows.filter(r => r.sport === 'soccer').length} soccer)`);
@@ -98,6 +107,28 @@ for (const k of uncovered) {
 if (!uncovered.length) {
     console.log(`B. archive coverage: PASS -- all soccer keys covered `
               + `(${[...UNCOVERED_BY_DESIGN].join(', ')} excluded by design)`);
+}
+
+// ── C. the route's two tables agree ─────────────────────────────────────────
+// A and B run V2_LEAGUES -> LEAGUES and LEAGUES -> labels. Neither reads a label whose V2_LEAGUES key is gone, or a soccer
+// V2_LEAGUES key with no label, so removing V2_LEAGUES.facup from a tree that still carried its label and its cron row passed
+// every static check (found by review 2026-11-07; the only cover had been a post-deploy probe). /v2/games?sport=<key> reads
+// V2_LEAGUES[key] and labels it with SOCCER_LEAGUE_LABELS[key]: every label key must be a V2_LEAGUES key, and every soccer
+// V2_LEAGUES key must have a label. No exceptions today (wc26 is in both tables; it declares sport:'football', so it is
+// not a "soccer key" in the second direction).
+const v2KeySet = new Set(v2.map(e => e.key));
+const labelNoRoute = Object.keys(labels).filter(k => !v2KeySet.has(k));
+for (const k of labelNoRoute) {
+    fail(`SOCCER_LEAGUE_LABELS key '${k}' has no V2_LEAGUES entry, so /v2/games?sport=${k} is an unknown sport while its `
+       + `label and any cron row still exist.`);
+}
+const routeNoLabel = soccerKeys.filter(k => !(k.key in labels));
+for (const k of routeNoLabel) {
+    fail(`V2_LEAGUES soccer key '${k.key}' (${k.slug}) has no SOCCER_LEAGUE_LABELS entry, so /v2/games?sport=${k.key} labels `
+       + `its games with the raw key.`);
+}
+if (!labelNoRoute.length && !routeNoLabel.length) {
+    console.log(`C. route tables agree: PASS -- all ${Object.keys(labels).length} label key(s) are V2_LEAGUES keys, and all ${soccerKeys.length} soccer V2_LEAGUES key(s) have a label`);
 }
 
 // Report allowlist entries that have since gained coverage, so the set cannot

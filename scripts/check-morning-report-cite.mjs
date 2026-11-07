@@ -212,6 +212,11 @@ ok(() => resultSentence(null) === null && resultSentence(undefined) === null && 
   ok(() => dead.length === 0, `every label the spec decides is one the archive declares, spelt as declared (not declared: ${dead.join(', ')})`);
   ok(() => decided.every(l => sportFamily(l) === (SPEC_NONE.includes(l) ? 'none' : Object.entries(SPEC).find(([, t]) => t.labels.includes(l))[0])),
     'every label belongs to the family the spec gives it');
+  // The other direction. Without it a label added to src/morning-report.js alone passes every check above and the verifier
+  // then reports a correct morning sentence as a defect ("the spec writes no sentence for this row"): found by review on
+  // 2026-11-07, when 'FA Cup' was added to FAMILIES and not to this oracle and all 145 assertions stayed green.
+  const srcOnly = declared.filter(l => sportFamily(l) !== null && !decided.includes(l));
+  ok(() => srcOnly.length === 0, `every declared label that src gives a family is also decided by the spec (src only: ${srcOnly.join(', ')})`);
   ok(() => [...NO_SENTENCE_LABELS].sort().join() === [...SPEC_NONE].sort().join(), 'the labels the relay writes no sentence for are AFL, IPL, PGA Tour and golf');
   ok(() => sportFamily('Quidditch') === null && sportFamily('') === null && sportFamily(null) === null && sportFamily(undefined) === null
     && sportFamily(' nhl ') === 'hockey' && sportFamily('WNBA') === 'basketball' && sportFamily('wnba') === 'basketball' && sportFamily('Golf') === 'none',
