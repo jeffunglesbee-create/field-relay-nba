@@ -1,0 +1,96 @@
+{
+  "at": "2026-11-07T12:24:33.411Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "dates": {
+    "2026-11-07": {
+      "verdict": "JOINED 33 of 34 pending",
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 34,
+        "written": 33,
+        "joined": 33,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 459,
+        "upstreamPages": 10,
+        "cacheHits": 0,
+        "unmatched": [
+          "Ligue 1: Auxerre v Paris FC"
+        ]
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 1,
+        "written": 0
+      },
+      "before": {
+        "read": true,
+        "contextRows": 146,
+        "soccerRows": 42,
+        "joined": 8,
+        "bySport": {
+          "MLS": {
+            "rows": 23,
+            "joined": 8
+          },
+          "EPL": {
+            "rows": 4,
+            "joined": 0
+          },
+          "La Liga": {
+            "rows": 4,
+            "joined": 0
+          },
+          "Serie A": {
+            "rows": 4,
+            "joined": 0
+          },
+          "Bundesliga": {
+            "rows": 5,
+            "joined": 0
+          },
+          "Ligue 1": {
+            "rows": 2,
+            "joined": 0
+          }
+        }
+      },
+      "after": {
+        "read": true,
+        "contextRows": 146,
+        "soccerRows": 42,
+        "joined": 41,
+        "bySport": {
+          "MLS": {
+            "rows": 23,
+            "joined": 23
+          },
+          "EPL": {
+            "rows": 4,
+            "joined": 4
+          },
+          "La Liga": {
+            "rows": 4,
+            "joined": 4
+          },
+          "Serie A": {
+            "rows": 4,
+            "joined": 4
+          },
+          "Bundesliga": {
+            "rows": 5,
+            "joined": 5
+          },
+          "Ligue 1": {
+            "rows": 2,
+            "joined": 1
+          }
+        }
+      }
+    }
+  },
+  "coverage": "1 date(s): 2026-11-07; each read from /context/date before and after one admin-route pass, plus a second pass to prove the IS NULL scope"
+}
