@@ -1497,6 +1497,12 @@ const V2_LEAGUES = {
     // CF-Worker egress: season object reports 2026-27 Group Stage with live
     // fixtures from Aug 18. Same ESPN-only, null-BSD shape as eflcup.
     'efltrophy':  { sport: 'soccer', espnLeague: 'eng.trophy',       bsdLeagueId: null, season: '2026-27' }, // ESPN only
+    // FA Cup -- ESPN slug eng.fa, id 3918 (CC-CMD-2026-08-08-fa-cup-coverage). That CC-CMD was blocked until ESPN
+    // opened 2026-27: on 2026-08-08 the league season was still the finished 2025-26 one and events was empty. Unblocked
+    // when the probe of 2026-11-06 (the runner, workflow probe-efl-cup-slug.yml, run 42309071973) returned HTTP 200,
+    // 'English FA Cup' and 2 events on the default scoreboard. bsdLeagueId null: no BSD id verified (Rule 2). Same ESPN-only
+    // shape as eflcup and efltrophy; a cup's later rounds do not exist in ESPN until the earlier round resolves.
+    'facup':      { sport: 'soccer', espnLeague: 'eng.fa',           bsdLeagueId: null, season: '2026-27' }, // ESPN only
     'laliga':     { sport: 'soccer', espnLeague: 'esp.1',            bsdLeagueId: 3,    season: '2026-27' },
     'seriea':     { sport: 'soccer', espnLeague: 'ita.1',            bsdLeagueId: 4,    season: '2026-27' },
     'bundesliga': { sport: 'soccer', espnLeague: 'ger.1',            bsdLeagueId: 5,    season: '2026-27' },
@@ -2144,6 +2150,7 @@ const SOCCER_LEAGUE_LABELS = {
     // archive id format as a template literal.
     eflcup:     'EFL Cup',
     efltrophy:  'EFL Trophy',
+    facup:      'FA Cup',
     laliga:     'La Liga',
     seriea:     'Serie A',
     bundesliga: 'Bundesliga',
@@ -8403,6 +8410,10 @@ async function handleJournalismCycle(env, opts = {}) {
     // across two id namespaces.
     {sport:'soccer',    league:'eng.league_cup', label:'EFL Cup'},
     {sport:'soccer',    league:'eng.trophy',   label:'EFL Trophy'},
+    // FA Cup (CC-CMD-2026-08-08-fa-cup-coverage). label MUST stay identical to SOCCER_LEAGUE_LABELS.facup, for the
+    // reason on the EFL Cup row above; 'FA Cup' and not ESPN's "English FA Cup" or a sponsor name, which would enter
+    // the archive id.
+    {sport:'soccer',    league:'eng.fa',       label:'FA Cup'},
     // UEFA club competitions -- CC-CMD-2026-08-20-uefa-club-competitions.
     // These were already in V2_LEAGUES (slugs + BSD lids) and already had
     // SOCCER_LEAGUE_LABELS entries, so /v2/games?sport=ucl already worked on

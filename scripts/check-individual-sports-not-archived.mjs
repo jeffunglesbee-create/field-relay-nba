@@ -202,7 +202,9 @@ if (!rows || !rows.length) process.exit(1);
 // It is a team sport and carries no `individual` flag, so the two assertions
 // this file actually exists for are unchanged -- the ratchet fired on the count
 // alone, which is the point of a ratchet.
-const EXPECTED = 22;
+// 22 -> 23 on 2026-11-06: FA Cup (eng.fa) added, CC-CMD-2026-08-08-fa-cup-coverage. Also a team
+// sport with no `individual` flag; the ratchet fired on the count alone again.
+const EXPECTED = 23;
 check(`the table still has ${EXPECTED} entries`,
   rows.length === EXPECTED,
   `${rows.length} entries — if this is a deliberate add or removal, update EXPECTED in the same commit`);

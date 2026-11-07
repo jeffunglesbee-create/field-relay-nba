@@ -351,7 +351,9 @@ export function detectSportClass(sport) {
   // letter and is the reason nobody spotted it by eye. Both took the
   // keep-everything fallback and received basketball, hockey, tennis and golf
   // exemplars in every brief, exactly as CFL did before 2026-08-24.
-  if (s.includes('soccer') || s.includes('epl') || s.includes('efl') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue') || s.includes('wc26') || s.includes('wc') || /world.cup|fifa/i.test(s)) return 'soccer';
+  // `fa cup` and `facup` added 2026-11-06 on the same ground as `efl`: 'FA Cup' contains none of the other tokens, so the
+  // label would have taken the keep-everything fallback (scripts/check-seeded-labels-classify.mjs went red on it).
+  if (s.includes('soccer') || s.includes('epl') || s.includes('efl') || s.includes('fa cup') || s.includes('facup') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue') || s.includes('wc26') || s.includes('wc') || /world.cup|fifa/i.test(s)) return 'soccer';
   // CFL added 2026-08-24 with Exemplar I. It was unclassified, so it took the
   // keep-everything fallback and received basketball and hockey exemplars in
   // every brief. Canadian football is not American football, but it is far

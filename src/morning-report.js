@@ -83,7 +83,7 @@ const FAMILIES = {
         'EPL', 'MLS', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'FIFA World Cup',
         'UEFA Champions League', 'UEFA Europa League', 'UEFA Europa Conference League',
         'UEFA Champions League Qualifying', 'UEFA Europa League Qualifying', 'UEFA Europa Conference League Qualifying',
-        'EFL Championship', 'EFL League One', 'EFL League Two', 'EFL Cup', 'EFL Trophy'] },
+        'EFL Championship', 'EFL League One', 'EFL League Two', 'EFL Cup', 'EFL Trophy', 'FA Cup'] },
     basketball: { unit: 'point', over: 'overtime',      narrow: 3, wide: 20, labels: ['NBA', 'WNBA', 'wnba'] },
     baseball:   { unit: 'run',   over: 'extra innings', narrow: 1, wide: 6,  labels: ['MLB'] },
     gridiron:   { unit: 'point', over: 'overtime',      narrow: 3, wide: 21, labels: ['NFL', 'CFB', 'CFL', 'UFL'] },
