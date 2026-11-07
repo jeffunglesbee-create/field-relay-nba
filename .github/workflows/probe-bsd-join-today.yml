@@ -1,0 +1,18 @@
+name: Probe BSD game join today
+
+# Dispatch-only. Runs the deployed admin route POST /admin/bsd-game-join for one date (the same function the journalism
+# cycle's window pass calls) and prints its own return value, with /context/date read before and after.
+# See scripts/probe-bsd-join-today.mjs. It writes bsd_event_id where it IS NULL, like the tick; no Odds API call, no credit.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-bsd-join-today.mjs
+      commit_message: "chore: bsd join today probe"
