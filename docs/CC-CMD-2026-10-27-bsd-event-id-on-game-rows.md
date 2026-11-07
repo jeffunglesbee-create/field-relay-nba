@@ -14,6 +14,32 @@ Deploy run 40607238843 (`04d28bd`); live proof run 40608452953 (`8d51a11`), arti
 `outbox/cc-session-2026-10-27-bsd-event-id-on-game-rows.md`. The consumer, field-laboratory
 `docs/CC-CMD-2026-10-27-lineups-on-game-cards.md`, is unblocked.
 
+**Correction 2026-11-07 (BUILD-ON-A: added here, not filed again).** DONE above was true of the join and untrue of *when* it
+runs. The laboratory's game cards said "No lineup source for this game" for all five big-five rows of 2026-11-06 at 22:50Z,
+hours after the games. Measured (D1 `field-archive`, `change_log` joined to `regular_season_games` on `game_id`, read 2026-11-07):
+the rows of game days 2026-10-30, 10-31, 11-01, 11-02 and 11-06, every one created at 10:00Z, were joined by `bsd_game_join` at 00:xxZ
+of the following day (68 rows). The only other write since 10-31 is 8 rows dated 11-07 that had existed since 2026-06-30 and were joined on
+11-04 at 10:xxZ, as the +3 date of the window. Cause, in `runBsdGameJoinWindow` (Task 4's hook): the archive creates a day's rows at about
+10:00Z; a date's first pass of each UTC day runs near 00:00Z, found nothing pending, and was marked done for 36 h, so the
+rows waited for the next midnight UTC (855 minutes in the simulation that reproduces it). Task 4's text below ("once per UTC
+day per date through a KV marker with a 36 h TTL") is what produced it. Fixed in commit `533090e` (see
+`outbox/cc-session-2026-11-07-lineup-join-and-fa-cup.md`): an empty date's marker is an hour and an empty pass no longer ends
+the tick; the check `scripts/check-bsd-join-window-timing.mjs` is the artifact (80 scenarios; the old behaviour fails 72).
+Task 4's cadence sentence now reads: a date WITH rows is read from BSD once per UTC day, one such date per tick; a date with
+nothing pending is looked at again within the hour and makes no BSD call.
+
+**Residual R1, measured 2026-11-07 on the real function with a stand-in for the matcher (reviewer scratch `variants.mjs`,
+wf_753e8877-a88), not fixed:** a pass that HAD rows to join holds the date for 36 h even when some rows stayed unjoined.
+(a) A second batch of rows created after a date's first row-seeing pass (V4: five rows at 10:00Z, two more at 16:00Z) waits
+for the next UTC day: 495 minutes for the second batch. (b) Rows BSD cannot match yet, because it lists the event later
+(V5: BSD can match them from 12:00Z), wait 735 minutes after they become matchable. Both are the pre-change behaviour, not a
+regression. Whether either happens in production is UNVERIFIED (no read of when rows are created after 10:00Z). Unblock
+criterion: a D1 read of `regular_season_games.created_at` for soccer rows grouped by hour of day over the last 14 days, which
+decides whether (a) occurs; and of `bsd_event_id IS NULL` rows older than 6 hours at the time of the 00:xxZ join, which
+decides (b). If either is non-trivial the change is a shorter hold (for example 6 h) for a pass that left rows unjoined,
+bounded by Rule 78 against BSD's page budget (24 pages per pass), and must come with its own scenario in
+`scripts/check-bsd-join-window-timing.mjs`.
+
 Three corrections this work produced, recorded so the document is not read as still-true:
 
 1. **9 of the 12 oracle row ids exist in the live archive**, not 12. The artifact names the other three
@@ -192,7 +218,8 @@ and print both counts; they must be equal.
   Return `{ date, soccerRows, joined, ambiguous, unmatched: [names], refusedKickoff, unjudgedKickoff, upstreamPages }`.
 - One admin route, authenticated exactly as Task 0 found, calling that function for `?date=`.
 - One call from the scheduled handler Task 0 chose: window today-1 to today+3, **once per UTC day
-  per date** through a KV marker with a 36 h TTL, capped at 24 upstream pages per run (Rule 78),
+  per date that has rows to join** through a KV marker with a 36 h TTL (a date with nothing pending: an hour, and it does not
+  end the tick; corrected 2026-11-07, see the Correction under Status), capped at 24 upstream pages per run (Rule 78),
   inside its own try/catch. The scheduled path and the admin path call the SAME function; only the
   trigger differs, and the offline check exercises the hook with a mock `env`.
 

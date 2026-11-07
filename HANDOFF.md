@@ -1,5 +1,19 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-07 (03:00Z) — a day's soccer rows are joined to BSD in the cycle that creates them (the lineup source); FA Cup is on the relay
+
+**HEAD:** `142f50c` → `4059f8d` (the three code commits `533090e` the join fix, `a18d3d5` FA Cup, `4059f8d` two both-direction gates; before them the FA Cup season probe `d468c78` and its runner output `c17de04`) → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-07-lineup-join-and-fa-cup.md (task: the owner's message after the 2026-11-06 laboratory screenshot: "fa cup is missing. The main issue is the lineup source can't be found.")
+
+Worker code changed (`src/index.js`, `src/journalism-quality.js`, `src/morning-report.js`), so there is a deploy, and it lands before 2026-11-08T00:00Z, the start of the CFL experiment's VOID window. 0 Odds API credits.
+
+- **The lineup source.** The lab's card says "No lineup source for this game" when a game row has no `bsd_event_id`. `runBsdGameJoinWindow` held a date for 36 h after ANY ok pass, including one with nothing pending; the first pass of a UTC day is near 00:00Z and the archive creates a day's rows at about 10:00Z, so each day's rows were joined at 00:xxZ of the NEXT day (game days 10-30, 10-31, 11-01, 11-02 and 11-06: 68 rows, read from `change_log` joined to `regular_season_games`). Fixed: an empty date's marker is an hour, and an empty pass no longer ends the tick. The marker change alone, which is what I first built, starves the +3 date (1140 minutes): a review found it.
+- **FA Cup.** The CC-CMD's unblock criterion is measured now (`outbox/probe-fa-cup-season-2026-11-06T23-18-47-844Z.json`, run 42311014646: 2026, "First Round"). Five registrations plus the two edits the gates demanded. The lab's `Sport.FACup` follows the relay deploy.
+- **Proven locally.** `scripts/check-bsd-join-window-timing.mjs`: 384 scenarios over the real function, base 464 findings, marker-only 172, fixed none; self-test 13/13; wiring mutants 13 of 13. Label contract C and the evaluated constants, and the morning-report src-to-oracle direction, each mutated on purpose. Two independent reviews (`wf_753e8877-a88`, `wf_2e9f8e6d-9e4`) before the push. All deploy-job and guards-job steps on a clean clone: 170 of 172 on a clean clone of `4059f8d`; the 2 reds need the BSD host's network and `RELAY_SHARED_SECRET`, which CI has.
+- **STAGED, the live checks (Rule 74).** Blocked by the deploy and by 2026-11-07 10:00Z: (1) about 12:00Z the join writes for game date 2026-11-07 are at 10:xxZ-11:xxZ, not the next day's 00:xxZ; (2) `/v2/games?sport=facup&date=` for 2026-11-07..09 returns `"league":"FA Cup"` (INCONCLUSIVE if no game); (3) FA Cup rows in `regular_season_games` after a 10:00Z creation. Exact queries in the session doc.
+- **Found, filed, not built:** `docs/CC-CMD-2026-11-07-wc-results-club-contamination.md`. Production `wc_results` holds 58 `third` rows (UEFA qualifying, Aug-Sep) and 3 May `final` rows of club games; `wc_group` has groups of 5 and 6 teams. `writeWCResult` runs for every soccer final. `src/index.js` cannot change 2026-11-08..11-23; the CC-CMD says when it may land.
+- **Open:** residuals R1 and R2 in `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`; the jubilant-bassoon `SOCCER_LEAGUES` entry (Task 4 of the FA Cup CC-CMD); UEFA and the cups are not in `BSD_SOCCER_SPORTS`, so their cards still say "No lineup source". The done condition of the 10-23 CC-CMD is read at 2026-11-08T09:15Z by `trig_018UGzSA57zJmCwKSywz8SzX`.
+
 ## SESSION CLOSE-OUT — 2026-11-06 (06:00Z) — five stale odds-harness anchors re-pointed; the harness's anchors now checked on every deploy
 
 **HEAD:** `d9b4f5a` → `71a1fd3` (the five anchors) → `edbf0c6` (anchors-only mode, deploy.yml) → `f229f01` (guards.yml) → `5b15144` (the review's fixes) → this close-out · **Branch:** main

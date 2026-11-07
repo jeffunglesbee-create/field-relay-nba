@@ -1,5 +1,29 @@
 # CC-CMD-2026-08-08-fa-cup-coverage
 
+**Status 2026-11-07: PARTIAL. UNBLOCKED 2026-11-06; relay half BUILT, not yet deployed or verified live; client half not built.**
+- **Task 1, the unblock probe: DONE.** The criterion below is measured, not inferred: `scripts/probe-fa-cup-season.mjs` (runner run
+  `42311014646`), artifact `outbox/probe-fa-cup-season-2026-11-06T23-18-47-844Z.json`. 4 of 6 reads answered with a payload (the `dates=` range
+  shape answered HTTP 400 on both hosts, so the first fixture date came from the default scoreboard): all 4 `UNBLOCKED`, `season.year` 2026,
+  type `First Round`, "2026-27 English FA Cup", two events dated 2026-11-06 (Bristol Rovers v Cambridge United 19:30Z, Oxford City v Leicester
+  City 19:45Z). The ESPN league id `3918` in this document is from 2026-08-08 and was not re-read (the probe records no `id`): UNVERIFIED.
+  An earlier probe (`probe-efl-cup-slug.yml`, run `42309071973`) printed only the league name and `events=2`; it did not read the criterion.
+- **Tasks 2 and 3, the relay half: BUILT** in the push of 2026-11-07 (`feat: FA Cup (eng.fa) on the relay`, with the gate edits it needed).
+  The three sites named below plus two more the newer gates require: `detectSportClass` (`'fa cup'`, `'facup'`) and
+  `FAMILIES.soccer.labels` in `src/morning-report.js`, and the verifier's independent copy in `scripts/lib/morning-report-oracle.mjs`.
+  Task 3's artifact: `check-leagues-label-contract.mjs` prints SOCCER_LEAGUE_LABELS 18 -> 19, LEAGUES rows 21 -> 22 (15 -> 16 soccer),
+  V2_LEAGUES soccer keys 17 -> 18, `uncovered=[]`. The "scope boundary" below is amended: those extra sites were required, and
+  `check-individual-sports-not-archived.mjs` `EXPECTED` 22 -> 23.
+- **Task 5, live verification of the relay: STAGED.** Blocked by: the deploy. Unblocked when the Deploy RELAY Worker run for the push is `success`.
+  Verify: `probe_relay_route /v2/games?sport=facup&date=<a date with fixtures>` returns HTTP 200 and `"league":"FA Cup"`; the dates to try are
+  2026-11-07, 2026-11-08 and 2026-11-09 (the first round proper runs that weekend; the probe saw only the two Friday ties). If none returns a
+  game, the artifact is INCONCLUSIVE, not a pass: re-run the probe workflow and read the dates ESPN lists. The archive row check is
+  `SELECT sport, COUNT(*) FROM regular_season_games WHERE sport = 'FA Cup' GROUP BY sport` after the 10:00Z row creation of a day with fixtures.
+- **Task 4, the client half: NOT BUILT.** Blocked by: Rule 70 (the relay deploys first) and the live verification above. The laboratory half
+  (LAB-FIRST: `Sport.FACup` in `Desk.fs`, `sport-registry-check` count) is the consumer the owner named on 2026-11-06 ("fa cup is missing").
+  The jubilant-bassoon `SOCCER_LEAGUES` entry (card creation on the served page) remains owed by this CC-CMD.
+- **Found while building, filed:** `docs/CC-CMD-2026-11-07-wc-results-club-contamination.md` (club games are written into the World Cup tables,
+  FA Cup would add four more writing rounds from January).
+
 Wire the FA Cup (`eng.fa`) into relay + client, following the pattern
 already proven twice: `eng.league_cup` (EFL Cup) and `eng.trophy` (EFL
 Trophy). This exists as its own CC-CMD rather than being executed in the
