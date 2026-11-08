@@ -1,0 +1,243 @@
+{
+  "at": "2026-11-08T18:15:21.256Z",
+  "repo": "jeffunglesbee-create/jubilant-bassoon",
+  "controls": {
+    "positive": {
+      "job": 126889897528,
+      "failedSteps": [
+        "Commit results"
+      ],
+      "stepHit": true,
+      "logHit": true,
+      "pushRejected": true
+    },
+    "negative": {
+      "job": 128815750391,
+      "conclusion": "success",
+      "failedSteps": [],
+      "stepHit": false,
+      "logHit": true,
+      "pushRejected": false
+    },
+    "listingPath": {
+      "workflow": "patent-watch",
+      "knownRun": 41919349025,
+      "found": true
+    }
+  },
+  "workflows": {
+    "patent-watch": {
+      "runsExamined": 24,
+      "completed": 24,
+      "failed": 1,
+      "failedAtCommitStep": 1,
+      "pushRejected": 1,
+      "rejectedRuns": [
+        {
+          "run": 41919349025,
+          "event": "schedule",
+          "at": "2026-11-04T21:47:28Z",
+          "job": "followup / pipeline"
+        }
+      ],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 24
+    },
+    "patent-fulltext": {
+      "runsExamined": 16,
+      "completed": 16,
+      "failed": 6,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 16
+    },
+    "competitor-probe": {
+      "runsExamined": 18,
+      "completed": 18,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 18
+    },
+    "golf-contract-probe": {
+      "runsExamined": 2,
+      "completed": 2,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 2
+    },
+    "golf-espn-eur-gir-probe": {
+      "runsExamined": 1,
+      "completed": 1,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 1
+    },
+    "golf-espn-scottish-open-gir-probe": {
+      "runsExamined": 1,
+      "completed": 1,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 1
+    },
+    "golf-espn-stat-names-probe": {
+      "runsExamined": 1,
+      "completed": 1,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 1
+    },
+    "golf-espn-tourcast-probe": {
+      "runsExamined": 1,
+      "completed": 1,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 1
+    },
+    "nhl-analytics-probe": {
+      "runsExamined": 3,
+      "completed": 3,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 3
+    },
+    "oura-fetch": {
+      "runsExamined": 100,
+      "completed": 100,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": true,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 159
+    },
+    "send-outbox": {
+      "runsExamined": 4,
+      "completed": 4,
+      "failed": 1,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 4
+    },
+    "sign-shortcut": {
+      "runsExamined": 3,
+      "completed": 3,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 3
+    },
+    "smoke-and-verify": {
+      "runsExamined": 100,
+      "completed": 100,
+      "failed": 21,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": true,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 2500
+    },
+    "update-drama-profiles": {
+      "runsExamined": 8,
+      "completed": 8,
+      "failed": 4,
+      "failedAtCommitStep": 1,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 1,
+      "totalCompletedRunsListedByApi": 8
+    },
+    "wc-situation-probe": {
+      "runsExamined": 2,
+      "completed": 2,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 2
+    },
+    "whoop-auth-exchange": {
+      "runsExamined": 23,
+      "completed": 23,
+      "failed": 21,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": false,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 23
+    },
+    "whoop-auto-auth": {
+      "runsExamined": 100,
+      "completed": 100,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": true,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 170
+    },
+    "whoop-fetch": {
+      "runsExamined": 100,
+      "completed": 100,
+      "failed": 0,
+      "failedAtCommitStep": 0,
+      "pushRejected": 0,
+      "rejectedRuns": [],
+      "capped": true,
+      "unreadable": 0,
+      "totalCompletedRunsListedByApi": 155
+    }
+  },
+  "summary": {
+    "workflows": 18,
+    "runsExamined": 507,
+    "failed": 54,
+    "failedAtCommitStep": 2,
+    "pushRejected": 1
+  },
+  "coverage": "18 workflows; up to 100 most recent completed runs each (a CAPPED line says the API holds more); only failed runs were opened; a failure counts as push-rejected only when a commit/push step failed AND its log names the rejection. A workflow that is only ever CALLED by another (patent-fulltext) is read through its caller (patent-watch); any other reusable-workflow caller outside the 18 listed is not read. Runs older than the first 100 per workflow are NOT read, and a run whose log has expired is counted as unreadable, not as clean."
+}
