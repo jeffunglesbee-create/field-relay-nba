@@ -1,0 +1,7 @@
+=== nfl player stats  utc=2026-11-08T06:06:16Z ===
+source: https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv (3781813 bytes, 8500 rows, weeks 1-9)
+built: 541 players, 33 QBs with 100+ attempts (the client's threshold)
+R2 nfl/2026/player-stats.json before: updated 2026-11-04T12:00:23.116Z, season 2016, players 1666, source "nflverse via CF Worker"
+R2 nfl/2026/player-stats.json after: updated 2026-11-08T06:06:16.581Z, season 2026, players 541, source "nflverse stats_player_week_2026.csv via GitHub Actions" (read back, sha256 eab567cd49da9ec3 matches)
+route: https://field-relay-nba.jeffunglesbee.workers.dev/nflverse/player-stats.json serves the written bytes (HTTP 200, X-Source r2, sha256 eab567cd49da9ec3)
+WRITTEN AND SERVED: nfl/2026/player-stats.json
