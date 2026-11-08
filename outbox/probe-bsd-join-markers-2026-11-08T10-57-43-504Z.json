@@ -1,0 +1,52 @@
+{
+  "at": "2026-11-08T10:57:43.504Z",
+  "nowUnix": 1794135463,
+  "namespace": "FIELD_JOURNALISM",
+  "prefix": "bsd-join",
+  "keysListed": 6,
+  "markers": [
+    {
+      "key": "bsd-join:2026-11-05:2026-11-07",
+      "value": "{\"written\":0,\"pending\":1}",
+      "expiration": "2026-11-08T12:15:27.000Z",
+      "secondsLeft": 4664,
+      "verdict": "PENDING-ROWS-HELD (0 written of 1; the current 6 h rule, or a 36 h marker nearer its expiry: not distinguishable)"
+    },
+    {
+      "key": "bsd-join:2026-11-06:2026-11-07",
+      "value": "{\"written\":5,\"pending\":5}",
+      "expiration": "2026-11-08T12:30:29.000Z",
+      "secondsLeft": 5566,
+      "verdict": "PENDING-ROWS-HELD-OVER-THEIR-HOLD (5 written of 5; the pre-change 36 h rule: the current rule holds 1 h here)"
+    },
+    {
+      "key": "bsd-join:2026-11-07:2026-11-07",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-08T12:45:30.000Z",
+      "secondsLeft": 6467,
+      "verdict": "EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the current rule writes 3600 s)"
+    },
+    {
+      "key": "bsd-join:2026-11-08:2026-11-07",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-08T13:00:29.000Z",
+      "secondsLeft": 7366,
+      "verdict": "EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the current rule writes 3600 s)"
+    },
+    {
+      "key": "bsd-join:2026-11-08:2026-11-08",
+      "value": "{\"written\":22,\"pending\":24}",
+      "expiration": "2026-11-08T16:01:10.000Z",
+      "secondsLeft": 18207,
+      "verdict": "PENDING-ROWS-HELD (22 written of 24; the current 6 h rule, or a 36 h marker nearer its expiry: not distinguishable)"
+    },
+    {
+      "key": "bsd-join:2026-11-09:2026-11-07",
+      "value": "{\"written\":0,\"pending\":0}",
+      "expiration": "2026-11-08T13:15:28.000Z",
+      "secondsLeft": 8265,
+      "verdict": "EMPTY-DATE-HELD-OVER-AN-HOUR (the pre-fix 36 h rule; the current rule writes 3600 s)"
+    }
+  ],
+  "coverage": "6 key(s) under prefix \"bsd-join\" listed and each value read; keys outside the prefix are not examined"
+}
