@@ -1,0 +1,6 @@
+# Session 2026-11-08 — the World Cup lambdas done condition, read: holds
+
+**Task.** The wake of `trig_018UGzSA57zJmCwKSywz8SzX` (2026-11-08T09:15Z): the done condition of `docs/CC-CMD-2026-10-23-odds-spend-without-need.md` (TASK 1 gated `getWCPregameLambdas` on the World Cup window, deployed 2026-11-05). Read-only, 0 Odds API credits, docs only; no `src/` change, and the CFL experiment's documents were not touched (VOID window 2026-11-08..11-23).
+**Result.** No `getWCPregameLambdas` rows in `odds_reconcile_state` or `odds_budget_site` for 2026-11-06 or 2026-11-07 (2 of 2 days read, 0 with rows); the same query returns 932, 711 and 451 on 2026-10-24, 10-31 and 11-01; the demand control (`fetchSportOddsLive`, 2026-11-07) is 103, at least 78. Both days hold rows for 5 other sites, so the absence is not of the day. The CC-CMD's Status flipped from PARTIAL to DONE and carries a new "Result of the done condition, 2026-11-08".
+**Artifact.** `outbox/wc-lambdas-done-condition-read-2026-11-08.txt`: every query and its raw result, with denominators. The read ran from this session through the D1 query tool, so there is no workflow run id to cite.
+**Verified vs STAGED.** Verified by the queries above. Nothing STAGED. The demand control is a proxy for a different caller (evidence, not proof); the read cannot tell a gated call from one that never happened.

@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-08 (09:30Z) — the World Cup lambdas done condition read: no `getWCPregameLambdas` rows on 2026-11-06 or 11-07; `docs/CC-CMD-2026-10-23-odds-spend-without-need.md` is DONE
+
+**HEAD:** unchanged by this read (docs and outbox only; no `src/` commit, CFL VOID window).
+**Session doc:** outbox/cc-session-2026-11-08-lambdas-done-condition.md (task: the wake of trig_018UGzSA57zJmCwKSywz8SzX)
+
+- **Result.** Read-only D1 queries against `field-archive`, 0 credits: `odds_reconcile_state` and `odds_budget_site` hold NO `getWCPregameLambdas` rows for 2026-11-06 or 2026-11-07 (2 of 2 days read, 0 with rows); the same query returns 932, 711 and 451 on the three pre-deploy control days; the demand control `fetchSportOddsLive` on 2026-11-07 is 103 against a threshold of 78. Both read days hold rows for 5 other sites, so the absence is of one site and not of the day. Status flipped PARTIAL to DONE; the raw output is `outbox/wc-lambdas-done-condition-read-2026-11-08.txt`.
+- **Not shown.** The demand control is a proxy for a different caller, so this is evidence and not proof, as the CC-CMD says; the read cannot tell a gated call from a call that never happened.
+- **Nothing STAGED by this read.** Still armed: the NFL measurement (`trig_01AP3wc3S9qch3iDkHryHp8e`, today 19:05Z), the CFL judge (`trig_019aQvU36rYwZ7PqjaMnV5ut`, 2026-11-24T14:00Z) and the item 3 landing check (`trig_01FFUveETSUTJeuudarUh5h7`, 2026-11-24T16:30Z).
+
 ## SESSION CLOSE-OUT — 2026-11-08 (08:30Z) — done condition 5 of the vendor-residual CC-CMD read: `pass` (the CFL fix, busy day 2026-11-07)
 
 **HEAD:** unchanged by this read (docs and outbox only; no `src/` commit, CFL VOID window).

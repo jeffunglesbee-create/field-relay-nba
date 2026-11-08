@@ -6,8 +6,8 @@
 **Type:** C (infrastructure) — ledger and ceiling consumption by a call the vendor bills 0 for.
 Re-typed 2026-11-05 from "A (real vendor spend above need)": see Audit 2026-11-05, row 4.
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL 2026-11-05 — TASK 0 and TASK 1 BUILT and committed 04dc077 and deployed 2026-11-05T20:39Z (Deploy RELAY Worker run 42103983396, success; Repo guards run 42103983255, success). The done condition
-is the two-sided call-count read below, scheduled for 2026-11-08; flips to DONE when it is recorded here.
+**Status:** DONE 2026-11-08 — TASK 0 and TASK 1 BUILT and committed 04dc077 and deployed 2026-11-05T20:39Z (Deploy RELAY Worker run 42103983396, success; Repo guards run 42103983255, success). The done condition
+(the two-sided call-count read below) was read 2026-11-08T09:16Z by `trig_018UGzSA57zJmCwKSywz8SzX` and HOLDS: no `getWCPregameLambdas` rows for 2026-11-06 or 2026-11-07, demand control 103 against a threshold of 78; see "Result of the done condition, 2026-11-08" at the end.
 **Filed by:** the Task 3 premise test of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`
 (workflow `wf_c984c219-a1f`, 2026-10-23), Rule 87.4. The opening-line cron's
 re-buying is NOT here: it is in
@@ -196,3 +196,18 @@ is what was built; switching replaces one conjunct and the M9-M17/R1-R6 cases.
 **Do not read a `src/index.js` commit in 2026-11-08..11-23 as harmless.** The judge
 checks `git log --since=2026-11-08` on "those files" and the listed items live in
 `src/index.js`. This change landed before the window for that reason.
+
+## Result of the done condition, 2026-11-08
+
+Read 2026-11-08T09:16Z, read-only, 0 Odds API credits, by `trig_018UGzSA57zJmCwKSywz8SzX` through the Cloudflare D1 query tool against `field-archive` (`cc49101c-0569-4d41-8e7a-be139cde4f26`); there is no workflow run id, the read was made from the session. Raw output and every query: `outbox/wc-lambdas-done-condition-read-2026-11-08.txt`.
+
+| # | query | result | needed |
+|---|---|---|---|
+| 1 | `SELECT day, SUM(n) AS attempts FROM odds_reconcile_state WHERE site='getWCPregameLambdas' AND day IN ('2026-11-06','2026-11-07') GROUP BY day` | **no rows** | no rows |
+| 2 | `SELECT day, used FROM odds_budget_site WHERE site='getWCPregameLambdas' AND day IN ('2026-11-06','2026-11-07')` | **no rows** | no rows |
+| 3 | query 1 for `('2026-10-24','2026-10-31','2026-11-01')` | 932, 711, 451 | rows on the unfixed worker |
+| 4 | `SELECT SUM(n) FROM odds_reconcile_state WHERE site='fetchSportOddsLive' AND day='2026-11-07'` | **103** | at least 78 |
+
+**Denominators.** Queries 1 and 2: 2 of 2 days read, 0 days with rows. Query 3: 3 of 3 control days returned rows. Query 4: 1 of 1 day read. **Not vacuous:** both days hold rows for 5 other sites in both tables (`odds_reconcile_state`: 2026-11-06 10 rows and 92 calls, 2026-11-07 15 rows and 2505 calls; `odds_budget_site`: `used` 282 and 1056), so the absence is of one site, not of the day; and the same query for the site returns rows on the three pre-deploy days. The demand-control query reproduces the CC-CMD's own reference value for 2026-11-01 (78). The other read day, Friday 2026-11-06, has a `fetchSportOddsLive` n of 39; it is not the demand-control day and no conclusion is drawn from it.
+
+**What this is and is not.** Conditions 1 to 4 hold, so the Status is DONE. The demand control is the PROXY the CC-CMD says it is: `snapshotCronOdds` writes that site, while the lambdas run per `/v2/games` request that has a live game, so 103 shows the day was busy (2505 calls tallied in all), "evidence, not proof" in the CC-CMD's words. The read cannot tell a gated call from a call that never happened; it tells that no call reached the ledger on a Saturday after the deploy, where the unfixed worker recorded 297 to 932 on the four prior Saturdays (the CC-CMD's own calibration; this read re-measured 932, 711 and 451 on three of the days). Nothing was investigated because nothing failed; the deploy and `wcWindowOpenNow` checks the wake names for a failure were not needed. `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` and `outbox/odds-cfl-season-end-prediction-2026-10-18.md` were not touched (the calendar experiment's VOID window), and neither were `src/` or the guard functions.

@@ -1,0 +1,29 @@
+# Done condition of docs/CC-CMD-2026-10-23-odds-spend-without-need.md, read 2026-11-08T09:16Z
+# Read-only, 0 Odds API credits. Database field-archive (cc49101c-0569-4d41-8e7a-be139cde4f26), through the Cloudflare D1 query tool, by
+# trig_018UGzSA57zJmCwKSywz8SzX in session_017FXC1oRxRstzY2xGJBFu2k. There is no workflow run id: the read was made from the session, not a runner.
+# Every query is a GROUP BY form where it counts, so an empty result set is an empty result set and not one row of NULL.
+
+[1] SELECT day, SUM(n) AS attempts FROM odds_reconcile_state WHERE site='getWCPregameLambdas' AND day IN ('2026-11-06','2026-11-07') GROUP BY day
+    -> no rows   (results: [], rows_read 2)                                   expected: no rows   -> HOLDS
+
+[2] SELECT day, used FROM odds_budget_site WHERE site='getWCPregameLambdas' AND day IN ('2026-11-06','2026-11-07')
+    -> no rows   (results: [], rows_read 2)                                   expected: no rows   -> HOLDS
+
+[3] pre-deploy controls: SELECT day, SUM(n) AS attempts FROM odds_reconcile_state WHERE site='getWCPregameLambdas' AND day IN ('2026-10-24','2026-10-31','2026-11-01') GROUP BY day
+    -> 2026-10-24: 932    2026-10-31: 711    2026-11-01: 451                     expected: 932, 711, 451 -> the query CAN return rows, and does, on the unfixed worker
+
+[4] demand control: SELECT SUM(n) AS n FROM odds_reconcile_state WHERE site='fetchSportOddsLive' AND day='2026-11-07'
+    -> 103                                                                      threshold: at least 78 -> HOLDS (103 >= 78)
+
+# Premise checks, run before recording (Rule 100): is "no rows" vacuous?
+[5] SELECT day, COUNT(*) AS state_rows, COUNT(DISTINCT site) AS sites, SUM(n) AS calls FROM odds_reconcile_state WHERE day IN ('2026-11-06','2026-11-07') GROUP BY day
+    -> 2026-11-06: state_rows 10, sites 5, calls 92      2026-11-07: state_rows 15, sites 5, calls 2505
+[6] SELECT day, COUNT(*) AS site_rows, SUM(used) AS used FROM odds_budget_site WHERE day IN ('2026-11-06','2026-11-07') GROUP BY day
+    -> 2026-11-06: site_rows 5, used 282                 2026-11-07: site_rows 5, used 1056
+[7] SELECT day, SUM(n) AS n FROM odds_reconcile_state WHERE site='fetchSportOddsLive' AND day IN ('2026-11-06','2026-11-01') GROUP BY day
+    -> 2026-11-01: 78 (the value the CC-CMD names for that day: the query reproduces its reference)     2026-11-06: 39 (a Friday; NOT the demand-control day, no conclusion is drawn from it)
+
+# Denominators (Rule 91, Rule 99)
+#   [1] 2 of 2 days read, 0 days with rows.   [2] 2 of 2 days read, 0 days with rows.   [3] 3 of 3 control days returned rows.   [4] 1 of 1 day read.
+#   Both read days have rows for 5 other sites in both tables, so the absence is of one site, not of the day.
+# VERDICT: conditions 1, 2, 3 and 4 hold. Status flips to DONE.
