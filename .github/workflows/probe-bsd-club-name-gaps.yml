@@ -1,0 +1,17 @@
+name: Probe BSD club name gaps
+
+# Dispatch-only, read-only, no secret. Compares every archive club name of the five BSD-joined leagues with the team names BSD serves for three UTC days
+# (scripts/probe-bsd-club-name-gaps-2026-11-08.mjs), to find alias gaps before a fixture exposes them.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-bsd-club-name-gaps-2026-11-08.mjs
+      commit_message: "chore: bsd club name gaps probe"

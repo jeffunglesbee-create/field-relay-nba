@@ -1,0 +1,10 @@
+{
+  "source": "D1 field-archive (cc49101c), regular_season_games: SELECT DISTINCT home and away names by sport, date >= 2026-08-01, read 2026-11-08 via the D1 MCP (the archive's own spelling, as ESPN served it)",
+  "sports": {
+    "Bundesliga": ["Augsburg","Bayern","Bremen","Cologne","Dortmund","Elversberg","Frankfurt","Freiburg","Gladbach","Hamburg","Hoffenheim","Leverkusen","Mainz","Paderborn","RB Leipzig","Schalke","Stuttgart","Union Berlin"],
+    "EPL": ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","C Palace","Chelsea","Coventry","Everton","Fulham","Hull","Ipswich","Leeds","Liverpool","Man City","Man United","Man Utd","Newcastle","Nottm Forest","Spurs","Sunderland"],
+    "La Liga": ["Alavés","Athletic","Atlético","Barcelona","Betis","Celta Vigo","Deportivo","Elche","Espanyol","Getafe","Levante","Málaga","Osasuna","Racing","Rayo","Real Madrid","Real Sociedad","Sevilla","Valencia","Villarreal"],
+    "Ligue 1": ["Angers","Auxerre","Brest","Le Havre AC","Le Mans","Lens","Lille","Lorient","Lyon","Marseille","Monaco","Nice","PSG","Paris FC","Rennes","Strasbourg","Toulouse","Troyes"],
+    "Serie A": ["AS Roma","Atalanta","Bologna","Cagliari","Como","Fiorentina","Frosinone","Genoa","Inter Milan","Juventus","Lazio","Lecce","Milan","Monza","Napoli","Parma","Sassuolo","Torino","Udinese","Venezia"]
+  }
+}
