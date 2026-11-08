@@ -1,0 +1,56 @@
+name: NFL player stats to R2
+
+# nfl/{year}/player-stats.json, built here instead of in the Worker. The Worker's
+# Wednesday job ran out of memory on every tick (45 kills, four Wednesdays):
+# docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md, option B. The job writes R2,
+# reads it back, and checks the public /nflverse/ route serves the same bytes.
+# See scripts/build-nfl-player-stats.mjs.
+#
+# Wednesday 12:41 UTC: the Worker's old window (12-15 UTC, after Tuesday's
+# nflverse update), once instead of sixteen times.
+
+on:
+  schedule:
+    - cron: '41 12 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfl-player-stats
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: the build can fail
+        run: node scripts/build-nfl-player-stats.mjs --self-test
+
+      # pipefail: without it the step's exit code is tee's.
+      - name: Build, write R2, read back, check the route
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          { echo "=== nfl player stats  utc=$(date -u +%FT%TZ) ==="
+            node scripts/build-nfl-player-stats.mjs
+          } 2>&1 | tee "outbox/nfl-player-stats-${STAMP}.log" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="nfl-player-stats" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: nfl player stats"
