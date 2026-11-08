@@ -71,6 +71,8 @@ reach, so it is tried again at every reach and takes the tick. A `continue` afte
 cure (2); not built. Unblock for both: a measured reach cadence, i.e. how often a tick passes the slate-context gate
 (`journalism:<date>` `contextHash` changes) on a real day; without it neither can be said to occur.
 
+**Residual R1, read live 2026-11-08 (session doc `outbox/cc-session-2026-11-07-lineup-join-and-fa-cup.md`, section "2026-11-08 11:20Z"): the join happens in the creating cycle, MET; the rows' completeness was not.** 22 of the day's 24 soccer rows were written in the 10:01 minute, the tick that follows their creation at 10:00:28 to 10:00:37Z, and the marker held the date 6 h (`{"written":22,"pending":24}`, expiry 16:01:10Z). The other 2 (Ligue 1 Rennes v Lille 14:00Z, Angers v Nice 16:15Z) stayed unjoined because BSD names the clubs "LOSC Lille" and "OGC Nice" (events 210525 and 210518, read from `/bsd/events/by-date` on a runner with a found control): two more aliases, `1e3e9a5`, deployed 11:16Z (run `42474274661`) and joined 2 of 2 at 11:17Z, read back from D1. The 6 h hold means a row left unjoined by a name gap is not retried before the next window, which for a 14:00Z kickoff is after it; every such gap needs a manual pass or a deploy-and-join as here. Two alias gaps in two days (Auxerre 11-07, Lille and Nice 11-08).
+
 Three corrections this work produced, recorded so the document is not read as still-true:
 
 1. **9 of the 12 oracle row ids exist in the live archive**, not 12. The artifact names the other three

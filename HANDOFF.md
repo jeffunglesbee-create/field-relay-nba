@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-08 (11:30Z) — the live check of the lineup join read: 22 of 24 rows joined in the creating tick; two more BSD name gaps (LOSC Lille, OGC Nice) fixed, deployed and joined
+
+**HEAD:** `1e3e9a5` (the aliases) on top of `bc56fd3` (the unmatched-rows probe); Deploy RELAY Worker run `42474274661` `success` at 11:16Z. `src/identity-resolver.js` only: no `src/index.js` and none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-07-lineup-join-and-fa-cup.md (section "2026-11-08 11:20Z"; task: the wake of trig_01QC3ieQNZbGupcvcCNVetYY)
+
+- **The 11-07 close-out's STAGED live check of the hold rule is READ.** 22 of the day's 24 soccer rows were written in the 10:01 minute, the tick after their creation (10:00:28 to 10:00:37Z), and the marker holds the date 6 h (expiry 16:01:10Z). That part is MET.
+- **The other 2 were not a pass.** Ligue 1 Rennes v Lille (14:00Z) and Angers v Nice (16:15Z): BSD serves them (events 210525 "Stade Rennais" v "LOSC Lille", 210518 "Angers" v "OGC Nice"; probe `scripts/probe-bsd-unmatched-rows-2026-11-08.mjs` with a found control). The resolver's keys were `losclille` and `ogcnice`. Two aliases (`1e3e9a5`, checks S11 and S12 written first, 21/23 to 23/23, each fails alone without its alias, exactly two keys change across 1771 names); the join pass at 11:17Z wrote 2 of 2, read back from D1: 24 of 24, Ligue 1 6 of 6.
+- **Two alias gaps in two days, and what that means.** The 6 h hold keeps a name-gap row unjoined until after a 14:00Z kickoff; each gap needed a manual pass. A club-name comparison (BSD against the archive, per league) would find them before kickoff and is NOT built: the 11-day row audit (202 rows, 6 unjoined, 4 of them seeded MLS rows with no kickoff time) cannot show it, because a club can join under one opponent and fail under another.
+- **Armed, unchanged:** the NFL measurement (`trig_01AP3wc3S9qch3iDkHryHp8e`, today 19:05Z), the CFL judge (`trig_019aQvU36rYwZ7PqjaMnV5ut`, 2026-11-24T14:00Z) and the item 3 landing check (`trig_01FFUveETSUTJeuudarUh5h7`).
+
 ## SESSION CLOSE-OUT — 2026-11-08 (09:30Z) — the World Cup lambdas done condition read: no `getWCPregameLambdas` rows on 2026-11-06 or 11-07; `docs/CC-CMD-2026-10-23-odds-spend-without-need.md` is DONE
 
 **HEAD:** unchanged by this read (docs and outbox only; no `src/` commit, CFL VOID window).
