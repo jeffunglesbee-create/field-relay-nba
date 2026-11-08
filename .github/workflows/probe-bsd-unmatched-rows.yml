@@ -1,0 +1,17 @@
+name: Probe BSD unmatched rows
+
+# Dispatch-only, read-only, no secret. Lists the BSD events naming Rennes, Lille, Angers, Nice (and the Brest v Lyon control) for three UTC days
+# (scripts/probe-bsd-unmatched-rows-2026-11-08.mjs), to say why the join left those two Ligue 1 rows unmatched on 2026-11-08.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-bsd-unmatched-rows-2026-11-08.mjs
+      commit_message: "chore: bsd unmatched rows probe"
