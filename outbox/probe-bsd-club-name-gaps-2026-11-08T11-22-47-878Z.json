@@ -1,0 +1,121 @@
+{
+  "at": "2026-11-08T11:22:47.878Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "days": {
+    "2026-11-06": {
+      "httpStatus": 200,
+      "pages": 2,
+      "events": 62,
+      "complete": true
+    },
+    "2026-11-07": {
+      "httpStatus": 200,
+      "pages": 5,
+      "events": 226,
+      "complete": true
+    },
+    "2026-11-08": {
+      "httpStatus": 200,
+      "pages": 5,
+      "events": 233,
+      "complete": true
+    }
+  },
+  "eventKeysOfFirst": [
+    "id",
+    "league_id",
+    "season_id",
+    "home_team_id",
+    "home_team",
+    "away_team_id",
+    "away_team",
+    "home_coach_id",
+    "away_coach_id",
+    "referee_id",
+    "venue_id",
+    "event_date",
+    "status",
+    "replaced_by",
+    "round_number",
+    "round_name",
+    "group_name",
+    "stage",
+    "stage_name",
+    "round_label",
+    "period",
+    "current_minute",
+    "home_score",
+    "away_score",
+    "home_score_ht",
+    "away_score_ht",
+    "penalty_shootout",
+    "extra_time_score",
+    "is_local_derby",
+    "is_neutral_ground",
+    "travel_distance_km",
+    "weather",
+    "pitch_condition",
+    "attendance",
+    "live_websocket",
+    "websocket_plus",
+    "highlights",
+    "head_to_head",
+    "has_xg",
+    "previous_leg_event_id"
+  ],
+  "control": {
+    "positive": {
+      "name": "Brest",
+      "key": "brest",
+      "matched": true,
+      "bsdSpellings": [
+        "Stade Brestois"
+      ]
+    },
+    "negative": {
+      "name": "Zzyzx Rovers",
+      "key": "zzyzxrovers",
+      "matched": false,
+      "candidates": [
+        "Bristol Rovers",
+        "Forest Green Rovers",
+        "Doncaster Rovers",
+        "Tranmere Rovers",
+        "Blackburn Rovers"
+      ]
+    }
+  },
+  "leagues": {
+    "Bundesliga": {
+      "clubs": 18,
+      "matched": 18,
+      "unmatched": []
+    },
+    "EPL": {
+      "clubs": 21,
+      "matched": 21,
+      "unmatched": []
+    },
+    "La Liga": {
+      "clubs": 20,
+      "matched": 20,
+      "unmatched": []
+    },
+    "Ligue 1": {
+      "clubs": 18,
+      "matched": 18,
+      "unmatched": []
+    },
+    "Serie A": {
+      "clubs": 20,
+      "matched": 20,
+      "unmatched": []
+    }
+  },
+  "coverage": "97 archive club names (Bundesliga, EPL, La Liga, Ligue 1, Serie A) checked against 1021 distinct BSD team keys from 521 events over 3 day(s) (2026-11-06, 2026-11-07, 2026-11-08), every page of 50 read (all complete); BSD events of every sport are in the set, so a match is by key only and a match against another sport's club would hide a gap",
+  "summary": {
+    "total": 97,
+    "matched": 97,
+    "unmatched": 0
+  }
+}
