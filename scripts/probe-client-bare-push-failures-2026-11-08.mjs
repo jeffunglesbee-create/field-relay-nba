@@ -17,7 +17,9 @@ import { writeFileSync, mkdirSync } from 'node:fs'
 
 const OWNER = 'jeffunglesbee-create', REPO = 'jubilant-bassoon'
 // The census of 2026-11-08: workflows with `git push` and no `pull --rebase`/retry anywhere in the file (patent-fulltext is the one fixed on 2026-11-08, e4093fa).
-const WORKFLOWS = ['patent-fulltext', 'competitor-probe', 'golf-contract-probe', 'golf-espn-eur-gir-probe', 'golf-espn-scottish-open-gir-probe', 'golf-espn-stat-names-probe',
+// patent-watch is the CALLER of patent-fulltext (a reusable workflow): a run of the called job is listed under the caller, not under patent-fulltext.yml, so the known
+// 2026-11-04 loss is only visible through patent-watch. A workflow called by another is read through its caller.
+const WORKFLOWS = ['patent-watch', 'patent-fulltext', 'competitor-probe', 'golf-contract-probe', 'golf-espn-eur-gir-probe', 'golf-espn-scottish-open-gir-probe', 'golf-espn-stat-names-probe',
   'golf-espn-tourcast-probe', 'nhl-analytics-probe', 'oura-fetch', 'send-outbox', 'sign-shortcut', 'smoke-and-verify', 'update-drama-profiles', 'wc-situation-probe',
   'whoop-auth-exchange', 'whoop-auto-auth', 'whoop-fetch']
 const CONTROL_POSITIVE = { run: 41919349025, job: 126889897528 }
@@ -87,6 +89,8 @@ console.log(`CONTROL negative (run ${CONTROL_NEGATIVE_RUN}, a successful commit 
 if (!controlsOk) { out.broken = true; console.log('THE READING IS BROKEN (a control failed); nothing below says anything about the workflows.') }
 
 let totalRuns = 0, totalFailed = 0, totalCommitFail = 0, totalRejected = 0
+// END-TO-END CONTROL (the listing path, not just the classifier): the known 2026-11-04 loss, run 41919349025, must be found by listing patent-watch's own runs.
+const KNOWN_RUN = 41919349025
 for (const wf of WORKFLOWS) {
   const w = { runsExamined: 0, completed: 0, failed: 0, failedAtCommitStep: 0, pushRejected: 0, rejectedRuns: [], capped: false, unreadable: 0 }
   try {
@@ -114,8 +118,11 @@ for (const wf of WORKFLOWS) {
   totalRuns += w.runsExamined; totalFailed += w.failed; totalCommitFail += w.failedAtCommitStep; totalRejected += w.pushRejected
   console.log(`${wf.padEnd(36)} runs ${String(w.runsExamined).padStart(3)}${w.capped ? ` of ${w.totalCompletedRunsListedByApi} (CAPPED)` : ''}  failed ${String(w.failed).padStart(3)}  at a commit/push step ${String(w.failedAtCommitStep).padStart(2)}  push-rejected ${String(w.pushRejected).padStart(2)}${w.unreadable ? `  (${w.unreadable} log unreadable)` : ''}${w.error ? `  ERROR ${w.error}` : ''}`)
 }
+out.controls.listingPath = { workflow: 'patent-watch', knownRun: KNOWN_RUN, found: !!(out.workflows['patent-watch']?.rejectedRuns || []).some(r => r.run === KNOWN_RUN) }
+console.log(`CONTROL listing path: the known loss (run ${KNOWN_RUN}) ${out.controls.listingPath.found ? 'was FOUND by listing patent-watch runs (as it must be)' : 'was NOT FOUND by listing: the listing misses a caller, so a 0 below means nothing'}`)
+if (!out.controls.listingPath.found) { out.broken = true; console.log('THE READING IS BROKEN (the listing control failed).') }
 out.summary = { workflows: WORKFLOWS.length, runsExamined: totalRuns, failed: totalFailed, failedAtCommitStep: totalCommitFail, pushRejected: totalRejected }
-out.coverage = `${WORKFLOWS.length} workflows; up to ${MAX_RUNS} most recent completed runs each (a CAPPED line says the API holds more); only failed runs were opened; a failure counts as push-rejected only when a commit/push step failed AND its log names the rejection. Runs older than the first ${MAX_RUNS} per workflow are NOT read, and a run whose log has expired is counted as unreadable, not as clean.`
+out.coverage = `${WORKFLOWS.length} workflows; up to ${MAX_RUNS} most recent completed runs each (a CAPPED line says the API holds more); only failed runs were opened; a failure counts as push-rejected only when a commit/push step failed AND its log names the rejection. A workflow that is only ever CALLED by another (patent-fulltext) is read through its caller (patent-watch); any other reusable-workflow caller outside the 18 listed is not read. Runs older than the first ${MAX_RUNS} per workflow are NOT read, and a run whose log has expired is counted as unreadable, not as clean.`
 console.log(`SUMMARY ${totalRuns} runs, ${totalFailed} failed, ${totalCommitFail} failed at a commit/push step, ${totalRejected} of those rejected by the remote`)
 console.log(`COVERAGE: ${out.coverage}`)
 mkdirSync('outbox', { recursive: true })
