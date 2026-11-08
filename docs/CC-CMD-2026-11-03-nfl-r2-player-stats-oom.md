@@ -1,9 +1,9 @@
-# Claude Code Command — the Wednesday NFL R2 job runs out of memory on every tick, and would publish misparsed 2024 data if it didn't
+# Claude Code Command — the Wednesday NFL R2 job runs out of memory on most ticks, and publishes misparsed 2024 data when it doesn't
 
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba (`src/nfl-r2.js`, its call at `src/index.js:9825`, `_utcDay === 3 && _utcHour >= 12`); jubilant-bassoon reads the output (`src/legacy/field.js:4575`, `NFL_QB_STATS`)
 **Filed:** 2026-11-03, by CC, from `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md`
-**Status:** FILED, not started. The direction is the owner's (below).
+**Status:** DONE 2026-11-08 for option B (owner's choice, 2026-11-08): the runner job is built and live, the Worker job is retired. Removing the Worker's cron call waits on `docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md`. Record at the end.
 
 ---
 
@@ -11,7 +11,7 @@
 
 All of it is in `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md`, "what was found". In short:
 
-1. `runNFLR2Update` runs out of memory (128 MB) on every recorded tick of its
+1. `runNFLR2Update` ran out of memory (128 MB) on 45 ticks of its
    Wednesday 12–15 UTC window: 45 invocations, four Wednesdays, 2026-10-07 to 10-28.
    Reproduced: a 532 MB heap peak (`scripts/nfl-r2-memory-repro.mjs`).
 2. Its one live source, `player_stats/player_stats.csv` (33.4 MB), holds seasons
@@ -67,3 +67,35 @@ journalism cycle.
 - For B or C: `node --max-old-space-size=128 scripts/nfl-r2-memory-repro.mjs <csv>`
   exits 0 against whatever source the job then reads, and the published `season`
   equals the source's real maximum season (Python `csv`, not the job's own parser).
+
+---
+
+## 2026-11-08 — option B, built (owner: "B")
+
+**Correction first.** This document said the job ran out of memory "on every tick".
+It did not: the runner's first live read of R2 found the Worker's own write of
+**2026-11-04T12:00:23Z** (`season 2016`, 1,666 players, `source "nflverse via CF Worker"`),
+so the job also completed sometimes. The windows in the localise log held 15, 4, 13
+and 13 failures out of 16 ticks. When it completed, it published the misparsed table:
+the client was being served `season: 2016` data until 2026-11-08T06:06Z.
+
+| commit | what |
+|---|---|
+| `00c4866` | `scripts/build-nfl-player-stats.mjs` + `.github/workflows/nfl-player-stats.yml` (Wed 12:41 UTC, dispatch). Source `stats_player/stats_player_week_{year}.csv`; quote-aware parser equal to Python `csv` on both real files (8,500 and 134,470 rows, identical row hashes); `fetchPlayerStats`'s aggregation, envelope and fields kept, with `team` replacing `recent_team`. Self-test 17/17; 13/13 mutations caught. |
+| `a5c8da1` | `src/nfl-r2.js` retired to a stub that writes nothing. No `src/index.js` change (VOID window). `scripts/nfl-r2-memory-repro.mjs` now loads `git show 00c4866:src/nfl-r2.js`. 229 of 230 secret-free guard commands pass on HEAD and on the change, identically. |
+
+**Task 0, answered.** (1) R2 held the 11-04 Worker write above. (2) nflverse publishes
+current data at `stats_player/stats_player_week_2026.csv` (weeks 1–9 on 2026-11-08);
+`player_stats_2025.csv`/`_2026.csv` answer 404. (3) The Monday pipeline
+(`nfl-ngs-update.yml`) does not write `player-stats.json`.
+
+**Done condition, B part.** First live run (`outbox/nfl-player-stats-2026-11-08T0606.log`):
+541 players, 33 QBs with 100+ attempts; R2 read back with matching sha256
+`eab567cd49da9ec3`; `/nflverse/player-stats.json` serves the same bytes (HTTP 200,
+`X-Source: r2`). The memory part (0 `exceededMemory` buckets on the next Wednesday)
+is read on 2026-11-11 after 16:00 UTC, once the stub's deploy is live.
+
+**Seen, not touched:** `src/mlb-savant-r2.js` uses the same naive comma split (the old
+file's comment says "same as mlb-savant-r2.js"); whether its source has quoted commas
+is not measured. `POST /nfl-r2-update` authorises on a client-sent `X-FIELD-Admin: 1`
+header; it writes nothing now, through the stub.

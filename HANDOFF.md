@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-08 (06:40Z) — NFL player stats are built on a runner; the Worker's Wednesday job is retired
+
+**HEAD:** `d6ce98a` → `00c4866` → `a5c8da1` → this close-out · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-08-nfl-player-stats-runner.md (task: the owner's "B" for `docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md`)
+
+- **Live and verified end to end:** `nfl-player-stats.yml` built `nfl/2026/player-stats.json` from nflverse's current `stats_player_week_2026.csv` (541 players, 33 QBs over the client's threshold), read it back from R2, and `/nflverse/player-stats.json` serves the same bytes. Until 06:06Z the client was served the Worker's misparsed `season: 2016` table, last written 2026-11-04T12:00Z.
+- **Retired:** `src/nfl-r2.js` is a stub that writes nothing (`a5c8da1`). `src/index.js` untouched (CFL VOID window). Removing the cron call: `docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md`, BLOCKED to 2026-11-24 and the CFL verdict.
+- **STAGED:** 0 `exceededMemory` on Wed 2026-11-11; read after 16:00 UTC with `worker-cpu-read.yml` `mode=localise`.
+- **Corrected:** the job did not fail on every tick (it completed on 11-04); both CC-CMDs that said so now say what was measured.
+
 ## SESSION CLOSE-OUT — 2026-11-08 (01:30Z) — accounting-edges item 3 built as a PARKED patch and reviewed twice; nothing landed (CFL VOID window)
 
 **HEAD:** `b9edf45` at the start and the end; no `src/` commit. Work was done in throwaway copies; the artifacts are committed under `outbox/`.

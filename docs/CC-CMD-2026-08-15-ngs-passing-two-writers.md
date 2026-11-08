@@ -114,8 +114,8 @@ and a confidence gate.
 
 From `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md`:
 
-- **"Wednesday wins, every week" is false since at least 2026-10-07.** The Wednesday
-  writer (`runNFLR2Update`) ran out of memory on every recorded tick of its window
+- **"Wednesday wins, every week" stopped being reliable from at least 2026-10-07.** The Wednesday
+  writer (`runNFLR2Update`) ran out of memory on 45 ticks over four Wednesdays of its window
   (45 invocations over four Wednesdays). Its parse needs a 532 MB heap
   (`scripts/nfl-r2-memory-repro.mjs`) and the R2 write comes after the parse, so it
   cannot have reached the write on those ticks. R2's own timestamps were not read.
@@ -124,3 +124,9 @@ From `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md`:
 
 The memory fix (`docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md`) does not
 decide this key's owner; that decision stays here.
+
+**Corrected 2026-11-08.** The Wednesday writer did still complete sometimes: R2's
+`player-stats.json` held its write of 2026-11-04T12:00:23Z. So it could still win
+some weeks. It is now retired (`src/nfl-r2.js` is a stub, `a5c8da1`) and writes no key,
+`ngs-passing.json` included. This document's decision is still open; with the relay
+writer gone, the Monday pipeline is the only writer left.
