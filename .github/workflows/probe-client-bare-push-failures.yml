@@ -1,6 +1,6 @@
 name: Probe client bare-push failures
 
-# Dispatch-only and read-only (GitHub API, GET only). For the 17 jubilant-bassoon workflows whose commit step ends in a bare `git push`, counts how many of their
+# Dispatch-only and read-only (GitHub API, GET only). For the 18 jubilant-bassoon workflows (the 17 whose commit step ends in a bare `git push`, plus patent-watch, the caller of patent-fulltext), counts how many of their
 # failed runs failed AT that step because the remote rejected the push (scripts/probe-client-bare-push-failures-2026-11-08.mjs). Why it exists:
 # docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md, Observed 2026-11-08, and docs/CC-CMD-2026-11-08-client-workflows-bare-push.md.
 # RELAY_GH_PAT, not the run's GITHUB_TOKEN: the default token cannot read another repository's runs (the dead-cron watch's own reason).
