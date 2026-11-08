@@ -1,0 +1,28 @@
+# Session 2026-11-08 18:00Z to 19:00Z — the dead-cron ratchet's one new red was a lost `git push`; fixed in the client, output recovered, the class measured
+
+**Task.** The by_hour wake (`trig_0161cHqx3qRLq7hs7T1bWx5P`, 18:01Z) was read and closed first: closed day 2026-11-07 has 0 degrade events (`/budget/odds` read 18:02Z: `used` 1056, `by_site` sums to it, `unaccounted` 0, `refusals []`; pairing log `outbox/odds-pairing-rate-20261108T165338Z.log`), data point appended to `docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md` (`97d814e`), and that wake is **not re-armed** (2026-11-08 to 2026-11-23 is the CFL VOID window; reading the next closed day is the owner's to restart with `update_trigger` and a `run_once_at`). While confirming that push, two scheduled workflows were red; both were investigated, not explained.
+**Read first:** `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md` (TASK 4, Observed 2026-11-04 residual 2), `docs/CC-CMD-2026-11-08-client-workflows-bare-push.md`.
+
+## What was red, and what each was
+
+| workflow | verdict | evidence |
+|---|---|---|
+| `Rule 90 Staleness Monitor` (run 42505986077) | NOT a failure: a declared detector, red on purpose | log: `rule-98: UNEXERCISED ... 97.6 days old`; `docs/declared-detectors.json` names it |
+| `Silently dead crons` (run 42507263594) | a real defect, one new entry in the ratchet | `jubilant-bassoon:patent-watch.yml` "no scheduled run worked: failure, startup_failure, startup_failure ... latest 2026-11-04T21:47:28Z" |
+
+## The defect (read, not inferred)
+
+Client run 41919349025, the weekly `Patent Watch`, 2026-11-04: its `watch` job succeeded and filed issues #3 and #4; the chained `followup / pipeline` job (126889897528) ran steps 1/3 to 3/3 with `success` (the Dropbox upload took 48 s), then "Commit results" failed after 1 s with `! [rejected] main -> main (fetch first)`. The checkout alone took 59 s; `main` moved. `patent-fulltext.yml` ended in a bare `git push`; `patent-watch.yml`'s own commit step has had the rebase-and-retry loop all along. The six grant hits' full text and comparison tables were lost with the runner. The previous scheduled task had already recorded this as "residual (2), not fixed here (read-only against the client)".
+
+## What was built
+
+- **Harness first** (`outbox/patent-push-race-harness-2026-11-08.py`): the workflow's REAL "Commit results" text extracted with PyYAML, run under `bash -e` in a depth-1 `file://` clone of a bare repository, with a second actor pushing between clone and step, `sleep` shimmed. Four scenarios: S1 race, S2 no race (control), S3 remote rejects everything (must exit non-zero), S4 no clobber (both commits present, no merge, no force). **Before the fix (committed bytes of `e4093fa^`): 2 of 4, S1 and S4 failing with the production error. After (bytes of `e4093fa`): 4 of 4.** Control: `patent-watch.yml` 4 of 4. Mutants of the real step: no rebase (caught by S1, S4), verification removed (S3), force push (S4): 3 of 3. Artifacts: `outbox/patent-push-race-red-at-head-2026-11-08.txt`, `...-green-after-2026-11-08.txt`. One harness defect was found by its own control (it hard-coded the other workflow's commit subject) and fixed before any verdict was trusted.
+- **Fix** (client `e4093fa`, workflow file only): the same loop as `patent-watch.yml`, and a push that still has not landed fails the job. Client smoke 1080 passed, 0 failed before the push.
+- **Recovery** (dispatch, `skip_dropbox=true` because the 11-04 upload had succeeded): run 42508334232 `success` in 70 s; commit `458f17a` on the client's main, 21 files, a `-compare.md` for each of the 6 patents, read from the commit.
+- **The class.** A census of the client's 141 workflows: 17 end in a bare `git push` with no rebase or retry anywhere in the file; 16 besides the fixed one, 6 of them on a schedule. `docs/CC-CMD-2026-11-08-client-workflows-bare-push.md` (OPEN) holds the list; a read-only runner probe (`scripts/probe-client-bare-push-failures-2026-11-08.mjs`, classifier self-test with four mutants, 8 of 8) counts which have actually lost a run to a rejected push. Nothing else in the client was touched (Rule 69).
+
+## Verified vs STAGED (Rule 74)
+
+- **Verified:** the numbers above, by execution; the recovery by reading the commit.
+- **Not proved live: a race.** None occurred in run 42508334232; the race is proved by the harness only.
+- **STAGED: the ratchet clearing.** Blocked by: the watch judges the last three SCHEDULED runs of `patent-watch.yml`, and the next is Wednesday 2026-11-11 (nominal 16:00Z, the last one started 5 h 47 min late). Unblocked when: that run exists. Verify: the follow-up `trig_017np75QipQWwEbQfCvsSmmk` (2026-11-12T21:00Z) reads the run and the next `silently-dead-crons` log; done condition 8 of the CC-CMD. If the 11-11 run finds no grant hits the `followup` job does not run and the loop is not exercised live; the watch still clears on the success. Admitting `patent-watch.yml` in `docs/dead-cron-baseline.json` was NOT done and stays the owner's call.

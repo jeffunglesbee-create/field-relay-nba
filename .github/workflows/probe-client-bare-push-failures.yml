@@ -1,0 +1,34 @@
+name: Probe client bare-push failures
+
+# Dispatch-only and read-only (GitHub API, GET only). For the 17 jubilant-bassoon workflows whose commit step ends in a bare `git push`, counts how many of their
+# failed runs failed AT that step because the remote rejected the push (scripts/probe-client-bare-push-failures-2026-11-08.mjs). Why it exists:
+# docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md, Observed 2026-11-08, and docs/CC-CMD-2026-11-08-client-workflows-bare-push.md.
+# RELAY_GH_PAT, not the run's GITHUB_TOKEN: the default token cannot read another repository's runs (the dead-cron watch's own reason).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: the classifier can fail
+        run: node scripts/probe-client-bare-push-failures-2026-11-08.mjs --self-test
+      - name: Probe
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELAY_GH_PAT }}
+        run: node scripts/probe-client-bare-push-failures-2026-11-08.mjs
+      - name: Commit the result
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="client-bare-push-probe" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: client bare push failures probe"

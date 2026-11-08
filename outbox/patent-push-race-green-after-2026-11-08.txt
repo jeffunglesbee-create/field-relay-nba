@@ -1,0 +1,13 @@
+# run 2026-11-08 against the committed bytes of jubilant-bassoon .github/workflows/patent-fulltext.yml AFTER the fix (git show e4093fa:...), with --mutants
+workflow: /tmp/pf-fixed.yml
+  ok    S1 race                            exit=0 landed=True other_kept=True 
+  ok    S2 no race                         exit=0 landed=True other_kept=False 
+  ok    S3 rejected must exit non-zero     exit=1 landed=False other_kept=False 
+  ok    S4 no clobber                      exit=0 landed=True other_kept=True 
+  REAL STEP: 4 of 4 scenarios pass
+
+MUTANTS of the real step (each must go red; anchors asserted exactly once; a mutant identical to the source is refused)
+  ok    M1 no rebase before the push: CAUGHT by S1 race, S4 no clobber
+  ok    M2 verification after the loop removed: CAUGHT by S3 rejected must exit non-zero
+  ok    M3 force push in place of rebase and push: CAUGHT by S4 no clobber
+  3 of 3 applied mutants caught (3 defined)

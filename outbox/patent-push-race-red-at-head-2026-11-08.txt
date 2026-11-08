@@ -1,0 +1,7 @@
+# run 2026-11-08 against the committed bytes of jubilant-bassoon .github/workflows/patent-fulltext.yml BEFORE the fix (git show e4093fa^:...); the harness is outbox/patent-push-race-harness-2026-11-08.py
+workflow: /tmp/pf-before.yml
+  FAIL  S1 race                            exit=1 landed=False other_kept=True hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+  ok    S2 no race                         exit=0 landed=True other_kept=False 
+  ok    S3 rejected must exit non-zero     exit=1 landed=False other_kept=False 
+  FAIL  S4 no clobber                      exit=1 landed=False other_kept=True hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+  REAL STEP: 2 of 4 scenarios pass

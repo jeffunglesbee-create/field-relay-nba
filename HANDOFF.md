@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-08 (19:00Z) — the by_hour wake's last read (0 events, not re-armed); `patent-fulltext.yml`'s lost push fixed in the client, its output recovered, the class of 16 more measured
+
+**HEAD:** relay `97d814e` (the by_hour data point), then this entry; client `e4093fa` (the fix) and `458f17a` (the recovered output). No `src/` commit; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-08-patent-fulltext-push-race.md (task: the by_hour wake `trig_0161cHqx3qRLq7hs7T1bWx5P`, then the two red scheduled workflows it surfaced)
+
+- **by_hour: the last wake.** Closed day 2026-11-07: `degraded_open` `{"events":0,"credits":0,"last":null}`, `used` 1056, pairing log on time, no `by hour` block. The wake is NOT re-armed; reading 2026-11-08 onward is the owner's to restart (`update_trigger` with a `run_once_at` on `trig_0161cHqx3qRLq7hs7T1bWx5P`). Done conditions 1 to 3 of `docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md` still have nothing to observe.
+- **`Rule 90 Staleness Monitor` red is a declared detector** (`rule-98` UNEXERCISED 97.6 days), not a failure.
+- **`Silently dead crons` red was one new entry: `jubilant-bassoon:patent-watch.yml`.** Cause read from client run 41919349025 (2026-11-04): the chained pipeline's "Commit results" ended in a bare `git push`, rejected `fetch first`, and six patents' output was lost with the runner. Fixed (client `e4093fa`, the loop `patent-watch.yml` already has), harness first (2 of 4 before, 4 of 4 after, 3 of 3 mutants caught), output recovered (run 42508334232, `458f17a`, 6 of 6 comparison tables). **Not claimed:** that the ratchet is clear (it judges scheduled runs; the next is Wednesday 2026-11-11) or that a race passes live (none occurred). Follow-up armed: `trig_017np75QipQWwEbQfCvsSmmk` (2026-11-12T21:00Z). Done condition 8 added to `docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md`, Status stays PARTIAL.
+- **The class, tracked.** 16 more client workflows end in a bare `git push` (6 scheduled): `docs/CC-CMD-2026-11-08-client-workflows-bare-push.md` (OPEN). Its read-only probe counts which have actually lost a run; nothing in the client is changed on a census alone.
+- **Open, the owner's call, unchanged:** admitting `patent-watch.yml` in `docs/dead-cron-baseline.json` is NOT recommended while the cause is fixed and the next scheduled run is 3 days off.
+
 ## SESSION CLOSE-OUT — 2026-11-08 (11:30Z) — the live check of the lineup join read: 22 of 24 rows joined in the creating tick; two more BSD name gaps (LOSC Lille, OGC Nice) fixed, deployed and joined
 
 **HEAD:** `1e3e9a5` (the aliases) on top of `bc56fd3` (the unmatched-rows probe), then `df44d5a` (the club-name probe, no `src/`); Deploy RELAY Worker run `42474274661` `success` at 11:16Z. `src/identity-resolver.js` only: no `src/index.js` and none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
