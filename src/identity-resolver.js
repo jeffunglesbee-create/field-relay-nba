@@ -456,6 +456,13 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY, AMBIGUOUS_TEAM } = (() => {
         // read from /bsd/events/by-date, outbox/probe-bsd-unmatched-row-*.json); "Paris FC" is spelled alike on both sides. The
         // canonical is the archive's form, so no archive name's key changes.
         ['AJ Auxerre',                 'Auxerre'],
+        // Two more found live the next day, 2026-11-08, by the 10:55Z live check of the join (22 of 24 rows written in the creating tick at 10:01Z):
+        // Ligue 1 ESPN "Rennes" v "Lille" (14:00Z) and "Angers" v "Nice" (16:15Z) stayed unmatched. /bsd/events/by-date serves them as event 210525,
+        // "Stade Rennais" v "LOSC Lille", and event 210518, "Angers" v "OGC Nice" (outbox/probe-bsd-unmatched-rows-2026-11-08T11-00-06-090Z.json; its
+        // control Brest v Lyon, event 210524, was found). Rennes already resolves ("Stade Rennais" above), "Angers" is spelled alike, so the two
+        // missing keys were losclille and ogcnice. The canonicals are the archive's forms, so no archive name's key changes.
+        ['LOSC Lille',                 'Lille'],
+        ['OGC Nice',                   'Nice'],
     ];
     const strip = {};
     const display = {};

@@ -106,6 +106,8 @@ t(`S7 a gap one minute past it is refused`, joinGameToBsd(row('Everton', 'Fulham
 t('S8 a missing instant refuses nothing', joinGameToBsd(row('Everton', 'Fulham', undefined), [ev(1, 'Everton', 'Fulham', undefined)]).how, 'joined')
 t('S9 names that do not resolve are unmatched even when exactly one event kicks off at that instant', joinGameToBsd(row('Zzz United', 'Qqq City'), [ev(5, 'Aaa Rovers', 'Bbb Town')]).how, 'unmatched')
 t('S10 BSD names the home side "AJ Auxerre" (event 210519, 2026-11-07T18:00Z, read from /bsd/events/by-date): the ESPN row "Auxerre" joins it', joinGameToBsd(row('Auxerre', 'Paris FC', '2026-11-07T18:00Z', 'Ligue 1'), [ev(210519, 'AJ Auxerre', 'Paris FC', '2026-11-07T18:00:00+00:00')]).bsd_event_id, '210519')
+t('S11 BSD names the away side "LOSC Lille" (event 210525, 2026-11-08T14:00Z, read from /bsd/events/by-date by scripts/probe-bsd-unmatched-rows-2026-11-08.mjs): the ESPN row Rennes v Lille joins it', joinGameToBsd(row('Rennes', 'Lille', '2026-11-08T14:00Z', 'Ligue 1'), [ev(210525, 'Stade Rennais', 'LOSC Lille', '2026-11-08T14:00:00+00:00')]).bsd_event_id, '210525')
+t('S12 BSD names the away side "OGC Nice" (event 210518, 2026-11-08T16:15Z, same read): the ESPN row Angers v Nice joins it', joinGameToBsd(row('Angers', 'Nice', '2026-11-08T16:15Z', 'Ligue 1'), [ev(210518, 'Angers', 'OGC Nice', '2026-11-08T16:15:00+00:00')]).bsd_event_id, '210518')
 
 const failed = results.filter(r => !r.pass)
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`)
