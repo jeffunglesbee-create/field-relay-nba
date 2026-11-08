@@ -1,0 +1,24 @@
+# scripts/mutate-reconcile-refund-landed.mjs against the patched source:
+ok    CONTROL: the unmutated source passes
+ok    M1 CAUGHT by A1, A2, A3, A4, A5, A6, A7, A10, H — the mirror failure always reaches the outer catch again (the defect, restored)
+ok    M2 CAUGHT by A1, A2, A3, A4, A5, A6, A7, A10, H — the batch resolving no longer marks the correction landed
+ok    M3 CAUGHT by A6, B, G2, E — the flag starts true, so a rejected batch counts as landed
+ok    M4 CAUGHT by A6, B, G2 — landed is claimed BEFORE the batch resolves
+ok    M5 CAUGHT by A1, A2, A3, A4, A5 — a landed refund with a failed mirror loses its note
+ok    M6 CAUGHT by A4 — the mirror's WRITE escapes the inner try (only its read is covered)
+ok    M7 CAUGHT by A3 — a POSITIVE correction (receipt above the estimate) is not marked landed
+ok    M8 CAUGHT by A1, A2, A3, A4, A5, A6, A7, A10, H — a failed mirror after a landed refund still marks the state error
+ok    M9 CAUGHT by A1, A4, B — the persisted tally row carries a hard-coded state, not the one returned
+ok    M10 CAUGHT by C, G1 — a rejected batch is flipped to `error` (the regression an adversarial review found in the first version of this fix)
+ok    M11 CAUGHT by A1, A2, A3, A4, A5 — the public note carries the KV error text
+ok    M12 CAUGHT by A1, A2, A3, A4, A5, A7, B, C, G1, H, K, D — chargeOdds returns true without charging (a vacuous precondition)
+ok    M13 CAUGHT by A6 — landed is hoisted to MODULE scope: set by one call, never reset (state shared across calls in an isolate)
+ok    M14 CAUGHT by A5 — _bumpSite stops swallowing its own errors (a KV outage then fails the reconcile)
+ok    M15 CAUGHT by A10 — the wrapper rethrows a failed tally write (which fails the fetch at every call site)
+ok    M16 CAUGHT by A7 — the tally stops accumulating: credits_kept is overwritten, not added to
+ok    M17 CAUGHT by A1, A2, A3, A4, A5, K — the day correction carries 0
+ok    M18 CAUGHT by A1, A2, A3, A4, A5 — the month correction is dropped from the batch
+ok    M19 CAUGHT by A4 — the mirror's write is dropped (the injected write fault never fires)
+ok    M20 CAUGHT by A1 — the persisted cache column is hard-coded
+
+20 of 20 mutants caught (control passed).

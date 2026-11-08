@@ -1,0 +1,17 @@
+# Sweep of every gate command, unpatched tree against patched tree (2026-11-08)
+
+WHAT RAN: every line of the form `node [flags] scripts/(check|mutate|lint|verify)-*.mjs [args]` in a `run:` block of .github/workflows/deploy.yml or guards.yml, taken from the patched copy of the workflows and de-duplicated: **175 commands**. Each ran sequentially in its own tree with a 300 s limit, stdout discarded, exit code recorded.
+COVERAGE (Rule 91): all 175 commands ran in BOTH trees (at 67b3f19 the two new scripts do not exist, so their two commands exit 1 there: the only difference). NOT in this sweep: workflow steps that are not a plain `node scripts/<check|mutate|lint|verify>-*.mjs` line (the wrangler deploy, inline shell, `watch-`/`probe-`/`measure-` scripts, anything needing a secret). Commands that need the network (`--live` forms) failed identically in both trees.
+TREES: unpatched = field-relay-nba main at 67b3f19 (the patch's base); patched = that plus `odds-reconcile-landed-refund-patch-2026-11-08.patch`. One tree each; the two runs were made at different times on the same code.
+
+EXIT CODES (patched tree): 0: 172 commands, 1: 2 commands, 3: 1 commands
+
+DIFFERENCES between the trees (2):
+  unpatched exit 1, patched exit 0   node scripts/check-reconcile-refund-landed.mjs
+  unpatched exit 1, patched exit 0   node scripts/mutate-reconcile-refund-landed.mjs
+  (the two new scripts do not exist at 67b3f19, so their commands exit 1 there; every other command has the same exit code in both trees)
+
+NON-ZERO IN BOTH TREES, identical (3): network-bound or red before this patch:
+  exit 3   node scripts/check-bsd-frame-contract.mjs
+  exit 1   node scripts/check-queue-partition.mjs --live
+  exit 1   node scripts/check-sport-canonicaliser.mjs --live

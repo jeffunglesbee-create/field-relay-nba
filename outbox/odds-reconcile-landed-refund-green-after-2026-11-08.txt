@@ -1,0 +1,46 @@
+# The same check against the patched src/budget-helpers.js (commit 8d16c1c of the throwaway copy):
+ok    A1 precondition: the ledger holds the estimate (6) before reconcile
+ok    A1 HIT, refund landed, mirror throws: the state is `cache-hit`, not `error`
+ok    A1 ...the site, day and month ledgers all hold 0, and the tally keeps 0
+ok    A1 ...the persisted tally row carries the state the call returned
+ok    A1 ...the failed mirror stays visible in `note`, as a fixed string with no KV error text
+ok    A1 ...the persisted cell is today, cache HIT, one call
+ok    A2 precondition: the ledger holds the estimate (6) before reconcile
+ok    A2 receipt 2 against estimate 6, refund landed, mirror throws: the state is `reconciled`
+ok    A2 ...the site, day and month ledgers all hold 2, and the tally keeps 2
+ok    A2 ...the persisted tally row carries the state the call returned
+ok    A2 ...with the same note
+ok    A3 precondition: the ledger holds the estimate (6) before reconcile
+ok    A3 receipt 10 against estimate 6, correction landed, mirror throws: `reconciled`, with the note
+ok    A3 ...the site, day and month ledgers all hold 10, and the tally keeps 10
+ok    A4 precondition: the ledger holds the estimate (6) before reconcile
+ok    A4 HIT, refund landed, the mirror WRITE throws: `cache-hit`, with the note (the fault fired)
+ok    A4 ...the site, day and month ledgers all hold 0, and the tally keeps 0
+ok    A4 ...the persisted tally row carries the state the call returned
+ok    A5 precondition: the ledger holds the estimate (6) before reconcile
+ok    A5 every KV key throws after a landed refund: `cache-hit`, with the note, and reconcile did not throw
+ok    A5 ...the site, day and month ledgers all hold 0, and the tally keeps 0
+ok    A6 one instance, call 1 (batch resolved, mirror threw): `cache-hit`
+ok    A6 ...call 2 (batch rejected, mirror threw): `error`, with nothing carried over from call 1
+ok    A7 three charge-and-reconcile pairs, receipt 2, the mirror throwing each time: one cell, three calls, kept 6, used 6
+ok    A10 the tally write rejects after a landed refund and a failed mirror: reconcile RETURNS `cache-hit`, it does not throw
+ok    B  precondition: the ledger holds the estimate (6) before reconcile
+ok    B  correction rejected before commit AND mirror throws: the ledger still holds the estimate
+ok    B  ...the state is `error`, and the tally keeps the estimate, equal to the ledger
+ok    B  ...the persisted tally row carries the state the call returned
+ok    B  ...with the mirror's own error as the note (the outer catch, as before)
+ok    C  precondition: the ledger holds the estimate (6) before reconcile
+ok    C  KNOWN GAP (the mirror image of item 3, not fixed here): the state stays `cache-hit` while `used` still holds the estimate
+ok    G1 precondition: the ledger holds the estimate (6) before reconcile
+ok    G1 batch commits then rejects, mirror ok: the ledger holds 0 and the tally keeps 0 (a thrown batch is NOT flipped to `error`)
+ok    G2 KNOWN, UNCHANGED: batch commits then rejects AND the mirror throws: `error`, the estimate kept, the ledger corrected
+ok    H  KNOWN, moved by the fix: across 00:00Z the correction lands on D+1 and D keeps the estimate, so `cache-hit` with kept 0 against used 6 (HEAD: `error`, kept 6)
+ok    K  KNOWN, UNCHANGED (identical at HEAD): the degraded-open charge never landed, yet its refund takes the DAY ledger from 100 to 94
+ok    D  all well, HIT: `cache-hit`, the ledger holds 0 and the tally keeps 0, no note
+ok    D  all well, receipt 2: `reconciled`, ledger 2, tally 2
+ok    D  a receipt equal to the estimate: no correction, `reconciled`, ledger 6, tally 6
+ok    E  no D1 and the KV mirror throws: `error`, nothing landed (what check-odds-reconciled.mjs pins)
+ok    E  no D1 and the KV mirror works: `cache-hit`
+
+42 of 42 passed.
+PASS — a landed refund is never `error`, and the cases the fix leaves alone are pinned

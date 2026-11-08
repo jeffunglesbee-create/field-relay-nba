@@ -1,0 +1,534 @@
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index fc8fdfe..1d80e30 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -281,6 +281,15 @@ jobs:
+           node scripts/check-reconcile-tally.mjs --self-test
+           node scripts/check-reconcile-tally.mjs
+ 
++      # Blocking. docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md item 3. A refund that LANDED in D1 is never recorded as `error` because the KV mirror behind it threw
++      # (live 2026-11-07: handleCFLOddsProbs credits_kept 648 against used 528): after one charge and one reconcile credits_kept equals the ledger (`used`) in those cases.
++      # NOT claimed: every branch. The check's header names the cases it pins as known and unchanged (a correction rejected before it committed with the mirror fine,
++      # a batch that commits and then rejects, a charge that degraded open, the 00:00Z straddle). Executed against node:sqlite; the mutation run proves it can fail.
++      - name: the reconcile tally equals the ledger, so a landed refund is never `error`
++        run: |
++          node scripts/check-reconcile-refund-landed.mjs
++          node scripts/mutate-reconcile-refund-landed.mjs
++
+       - name: every table a script creates is on the /d1/execute allow-list
+         run: |
+           node scripts/check-script-created-tables.mjs --self-test
+diff --git a/.github/workflows/guards.yml b/.github/workflows/guards.yml
+index bffea29..d4cd8c8 100644
+--- a/.github/workflows/guards.yml
++++ b/.github/workflows/guards.yml
+@@ -155,6 +155,15 @@ jobs:
+           node scripts/check-reconcile-tally.mjs --self-test
+           node scripts/check-reconcile-tally.mjs
+ 
++      # Blocking. docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md item 3. A refund that LANDED in D1 is never recorded as `error` because the KV mirror behind it threw
++      # (live 2026-11-07: handleCFLOddsProbs credits_kept 648 against used 528): after one charge and one reconcile credits_kept equals the ledger (`used`) in those cases.
++      # NOT claimed: every branch. The check's header names the cases it pins as known and unchanged (a correction rejected before it committed with the mirror fine,
++      # a batch that commits and then rejects, a charge that degraded open, the 00:00Z straddle). Executed against node:sqlite; the mutation run proves it can fail.
++      - name: the reconcile tally equals the ledger, so a landed refund is never `error`
++        run: |
++          node scripts/check-reconcile-refund-landed.mjs
++          node scripts/mutate-reconcile-refund-landed.mjs
++
+       # route 403s anything else, and a 403 reads identically to a D1 failure
+       # from outside — which is precisely how Task 0b was blocked.
+       - name: the odds budget schema is on ARCHIVE_DB and readable from CI
+diff --git a/scripts/check-odds-reconciled.mjs b/scripts/check-odds-reconciled.mjs
+index a48a418..c85e9e7 100644
+--- a/scripts/check-odds-reconciled.mjs
++++ b/scripts/check-odds-reconciled.mjs
+@@ -51,7 +51,10 @@ const check = (n, ok, d = '') => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${
+ // consumeOddsCredit) to the source of handleCFLOddsProbs, to assert when the call is registered with waitUntil and in
+ // what order its steps run; mutate-cfl-pipeline-registered.mjs quotes those lines as anchors. Neither makes a charged
+ // call or reaches a vendor.
+-// SCOPE-EXCLUDES: scripts/check-odds-site-caps.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs scripts/check-odds-label-split.mjs scripts/check-cfl-pipeline-registered.mjs scripts/mutate-cfl-pipeline-registered.mjs
++// check-reconcile-refund-landed.mjs and mutate-reconcile-refund-landed.mjs (2026-11-08): the first runs the REAL reconcileOddsCredit and chargeOdds against a fake D1 over node:sqlite and a fake KV, to assert that
++// credits_kept equals the ledger after one charge and one reconcile (docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md item 3). It calls neither consumeOddsCredit nor
++// _consumeAmbientOddsCredit and reaches no vendor, so it is no charged call site; the second runs it against copies of the source, with anchors that quote the reconciler.
++// SCOPE-EXCLUDES: scripts/check-odds-site-caps.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs scripts/check-odds-label-split.mjs scripts/check-cfl-pipeline-registered.mjs scripts/mutate-cfl-pipeline-registered.mjs scripts/check-reconcile-refund-landed.mjs scripts/mutate-reconcile-refund-landed.mjs
+ const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
+ function fnBounds(lines, i) {
+   let start = 0;
+@@ -120,7 +123,10 @@ check('a counter is clamped at zero', store.get(key) === '0', `counter is ${stor
+ // Never break the caller.
+ const hostile = { FIELD_JOURNALISM: { get: () => { throw new Error('kv down'); }, put: () => {} } };
+ r = await reconcileOddsCredit(hostile, 4, R({ 'x-requests-last': '0' }), 't');
+-check('a KV failure is reported, not thrown', r.state === 'error');
++// NO D1 store here, so no refund landed and the KV mirror IS the ledger: `error` is right. A refund that LANDED in D1 before the mirror threw is NOT
++// `error` (credits_kept would be the full estimate against a ledger that handed it back); scripts/check-reconcile-refund-landed.mjs executes those cases
++// (docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md item 3).
++check('a KV failure with no D1 refund behind it is reported, not thrown, as error', r.state === 'error');
+ r = await reconcileOddsCredit(null, 4, R({ 'x-requests-last': '0' }), 't');
+ check('a missing binding is reported, not thrown', r.state === 'no-kv');
+ 
+diff --git a/scripts/check-reconcile-refund-landed.mjs b/scripts/check-reconcile-refund-landed.mjs
+new file mode 100644
+index 0000000..2cb74eb
+--- /dev/null
++++ b/scripts/check-reconcile-refund-landed.mjs
+@@ -0,0 +1,291 @@
++#!/usr/bin/env node
++// A REFUND THAT LANDED IS NOT `error` BECAUSE THE KV MIRROR BEHIND IT THREW. EXECUTED against real SQLite.
++//
++// docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md, item 3.
++//
++// odds_reconcile_state.credits_kept is "the estimate that was NOT handed back, so it is directly comparable to
++// odds_budget_site.used" (the comment above the table's DDL in src/budget-helpers.js). The comparison this file executes, per site,
++// after one charge and one reconcile, is exactly that:
++//
++//     credits_kept (the tally)  ==  used (the ledger the guard reads)
++//
++// THE DEFECT (found by reading the source, then reproduced by running it, at 67b3f19, 2026-11-07): the D1 correction batch commits,
++// then the KV mirror (the day and month counters, which nothing reads) throws. The throw reaches the outer catch, which sets state
++// `error`, and creditsKeptBy('error') is the FULL estimate. The refund is in `used`; the tally keeps the estimate anyway. Live,
++// 2026-11-07: handleCFLOddsProbs `error`/HIT rows, kept 6 each, 20 by 17:03Z, credits_kept 648 against used 528.
++//
++// WHAT IS CLAIMED. Where the D1 correction batch RESOLVED and the KV mirror then threw (A1 to A6, A10), the state is what the receipt
++// says (`cache-hit` / `reconciled`), credits_kept equals the site, day and month ledgers, and the tally row accumulates (A7, A8).
++// NOT CLAIMED: "every branch". These are PINNED as they are, so a later change to any of them is a decision and not an accident:
++//   B   the correction was rejected before it committed AND the mirror threw: `error`, estimate kept, equal to the ledger (HEAD too).
++//   C   the correction was rejected before it committed and the mirror is fine: the state stays `cache-hit`/`reconciled`, so credits_kept
++//       reads the receipt while `used` still holds the estimate. A KNOWN GAP, the mirror image of item 3 and not part of its words
++//       ("keep reporting the second as `error`" is about what is reported today). Unchanged from HEAD.
++//   G2  the batch commits and THEN rejects, and the mirror throws: `error`, estimate kept, ledger corrected. A rejected batch is not read as
++//       "nothing committed" (D1 can reject a write whose commit it could not confirm), so `landed` stays false: what HEAD did.
++//   G1  the same ambiguous rejection with a working mirror: kept === used (HEAD's behaviour, and why a thrown batch is NOT flipped to `error`).
++//   H   KNOWN, MOVED BY THE FIX (found by review): charge on day D, reconcile on D+1 (the 00:00Z straddle), batch resolves, mirror throws.
++//       The correction lands on D+1's rows and leaves D's `used` at the estimate. HEAD recorded `error` (kept = used, by coincidence); the fix
++//       records `cache-hit` (kept 0, used 6). The LEDGER is identical at HEAD and patched; only the tally's relation to it differs. Accepted:
++//       the ledger is wrong in both, the window is seconds, and it needs a mirror failure as well. Pinned.
++//   K   KNOWN, UNCHANGED (found by review): a charge that degraded open (nothing was charged) followed by a reconcile whose correction
++//       works refunds a charge that was never added, so the DAY ledger drops by the estimate. Identical at HEAD. Not item 3.
++//   E   no D1 store at all: the KV mirror IS the ledger, and its failure is `error` (what check-odds-reconciled.mjs pins).
++// `landed` means the batch RESOLVED, not that the correction reached the day that was charged (H, K).
++//
++// Each case imports a fresh copy of the module (its table flag is per-isolate state), EXCEPT A6, which drives two reconciles through ONE
++// instance because per-case fresh imports are what would hide state shared across calls in a real isolate.
++//
++// BUDGET_HELPERS_SRC points the run at another copy of src/budget-helpers.js (the mutation harness does that).
++import { DatabaseSync } from 'node:sqlite';
++import { resolve } from 'node:path';
++import { pathToFileURL } from 'node:url';
++
++const HELPERS = process.env.BUDGET_HELPERS_SRC || 'src/budget-helpers.js';
++let bad = 0, n = 0;
++const ok = (label, cond, why = '') => { n++;
++  if (cond) console.log(`ok    ${label}`);
++  else { bad++; console.log(`FAIL  ${label}${why ? `\n        ${why}` : ''}`); } };
++
++let caseNo = 0;
++const load = () => import(`${pathToFileURL(resolve(HELPERS)).href}?case=${++caseNo}`);
++
++/** node:sqlite behind the subset of the D1 surface budget-helpers uses. The knobs are read at CALL time, so one world can misbehave
++ *  differently on its first and second reconcile. correction = 'before': the batch carrying the correction's fixDay statement rejects before
++ *  anything in it runs (an overload); 'after': it runs, COMMITS, and then rejects (the response was lost). failTally: the tally upsert rejects. */
++function fakeD1(db, mod, knobs) {
++  const stmt = (sql, args = []) => ({
++    sql, args, bind: (...a) => stmt(sql, a),
++    run: async () => {
++      if (knobs.failTally && sql === mod.ODDS_BUDGET_SQL.reconcileTally) throw new Error('D1 tally write refused');
++      const r = db.prepare(sql).run(...args); return { success: true, meta: { changes: r.changes } };
++    },
++    all: async () => ({ results: db.prepare(sql).all(...args), success: true }),
++    first: async () => db.prepare(sql).get(...args) ?? null,
++  });
++  return {
++    prepare: (sql) => stmt(sql),
++    batch: async (stmts) => {
++      const isCorrection = knobs.correction && stmts.some((s) => s.sql === mod.ODDS_BUDGET_SQL.fixDay);
++      if (isCorrection && knobs.correction === 'before') throw new Error('D1 overloaded');
++      db.exec('BEGIN');
++      try {
++        const out = stmts.map((s) => ({ results: db.prepare(s.sql).all(...s.args), success: true }));
++        db.exec('COMMIT');
++        if (isCorrection && knobs.correction === 'after') throw new Error('D1_ERROR: Network connection lost');
++        return out;
++      } catch (e) { try { db.exec('ROLLBACK'); } catch { /* already committed */ } throw e; }
++    },
++  };
++}
++
++/** KV whose mirror misbehaves per knobs.mirror: 'get' / 'put' fail reads / writes of the day and month COUNTERS; 'all' fails EVERY key, as an
++ *  outage does (so _bumpSite's own swallow is exercised too). Other keys work. */
++function fakeKV(knobs) {
++  const m = new Map();
++  const counter = (k) => /^odds:(daily|credits):/.test(k);
++  return {
++    get: async (k) => {
++      if ((knobs.mirror === 'get' && counter(k)) || knobs.mirror === 'all') throw new Error('KV GET failed: 429 Too Many Requests');
++      return m.has(k) ? m.get(k) : null;
++    },
++    put: async (k, v) => {
++      if ((knobs.mirror === 'put' && counter(k)) || knobs.mirror === 'all') throw new Error('KV PUT failed: 429 Too Many Requests');
++      m.set(k, String(v));
++    },
++  };
++}
++
++const SITE = 'handleCFLOddsProbs';
++const EST = 6;
++const NOTE = 'KV mirror failed after the D1 correction landed';
++const resp = (h) => ({ headers: { get: (k) => h[k] ?? null } });
++const hdr = ({ hit, receipt }) => (hit ? { 'cf-cache-status': 'HIT', 'x-requests-last': '6' } : { 'x-requests-last': String(receipt) });
++
++async function world({ withD1 = true } = {}) {
++  const mod = await load();
++  const db = new DatabaseSync(':memory:');
++  const knobs = { mirror: null, correction: null, failTally: false };
++  const env = { FIELD_JOURNALISM: fakeKV(knobs) };
++  if (withD1) env.ARCHIVE_DB = fakeD1(db, mod, knobs);
++  return { mod, db, env, knobs };
++}
++const val = (w, q, ...a) => { try { return w.db.prepare(q).get(...a)?.v ?? null; } catch { return null; } };
++const ledger = (w) => ({
++  used: val(w, 'SELECT SUM(used) v FROM odds_budget_site WHERE site = ?', SITE),
++  day: val(w, 'SELECT SUM(used) v FROM odds_budget'),
++  month: val(w, 'SELECT SUM(used) v FROM odds_budget_month'),
++  kept: val(w, 'SELECT SUM(credits_kept) v FROM odds_reconcile_state WHERE site = ?', SITE),
++  calls: val(w, 'SELECT SUM(n) v FROM odds_reconcile_state WHERE site = ?', SITE),
++  stateRow: val(w, 'SELECT MIN(state) v FROM odds_reconcile_state WHERE site = ?', SITE),
++  cacheRow: val(w, 'SELECT MIN(cache) v FROM odds_reconcile_state WHERE site = ?', SITE),
++  dayRow: val(w, 'SELECT MIN(day) v FROM odds_reconcile_state WHERE site = ?', SITE),
++  rows: val(w, 'SELECT COUNT(*) v FROM odds_reconcile_state WHERE site = ?', SITE),
++});
++async function reconcile(w, h) {
++  const warn = console.warn; console.warn = () => {};
++  try { return await w.mod.reconcileOddsCredit(w.env, EST, resp(hdr(h)), SITE); } finally { console.warn = warn; }
++}
++
++/** One charge of EST at SITE, one reconcile, then read what the invariant is about. `before` is `used` after the charge and BEFORE the reconcile,
++ *  so a charge that degraded open (and charged nothing) cannot pass as a precondition. */
++async function run({ receipt, hit = false, mirror = null, correction = null, failTally = false, withD1 = true }) {
++  const w = await world({ withD1 });
++  const charged = await w.mod.chargeOdds(w.env, EST, SITE);
++  const before = val(w, 'SELECT SUM(used) v FROM odds_budget_site WHERE site = ?', SITE);
++  Object.assign(w.knobs, { mirror, correction, failTally });
++  const out = await reconcile(w, { hit, receipt });
++  return { charged, before, out, ...ledger(w) };
++}
++const show = (c) => `state ${c.out.state}, tally state ${c.stateRow}, kept ${c.kept}, used ${c.used}, day ${c.day}, month ${c.month}, before ${c.before}`;
++const pre = (id, c) => ok(`${id} precondition: the ledger holds the estimate (${EST}) before reconcile`, c.charged === true && c.before === EST, show(c));
++const same = (id, c) => ok(`${id} ...the persisted tally row carries the state the call returned`, c.stateRow === c.out.state && c.rows === 1, show(c));
++const allLedgers = (id, c, want) => ok(`${id} ...the site, day and month ledgers all hold ${want}, and the tally keeps ${want}`,
++  c.used === want && c.day === want && c.month === want && c.kept === want, show(c));
++
++// ── A1. THE LIVE CASE. A cache hit (CFL's HIT rows), refund lands, the mirror's read throws. ─────────────────────────────
++{
++  const c = await run({ hit: true, mirror: 'get' });
++  pre('A1', c);
++  ok('A1 HIT, refund landed, mirror throws: the state is `cache-hit`, not `error`', c.out.state === 'cache-hit', show(c));
++  allLedgers('A1', c, 0);
++  same('A1', c);
++  ok('A1 ...the failed mirror stays visible in `note`, as a fixed string with no KV error text', c.out.note === NOTE, `note ${JSON.stringify(c.out.note)}`);
++  ok('A1 ...the persisted cell is today, cache HIT, one call', c.cacheRow === 'HIT' && c.calls === 1 && c.dayRow === new Date().toISOString().slice(0, 10), `cache ${c.cacheRow}, calls ${c.calls}, day ${c.dayRow}`);
++}
++// ── A2. A receipt smaller than the estimate. ────────────────────────────────────────────────────────────────────────────
++{
++  const c = await run({ receipt: 2, mirror: 'get' });
++  pre('A2', c);
++  ok('A2 receipt 2 against estimate 6, refund landed, mirror throws: the state is `reconciled`', c.out.state === 'reconciled', show(c));
++  allLedgers('A2', c, 2);
++  same('A2', c);
++  ok('A2 ...with the same note', c.out.note === NOTE, `note ${JSON.stringify(c.out.note)}`);
++}
++// ── A3. A receipt LARGER than the estimate: the defect existed in this direction too (kept UNDERSTATES). ─────────────────
++{
++  const c = await run({ receipt: 10, mirror: 'get' });
++  pre('A3', c);
++  ok('A3 receipt 10 against estimate 6, correction landed, mirror throws: `reconciled`, with the note', c.out.state === 'reconciled' && c.out.note === NOTE, show(c));
++  allLedgers('A3', c, 10);
++}
++// ── A4. The mirror's WRITE throws, not its read (the cause of the live throw is unread: it could be either). ─────────────
++{
++  const c = await run({ hit: true, mirror: 'put' });
++  pre('A4', c);
++  ok('A4 HIT, refund landed, the mirror WRITE throws: `cache-hit`, with the note (the fault fired)', c.out.state === 'cache-hit' && c.out.note === NOTE, show(c));
++  allLedgers('A4', c, 0);
++  same('A4', c);
++}
++// ── A5. A KV OUTAGE: every key throws, so _bumpSite's own swallow is exercised as well as the mirror. ──────────────────
++{
++  const c = await run({ hit: true, mirror: 'all' });
++  pre('A5', c);
++  ok('A5 every KV key throws after a landed refund: `cache-hit`, with the note, and reconcile did not throw', c.out.state === 'cache-hit' && c.out.note === NOTE, show(c));
++  allLedgers('A5', c, 0);
++}
++// ── A6. TWO reconciles through ONE module instance: state kept across calls would show here and nowhere else. ───────────
++{
++  const w = await world();
++  await w.mod.chargeOdds(w.env, EST, SITE); await w.mod.chargeOdds(w.env, EST, SITE);
++  w.knobs.mirror = 'get';
++  const first = await reconcile(w, { hit: true });                  // the batch resolves, the mirror throws: landed
++  w.knobs.correction = 'before';
++  const second = await reconcile(w, { hit: true });                 // the batch is rejected, the mirror throws: NOT landed
++  ok('A6 one instance, call 1 (batch resolved, mirror threw): `cache-hit`', first.state === 'cache-hit', `state ${first.state}`);
++  ok('A6 ...call 2 (batch rejected, mirror threw): `error`, with nothing carried over from call 1', second.state === 'error' && /KV GET failed/.test(String(second.note)), `state ${second.state}, note ${JSON.stringify(second.note)}`);
++}
++// ── A7/A8. The tally ACCUMULATES (the live shape: 20 rows of one cell), and the persisted cell is the one the experiment reads. ──
++{
++  const w = await world();
++  w.knobs.mirror = 'get';
++  for (let i = 0; i < 3; i++) { await w.mod.chargeOdds(w.env, EST, SITE); await reconcile(w, { receipt: 2 }); }
++  const l = ledger(w);
++  ok('A7 three charge-and-reconcile pairs, receipt 2, the mirror throwing each time: one cell, three calls, kept 6, used 6',
++    l.rows === 1 && l.calls === 3 && l.kept === 6 && l.used === 6 && l.stateRow === 'reconciled', `rows ${l.rows}, calls ${l.calls}, kept ${l.kept}, used ${l.used}, state ${l.stateRow}`);
++}
++// ── A10. A FAILED TALLY WRITE must not fail the fetch: reconcile returns, it does not throw. ─────────────────────────────
++{
++  const w = await world();
++  await w.mod.chargeOdds(w.env, EST, SITE);
++  Object.assign(w.knobs, { mirror: 'get', failTally: true });
++  let out = null, threw = null;
++  try { out = await reconcile(w, { hit: true }); } catch (e) { threw = e; }
++  ok('A10 the tally write rejects after a landed refund and a failed mirror: reconcile RETURNS `cache-hit`, it does not throw', threw === null && out && out.state === 'cache-hit', `threw ${threw && threw.message}, state ${out && out.state}`);
++}
++// ── B. CONTROL (unchanged). The correction was rejected before it committed AND the mirror threw. ──────────────────────────
++{
++  const c = await run({ hit: true, mirror: 'get', correction: 'before' });
++  pre('B ', c);
++  ok('B  correction rejected before commit AND mirror throws: the ledger still holds the estimate', c.used === EST, show(c));
++  ok('B  ...the state is `error`, and the tally keeps the estimate, equal to the ledger', c.out.state === 'error' && c.kept === c.used, show(c));
++  same('B ', c);
++  ok('B  ...with the mirror\'s own error as the note (the outer catch, as before)', /KV GET failed/.test(String(c.out.note)), `note ${JSON.stringify(c.out.note)}`);
++}
++// ── C. KNOWN GAP, UNCHANGED. The correction was rejected before it committed and the mirror is fine. ────────────────────
++{
++  const c = await run({ hit: true, correction: 'before' });
++  pre('C ', c);
++  ok('C  KNOWN GAP (the mirror image of item 3, not fixed here): the state stays `cache-hit` while `used` still holds the estimate',
++    c.out.state === 'cache-hit' && c.used === EST, show(c));
++}
++// ── G1/G2. The batch COMMITS and then rejects (a lost response): not read as "nothing committed". ──────────────────────────
++{
++  const g1 = await run({ hit: true, correction: 'after' });
++  pre('G1', g1);
++  ok('G1 batch commits then rejects, mirror ok: the ledger holds 0 and the tally keeps 0 (a thrown batch is NOT flipped to `error`)',
++    g1.used === 0 && g1.out.state === 'cache-hit' && g1.kept === g1.used, show(g1));
++  const g2 = await run({ hit: true, mirror: 'get', correction: 'after' });
++  ok('G2 KNOWN, UNCHANGED: batch commits then rejects AND the mirror throws: `error`, the estimate kept, the ledger corrected',
++    g2.out.state === 'error' && g2.used === 0 && g2.kept === EST, show(g2));
++}
++// ── H. KNOWN, MOVED BY THE FIX. The 00:00Z straddle: charge on day D, reconcile on D+1, batch resolves, mirror throws. ─────
++{
++  const RealDate = Date; let now = null;
++  class FakeDate extends RealDate {
++    constructor(...a) { if (a.length === 0 && now !== null) super(now); else super(...a); }
++    static now() { return now !== null ? now : RealDate.now(); }
++  }
++  globalThis.Date = FakeDate;
++  try {
++    now = RealDate.parse('2026-11-08T23:59:30Z');
++    const w = await world();
++    await w.mod.chargeOdds(w.env, EST, SITE);
++    now = RealDate.parse('2026-11-09T00:00:30Z');
++    w.knobs.mirror = 'get';
++    const out = await reconcile(w, { hit: true });
++    const l = ledger(w);
++    ok('H  KNOWN, moved by the fix: across 00:00Z the correction lands on D+1 and D keeps the estimate, so `cache-hit` with kept 0 against used 6 (HEAD: `error`, kept 6)',
++      out.state === 'cache-hit' && l.used === EST && l.kept === 0, `state ${out.state}, kept ${l.kept}, used ${l.used}`);
++  } finally { globalThis.Date = RealDate; }
++}
++// ── K. KNOWN, UNCHANGED. A charge that degraded open, then a reconcile whose correction works. ────────────────────────────
++{
++  const w = await world();
++  await w.mod.chargeOdds(w.env, 100, 'other');                                         // a real charge elsewhere: the day holds 100
++  const warn = console.warn; console.warn = () => {};
++  try { await w.mod.chargeOdds({ FIELD_JOURNALISM: w.env.FIELD_JOURNALISM }, EST, SITE); } finally { console.warn = warn; }   // no D1: degrades open, charges NOTHING
++  const out = await reconcile(w, { hit: true });
++  ok('K  KNOWN, UNCHANGED (identical at HEAD): the degraded-open charge never landed, yet its refund takes the DAY ledger from 100 to 94', val(w, 'SELECT SUM(used) v FROM odds_budget') === 94 && out.state === 'cache-hit',
++    `day ${val(w, 'SELECT SUM(used) v FROM odds_budget')}, state ${out.state}`);
++}
++// ── D. CONTROL. Everything works. ───────────────────────────────────────────────────────────────────────────────────────
++{
++  const c = await run({ hit: true });
++  ok('D  all well, HIT: `cache-hit`, the ledger holds 0 and the tally keeps 0, no note', c.out.state === 'cache-hit' && c.used === 0 && c.kept === 0 && c.out.note === undefined, show(c));
++  const r = await run({ receipt: 2 });
++  ok('D  all well, receipt 2: `reconciled`, ledger 2, tally 2', r.out.state === 'reconciled' && r.used === 2 && r.kept === 2, show(r));
++  const z = await run({ receipt: EST });
++  ok('D  a receipt equal to the estimate: no correction, `reconciled`, ledger 6, tally 6', z.out.state === 'reconciled' && z.used === EST && z.kept === EST, show(z));
++}
++// ── E. CONTROL. No D1 store at all (the legacy KV-only mode check-odds-reconciled.mjs exercises). ──────────────────────
++{
++  const c = await run({ hit: true, mirror: 'get', withD1: false });
++  ok('E  no D1 and the KV mirror throws: `error`, nothing landed (what check-odds-reconciled.mjs pins)', c.out.state === 'error', show(c));
++  const d = await run({ hit: true, withD1: false });
++  ok('E  no D1 and the KV mirror works: `cache-hit`', d.out.state === 'cache-hit', show(d));
++}
++
++console.log(`\n${n - bad} of ${n} passed.`);
++console.log(bad === 0 ? 'PASS — a landed refund is never `error`, and the cases the fix leaves alone are pinned' : `FAIL — ${bad}`);
++process.exit(bad === 0 ? 0 : 1);
+diff --git a/scripts/mutate-reconcile-refund-landed.mjs b/scripts/mutate-reconcile-refund-landed.mjs
+new file mode 100644
+index 0000000..2027078
+--- /dev/null
++++ b/scripts/mutate-reconcile-refund-landed.mjs
+@@ -0,0 +1,108 @@
++#!/usr/bin/env node
++/**
++ * Rule 90 (MUTATE-FIRST-A) for scripts/check-reconcile-refund-landed.mjs.
++ *
++ * Each mutation puts one piece of the fix back to the defect (or breaks it a different way) in a COPY of
++ * src/budget-helpers.js, and the check is run against the copy through BUDGET_HELPERS_SRC. The check must go red for
++ * every one. A mutation that leaves it green is a check that could not have caught that defect, and this file exits
++ * non-zero.
++ *
++ * THE HARNESS'S OWN ANCHORS ARE ASSERTED. A mutation whose anchor is missing or occurs more than once applies NOTHING,
++ * and a check that is green on unmutated source would then print a pass for it. Each fails the harness by name when its
++ * anchor does not occur exactly once, and a mutant that is byte-identical to the source is refused.
++ *
++ * A mutant counts as CAUGHT only when an assertion failed ("N of M passed." with N < M and a FAIL line). A crash or a
++ * syntax error proves nothing about what the check asserts and is reported as a harness error. The CONTROL (the
++ * unmutated source) must pass first, or nothing below means anything.
++ *
++ * Which cases catch which is printed, so a mutant caught only by a case that has nothing to do with it shows up.
++ */
++import { readFileSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs';
++import { execFileSync } from 'node:child_process';
++import { join, resolve } from 'node:path';
++import { tmpdir } from 'node:os';
++
++const SRC = process.env.BUDGET_HELPERS_SRC || 'src/budget-helpers.js';
++const original = readFileSync(SRC, 'utf8');
++const dir = mkdtempSync(join(tmpdir(), 'reconcile-landed-'));
++process.on('exit', () => rmSync(dir, { recursive: true, force: true }));
++for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));
++
++const run = (file) => {
++  let out = '', code = 0;
++  try { out = execFileSync(process.execPath, ['scripts/check-reconcile-refund-landed.mjs'], { env: { ...process.env, BUDGET_HELPERS_SRC: file }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); }
++  catch (e) { code = e.status ?? 1; out = (e.stdout || '') + (e.stderr || ''); }
++  const m = /(\d+) of (\d+) passed\./.exec(out);
++  const fails = [...out.matchAll(/^FAIL\s+([A-K]\d{0,2})\s/gm)].map((x) => x[1]);
++  const verdict = code === 0 && m && m[1] === m[2] ? 'pass' : (m && +m[1] < +m[2] && fails.length ? 'red' : 'error');
++  return { verdict, fails: [...new Set(fails)], tail: out.trim().split('\n').slice(-3).join(' | ') };
++};
++
++let bad = 0;
++const control = run(resolve(SRC));
++if (control.verdict !== 'pass') { console.log(`FAIL  CONTROL: the unmutated source does not pass (${control.verdict}: ${control.tail})`); process.exit(1); }
++console.log('ok    CONTROL: the unmutated source passes');
++
++const M = (id, what, old, neu) => ({ id, what, edits: [[old, neu]] });
++const MM = (id, what, ...edits) => ({ id, what, edits });   // several edits, each anchor asserted to occur exactly once
++const mutants = [
++  M('M1', 'the mirror failure always reaches the outer catch again (the defect, restored)',
++    "if (!landed) throw e;", 'throw e;'),
++  M('M2', 'the batch resolving no longer marks the correction landed',
++    "                landed = true;\n", ''),
++  M('M3', 'the flag starts true, so a rejected batch counts as landed',
++    "let landed = false;", "let landed = true;"),
++  M('M4', 'landed is claimed BEFORE the batch resolves',
++    "const db = env.ARCHIVE_DB;\n                await db.batch([", "const db = env.ARCHIVE_DB;\n                landed = true;\n                await db.batch(["),
++  M('M5', 'a landed refund with a failed mirror loses its note',
++    "out.note = 'KV mirror failed after the D1 correction landed';", ''),
++  M('M6', "the mirror's WRITE escapes the inner try (only its read is covered)",
++    "if (!landed) throw e;", "if (!landed || /PUT/.test(String(e && e.message))) throw e;"),
++  M('M7', 'a POSITIVE correction (receipt above the estimate) is not marked landed',
++    "                landed = true;\n", "                landed = out.delta < 0;\n"),
++  M('M8', 'a failed mirror after a landed refund still marks the state error',
++    "out.note = 'KV mirror failed after the D1 correction landed';", "out.state = 'error'; out.note = 'KV mirror failed after the D1 correction landed';"),
++  M('M9', 'the persisted tally row carries a hard-coded state, not the one returned',
++    ".bind(new Date().toISOString().slice(0, 10), site || '(unnamed)', out.state,", ".bind(new Date().toISOString().slice(0, 10), site || '(unnamed)', 'reconciled',"),
++  M('M10', 'a rejected batch is flipped to `error` (the regression an adversarial review found in the first version of this fix)',
++    "console.warn(`[odds-reconcile] D1 correction failed for ${site} delta=${out.delta}: ${String(e.message || e).slice(0, 120)}`);", "console.warn(`[odds-reconcile] D1 correction failed for ${site} delta=${out.delta}: ${String(e.message || e).slice(0, 120)}`); out.state = 'error';"),
++  M('M11', 'the public note carries the KV error text',
++    "out.note = 'KV mirror failed after the D1 correction landed';", "out.note = 'KV mirror failed after the D1 correction landed: ' + String(e && e.message || e);"),
++  M('M12', 'chargeOdds returns true without charging (a vacuous precondition)',
++    "async function chargeOdds(env, units = 1, site = 'unattributed') {\n", "async function chargeOdds(env, units = 1, site = 'unattributed') {\n    return true;\n"),
++  MM('M13', 'landed is hoisted to MODULE scope: set by one call, never reset (state shared across calls in an isolate)',
++    ["        let landed = false;\n        try {", "        try {"],
++    ["async function _reconcileOddsCredit(env, estimated, resp, site = '') {", "let landed = false;\nasync function _reconcileOddsCredit(env, estimated, resp, site = '') {"]),
++  M('M14', '_bumpSite stops swallowing its own errors (a KV outage then fails the reconcile)',
++    "    } catch (_) {\n        // Attribution must never fail a fetch.", "    } catch (_) {\n        throw _;\n        // Attribution must never fail a fetch."),
++  M('M15', 'the wrapper rethrows a failed tally write (which fails the fetch at every call site)',
++    "console.warn(`[odds-reconcile-tally] ${site} state=${out.state}: ${String(e && e.message || e).slice(0, 120)}`);", "throw e;"),
++  M('M16', 'the tally stops accumulating: credits_kept is overwritten, not added to',
++    "credits_kept = credits_kept + ?`;", "credits_kept = ?`;"),
++  M('M17', 'the day correction carries 0',
++    "db.prepare(ODDS_BUDGET_SQL.fixDay).bind(out.delta,", "db.prepare(ODDS_BUDGET_SQL.fixDay).bind(0,"),
++  M('M18', 'the month correction is dropped from the batch',
++    "db.prepare(ODDS_BUDGET_SQL.fixMonth).bind(out.delta, month.slice('odds:credits:'.length)),", ''),
++  M('M19', "the mirror's write is dropped (the injected write fault never fires)",
++    "await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });", ''),
++  M('M20', 'the persisted cache column is hard-coded',
++    "String(cache), kept, kept)", "'none', kept, kept)"),
++];
++
++for (const m of mutants) {
++  let text = original, anchorBad = null;
++  for (const [old, neu] of m.edits) {
++    const count = text.split(old).length - 1;
++    if (count !== 1) { anchorBad = `ANCHOR: occurs ${count} times, not once (${JSON.stringify(old.slice(0, 70))}); nothing was mutated`; break; }
++    text = text.replace(old, () => neu);
++  }
++  if (anchorBad) { bad++; console.log(`FAIL  ${m.id} ${anchorBad}`); continue; }
++  if (text === original) { bad++; console.log(`FAIL  ${m.id} the mutant is identical to the source`); continue; }
++  const file = join(dir, `${m.id}.js`);
++  writeFileSync(file, text);
++  const r = run(file);
++  if (r.verdict === 'red') console.log(`ok    ${m.id} CAUGHT by ${r.fails.join(', ')} — ${m.what}`);
++  else { bad++; console.log(`FAIL  ${m.id} ${r.verdict.toUpperCase()} — ${m.what}\n        ${r.tail}`); }
++}
++console.log(`\n${mutants.length - bad} of ${mutants.length} mutants caught (control passed).`);
++process.exit(bad === 0 ? 0 : 1);
+diff --git a/src/budget-helpers.js b/src/budget-helpers.js
+index 9e27fe1..92448c5 100644
+--- a/src/budget-helpers.js
++++ b/src/budget-helpers.js
+@@ -1591,6 +1591,12 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
+         // wear the name of a gap.
+         //
+         // One batch, so the day and the site cannot take a correction singly.
++        //
++        // `landed` is true only once that batch has RESOLVED. `used` is read from D1, so it is what tells the KV mirror below whether
++        // its failure is the reconcile's failure (docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md, item 3). A rejected batch is
++        // NOT read as "nothing committed": D1 can reject a write whose commit it could not confirm, so `landed` stays false and the
++        // outcome is exactly what it was before this flag existed.
++        let landed = false;
+         try {
+             if (await ensureOddsBudgetTables(env)) {
+                 const db = env.ARCHIVE_DB;
+@@ -1603,6 +1609,7 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
+                     // reads and the ledger would sit permanently above the bill.
+                     db.prepare(ODDS_BUDGET_SQL.fixMonth).bind(out.delta, month.slice('odds:credits:'.length)),
+                 ]);
++                landed = true;
+             }
+         } catch (e) {
+             // A failed correction must not fail the fetch that already happened.
+@@ -1611,11 +1618,24 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
+             console.warn(`[odds-reconcile] D1 correction failed for ${site} delta=${out.delta}: ${String(e.message || e).slice(0, 120)}`);
+         }
+         await _bumpSite(env, site, out.delta);
+-        for (const key of [day, month]) {
+-            const raw = await env.FIELD_JOURNALISM.get(key);
+-            const cur = raw ? parseInt(raw, 10) || 0 : 0;
+-            const next = Math.max(0, cur + out.delta);
+-            await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
++        try {
++            for (const key of [day, month]) {
++                const raw = await env.FIELD_JOURNALISM.get(key);
++                const cur = raw ? parseInt(raw, 10) || 0 : 0;
++                const next = Math.max(0, cur + out.delta);
++                await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
++            }
++        } catch (e) {
++            // The KV mirror (the day and month counters, which nothing reads) is the only step after the D1 batch that can throw
++            // out of here: _bumpSite, which also runs after it, swallows its own errors. Without a landed correction a mirror
++            // failure is still the reconcile's failure: the outer catch records `error`, as before. WITH one, `used` already holds the correction, and
++            // a throw here must not turn a landed refund into `error`: credits_kept would then be the FULL estimate against a ledger
++            // that handed it back (2026-11-07: handleCFLOddsProbs, credits_kept 648 against used 528). The failure stays visible in
++            // the log, and in `note` as a fixed string (this report is served in the body of /cfl/odds-probs and /wc/odds-probs, so
++            // it carries no KV error text).
++            if (!landed) throw e;
++            out.note = 'KV mirror failed after the D1 correction landed';
++            console.warn(`[odds-reconcile] KV mirror failed for ${site} after the D1 correction landed: ${String(e && e.message || e).slice(0, 120)}`);
+         }
+         return out;
+     } catch (e) {

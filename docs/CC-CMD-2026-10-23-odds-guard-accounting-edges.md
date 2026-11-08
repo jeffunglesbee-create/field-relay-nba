@@ -5,7 +5,7 @@
 **Branch:** main. Commit directly; no feature branch, no PR.
 **Type:** B (accounting correctness; no user-visible failure today)
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED, not dispatched
+**Status:** FILED, not dispatched, EXCEPT item 3: **BUILT 2026-11-08 as a PARKED patch** (`outbox/odds-reconcile-landed-refund-patch-2026-11-08.patch`, session doc `outbox/cc-session-2026-11-08-reconcile-landed-refund.md`). Nothing is landed. It lands only after the CFL judge's verdict commit and on the owner's go (item 3, "LANDING").
 **Filed by:** the Task 3 premise test of `docs/CC-CMD-2026-09-16-odds-spend-attribution.md`
 (workflow `wf_c984c219-a1f`, 2026-10-23), Rule 87.4.
 **Do not land 2026-11-08..11-23:** commits touching `chargeOdds`,
@@ -60,6 +60,11 @@ that references to "item N" stay valid.
    exact line `if (!env || !env.FIELD_JOURNALISM) return true;`, so it must
    move with the wrappers or its anchors match nothing. The state is reachable
    only by removing a binding (CLAUDE.md: no binding change without approval).
+   **Added 2026-11-08 (found by the item 3 review, BUILD-ON-A: this is where it belongs).** The same family has a second face: a charge that
+   degraded OPEN charges nothing, and a later reconcile whose D1 correction works still refunds it, so the DAY ledger drops by the estimate for a charge
+   that was never added (day 100 to 94 for a 6-credit refund, executed: `scripts/check-reconcile-refund-landed.mjs` case K in the item 3 patch, identical
+   at 67b3f19). `reconcileOddsCredit` cannot tell, because it is not told whether the charge landed. Not fixed; whoever builds this item decides whether
+   the charge reports back to its reconcile.
 3. **`kept` overstates on `error` tally rows when the refund has landed.** In
    `_reconcileOddsCredit` the KV mirror loop has no inner try, so a throw
    there reaches the outer catch and records state `error` after the D1
@@ -91,6 +96,52 @@ that references to "item N" stay valid.
    as option 1 did. It also moves a published figure (the 09-16 Task 2 row
    `getWCPregameLambdas | 0 | 108 | 8`). If item 5 moves the sentinel off KV,
    the mirror has no reader left and removing it may beat wrapping it.
+
+   **Built 2026-11-08, PARKED (nothing landed: `reconcileOddsCredit` is in the VOID list above).** Evidence, all in `outbox/` with the prefix
+   `odds-reconcile-landed-refund-` and the suffix `-2026-11-08`: `red-at-head` (the new check against 67b3f19: **26 of 42 pass, 16 fail**; its A1, a cache
+   hit with the refund landed and the mirror throwing, reads state `error`, credits_kept 6 against used 0, the live 648-against-528 shape; its A3, receipt 10
+   against estimate 6, shows the overstatement is also an UNDERstatement), `green-after` (**42 of 42**), `mutants` (**20 of 20 caught**, each by the case meant
+   to), `sweep` (every `check-*`/`mutate-*` command of deploy.yml and guards.yml run on both trees: identical exit codes except the two new scripts), `patch`
+   (6 files, 450 insertions, 7 deletions; `git apply --check` clean on main b9edf45). Two independent reviews, 74 agents, in the session doc.
+   **The fix** is one flag in `_reconcileOddsCredit`: `landed`, true only once the D1 correction batch RESOLVES, and the KV mirror in its own try. With
+   `landed` a mirror failure is a log line and a fixed `note` and the state stays what the receipt says; without it the throw reaches the outer catch exactly
+   as before. A 1,120-cell factorial against HEAD found the patch changes behaviour ONLY where the batch resolved and the mirror threw (96 cells), and the D1
+   ledgers and KV byte-identical in all 1,120. **Correction to this item's own text:** the mirror is not the only step after the D1 batch; `_bumpSite` also
+   runs there and is safe only because it swallows its own errors (check case A5).
+   **What changed on the way, because a review found it:** the first version also flipped a REJECTED correction to `error`. That regressed a case HEAD got
+   right (D1 can reject a write whose commit it could not confirm, so the tally then read the estimate against a corrected ledger), changed the report of a
+   degraded-open charge, and went beyond this item's words ("keep reporting the second as `error`" is about what is reported today). It was removed.
+   **KNOWN, pinned in the check and NOT fixed:** C, the correction rejected before it committed with the mirror fine, reads `cache-hit` while `used` holds the
+   estimate (the mirror image; HEAD identical); G2, a batch that commits and then rejects with the mirror throwing, reads `error` with the ledger corrected (HEAD
+   identical); **H, moved by the fix:** across 00:00Z (charge on day D, reconcile on D+1) the tally reads `cache-hit` kept 0 against used 6 where HEAD read
+   `error` kept 6 = used 6 by coincidence, the ledger identical in both; K, see item 2. `landed` means the batch RESOLVED, not that the correction reached the
+   charged day. **UNMEASURED:** whether real D1 ever rejects a batch it committed.
+   **LANDING, all in ONE commit, only after the verdict commit and on the owner's go:**
+   1. Not in 2026-11-08..11-23. The judge's VOID check is `git log --since=2026-11-08` with no `--until`, so land only after the judge's verdict commit
+      EXISTS, by artifact and not by time: `git fetch && git log origin/main --since=2026-11-24T14:00:00Z --format='%h %cI %s' -- outbox
+      docs/CC-CMD-2026-10-18-odds-counter-internal-then-calendar.md docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md` must list it, and the new
+      outbox document must name H-whole, H-none and M. A re-judge after landing must pass `--until=2026-11-23T23:59:59Z`.
+   2. A line below this list, `OWNER GO item 3 landing: <date>`, recorded from the owner's own words. Without it: report once and stop.
+   3. A REAL `git apply` of the patch on a clean clone of current main (`--3way` if a context line moved; the likely one is the single `// SCOPE-EXCLUDES:`
+      line in `scripts/check-odds-reconciled.mjs`: take the CURRENT line and append both new script names). Then run EVERY check and mutate command of
+      deploy.yml and guards.yml, not a keyword subset (`check-scope-claims` was invisible to one), and compare with the same run on main: no exit-code
+      differences.
+   4. Declare in the same commit, anchoring every edit on text, not line numbers: a dated line in `outbox/odds-cfl-season-end-prediction-2026-10-18.md`;
+      Notes in `docs/CC-CMD-2026-10-13-vendor-residual-window.md` (the done-condition 5 wording that an `error` call's kept is an intent with no standing
+      charge, and the data-point sentence "the reconcile threw after its refund landed"), `docs/CC-CMD-2026-10-18-odds-charge-survives-cancellation.md`
+      (the `stranded` figure) and `docs/CC-CMD-2026-09-16-odds-spend-attribution.md` (the published row `getWCPregameLambdas | 0 | 108 | 8`, which
+      `scripts/measure-odds-consumer-demand.mjs` generates by summing every state including `error`); `scripts/analyze-cfl-reconcile-gap.mjs` (the comments
+      above `stranded` and above the `recErr` fixture) and the mutant description in `scripts/mutate-analyze-cfl-reconcile-gap.mjs`, then
+      `node scripts/analyze-cfl-reconcile-gap.mjs --self-test && node scripts/mutate-analyze-cfl-reconcile-gap.mjs` (editing the analyzer also triggers
+      `runner-read-guards.yml`); the two old readings in `HANDOFF.md` superseded by the new entry; `docs/CC-CMD-2026-10-23-odds-spend-without-need.md`'s
+      pointer into this item re-anchored by text. Put the deploy run's UTC creation time and **2026-11-25 as the first clean UTC day** in each: the tally key
+      is `(day, site, state, cache)` with no version, so on the landing day one `error` cell mixes rows written under both readings. Before the deploy an
+      `error` row could mean "the mirror threw after the refund landed" OR "the correction did not land" (the measured CFL rows were the first); after it
+      an `error` row means the correction did NOT land. The analyzer's `stranded = by_site - (credits_kept - credits_kept of the error rows)` stays right
+      for both.
+   5. A Rule 67 session doc, a HANDOFF entry, and the item 5 decision (once the sentinel moves off KV the mirror has no reader: wrap it, or remove it).
+   6. After the deploy, read `GET /budget/odds` on a day with `error`/HIT CFL rows: `used` against the sum of kept over ALL cells should now be equal. Record it.
+   The follow-up that checks steps 1 and 2 and lands only if both hold is trigger `trig_01FFUveETSUTJeuudarUh5h7` (2026-11-24T16:30Z, this session).
 4. **A guard refusal in the dead-hour odds backfill marks the date tried for
    30 days.** `runOddsBackfillForDate` treats `guarded: true` like a miss
    (`if (!ok) { oddsSkipped += …; continue; }`) and returns

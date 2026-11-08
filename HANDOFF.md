@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-08 (01:30Z) — accounting-edges item 3 built as a PARKED patch and reviewed twice; nothing landed (CFL VOID window)
+
+**HEAD:** `b9edf45` at the start and the end; no `src/` commit. Work was done in throwaway copies; the artifacts are committed under `outbox/`.
+**Session doc:** outbox/cc-session-2026-11-08-reconcile-landed-refund.md (task: "Next item", item 2 of the 2026-11-07 "novel thinking" answer: build now what the VOID window only blocks landing)
+
+- **What it is.** `docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md` item 3: `credits_kept` overstated on `error` tally rows when the D1 refund had landed and only the KV mirror threw (live 2026-11-07: handleCFLOddsProbs, 648 against `used` 528). The fix is one flag in `_reconcileOddsCredit` (`landed`, true once the D1 correction batch resolves) and the mirror in its own try. The new check against 67b3f19: **26 of 42 pass, 16 fail**; patched **42 of 42**; **20 of 20 mutants caught**; all 175 `check-`/`mutate-` commands of `deploy.yml` and `guards.yml` run on both trees with identical exit codes except the two new scripts. A 1,120-cell factorial against HEAD: behaviour changes only where the batch resolved AND the mirror threw.
+- **Two independent reviews (74 agents) changed it.** The first version also flipped a rejected correction to `error`; a review showed that regresses a case HEAD got right (D1 can reject a write it did commit), so the flip was removed. A blocker (the new check tripped `check-scope-claims` in both workflows) was found by a review and fixed. Review 1's saved output was lost to a full disk; the record says what survived.
+- **STAGED (Rule 74), landing.** Blocked by: the CFL VOID window 2026-11-08..11-23, the judge's verdict commit (its VOID check has no `--until`), and the owner's go. Unblocked when: all three. Verify: item 3's "LANDING" list, step 6. Armed: trigger `trig_01FFUveETSUTJeuudarUh5h7` (2026-11-24T16:30Z, this session); it lands nothing without both.
+- **KNOWN, pinned in the check, not fixed:** C (a correction rejected before commit with the mirror fine), G2 (a batch that commits then rejects), H (the 00:00Z straddle moves the tally's relation to the ledger; moved BY this fix), K (a charge that degraded open, then a refund: the DAY ledger drops for a charge never added; recorded under item 2). Whether real D1 rejects after committing is UNMEASURED.
+- **A pointer corrected.** `trig_01QnrMSPjGZfAkL8HJKLc9BH` told its session to read "the 10-23 CC-CMD" for the judge's verdict; the judge writes to the 10-18 counter CC-CMD and a new outbox document. Corrected 2026-11-08T01:07Z.
+
 ## SESSION CLOSE-OUT — 2026-11-07 (13:30Z) — the live lineup proof failed at 12:11Z; cause measured (a 36 h marker the pre-fix code left in KV), one alias, the hold rule, and the laboratory deployed
 
 **HEAD:** `94407d7` (the 03:00Z close-out's code) → `7a55ee1` (the `AJ Auxerre` alias) → `17657e9` (a pass that leaves rows unjoined holds its date 6 h; today first) → `f9eaf57` (a throwing pass is a failed date) → the probes (`a7c3db6`, `eb765bd`, `a9143e0`, `871b373`) and this close-out · **Branch:** main
