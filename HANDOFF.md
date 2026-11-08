@@ -1,5 +1,13 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-08 (08:30Z) — done condition 5 of the vendor-residual CC-CMD read: `pass` (the CFL fix, busy day 2026-11-07)
+
+**HEAD:** unchanged by this read (docs and outbox only; no `src/` commit, CFL VOID window).
+**Session doc:** outbox/cc-session-2026-11-08-cfl-gap-read.md (task: the wake of trig_01E9kMQiyKXENeyzuxNFBNsV)
+
+- **Result.** `node scripts/analyze-cfl-reconcile-gap.mjs --day 2026-11-07` prints `verdict: pass`: stranded 0 credits (0 calls) on 2289 HIT calls (2342 tallied), last drift sample 21:08Z. The four days beside it are context: 11-03 `inconclusive:partial-day`, 11-04 to 11-06 `inconclusive:few-hit-calls`. Recorded as the first Data point of `docs/CC-CMD-2026-10-13-vendor-residual-window.md`, with what the pass does not show (the tally records no aborts). Done condition 5: MET. The carrier is untouched; it flips from `PARTIAL` to `DONE` on or after 2026-11-24.
+- **Nothing STAGED by this read.** Still armed from earlier: the CFL judge (`trig_019aQvU36rYwZ7PqjaMnV5ut`, 2026-11-24T14:00Z) and the item 3 landing check (`trig_01FFUveETSUTJeuudarUh5h7`, 2026-11-24T16:30Z, lands nothing without the verdict commit and the owner's go).
+
 ## SESSION CLOSE-OUT — 2026-11-08 (06:40Z) — NFL player stats are built on a runner; the Worker's Wednesday job is retired
 
 **HEAD:** `d6ce98a` → `00c4866` → `a5c8da1` → this close-out · **Branch:** main

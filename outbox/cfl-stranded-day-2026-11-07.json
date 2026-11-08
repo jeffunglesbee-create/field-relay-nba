@@ -1,0 +1,31 @@
+{
+ "read_of": "done condition 5, docs/CC-CMD-2026-10-13-vendor-residual-window.md",
+ "series_samples": 60,
+ "series_last": "2026-11-08T02:53:09.402Z",
+ "criterion": {
+  "max_stranded": 48,
+  "min_hit": 100,
+  "min_last_sample_hour_utc": 21
+ },
+ "day": "2026-11-07",
+ "samples": 4,
+ "sample_times": [
+  "00:27Z",
+  "09:20Z",
+  "17:03Z",
+  "21:08Z"
+ ],
+ "last_sample_at": "2026-11-07T21:08:10.619Z",
+ "unread_hours_after_last_sample": 2.9,
+ "by_site": 318,
+ "kept": 522,
+ "kept_error": 204,
+ "gap": -204,
+ "stranded": 0,
+ "stranded_calls": 0,
+ "n": 2342,
+ "hit": 2289,
+ "figures_disagree": false,
+ "verdict": "pass",
+ "reason": "stranded 0 credits (0 calls) is at most 48 on a day with 2289 HIT calls, read through 21:08Z"
+}
