@@ -1,0 +1,86 @@
+{
+  "at": "2026-11-08T11:17:10.643Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "dates": {
+    "2026-11-08": {
+      "verdict": "JOINED 2 of 2 pending",
+      "firstRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 2,
+        "written": 2,
+        "joined": 2,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 248,
+        "upstreamPages": 6,
+        "cacheHits": 0,
+        "unmatched": []
+      },
+      "secondRun": {
+        "status": 200,
+        "ok": true,
+        "pending": 0,
+        "written": 0
+      },
+      "before": {
+        "read": true,
+        "contextRows": 55,
+        "soccerRows": 24,
+        "joined": 22,
+        "bySport": {
+          "EPL": {
+            "rows": 5,
+            "joined": 5
+          },
+          "La Liga": {
+            "rows": 5,
+            "joined": 5
+          },
+          "Serie A": {
+            "rows": 5,
+            "joined": 5
+          },
+          "Bundesliga": {
+            "rows": 3,
+            "joined": 3
+          },
+          "Ligue 1": {
+            "rows": 6,
+            "joined": 4
+          }
+        }
+      },
+      "after": {
+        "read": true,
+        "contextRows": 55,
+        "soccerRows": 24,
+        "joined": 24,
+        "bySport": {
+          "EPL": {
+            "rows": 5,
+            "joined": 5
+          },
+          "La Liga": {
+            "rows": 5,
+            "joined": 5
+          },
+          "Serie A": {
+            "rows": 5,
+            "joined": 5
+          },
+          "Bundesliga": {
+            "rows": 3,
+            "joined": 3
+          },
+          "Ligue 1": {
+            "rows": 6,
+            "joined": 6
+          }
+        }
+      }
+    }
+  },
+  "coverage": "1 date(s): 2026-11-08; each read from /context/date before and after one admin-route pass, plus a second pass to prove the IS NULL scope"
+}
