@@ -19,19 +19,22 @@
 
   PASS  LEAGUES_LOCAL contains nothing the cron does not seed
 
-  Live half, 2026-11-04 (4 day(s) ago)
+  Live half, 2026-11-05 (4 day(s) ago)
 
   PASS  the archive answers for that date
   PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
-  NBA                      14       14
-  NHL                       4        4
-  UEFA Champions League     9        9
-  UEFA Europa League        1        1
-  CFB                       3        3
+  NBA                       2        2
+  NHL                      11       11
+  UEFA Europa League       17       17
+  UEFA Europa Conference League   18       18
+  NFL                       1        1
+  CFB                       2        2
+  PGA Tour                  1        0   GAP
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
   PASS  the archive returned rows for that date
-  PASS  every seeded competition with fixtures reached the archive
+  FAIL  every seeded competition with fixtures reached the archive
+        → PGA Tour — 1 fixture(s) on ESPN pga, 0 rows in /context/date
 
-PASS  13/13 checks passed
+FAIL  12/13 checks passed
