@@ -1,0 +1,107 @@
+{
+  "at": "2026-11-08T11:00:06.090Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "days": {
+    "2026-11-07": {
+      "httpStatus": 200,
+      "pages": 5,
+      "eventsRead": 226,
+      "complete": true,
+      "hits": []
+    },
+    "2026-11-08": {
+      "httpStatus": 200,
+      "pages": 5,
+      "eventsRead": 233,
+      "complete": true,
+      "hits": [
+        {
+          "id": 210524,
+          "home": "Stade Brestois",
+          "away": "Olympique Lyonnais",
+          "homeKey": "brest",
+          "awayKey": "lyon",
+          "event_date": "2026-11-08T16:15:00+00:00",
+          "status": "notstarted"
+        },
+        {
+          "id": 210518,
+          "home": "Angers",
+          "away": "OGC Nice",
+          "homeKey": "angers",
+          "awayKey": "ogcnice",
+          "event_date": "2026-11-08T16:15:00+00:00",
+          "status": "notstarted"
+        },
+        {
+          "id": 210525,
+          "home": "Stade Rennais",
+          "away": "LOSC Lille",
+          "homeKey": "rennes",
+          "awayKey": "losclille",
+          "event_date": "2026-11-08T14:00:00+00:00",
+          "status": "notstarted"
+        }
+      ]
+    },
+    "2026-11-09": {
+      "httpStatus": 200,
+      "pages": 1,
+      "eventsRead": 15,
+      "complete": true,
+      "hits": []
+    }
+  },
+  "rows": [
+    {
+      "row": "Ligue 1_2026-11-08_e401876406",
+      "home": "Rennes",
+      "away": "Lille",
+      "homeKey": "rennes",
+      "awayKey": "lille",
+      "sameSides": [],
+      "reversedSides": [],
+      "anyEventNamingEitherClub": [
+        "210525 Stade Rennais v LOSC Lille 2026-11-08T14:00:00+00:00 [rennes v losclille]"
+      ]
+    },
+    {
+      "row": "Ligue 1_2026-11-08_e401876412",
+      "home": "Angers",
+      "away": "Nice",
+      "homeKey": "angers",
+      "awayKey": "nice",
+      "sameSides": [],
+      "reversedSides": [],
+      "anyEventNamingEitherClub": [
+        "210518 Angers v OGC Nice 2026-11-08T16:15:00+00:00 [angers v ogcnice]"
+      ]
+    }
+  ],
+  "control": {
+    "row": "Ligue 1_2026-11-08_e401876410",
+    "home": "Brest",
+    "away": "Lyon",
+    "homeKey": "brest",
+    "awayKey": "lyon",
+    "sameSides": [
+      {
+        "id": 210524,
+        "home": "Stade Brestois",
+        "away": "Olympique Lyonnais",
+        "homeKey": "brest",
+        "awayKey": "lyon",
+        "event_date": "2026-11-08T16:15:00+00:00",
+        "status": "notstarted",
+        "day": "2026-11-08"
+      }
+    ],
+    "reversedSides": [],
+    "anyEventNamingEitherClub": [
+      "210524 Stade Brestois v Olympique Lyonnais 2026-11-08T16:15:00+00:00 [brest v lyon]"
+    ],
+    "expectBsdId": 210524,
+    "found": true
+  },
+  "coverage": "3 day(s) read in full pages of 50 via /bsd/events/by-date; only events naming Rennes, Lille, Angers, Nice, Brest or Lyon are listed; the join's own key test is applied to them"
+}
