@@ -1,0 +1,90 @@
+{
+  "probed_at": "2026-11-10T16:42:07.627Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 10,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Barry (EVE) 2, Dewsbury-Hall (EVE), Gboho (COV)\nAssists: Mykolenko (EVE), Barry (EVE)\nYellow cards: Branthwaite (EVE), Yirenkyi (COV)\nSaves: Rushworth (COV) 4, Pickford (EVE) 3\nFPL bonus: Barry (EVE) +3, Dewsbury-Hall (EVE) +2, Mykolenko (EVE) +1, Gboho (COV) +1\nTop BPS: Barry (EVE) 59, Dewsbury-Hall (EVE) 41, Mykolenko (EVE) 33\nLeague table: Everton 6th on 0 points from 0 | Coventry City 17th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879239",
+      "game_recap_epl_401878759",
+      "game_recap_epl_401879243",
+      "game_recap_epl_401879244",
+      "game_recap_epl_401878760",
+      "game_recap_epl_401879241",
+      "game_recap_epl_401878758",
+      "game_recap_epl_401879242",
+      "game_recap_epl_401878762",
+      "game_recap_epl_401879246",
+      "game_recap_epl_401879250",
+      "game_recap_epl_401878761",
+      "game_recap_epl_401879245",
+      "game_recap_epl_401878763",
+      "game_recap_epl_401879247",
+      "game_recap_epl_401879249",
+      "game_recap_epl_401879251",
+      "game_recap_epl_401879248"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401878757: overcome the",
+      "game_recap_epl_401878757: to overcome",
+      "game_recap_epl_401878760: extended their",
+      "game_recap_epl_401879242: overcome the",
+      "game_recap_epl_401879242: to overcome",
+      "game_recap_epl_401879245: overcome the",
+      "game_recap_epl_401879245: to overcome",
+      "game_recap_epl_401879247: overcome the",
+      "game_recap_epl_401879247: to overcome"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879239, game_recap_epl_401878759, game_recap_epl_401879243 | archived briefs use a banned phrase: game_recap_epl_401878757: overcome the, game_recap_epl_401878757: to overcome, game_recap_epl_401878760: extended their"
+}
