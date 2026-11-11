@@ -20,7 +20,7 @@
 - Restarting the by_hour wake: `update_trigger` with a `run_once_at` on `trig_0161cHqx3qRLq7hs7T1bWx5P`. Even then its done conditions 1 to 3 need a degrade event, and all 11 closed days read (2026-10-30 to 2026-11-09) had none.
 
 **3. UNBLOCKED now, with one decision or nothing**
-- **FA Cup past-date navigation (relay CC-CMD Task 6): unblocked.** "Blocked by: nothing on the relay"; it is a client edit in `FIELD_V2_SOURCES` and `V2_SECTION_LABEL` plus the injector pair `scripts/check-v2-section-labels.mjs` enforces. The one decision: do the EFL Cup and EFL Trophy join it. **The 2026-11-10 daily read said "no thread is unblocked"; that was about the odds watch's own thread list and was wrong as a statement about the whole account.**
+- **FA Cup past-date navigation (relay CC-CMD Task 6): DONE and live 2026-11-11** (owner: "Task 6, yes all 3"; the FA Cup, the EFL Cup and the EFL Trophy; jubilant-bassoon `2d5b6df`; live probe run `42953985795` PASS; recorded in the CC-CMD's Task 6 bullet; session doc `outbox/cc-session-2026-11-11-past-date-cups.md` in jubilant-bassoon). Previously: unblocked, one decision (do the EFL cups join it).
 - The 197 unjoined archive rows of the five leagues dated 2026-08-15 to 2026-10-23 (cause unread): a read-only probe would do; low value, no trigger.
 
 **4. An event that is not scheduled**
