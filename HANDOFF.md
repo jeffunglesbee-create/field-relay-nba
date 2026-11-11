@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-11 (02:35Z) — what unblocks each open thread, read from the records; the staged memory check's read time corrected; the retire-NFL-R2-callers CC-CMD gets its trigger
+
+**HEAD:** `1015c00` (the memory-check correction) on top of `0d61580`; this close-out is the next commit. No `src/` commit; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-11-open-threads.md (task: the owner's "What unblocks threads?")
+
+- **The 11-09 and 11-10 daily reads: green except the known entry.** Odds watches `tracks-the-bill` both days (residual 0), attribution ok, pairing UNEXPLAINED 0, 0 degrade events, `silently-dead-crons` red on `jubilant-bassoon:patent-watch.yml` only (next scheduled run Wednesday 2026-11-11, read by `trig_017np75QipQWwEbQfCvsSmmk` at 2026-11-12T21:00Z).
+- **Four kinds of gate, each thread named in the session doc.** A date (armed): the CFL pre-window record 11-15, the EPL live proof 11-21, and the CFL judge on 11-24 whose verdict commit gates item 3 (also the owner's go), WC Defect B and the NFL R2 callers. The owner's word: item 3's go, the 61-row `wc_results` DELETE, credit spend, the baseline admission, the by_hour restart. Unblocked now: FA Cup Task 6 (past-date navigation, one decision: the two EFL cups) and a read-only probe of 197 earlier unjoined rows. An event: an NFL week with a colliding pair.
+- **Two corrections.** (1) The staged `exceededMemory` check is readable from 2026-11-12 00:00Z, not on the 11th (`scripts/worker-cpu-read.mjs` reads days ending yesterday); armed `trig_01LTk6nPpvHxA1JNxBbjrSVd` (2026-11-12T01:30Z, `days=14` for a positive control). (2) The 2026-11-10 read's "no thread is unblocked" was wrong for FA Cup Task 6.
+- **New trigger:** `trig_01RwwGVVt1uHQg4NXEvXc6Df` (2026-11-24T17:30Z) for `docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md`, which had none; it builds only if the date and the verdict commit both hold.
+
 ## SESSION CLOSE-OUT — 2026-11-08 (19:00Z) — the by_hour wake's last read (0 events, not re-armed); `patent-fulltext.yml`'s lost push fixed in the client, its output recovered, the class of 16 more measured
 
 **HEAD:** relay `97d814e` (the by_hour data point), then this entry; client `e4093fa` (the fix) and `458f17a` (the recovered output). No `src/` commit; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
