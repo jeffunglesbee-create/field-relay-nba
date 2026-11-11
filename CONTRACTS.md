@@ -947,6 +947,75 @@ archive row), jubilant-bassoon `fetchV2Games` / `fetchV2AllScores` /
 
 ---
 
+## GET /v2/games?sport=<soccer key> — the soccer board (field-laboratory's live scores, written 2026-11-11)
+
+Producer: `handleV2Games`, soccer branch, `adaptESPNWCSoccer(ev, sportKey)` (`src/index.js`), `source: 'espn-wc'`. The keys the
+laboratory asks for are its sixteen soccer sports: `epl`, `mls`, `laliga`, `seriea`, `bundesliga`, `ligue1`, `ucl`, `uclqual`,
+`europa`, `europaqual`, `conference`, `conferencequal`, `wc26`, `eflcup`, `efltrophy`, `facup`; an unknown key answers 400 and
+lists the keys the relay has.
+Consumer: field-laboratory (`src/LiveFeed.fs` `feedGameDecoder` and `wholeScore`; `scripts/live-score-probe.mjs` `decodeFeed`, which
+keeps its own JS copy because it runs on a runner that builds nothing). Its CC-CMD is
+`docs/CC-CMD-2026-11-11-soccer-live-scores.md` (field-laboratory). As of this entry the laboratory's reader is built and not yet deployed
+(branch `live-scores-t3`, landing after its scored gate). Pull only: the page asks once a minute per key while a card is inside its
+window (kickoff to kickoff + 3 h) and the tab is visible; nothing is pushed.
+
+```
+200 { sport, date, games: FieldGame[], count, source: 'espn-wc', ts }
+    `date` is the ET field day the caller passes (YYYY-MM-DD). The relay's default when it is empty is the UTC day, which is
+    the wrong day after 19:00 Eastern in winter (20:00 in summer), so the laboratory always passes it.
+
+FieldGame (soccer), the keys the laboratory reads marked *:
+  id           'espn:<ESPN event id>'
+  espnEventId* '<ESPN event id>'   a STRING; equals the archive's espn_event_id; the laboratory joins its card on it
+  sport, league ('EFL Trophy', ...), start (ISO instant at minute resolution, '2026-11-11T19:00Z'), venue, round
+  state*       'pre' | 'live' | 'final'
+               'live' is ESPN state 'in'. There is NO half-time state word: a break is 'live' (see situation.isHalftime).
+               'final' is ESPN `completed`.
+  home / away  { name, abbr, score* }   score is Number(ESPN's score): a whole number, or null when ESPN gave none.
+               A game not yet started reports 0 (an integer, NOT null), so a consumer must read the score beside `state`.
+  clock*       ESPN's displayClock as served: "0'" before the start, "18'", "45'+3'" (first-half added time and at the break),
+               "90'+8'". Verbatim text; the laboratory shows it as served.
+  periodNum    0 before and after the game, 1, 2, 3 (extra time), 5 (shootout); 1 at the half-time break
+  periodLabel  '' before and after the game, otherwise the minute ("18'")
+  situation*   null unless the game is live. A live game carries an object:
+                 { elapsed, isStoppage, isHalftime*, isShootout, manAdvantage, homeSOT, awaySOT, hasStats }
+               isHalftime   boolean, true exactly when ESPN's status name is STATUS_HALFTIME
+               isStoppage   boolean, displayClock.includes('+'): it is NOT half time. A game in first-half added time with the
+                            ball in play is isStoppage true and isHalftime false.
+               The BSD enrichment (`BSD_API_TOKEN` set) can give ANY game it matches by team names `{ elapsed }`, whatever its state.
+  matchEvents, streams, winProb, openingWP, wpDelta, recentWPHistory, openingAdvanceProb (live games), _crunch (live, by condition)
+               not read by the laboratory
+```
+
+What the laboratory does with it (the relay owns the shape, Rule 60; this is the consumer's side of the contract):
+
+- `state` `live` with both scores is a live reading; with `situation.isHalftime` true it is half time (the card's note says `Half time`,
+  owner approved 2026-11-11). `final` with both scores is full time while the archive row has no score (the card stays `In progress`
+  with a `Full time` note; only the archive makes a game `Final`). `pre` is no reading, whatever its score.
+- A game with no `espnEventId` or no `state`; a score that is not a JSON number, a numeric string included, or is fractional, negative or
+  larger than the int32 maximum; a `clock` that is not a string; a `situation` that is neither absent, null nor an object; or an
+  `isHalftime` that is not a boolean makes the laboratory fail the WHOLE answer for that sport key. Every card of that key inside
+  its window then reads `live score unavailable`. Absent and null scores, clocks and flags are not errors.
+- Joined by `espnEventId`, never by team names (the archive says `Man Utd`, the feed `Manchester United`).
+
+Observed (Rule 73: date, method, conditions). 2026-11-11, EFL Trophy, kickoff 19:00Z, two games, read from the deployed relay by
+field-laboratory's `live-shape-capture` workflow into `outbox/live-capture-efltrophy-2026-11-11-{1918Z,1954Z,2059Z,2121Z}.json`
+(field-laboratory, `v2.body`): a game `live` at 18' (0-0, clock `18'`, `isHalftime` false); at the break (3-0 and 0-2, clock `45'+3'`,
+`periodNum` 1, `isStoppage` true, `isHalftime` true, `state` still `live`); `final` at 20:59:30Z with `situation: null` (5-2 `90'+3'`, 0-4
+`90'+8'`) while the archive rows had no score (finalised at 21:00:26Z and 21:00:28Z by the `*/15` tick). A game in the second half was
+read once through the relay (about 20:34Z: `periodNum` 2, clocks `74'` and `76'`, `isHalftime` false, `isStoppage` false) and is not in a
+committed capture. NOT observed: stoppage time of the second half while live, extra time and its break, a shootout, and the status
+names ESPN uses for them; the relay sets `isHalftime` only for `STATUS_HALFTIME`.
+
+**The laboratory's copy must be synced** (ATOMIC-A): a change to `state`, `espnEventId`, `home.score`, `away.score`, `clock` or
+`situation.isHalftime` (a new state word, a score as a string, `situation` as another type) is made together with
+`src/LiveFeed.fs` and `scripts/live-score-probe.mjs` in field-laboratory, relay first; the laboratory's
+`scripts/check-live-probe-keys.mjs` (on that branch until it lands) holds its two decoders to each other on a battery of bodies and on every committed capture.
+
+---
+
+---
+
 ## GET /journalism/game/{eventId} — per-game brief lookup
 
 Producer: `src/index.js` ~L12906 route handler; backing KV key written by
