@@ -16,7 +16,7 @@
   sha256 `eab567cd49da9ec3`) → `/nflverse/player-stats.json` serving the same bytes, `X-Source: r2`. That URL is
   the one jubilant-bassoon `nflNGSInit` fetches; the shape and the fields it reads (`pos`, `attempts`, `name`, `team`,
   `passingEPA`) are unchanged. Not checked: the page's own render of `NFL_QB_STATS`.
-- **STAGED (Rule 74): 0 memory kills.** Blocked by: the next Wednesday window. Unblocked: 2026-11-11 after 16:00 UTC.
+- **STAGED (Rule 74): 0 memory kills.** Blocked by: the next Wednesday window. Unblocked: ~~2026-11-11 after 16:00 UTC~~ 2026-11-12 00:00Z. CORRECTED 2026-11-11: `scripts/worker-cpu-read.mjs` reads UTC days ENDING YESTERDAY (it starts from today's UTC midnight, lines 251-253), so a dispatch on 2026-11-11 cannot see 2026-11-11. Readable from 2026-11-12 00:00Z; `days=14` also shows earlier Wednesdays as a positive control. Read by `trig_01LTk6nPpvHxA1JNxBbjrSVd` (2026-11-12T01:30Z).
   Verify: dispatch `worker-cpu-read.yml` with `mode=localise`, `worker=field-relay-nba`, `status=exceededMemory`;
   no bucket dated 2026-11-11. Also: `outbox/nfl-player-stats-2026-11-11T12*.log` ends `WRITTEN AND SERVED`.
 

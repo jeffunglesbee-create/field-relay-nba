@@ -93,7 +93,7 @@ current data at `stats_player/stats_player_week_2026.csv` (weeks 1–9 on 2026-1
 541 players, 33 QBs with 100+ attempts; R2 read back with matching sha256
 `eab567cd49da9ec3`; `/nflverse/player-stats.json` serves the same bytes (HTTP 200,
 `X-Source: r2`). The memory part (0 `exceededMemory` buckets on the next Wednesday)
-is read on 2026-11-11 after 16:00 UTC, once the stub's deploy is live.
+is read from 2026-11-12 00:00Z, once the stub's deploy is live. CORRECTED 2026-11-11: `scripts/worker-cpu-read.mjs` reads UTC days ENDING YESTERDAY (it starts from today's UTC midnight, lines 251-253), so a dispatch on 2026-11-11 cannot see 2026-11-11. Readable from 2026-11-12 00:00Z; `days=14` also shows earlier Wednesdays as a positive control. Read by `trig_01LTk6nPpvHxA1JNxBbjrSVd` (2026-11-12T01:30Z).
 
 **Seen, not touched:** `src/mlb-savant-r2.js` uses the same naive comma split (the old
 file's comment says "same as mlb-savant-r2.js"); whether its source has quoted commas
