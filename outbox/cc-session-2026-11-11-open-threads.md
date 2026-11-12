@@ -16,7 +16,7 @@
 - Item 3 landing: the go line above, asked once by its trigger after the verdict commit exists.
 - The 61-row `wc_results` DELETE and the `wc_group` re-derivation (`docs/CC-CMD-2026-11-07-wc-results-club-contamination.md`, Task 3): approval of the literal preview and the count; a production write, so never without it. The 11-24 15:00Z wake asks.
 - Spending Odds API credits (the targeted fill): approval; the recommendation recorded in the daily-watch prompt is 10 pairs for 200 credits, but its figures date from 2026-09-18 and must be re-read before use.
-- Admitting `patent-watch.yml` in `docs/dead-cron-baseline.json`: the owner's call; not recommended while the cause is fixed and a scheduled run is days away.
+- ~~Admitting `patent-watch.yml` in `docs/dead-cron-baseline.json`~~: moot since 2026-11-12. The 2026-11-11 scheduled run succeeded (43113004662) and the next dead-cron run (43294450943) no longer lists it; nothing was admitted.
 - Restarting the by_hour wake: `update_trigger` with a `run_once_at` on `trig_0161cHqx3qRLq7hs7T1bWx5P`. Even then its done conditions 1 to 3 need a degrade event, and all 11 closed days read (2026-10-30 to 2026-11-09) had none.
 
 **3. UNBLOCKED now, with one decision or nothing**
