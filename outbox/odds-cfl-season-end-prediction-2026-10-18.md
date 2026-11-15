@@ -318,3 +318,13 @@ day after the season; this window's CFL receipts ran 60 to 114 a day while the
 league was in season. The judging run reads the post-window against these rows
 as recorded, and reports where a test cannot discriminate because its pre-window
 figure is 0.
+
+**Read against "Added 2026-11-01".** That paragraph says the Task 3 fix targets the
+stranded part, that "a SMALL stranded figure is expected after the deploy on busy
+days, not zero", and that a contraction "may simply not be visible when the
+stranded figure was already near 0 at the start of the pre-window". The recorded
+figure is 0, not small, on all seven days, including 2026-11-11 (CFL by site 114,
+445 CFL cache-hit calls) and 2026-11-14 (CFL by site 108). Those are the rows the
+judging run compares the post-window against. The 11-01 paragraph's sentences for
+H-whole, spec 2.3, M (b) and M (c) apply as written. This paragraph adds no rule
+and changes no test.

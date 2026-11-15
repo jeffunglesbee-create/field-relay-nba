@@ -23,4 +23,10 @@ Full record: `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.m
 
 ## 5. Armed and unchanged
 
-CFL pre-window record `trig_01EZCgJPQonto9XQmztYGvc5` (2026-11-15T14:00Z); the NFL tick check above (11-18); the CFL judge, the WC Defect B work, the item 3 landing check and the retire-NFL-R2-callers work on 2026-11-24; the daily 18:30Z read. Owner-gated, unchanged: the item 3 landing go line, the 61-row `wc_results` DELETE and `wc_group` re-derivation, Odds credit spend, the by_hour restart, and now the BSD backfill.
+the NFL tick check above (11-18); the CFL judge, the WC Defect B work, the item 3 landing check and the retire-NFL-R2-callers work on 2026-11-24; the daily 18:30Z read. Owner-gated, unchanged: the item 3 landing go line, the 61-row `wc_results` DELETE and `wc_group` re-derivation, Odds credit spend, the by_hour restart, and now the BSD backfill.
+
+## 6. Update 2026-11-15 14:10Z: the CFL pre-window record is written
+
+`trig_01EZCgJPQonto9XQmztYGvc5` fired at 14:00Z. Rows appended to `outbox/odds-cfl-season-end-prediction-2026-10-18.md` under "Recorded 2026-11-15, before kickoff" (commit `e385b11`, on `origin/main` at 14:06Z, 9 hours before the 23:00Z kickoff), from read-only D1 `SELECT`s (`odds_budget`, `odds_budget_site`, `odds_reconcile_state`) and the seven committed logs `odds-daily-vs-vendor-2026-11-09T0613.log` to `...-11-15T0618.log`. 7 of 7 closed days (2026-11-08 to 2026-11-14) judged, every verdict `tracks-the-bill`. Watch residual 0, `daily - receipts` 0 and `CFL by site - CFL receipts` 0 on every day (reference week: 5,154 and 4,530); CFL by site 570 over 95 reconciled calls at 6 credits each; 25 CFL `error` calls kept 150 credits that are not in CFL by site. No prediction text edited. No credits, no odds route, no `src/` commit. The first push was refused because `origin/main` had moved (a census chore commit); the one commit was rebased onto it and pushed, not forced.
+
+The recorded figure is 0, where the 2026-11-01 paragraph of that document expected "a SMALL stranded figure ... on busy days, not zero". No cause was tested here; the judge's report on 2026-11-24 carries the contrast.

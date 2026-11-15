@@ -5,7 +5,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (measurement) — no production change, no credits
 **Confidence gate:** >= 95 before any commit
-**Status:** PARTIAL — TASK 1 done 2026-10-18 (`outbox/odds-counter-internal-2026-10-18.md`); TASK 2's prediction committed 2026-10-18 (`outbox/odds-cfl-season-end-prediction-2026-10-18.md`), to be recorded 2026-11-15 and judged 2026-11-24 by scheduled runs. Two inputs above were found false and are corrected in those documents: the by-site and daily rows are not independently written, and the CFL season end does not stop the route's charging.
+**Status:** PARTIAL — TASK 1 done 2026-10-18 (`outbox/odds-counter-internal-2026-10-18.md`); TASK 2's prediction committed 2026-10-18 (`outbox/odds-cfl-season-end-prediction-2026-10-18.md`), its pre-window rows recorded 2026-11-15 before kickoff (commit `e385b11`; 7 of 7 days judged, every stranded figure 0), to be judged 2026-11-24 by a scheduled run. Two inputs above were found false and are corrected in those documents: the by-site and daily rows are not independently written, and the CFL season end does not stop the route's charging.
 **Authorised by:** the 2026-10-18 ruling in `docs/CC-CMD-2026-09-19-daily-vs-vendor.md`, owner delegated.
 
 ---
