@@ -602,4 +602,27 @@ the writers you thought of.
   4. **Not done:** the relay's full 2026-11-14 and 2026-11-15 CFB listings against the archive ids (item 3 of the armed read), for the reason above. Only this one game is known to be affected.
 - **Recommendation (the owner's decision):** leave the row until Oklahoma v Ole Miss finalizes tonight (kickoff 18:00Z, final about 21:30Z), then read whether live archival added a second row. If none: one in-place `UPDATE regular_season_games SET date = '2026-11-15' WHERE id = 'CFB_2026-11-14_e401856887' AND date = '2026-11-14' AND start_time = '2026-11-15T18:00Z'` (1 row; the id stays; undo is the reverse update). If a second, correctly dated row exists: no delete without a plan for the old row's `change_log` and odds rows. Cost of waiting: `Repo guards` stays red on this one step until then, and no relay deploy is planned before 2026-11-24. The writer fix is a separate change in `src/index.js` after 2026-11-23. The armed follow-up `trig_01DrtUC8zfMiPfKvQFP8ttQT` (2026-11-15T23:30Z) applies the update ONLY if this document carries a line `OWNER GO archive date-keying row: <date>`, written from the owner's own words.
 
+- **Read 2026-11-15 23:31Z, after Oklahoma v Ole Miss finalized (trigger `trig_01DrtUC8zfMiPfKvQFP8ttQT`; read-only, D1 `field-archive`; nothing written, the one-row UPDATE was NOT applied).**
+  1. **A second row exists, so the condition on the owner's go is not met.** Two rows for ESPN event 401856887, same `start_time` 2026-11-15T18:00Z, same teams and venue:
+
+     | | `CFB_2026-11-14_e401856887` | `CFB_2026-11-15_e401856887` |
+     |---|---|---|
+     | `date` | 2026-11-14 | 2026-11-15 |
+     | `created_at` | 2026-11-14 10:01:36 | 2026-11-15 21:15:31 |
+     | score, `finalized_at` | none, none | 24 (Oklahoma) to 17, 2026-11-15 21:15:31 |
+     | `opening_odds` | draftkings, captured 2026-11-14T10:02:07Z, moneyline -142 / +120, spread -2.5, total 49.5 | null |
+     | `closing_odds` | draftkings, captured 2026-11-14T23:55:04Z, moneyline -147 / +124, total 48.5, kickoff verified | draftkings, captured 2026-11-15T11:55:36Z, moneyline -142 / +120, spread -2.5, total 48.5, kickoff verified |
+     | `change_log` | 26626 `odds_api` `opening_odds` (2026-11-14T10:02:07Z); 26722 `odds_backfill` `closing_odds` (2026-11-15 16:51:48) | 26734 `archive_game_closing` `closing_odds` (2026-11-15 21:15:32) |
+     | `drama_peak`, `drama_arc` | null, null | 0, the string "null" |
+
+     All three `change_log` rows have `consumed` 0. `bsd_event_id` is null on both.
+  2. **The 10:36Z "no duplicate" read was right at 10:36Z and is superseded.** The second row was created at 21:15:31, about 11 hours later, at the moment the game was finalized, under an id that embeds 2026-11-15. The 10:00Z creation job did not make it (10:36Z item 1). Which writer made it is not read here; its `finalized_at`, its `created_at` equal to `finalized_at`, and its `change_log` source `archive_game_closing` (21:15:32) point at the finalization path. That is a reading of the data, not a tested mechanism.
+  3. **What was not done, and why.** No write. The owner's "Go" answered the 10:36Z recommendation, which said to update the old row's date "only if no second row for the game exists"; that condition is false, so the go does not apply, and it does not cover any option below (each is a production write that needs its own word). The guard step "Every archived game is dated on the ET day of its own kickoff" stays red on the old row. A fresh count over the 417 rows dated 2026-11-06 or later (golf excluded) found this as the only mismatch.
+  4. **Options for the owner, with what each costs.**
+     - **A (recommended). Merge forward, then delete the old row.** Copy the old row's `opening_odds` into `CFB_2026-11-15_e401856887`, then delete `CFB_2026-11-14_e401856887`. One row per game, the one with the score and the later closing line, and the opening line kept. Two production writes. The deleted row's two `change_log` rows (26626, 26722) would point at an id that no longer exists; the opening and closing values stay readable in them.
+     - **B. Delete the old row only.** One production write. The opening line survives only inside `change_log` row 26626.
+     - **C. Re-date the old row to 2026-11-15.** Turns the guard green and leaves two rows for one game on one date, one without a score. Not recommended.
+     - **D. Leave both until the writer fix.** No write. `Repo guards` stays red on one step, and `deploy.yml`'s verify step blocks any relay deploy, until the fix lands after the VOID window (2026-11-24 onward). The 2026-11-24 landings (items 3 and the NFL R2 callers) need that step green, so D has a date it stops being viable.
+  5. **Not probed (one command each, before any write):** whether any reader joins `change_log.game_id` to `regular_season_games.id` (a grep of both repos for `change_log` readers; relevant to A and B), and whether any reader counts rows per game or per sport and day (relevant to C and D).
+
 OWNER GO archive date-keying row: 2026-11-15 (the owner's own word, "Go", in answer to the recommendation of 2026-11-15 10:36Z: one in-place date UPDATE of `CFB_2026-11-14_e401856887`, applied only after Oklahoma v Ole Miss has finalized and only if no second row for the game exists)
