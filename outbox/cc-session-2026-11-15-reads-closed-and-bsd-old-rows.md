@@ -1,0 +1,26 @@
+# Session 2026-11-12 to 2026-11-15: reads closed, daily odds and CI reads, and the cause of the 197 older unjoined BSD rows
+
+Docs and read-only work only. No `src/` commit (CFL VOID window 2026-11-08..11-23), no Odds API call, no BSD call, nothing written to production except the one owner-ordered workflow dispatch below.
+
+## 1. Reads that closed (2026-11-12)
+
+- **`nfl-player-stats.yml`, first scheduled tick (cron `41 12 * * 3`).** At 19:47Z on 11-11 no `schedule` run existed (426 min after 12:41Z); run 43090991384 was created at 19:50:57Z (430 min, `success`, 559 players, `WRITTEN AND SERVED`). Late, not dropped. The owner ordered "dispatch refresh now" on 2026-11-12 and run 43134528433 (`workflow_dispatch`, `success`) rewrote the same data: redundant. Recorded in `docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md` ("Observed 2026-11-11" and "Resolved 2026-11-11 19:51Z"). The check for the 2026-11-18 tick is armed as `trig_01FyXZK9Z55tASiM7oK2T7S3` (21:00Z); it does not dispatch without an order.
+- **NFL R2 memory part, verified.** `worker-cpu-read.yml` (`days=14 mode=localise status=exceededMemory`): 15 buckets, all on 2026-11-04, none on 2026-11-11; the Worker stub `a5c8da1` was in the deploy `1e3e9a5` (2026-11-08 11:06Z), before the window. Log `outbox/worker-cpu-read-localise-field-relay-nba-exceededMemory-2026-11-12T0130.log`.
+- **`docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md` is DONE.** `patent-watch.yml`'s 2026-11-11 scheduled run (client run 43113004662, created 395 min after 16:00Z) succeeded, both "Commit results" steps `success`, the commits `db30fe3` and `e54ce07` are on the client's main, the manifest has `read_complete` true; the first dead-cron run created after it (43294450943) no longer lists the workflow. No baseline edit.
+
+## 2. Daily odds and CI reads (11-12, 11-13, 11-14, each at about 18:35Z)
+
+All seven watches green on each day: `odds-daily-vs-vendor` `tracks-the-bill` with residual 0 (closed days 11-11, 11-12, 11-13), attribution 0 unaccounted, pairing unexplained 0, no degrade events, no refusals, `undeployed-src-watch` `deployed` with 0 src commits since the last green deploy `1e3e9a5`. Nothing spent. One non-zero first appearance noted, not a finding: `fetchSportOddsHistorical` 30 credits on 11-12, well under its 1800 cap and fully attributed.
+
+## 3. The 197 older unjoined archive rows: the cause is read (2026-11-15 01:30Z)
+
+Full record: `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`, "Addendum 2026-11-15". Read-only from D1 `field-archive`: 197 unjoined rows over 34 dates (2026-08-15 to 2026-10-23) plus 38 May rows the CC-CMD did not count; every row from 2026-10-24 on is joined. The join's `change_log` rows begin 2026-10-28T00:23Z, and nine dates were joined in one admin pass that night; the scheduled join visits only today to today+3 and yesterday, so a date older than yesterday is reached only by `POST /admin/bsd-game-join`, which was never run for the other 34. A coverage gap by design, not the aliases (97 of 97 club names match). A backfill costs about 170 BSD pages (derived) against a budget nobody knows (BSD sent no RateLimit header, 2026-10-29), so it is the owner's call; the closing artifact is in the addendum. Not run, not built.
+
+## 4. Observed, not acted on (TOUCH-ONLY)
+
+- `scripts/check-handoff-current.mjs` reads only `**HEAD:** \`a\` -> \`b\``. Close-outs since 2026-11-08, mine of 11-11 included, used another form, so the check measured from `00c4866` and went red on 2026-11-15 when the oldest unrecorded work commit passed a day (it was red on the clean tree). This entry restores the form. The check also counts workflow-authored "verify: tennis draw route against three real slam editions" commits as work; that classification is not changed here.
+- Client `scripts/check-probe-meta-read.mjs` exits 1 in the authoring sandbox (Playwright's headless shell is missing) and passes on a runner.
+
+## 5. Armed and unchanged
+
+CFL pre-window record `trig_01EZCgJPQonto9XQmztYGvc5` (2026-11-15T14:00Z); the NFL tick check above (11-18); the CFL judge, the WC Defect B work, the item 3 landing check and the retire-NFL-R2-callers work on 2026-11-24; the daily 18:30Z read. Owner-gated, unchanged: the item 3 landing go line, the 61-row `wc_results` DELETE and `wc_group` re-derivation, Odds credit spend, the by_hour restart, and now the BSD backfill.

@@ -21,7 +21,7 @@
 
 **3. UNBLOCKED now, with one decision or nothing**
 - **FA Cup past-date navigation (relay CC-CMD Task 6): DONE and live 2026-11-11** (owner: "Task 6, yes all 3"; the FA Cup, the EFL Cup and the EFL Trophy; jubilant-bassoon `2d5b6df`; live probe run `42953985795` PASS; recorded in the CC-CMD's Task 6 bullet; session doc `outbox/cc-session-2026-11-11-past-date-cups.md` in jubilant-bassoon). Previously: unblocked, one decision (do the EFL cups join it).
-- The 197 unjoined archive rows of the five leagues dated 2026-08-15 to 2026-10-23 (cause unread): a read-only probe would do; low value, no trigger.
+- The 197 unjoined archive rows of the five leagues dated 2026-08-15 to 2026-10-23: cause READ 2026-11-15 (a coverage gap by design: the scheduled join visits today to today+3 and yesterday, and the admin route was run for nine dates only; not the aliases). The backfill (about 170 BSD pages, BSD's budget unknown) is now the owner's call: `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`, "Addendum 2026-11-15". Low value: only history cards read "No lineup source".
 
 **4. An event that is not scheduled**
 - NFL fuzzy match exercised: an NFL week with two games whose BOTH sides share a word (for example NYJ @ LAC with NYG @ LAR). The 2026-11-08 slate had 0 colliding pairs.

@@ -1,5 +1,17 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-15 (02:00Z) — the NFL R2 tick and memory reads and the patent-watch CC-CMD closed (DONE), three daily odds reads green, and the 197 older BSD rows have a read cause
+
+**HEAD:** `10389fe` → `02dd3cd` · **Branch:** main · this close-out is the next commit. No `src/` commit; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-15-reads-closed-and-bsd-old-rows.md (task: the scheduled reads of 2026-11-12, the daily odds reads of 11-12 to 11-14, and the owner's "Continue" of 2026-11-15)
+
+- **`nfl-player-stats.yml`'s first scheduled tick was late (430 min), not dropped, and worked** (run 43090991384); the owner-ordered dispatch of 2026-11-12 (run 43134528433) was redundant. The NFL R2 job's memory part is verified (no `exceededMemory` bucket on 2026-11-11, 2026-11-04 as the control). Next tick check: `trig_01FyXZK9Z55tASiM7oK2T7S3` (2026-11-18T21:00Z), no dispatch without an order. `docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md`.
+- **`docs/CC-CMD-2026-11-02-scheduled-job-skipped-every-time.md` is DONE:** `patent-watch.yml`'s 2026-11-11 scheduled run (client run 43113004662) succeeded and pushed; the dead-cron run after it (43294450943) no longer lists it. No baseline edit.
+- **Daily odds and CI reads, 11-12, 11-13, 11-14 (about 18:35Z): all seven watches green each day**, `tracks-the-bill` with residual 0, unexplained 0, no refusals, 0 src commits since the last green deploy `1e3e9a5`. Nothing spent.
+- **The 197 older unjoined archive rows: cause READ.** 197 rows over 34 dates (2026-08-15 to 2026-10-23), plus 38 May rows the CC-CMD did not count; every row from 2026-10-24 on is joined. The join's first `change_log` row is 2026-10-28T00:23Z and nine dates were joined in one admin pass that night; the scheduled join visits only today to today+3 and yesterday. A coverage gap by design, not aliases. A backfill is about 170 BSD pages against an unknown budget (no RateLimit header), so it is the owner's call: `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`, "Addendum 2026-11-15". Nothing was written or called.
+- **Why `HANDOFF.md is not stale` was red:** the currency check reads only the `**HEAD:** \`a\` → \`b\`` form, the close-outs since 2026-11-08 (mine of 11-11 included) used another, so it measured from `00c4866` and failed once the oldest unrecorded commit passed a day. It was red on the clean tree before this entry. This entry uses the form.
+- **Open, unchanged:** the armed triggers (CFL pre-window record 2026-11-15T14:00Z; the 11-18 tick check; the 2026-11-24 CFL judge, WC Defect B, item 3 landing check and NFL R2 callers retirement; the daily 18:30Z read) and every owner-gated item in `outbox/cc-session-2026-11-11-open-threads.md`, plus the BSD backfill.
+
 ## SESSION CLOSE-OUT — 2026-11-11 (03:55Z) — FA Cup Task 6 done and live for all three competitions: past-date navigation in the client shows the FA Cup, the EFL Cup and the EFL Trophy
 
 **HEAD:** relay `10389fe` (the previous close-out); this close-out is the next commit. Client `2d5b6df` (the change, `SW_VERSION 2026-11-10a`), `349b86a`, `225f70c`, `e72cf05` (the live probe and its fixes), `76fd41b` (its close-out). No `src/` commit here; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
