@@ -247,3 +247,74 @@ recorded in this document's commit message.
    counts, CFL call volumes in both windows, any VOID condition, and every
    failed prediction as plainly as a passed one. It then updates the CC-CMD's
    status.
+
+## Recorded 2026-11-15, before kickoff
+
+Recorded 2026-11-15 by the scheduled recording run
+(`trig_01EZCgJPQonto9XQmztYGvc5`, fired 14:00Z; the D1 reads were taken between
+14:02Z and 14:05Z), before the Grey Cup kickoff at 23:00Z. Nothing
+above this heading is edited. No credits were spent and no odds route was
+called: the figures come from read-only `SELECT`s on `field-archive`
+(`cc49101c`, tables `odds_budget`, `odds_budget_site`, `odds_reconcile_state`)
+and from the committed logs `outbox/odds-daily-vs-vendor-2026-11-09T0613.log`
+to `outbox/odds-daily-vs-vendor-2026-11-15T0618.log`. Each log is named for the
+UTC day it was written on; its `day=` header names the closed day it judges, so
+the closed day 2026-11-08 is read from the 11-09 log, and 2026-11-14 from the
+11-15 log. The 11-14 row is final: the next D1 day, 2026-11-15, was open at
+the time of the read and is not in these rows.
+
+Same four rows as the reference table, same definitions (*receipts* are
+`credits_kept` in states `reconciled` and `cache-hit` only, summed over every
+site; CFL is site `handleCFLOddsProbs`):
+
+| | 11-08 | 11-09 | 11-10 | 11-11 | 11-12 | 11-13 | 11-14 | sum |
+|---|---|---|---|---|---|---|---|---|
+| watch residual (window-aligned) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
+| daily − receipts | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
+| CFL by site | 84 | 60 | 78 | 114 | 60 | 66 | 108 | 570 |
+| CFL by site − CFL receipts | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
+| CFL reconciled calls | 14 | 10 | 13 | 19 | 10 | 11 | 18 | 95 |
+| watch verdict | tracks-the-bill | tracks-the-bill | tracks-the-bill | tracks-the-bill | tracks-the-bill | tracks-the-bill | tracks-the-bill | 7 of 7 reconciling |
+
+The inputs behind the zeros, so the rows can be re-derived:
+
+| | 11-08 | 11-09 | 11-10 | 11-11 | 11-12 | 11-13 | 11-14 | sum |
+|---|---|---|---|---|---|---|---|---|
+| daily (`odds_budget.used`) | 504 | 174 | 144 | 183 | 165 | 156 | 516 | 1,842 |
+| receipts (all sites) | 504 | 174 | 144 | 183 | 165 | 156 | 516 | 1,842 |
+| CFL receipts | 84 | 60 | 78 | 114 | 60 | 66 | 108 | 570 |
+| vendor billed in the window (log) | 605 | 286 | 252 | 219 | 189 | 239 | 780 | 2,570 |
+| known CI spend (log, a lower bound) | 200 | 160 | 60 | 60 | 60 | 80 | 60 | 680 |
+| tolerance (log) | 50 | 50 | 50 | 50 | 50 | 50 | 50 | 350 |
+| CFL cache-hit calls (0 credits) | 341 | 28 | 33 | 445 | 25 | 29 | 39 | 940 |
+| CFL `error` calls | 19 | 0 | 0 | 6 | 0 | 0 | 0 | 25 |
+| CFL `error` credits kept (not in CFL by site) | 114 | 0 | 0 | 36 | 0 | 0 | 0 | 150 |
+
+Coverage, in the same breath as the rows: **7 of 7 closed days** in the
+pre-window are judged (every log gives a reconciling verdict, none refused,
+none missing), so the "fewer than 5 of 7" INCONCLUSIVE rule does not apply to
+this window. The read covers every site in the three tables for those seven
+days, not a sample. The logs' own COVERAGE line applies to each: the
+residual is an upper bound on the ledger's shortfall, because known CI spend is
+a lower bound.
+
+Two facts about these rows, recorded without an explanation, because none was
+tested here:
+
+1. The reference weeks (10-11 to 10-17 and 10-09 to 10-15) carried stranded
+   credits: `daily − receipts` summed to 5,154 and `CFL by site − CFL receipts`
+   to 4,530. In this window both sum to 0 and are 0 on every one of the seven
+   days. The watch residual is 0 on all seven days as well. In the reference
+   week it summed to −5,187.
+2. Every CFL reconciled call kept 6 credits (570 credits over 95 calls), the
+   same unit the reference table's CFL figures are multiples of.
+
+What this means for the scoring text, which is not edited: spec 2.3's
+operational test takes half of the pre-window's mean daily `CFL by site − CFL
+receipts` as its bar, and that mean is 0. M (b) compares the residual sum
+against the `daily − receipts` sum, both 0 here, with an allowance of
+max(350, 10% of that sum) = 350. M (a) asks for CFL receipts of at most 12 a
+day after the season; this window's CFL receipts ran 60 to 114 a day while the
+league was in season. The judging run reads the post-window against these rows
+as recorded, and reports where a test cannot discriminate because its pre-window
+figure is 0.
