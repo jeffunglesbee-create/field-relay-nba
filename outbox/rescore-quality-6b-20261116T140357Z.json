@@ -1,0 +1,40 @@
+{
+  "probed_at": "2026-11-16T14:03:57.126Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 10,
+      "fresh": 36,
+      "arc": 33,
+      "ctx": 17,
+      "temporal": 20,
+      "voice": 30,
+      "margin": 30,
+      "finality": 20
+    },
+    "declared_unreachable": [
+      "ctx"
+    ],
+    "declared_reachable_ceiling": 252
+  },
+  "limit": 160,
+  "stored_baseline": [
+    {
+      "kind": "in-progress language",
+      "n": 175,
+      "mean_stored": 183
+    },
+    {
+      "kind": "reads as final",
+      "n": 4242,
+      "mean_stored": 185.2
+    }
+  ],
+  "matchup_note_coverage": null,
+  "rescored": null,
+  "finality_2x2": null,
+  "dim_reachability": null,
+  "error": "HTTP 500: {\"ok\":false,\"error\":\"D1_ERROR: D1 DB exceeded its CPU time limit and was reset.\"}"
+}
