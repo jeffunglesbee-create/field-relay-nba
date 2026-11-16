@@ -1,0 +1,1376 @@
+{
+  "probedAt": "2026-11-16T23:03:46.741Z",
+  "cmd": "docs/CC-CMD-2026-11-16-golf-tee-times.md, Task 1",
+  "scoreboard": {
+    "status": 200,
+    "eventId": "401850980",
+    "name": "Austin Championship pres. by Compliance Solutions",
+    "date": "2026-11-12T05:00Z",
+    "competitionTimeValid": false,
+    "competitors": 120
+  },
+  "coreEvent": {
+    "status": 200,
+    "date": "2026-11-12T05:00Z",
+    "timeValid": false,
+    "keys": [
+      "$ref",
+      "alternateIds",
+      "competitions",
+      "courses",
+      "date",
+      "displayPurse",
+      "endDate",
+      "guid",
+      "hasCourseStats",
+      "hasPlayerStats",
+      "id",
+      "isCupPlayoff",
+      "isSignature",
+      "league",
+      "links",
+      "name",
+      "playoffType",
+      "primary",
+      "purse",
+      "season",
+      "seasonType",
+      "shortName",
+      "status",
+      "timeValid",
+      "tournament",
+      "uid",
+      "venues",
+      "winner"
+    ]
+  },
+  "competition": {
+    "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980?lang=en&region=us",
+    "status": 200,
+    "keys": [
+      "$ref",
+      "boxscoreAvailable",
+      "boxscoreSource",
+      "bracketAvailable",
+      "broadcasts",
+      "commentaryAvailable",
+      "competitors",
+      "conferenceCompetition",
+      "conversationAvailable",
+      "dataFormat",
+      "date",
+      "divisionCompetition",
+      "endDate",
+      "gameSource",
+      "gamecastAvailable",
+      "highlightsAvailable",
+      "holeByHoleSource",
+      "id",
+      "leaders",
+      "linescoreSource",
+      "lineupAvailable",
+      "liveAvailable",
+      "marquee",
+      "necessary",
+      "neutralSite",
+      "onWatchESPN",
+      "pickcenterAvailable",
+      "playByPlayAvailable",
+      "playByPlaySource",
+      "possessionArrowAvailable",
+      "previewAvailable",
+      "recapAvailable",
+      "recent",
+      "scoringSystem",
+      "shotChartAvailable",
+      "statsSource",
+      "status",
+      "summaryAvailable",
+      "ticketsAvailable",
+      "timeValid",
+      "timeoutsAvailable",
+      "uid",
+      "wallclockAvailable"
+    ]
+  },
+  "competitionChildren": [
+    {
+      "key": "status",
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/status?lang=en&region=us",
+      "status": 200,
+      "keys": [
+        "$ref",
+        "hadPlayoff",
+        "period",
+        "type"
+      ],
+      "mentionsTeeTime": false
+    },
+    {
+      "key": "broadcasts",
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/broadcasts?lang=en&region=us",
+      "status": 200,
+      "keys": [
+        "count",
+        "items",
+        "pageCount",
+        "pageIndex",
+        "pageSize"
+      ],
+      "mentionsTeeTime": false
+    },
+    {
+      "key": "leaders",
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/leaders?lang=en&region=us",
+      "status": 200,
+      "keys": [
+        "$ref",
+        "abbreviation",
+        "categories",
+        "id",
+        "name",
+        "type"
+      ],
+      "mentionsTeeTime": false
+    }
+  ],
+  "statusReads": {
+    "requests": 120,
+    "wallMs": 266,
+    "concurrency": 8,
+    "non200": 0
+  },
+  "byRound": {
+    "1": {
+      "competitors": 1,
+      "withTeeTime": 0,
+      "first": null,
+      "last": null,
+      "startHoles": {}
+    },
+    "2": {
+      "competitors": 52,
+      "withTeeTime": 0,
+      "first": null,
+      "last": null,
+      "startHoles": {
+        "1": 25,
+        "10": 26
+      }
+    },
+    "4": {
+      "competitors": 67,
+      "withTeeTime": 67,
+      "first": "2026-11-16T13:30:00.000Z",
+      "last": "2026-11-16T15:31:00.000Z",
+      "startHoles": {
+        "1": 36,
+        "10": 31
+      }
+    }
+  },
+  "statuses": [
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10057/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 19,
+      "period": 4,
+      "teeTime": "2026-11-16T15:31Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "1"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6922/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 17,
+      "period": 4,
+      "teeTime": "2026-11-16T15:20Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "2"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11183/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 20,
+      "period": 4,
+      "teeTime": "2026-11-16T15:31Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "3"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10562/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 167,
+      "period": 4,
+      "teeTime": "2026-11-16T14:47Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T4"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5211425/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 163,
+      "period": 4,
+      "teeTime": "2026-11-16T14:36Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T4"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9364/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 159,
+      "period": 4,
+      "teeTime": "2026-11-16T15:20Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T4"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9506/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 165,
+      "period": 4,
+      "teeTime": "2026-11-16T14:25Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T7"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11056/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 170,
+      "period": 4,
+      "teeTime": "2026-11-16T15:09Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T7"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4585548/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T15:31Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T7"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6196/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:41Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T10"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4791222/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:36Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T10"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4351896/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T14:47Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T10"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4349547/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T14:47Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T10"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/8973/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:03Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T14"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4565482/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T15:09Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T14"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4361934/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T14:58Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T14"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/3683/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:58Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T14"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4837368/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:14Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T18"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9040/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T15:09Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T18"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5217199/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:58Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T18"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11101/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T15:20Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T18"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/1225/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:41Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T22"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5070143/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:14Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T22"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5113335/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:25Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T22"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5209798/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:36Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T22"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4404991/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T13:41Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T26"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5143175/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:52Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T26"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5075652/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:52Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T26"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5209442/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:03Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T26"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4858859/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:14Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T26"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9143/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:03Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T31"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/1077/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:41Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T31"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5882/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T13:52Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T31"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11253/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:25Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T31"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/1651/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:36Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T35"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4425898/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T13:52Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T35"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4426181/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:30Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T35"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11456/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T13:41Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T35"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4638/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T14:03Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T39"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/3454/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T13:30Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T39"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/8889/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T13:41Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T39"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10577/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 12,
+      "period": 4,
+      "teeTime": "2026-11-16T14:58Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T42"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9144/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:25Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T42"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4423323/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 14,
+      "period": 4,
+      "teeTime": "2026-11-16T13:52Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T42"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5217048/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 14,
+      "period": 4,
+      "teeTime": "2026-11-16T13:52Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T42"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9221/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 13,
+      "period": 4,
+      "teeTime": "2026-11-16T13:30Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T42"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11387/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:58Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T47"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11383/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:47Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T47"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4901368/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 4,
+      "teeTime": "2026-11-16T14:14Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T47"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4618114/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:14Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T47"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/2283/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:30Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T47"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4408315/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T13:30Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T47"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4408318/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:03Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "T47"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5139663/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:36Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T54"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4587989/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:25Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T54"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9569/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:14Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T54"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5113338/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:25Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T57"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10030/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T14:36Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T57"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6701/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:58Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T59"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4589406/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:03Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T59"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/3980/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T15:09Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T61"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/7120/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T15:09Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "T61"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4585549/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:47Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "63"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4671/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T15:09Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "64"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4699329/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 4,
+      "teeTime": "2026-11-16T14:47Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "65"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4691931/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9127/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9243/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5692/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4350033/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9600/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5502/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4602218/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5214987/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11385/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4358083/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9658/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5215039/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6931/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5150294/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10372/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6937/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4982182/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4358081/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 8,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/9025/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10664/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4832046/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/3792/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4868733/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5075548/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10793/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6825/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10522/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5215013/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10596/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10048/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10990/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5351630/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4408319/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4410612/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 8,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/676/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11332/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10481/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4408320/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/257/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/3449/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5076011/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/3257/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 12,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5289828/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 11,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/4375977/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6962/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10058/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/10863/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/3688/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11022/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6999/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 4,
+      "teeTime": "2026-11-16T13:30Z",
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5076025/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 8,
+      "period": 4,
+      "teeTime": "2026-11-16T15:20Z",
+      "startHole": 10,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/5147097/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 10,
+      "period": 2,
+      "teeTime": null,
+      "startHole": null,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6017/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 9,
+      "period": 2,
+      "teeTime": null,
+      "startHole": 1,
+      "state": "post",
+      "position": "-"
+    },
+    {
+      "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/6001/status?lang=en&region=us",
+      "httpStatus": 200,
+      "ms": 8,
+      "period": 1,
+      "teeTime": null,
+      "startHole": null,
+      "state": "post",
+      "position": "-"
+    }
+  ],
+  "totalRequests": 126,
+  "totalWallMs": 917
+}
