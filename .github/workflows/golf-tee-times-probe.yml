@@ -1,0 +1,47 @@
+name: Golf tee times probe
+
+# docs/CC-CMD-2026-11-16-golf-tee-times.md, Task 1 (blocking): the read cost of real
+# golf tee times. ESPN's scoreboard start is a placeholder it marks timeValid false;
+# the core API carries a UTC teeTime per competitor. This measures whether a round's
+# tee sheet is one request or one per competitor, and commits the artifact.
+#
+# CI because ESPN is refused at CONNECT from the session container. Dispatch only:
+# a probe runs when a person asks, never on a timer.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The probe's summary can still fail
+        run: node scripts/golf-tee-times-probe.mjs --self-test
+
+      - name: Measure the tee-time read cost
+        run: node scripts/golf-tee-times-probe.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/golf-tee-times-probe-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: golf tee times probe artifact (CC-CMD-2026-11-16 Task 1)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
