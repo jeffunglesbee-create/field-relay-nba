@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-09T13:47:15.557Z",
+  "ts": "2026-11-16T13:31:29.702Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "perTier": 5,
   "tiers": {
@@ -9,8 +9,8 @@
       "checked": 5
     },
     "masters_1000": {
-      "tournamentsInTier": 10,
-      "singles": 10,
+      "tournamentsInTier": 9,
+      "singles": 9,
       "checked": 5
     },
     "atp_1000": {
@@ -19,8 +19,8 @@
       "checked": 0
     },
     "wta_1000": {
-      "tournamentsInTier": 11,
-      "singles": 11,
+      "tournamentsInTier": 12,
+      "singles": 12,
       "checked": 5
     },
     "atp_500": {
@@ -47,27 +47,6 @@
   "editions": [
     {
       "tier": "grand_slam",
-      "tid": 15,
-      "name": "Australian Open",
-      "status": 200,
-      "season": "2026",
-      "complete": true,
-      "ladder": [
-        "R128=64",
-        "R64=32",
-        "R32=16",
-        "R16=8",
-        "Quarterfinals=4",
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "entry": "Round of 128",
-      "openInnermost": null,
-      "interiorOff": [],
-      "edgesDeclaredNull": true
-    },
-    {
-      "tier": "grand_slam",
       "tid": 14,
       "name": "Australian Open",
       "status": 200,
@@ -89,8 +68,8 @@
     },
     {
       "tier": "grand_slam",
-      "tid": 77,
-      "name": "Roland Garros",
+      "tid": 15,
+      "name": "Australian Open",
       "status": 200,
       "season": "2026",
       "complete": true,
@@ -111,6 +90,27 @@
     {
       "tier": "grand_slam",
       "tid": 76,
+      "name": "Roland Garros",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 77,
       "name": "Roland Garros",
       "status": 200,
       "season": "2026",
@@ -234,21 +234,20 @@
     },
     {
       "tier": "masters_1000",
-      "tid": 45,
-      "name": "Miami",
+      "tid": 56,
+      "name": "Monte Carlo",
       "status": 200,
       "season": "2026",
       "complete": true,
       "ladder": [
-        "R128=32",
-        "R64=32",
+        "R64=24",
         "R32=16",
         "R16=8",
         "Quarterfinals=4",
         "Semifinals=2",
         "Final=1"
       ],
-      "entry": "Round of 128",
+      "entry": "Round of 64",
       "openInnermost": null,
       "interiorOff": [],
       "edgesDeclaredNull": true
@@ -725,13 +724,10 @@
       "tid": 209,
       "name": "ATP Finals",
       "status": 200,
-      "season": "2025",
-      "complete": true,
-      "ladder": [
-        "Semifinals=2",
-        "Final=1"
-      ],
-      "mainDrawMatches": 3,
+      "season": "2026",
+      "complete": false,
+      "ladder": [],
+      "mainDrawMatches": 0,
       "roundsOutsideMainDraw": {
         "": 12
       },
@@ -833,11 +829,14 @@
       "name": "WTA Finals",
       "status": 200,
       "season": "2026",
-      "complete": false,
-      "ladder": [],
-      "mainDrawMatches": 0,
+      "complete": true,
+      "ladder": [
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 3,
       "roundsOutsideMainDraw": {
-        "": 7
+        "": 14
       },
       "interiorOff": [],
       "edgesDeclaredNull": true
@@ -845,8 +844,8 @@
   ],
   "census": {
     "status": 200,
-    "read": 746,
-    "declared": 746,
+    "read": 761,
+    "declared": 761,
     "truncated": false,
     "pages": 8
   },
@@ -896,15 +895,15 @@
       "WTA Finals"
     ],
     "withKnockout": [
-      "209 ATP Finals (3 match(es))",
       "509 Billie Jean King Cup (7 match(es))",
       "4 Next Gen Finals (3 match(es))",
-      "391 United Cup (7 match(es))"
+      "391 United Cup (7 match(es))",
+      "204 WTA Finals (3 match(es))"
     ],
     "withoutKnockout": [
+      "209 ATP Finals (0 match(es))",
       "508 Billie Jean King Cup Group I (0 match(es))",
-      "446 Davis Cup (0 match(es))",
-      "204 WTA Finals (0 match(es))"
+      "446 Davis Cup (0 match(es))"
     ]
   },
   "summary": {
@@ -918,7 +917,7 @@
     ],
     "edgeRuleViolations": 0,
     "clientSplitDrift": [
-      "WTA Finals (204) serves NO main-draw round but the client admits it — the tab would offer an empty bracket"
+      "ATP Finals (209) serves NO main-draw round but the client admits it — the tab would offer an empty bracket"
     ],
     "clientSplitRefusals": [],
     "clientSplitContradictions": []
