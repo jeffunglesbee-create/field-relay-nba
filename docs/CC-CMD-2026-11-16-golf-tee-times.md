@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (the source and the contract). One paired client change in jubilant-bassoon (Rule 70, ATOMIC-A): the relay deploys first, the client consumes.
 **Filed:** 2026-11-16 by CC, on the owner's order "file the relay CC-CMD for golf tee times", from the Deep Cuts design work (field-laboratory `docs/CC-CMD-2026-11-15-scout-daypart-picks.md`, section "Golf").
 **Confidence gate:** >= 95 before any commit
-**Status:** FILED 2026-11-16. Not built. Task 1 is a blocking probe: the read cost decides the design.
+**Status:** Task 1 DONE 2026-11-16 (run 43975853385, `outbox/golf-tee-times-probe-2026-11-16.json`): no tee-sheet endpoint; one request per competitor. Tasks 2 to 4 not built.
 
 ---
 
@@ -32,6 +32,26 @@
 | A competitor's `teeTime` is the time for the CURRENT round (`period`), not the first round's | read two competitors' status mid-tournament with different `period`s, or one before and after a round change |
 | `teeTime` exists for every competitor before the round starts | count competitors with and without it on one pre-round read |
 | The earliest `teeTime` of a round is its start (a two-tee start sends groups off 1 and 10 at the same time) | read `startHole` across the field; the earliest time is the start whatever the hole |
+
+## Task 1 result (2026-11-16, run 43975853385, read at 23:03Z after the Monday finish)
+
+Artifact: `outbox/golf-tee-times-probe-2026-11-16.json`, script `scripts/golf-tee-times-probe.mjs` (self-test 5/5 on the runner), workflow `.github/workflows/golf-tee-times-probe.yml` (dispatch only).
+
+- **No tee-sheet endpoint.** The core competition names three `$ref` children, `status`, `broadcasts` and `leaders`, all 200, and none mentions a tee time. The competitor list is inline on the competition (120 entries).
+- **One request per competitor:** 120 status reads, all 200, in 266 ms at concurrency 8; 126 requests in 917 ms for the whole probe.
+- **Who carries a `teeTime`:** the 67 competitors in round 4 (`period` 4), **67 of 67**, first `2026-11-16T13:30Z`, last `2026-11-16T15:31Z`, after the round had finished (state `post`). The 52 who missed the cut (`period` 2) and 1 more (`period` 1) carry none.
+- **A two-tee start, measured:** round 4 started on hole 1 (36) and hole 10 (31); round 2's cut players show 25 and 26.
+
+The premises, against it:
+
+| premise | result |
+|---|---|
+| no single tee-sheet endpoint | **held**: three children, none with tee times |
+| `teeTime` is the current round's | **consistent, not proven**: every `teeTime` read is on `period` 4, on Monday's date; one read at one time cannot show a round change |
+| `teeTime` exists for every competitor before the round | **refuted as worded**: it exists for every competitor still in the tournament (67 of 67), not for those cut; a round's start is the minimum over competitors whose `period` is the round |
+| the earliest `teeTime` is the round's start under a two-tee start | **held**: holes 1 and 10 both used; the minimum is the start whichever tee |
+
+So Task 2 reads per competitor and filters to the current `period`. The cost to design for is about 120 requests per refresh per tournament; a round's tee times are set before it starts, so they can be cached per (event, round) rather than refreshed on the scoreboard's 300 s cycle.
 
 ## Tasks
 
