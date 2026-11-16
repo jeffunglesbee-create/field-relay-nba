@@ -258,3 +258,15 @@ separation. For the initial implementation, only per-game briefs
 support injury-name matching. The slate brief gets a simpler
 staleness check (any material change for any game in the slate
 marks the entire slate as potentially stale).
+
+---
+
+## FOUND 2026-11-16: three reasons `/freshness/{date}` under-reports staleness (read-only; relay `origin/main` `ca464ce`, D1 `field-archive`; nothing built, nothing written)
+
+Found while probing `change_log` readers for `docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md` (item 5), and added here because this CC-CMD built the route (BUILD-ON-A). The route's only consumer in the four repos is the chat session's `probe_relay_route` MCP tool, so nothing in production reads it.
+
+1. **The join key does not match (measured).** Per-game briefs are keyed by ESPN event id (`401856887`); `change_log.game_id` is the games id (`CFB_2026-11-14_e401856887`) for the odds writers. Of 7,341 distinct `briefs.game_id` values, 367 (5%) have any `change_log` row. Which writers produce those 367 was not read.
+2. **Text-compared timestamps (tested in node).** `getRecentChanges` (`src/sync-reconciler.js:181`) compares `ts > ?` as text against an ISO `since` (`{date}T00:00:00Z`, or the slate brief's `generatedAt`). Three closing-line writers store `ts` as `datetime('now')`, `YYYY-MM-DD HH:MM:SS`: `closing_odds_capture` (`src/ambient-do.js:1167`), `archive_game_closing` (`src/index.js:13888`) and `odds_backfill` (`.github/scripts/odds-backfill.js:626`). `'2026-11-15 21:15:32' > '2026-11-15T00:00:00Z'` is false in node (a space sorts before `T`), so a row written on the same UTC date as `since` is excluded. These three are the closing-line sources in `_ODDS_SOURCES` (`src/brief-freshness.js`).
+3. **The bind count passes D1's cap (from code; the route was not called).** The route selects every per-game brief row for the date and `checkBriefFreshness` binds one parameter per row, unchunked, plus `since` and `limit`. D1's cap is 100 (documented at `src/sync-reconciler.js:102`). The five largest dates in `briefs` have 310 to 393 per-game rows (174 to 227 distinct game ids). On a D1 error `getRecentChanges` returns `[]`, so every brief would read `stale: false`.
+
+Not built. A fix is in `getRecentChanges` (compare `datetime(ts)`, chunk the binds) and in the join key; `src/index.js` changes wait for the end of the CFL VOID window (2026-11-23). Owner decides whether to build.
