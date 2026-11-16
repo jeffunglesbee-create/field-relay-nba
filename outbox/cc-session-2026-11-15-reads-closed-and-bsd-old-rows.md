@@ -34,3 +34,11 @@ The recorded figure is 0, where the 2026-11-01 paragraph of that document expect
 ## 7. Update 2026-11-15 23:35Z: the archive date-keying row was not written
 
 `trig_01DrtUC8zfMiPfKvQFP8ttQT` fired at 23:30Z. Oklahoma v Ole Miss is final (24 to 17). The trigger's rule for a second row applied: `CFB_2026-11-15_e401856887` exists (created 21:15:31, at finalization) beside the stale `CFB_2026-11-14_e401856887`, so no write, no delete. Both rows, their `change_log` rows (26626, 26722, 26734) and four options with costs are recorded in `docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md` under "Observed 2026-11-15". Read-only D1 `SELECT`s only. The one query that failed was a `sqlite_master` join (`SQLITE_AUTH`); it was not needed, since the odds lines are columns of `regular_season_games` and rows of `change_log`.
+
+## 8. Update 2026-11-16: both premises behind options A to D are probed
+
+The owner asked to probe the two premises left open in section 7. Method: a read-only census of the four repos at `origin/main` `397b961` (7 areas, a second reader per area, 2 completeness critics; `src/`, `workers/`, `scripts/` and `.github/` unchanged through `ca464ce`), plus three D1 reads and one relay GET. Nothing was written to production.
+
+Result, in the CC-CMD (`docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md`, Observed 2026-11-15, item 5): no reader resolves `change_log.game_id` to a games row, so options A and B drop nothing; a second row for one game does change what is served, and does today (`/context/game/espn:401856887` returns the unscored old row, and `isGameFinalByEventId` reports the finished game as not final). The recommendation (A) stands. Denominators: 308 sites recorded, 230 re-opened by a second reader (68 corrected), 63 added by the critics and not re-checked; the unread parts are named there.
+
+Open and not probed: which writer put final text in `game_live_cfb_401856887`; whether the client payload spans both dates; the `/freshness` bound-parameter cap. Found in passing and added to the CC-CMD that already covers the route (`docs/CC-CMD-2026-06-21-brief-freshness-guard.md`, BUILD-ON-A): three closing-line writers store `ts` in a format `/freshness` compares as text against an ISO `since`. Owner-gated, unchanged: the choice among A to D, the writer fix after 2026-11-23.
