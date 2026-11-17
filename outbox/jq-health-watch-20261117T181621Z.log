@@ -1,0 +1,79 @@
+=== JQ health watch 20261117T181621Z ===
+
+--- 1. scoring coverage ---
+date        total  scored  unscored  era3
+2026-11-10     66      66         0     0
+2026-11-11     50      50         0     0
+2026-11-12     49      49         0     0
+2026-11-13     39      39         0     0
+2026-11-14    182     182         0     0
+2026-11-15    105     105         0     0
+2026-11-16     28      28         0     0
+2026-11-17     30      30         0     0
+2026-11-18     13      13         0     0
+
+brief_type / sport with UNSCORED rows:
+  (none)
+
+era-3 scored briefs: 181 total
+  game_live              118
+  game_recap             62
+  pre_game               1
+  types at the >=5 calibration floor: 2
+
+/quality/report unscored_types: []
+
+last 7d: 562/562 scored (100%), 0 unscored
+
+=== scoring healthy (>=95% scored): true ===
+
+--- 2. report + era-scoped calibration ---
+alert_count (new predicate):    31
+alert_count (legacy predicate): 76
+calibration era-scoped: 9  mixed-era: 0
+  compound               p25= 122 n=  12 era_scoped=true  window_n=12
+  epl_match              p25= 132 n=  25 era_scoped=true  window_n=25
+  game_brief             p25= 166 n=  58 era_scoped=true  window_n=58
+  game_live              p25= 178 n=1169 era_scoped=true  window_n=1169
+  game_recap             p25= 172 n=1045 era_scoped=true  window_n=1045
+  mlb_game               p25= 154 n=  27 era_scoped=true  window_n=27
+  night_owl              p25= 159 n= 677 era_scoped=true  window_n=677
+  pre_game               p25= 178 n= 603 era_scoped=true  window_n=603
+  slate                  p25= 160 n=  83 era_scoped=true  window_n=83
+alert_count: 31
+self-contradictory (failure_pct 100 AND avg_score > threshold): 0
+era 3 recorded and served: true
+window straddles: []
+
+alerts:
+  compound               all        thr= 122 avg=   142 fail= 25% flat240=100%  high_failure_rate
+  epl_match              Bundesliga thr= 132 avg= 143.7 fail= 33% flat240=100%  high_failure_rate
+  epl_match              Ligue 1    thr= 132 avg= 147.7 fail= 33% flat240=100%  high_failure_rate
+  night_owl              College Football thr= 159 avg= 157.5 fail= 46% flat240=100%  avg_below_calibrated_p25
+  night_owl              NHL        thr= 159 avg= 159.4 fail= 48% flat240=100%  high_failure_rate
+  night_owl              UEFA Champions League thr= 159 avg= 161.3 fail= 25% flat240=100%  high_failure_rate
+  night_owl              NBA        thr= 159 avg= 162.4 fail= 37% flat240=100%  high_failure_rate
+  game_recap             PGA Tour   thr= 172 avg= 162.5 fail= 88% flat240=100%  avg_below_calibrated_p25
+  night_owl              EFL Championship thr= 159 avg= 164.1 fail= 22% flat240=100%  high_failure_rate
+  night_owl              Serie A    thr= 159 avg= 164.2 fail= 28% flat240=100%  high_failure_rate
+  night_owl              UEFA Conference League thr= 159 avg= 165.3 fail= 32% flat240=100%  high_failure_rate
+  night_owl              Bundesliga thr= 159 avg= 165.6 fail= 26% flat240=100%  high_failure_rate
+  slate                  all        thr= 160 avg=   166 fail= 24% flat240=100%  high_failure_rate
+  night_owl              MLS        thr= 159 avg= 166.7 fail= 23% flat240=100%  high_failure_rate
+  game_live              PGA Tour   thr= 178 avg= 169.8 fail=100% flat240=100%  avg_below_calibrated_p25
+  game_recap             NHL        thr= 172 avg= 170.4 fail= 58% flat240=100%  avg_below_calibrated_p25
+  pre_game               MLB        thr= 178 avg=   174 fail= 75% flat240=100%  avg_below_calibrated_p25
+  game_live              CFB        thr= 178 avg=   176 fail= 52% flat240=100%  avg_below_calibrated_p25
+  pre_game               CFB        thr= 178 avg= 178.9 fail= 48% flat240=100%  high_failure_rate
+  game_live              MLB        thr= 178 avg= 179.4 fail= 43% flat240=100%  high_failure_rate
+  game_live              La Liga    thr= 178 avg= 179.8 fail= 26% flat240=100%  high_failure_rate
+  pre_game               Serie A    thr= 178 avg= 180.5 fail= 25% flat240=100%  high_failure_rate
+  game_live              NFL        thr= 178 avg= 181.6 fail= 34% flat240=100%  high_failure_rate
+  game_recap             CFB        thr= 172 avg= 182.9 fail= 23% flat240=100%  high_failure_rate
+  game_live              EPL        thr= 178 avg= 183.1 fail= 31% flat240=100%  high_failure_rate
+  game_live              Ligue 1    thr= 178 avg= 183.2 fail= 34% flat240=100%  high_failure_rate
+  game_live              UEFA Europa Conference League thr= 178 avg= 184.2 fail= 22% flat240=100%  high_failure_rate
+  pre_game               EPL        thr= 178 avg= 184.3 fail= 33% flat240=100%  high_failure_rate
+  game_live              FA Cup     thr= 178 avg= 186.6 fail= 37% flat240=100%  high_failure_rate
+  game_live              EFL Trophy thr= 178 avg= 187.2 fail= 33% flat240=100%  high_failure_rate
+  pre_game               UEFA Europa League thr= 178 avg= 188.3 fail= 25% flat240=100%  high_failure_rate
