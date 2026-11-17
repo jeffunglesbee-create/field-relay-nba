@@ -485,5 +485,14 @@
     "vendor_month_used": 7082,
     "ledger_month_used": 5428,
     "ledger_source": "d1"
+  },
+  {
+    "at": "2026-11-17T07:47:31.027Z",
+    "day": "2026-11-16",
+    "day_used": 165,
+    "ceiling": 3800,
+    "vendor_month_used": 7269,
+    "ledger_month_used": 5515,
+    "ledger_source": "d1"
   }
 ]
