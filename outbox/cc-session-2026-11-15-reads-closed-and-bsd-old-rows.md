@@ -74,3 +74,14 @@ The owner ordered it ("Repoint the odds_history row"), which is the owner-gated 
 
 Owner-gated, unchanged: the writer fix after 2026-11-23; the optional primary-key rename of this row (one statement, closes the duplicate path only); the 61-row `wc_results` delete and `wc_group` re-derivation; the item 3 landing go line; the BSD backfill; any Odds API spend.
 
+## 12. Update 2026-11-18: the items recorded and not built are built (the owner's "Rule 42")
+
+Section 10 and 11 left four things recorded and unbuilt. Rule 42 (change approach after repeated attempts at the same thing) was read as: stop recording, build what is unblocked. Full text in `docs/CC-CMD-2026-09-14-git-state-swallow-sweep.md`. In short:
+
+- **`scripts/probe-commit-retry.sh`:** reproduced first (an index.lock with a file present, two pathspecs with one absent, an ignored explicit path: each printed "nothing to commit" and exited 0 with nothing pushed). My earlier note was wrong twice: the script is run by 55 workflows directly and 19 more through the reusable one (74), not ten; and the bare `|| exit 1` I proposed would have broken the empty-pathspec case (`git add` exits 128 there) for all of them. Built: stage each path under `LC_ALL=C`, skip only "did not match any files", fail on anything else, print git's words always, refuse a blank `PROBE_PATHS`, check the commit. Check 25 to 48 assertions (14 go red on the unfixed script), mutants 10 to 18, all caught; the check now also runs in `guards.yml`.
+- **The German:** the empty-pathspec test reads git's English text; the `git` shim that answers in German is the only way to make `LC_ALL=C` testable here (the German locale is not installed, so the first mutant changed nothing and was not caught).
+- **Four-lens review before the commit:** safe to ship or safe after fixes from all four, 0 blocks, 0 regressions; its gaps (silenced stderr on success, `continue` versus `break` untested, blank `PROBE_PATHS`, the unchecked commit, wrong counts, no CI run on a scripts-only push) were closed in the commit.
+- **Audit-rows one-shot:** the precondition is "at most the one history row", so a re-dispatch after the repoint reads ALREADY DONE; 149 checks, 72 mutants; its check no longer leaks temp directories.
+- **Daily-read prompt:** the "104-405 min" in watch 1 now says where the figure came from and adds the 492.
+- **Recorded, not built (reasons in the CC-CMD):** the push-race locale test, `deploy.yml`'s swallowed add, the in-place mutation harness, `${STATE}` undefined in `timetravel-window-watch.yml`, a pre-staged index.
+
