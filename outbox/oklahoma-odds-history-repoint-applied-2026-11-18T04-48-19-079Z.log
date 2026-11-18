@@ -1,0 +1,32 @@
+=== oklahoma odds_history repoint  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=true  utc=2026-11-18T04:48:19.079Z  run 44239772368 @ f4c2ccb78b12 ===
+    one odds_history row, CFB_2026-11-14_e401856887_draftkings_close: game_id CFB_2026-11-14_e401856887 -> CFB_2026-11-15_e401856887 (ESPN event 401856887); the primary key is not changed
+
+--- 0. preconditions   (phase: fresh)
+    PASS  the event has exactly one games row, the scored keeper, and none in postseason_games
+    PASS  the keeper holds an opening line (an empty one would be refilled from this row by the daily sync)
+    PASS  the keeper holds a closing line (an empty one would be refilled from this row by the daily sync)
+    PASS  odds_backfill_progress holds 2026-11-15 (a reprocess would otherwise insert a second close row for the keeper)
+    PASS  the history row exists once, by its primary key, and carries every pinned column but game_id
+    PASS  the new-style id for the keeper is free
+    PASS  the row is on the old game id or on the keeper, and nowhere else
+    PASS  the counts agree with the phase: 1 on the old id and 0 on the keeper before, 0 and 1 after
+
+--- 1. statement (1), one /d1/execute call
+    1 repoint the history row to the keeper
+        params ["CFB_2026-11-15_e401856887","CFB_2026-11-14_e401856887_draftkings_close","CFB_2026-11-14_e401856887","CFB_2026-11-15_e401856887","CFB_2026-11-15_e401856887_draftkings_close","CFB_2026-11-15_e401856887","CFB_2026-11-14_e401856887","2026-11-15"]
+
+--- 2. write
+    1 repoint the history row to the keeper: 1 row(s)
+
+--- 3. re-read
+    PASS  the event has exactly one games row, the scored keeper, and none in postseason_games
+    PASS  the keeper holds an opening line (an empty one would be refilled from this row by the daily sync)
+    PASS  the keeper holds a closing line (an empty one would be refilled from this row by the daily sync)
+    PASS  odds_backfill_progress holds 2026-11-15 (a reprocess would otherwise insert a second close row for the keeper)
+    PASS  the history row exists once, by its primary key, and carries every pinned column but game_id
+    PASS  the new-style id for the keeper is free
+    PASS  the row is on the old game id or on the keeper, and nowhere else
+    PASS  the counts agree with the phase: 1 on the old id and 0 on the keeper before, 0 and 1 after
+    PASS  the event's games rows are unchanged (id, scores, opening and closing lines)
+
+OK: one row repointed (changes=1, addressed by primary key); the event's games rows are unchanged.
