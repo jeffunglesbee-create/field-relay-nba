@@ -1,0 +1,38 @@
+=== oklahoma audit rows  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=true  utc=2026-11-18T03:03:28.045Z  run 44227605344 @ 357ae127a009 ===
+    two change_log entries for CFB_2026-11-14_e401856887 -> CFB_2026-11-15_e401856887 (ESPN event 401856887), source archive_duplicate_merge
+
+--- 0. preconditions   (phase: fresh)
+    PASS  the event has exactly one row, the scored keeper, and none in postseason_games
+    PASS  the keeper holds an opening line
+    PASS  change_log 26626 is the old id's odds_api opening line, and it equals the keeper's line byte for byte
+    PASS  change_log 26722 is the old id's odds_backfill closing line, and it equals the text the old row was read with
+    PASS  change_log is the state the apply left: 2 rows on the old id, 1 on the keeper, none of this plan's beyond the two entries
+    PASS  the odds_history row keyed to the old id is still there
+    PASS  each entry exists at most once
+    PASS  the state is one the plan knows
+
+--- 1. statements (2), one /d1/execute call each
+    1 the copy entry on the keeper
+        params ["archive_duplicate_merge","2026-11-18T03:03:28.924Z","CFB_2026-11-15_e401856887",26626,"CFB_2026-11-14_e401856887","archive_duplicate_merge"]
+    2 the row_deleted entry on the old id
+        params ["archive_duplicate_merge","regular_season_games","2026-11-14","CFB","CFB","Oklahoma","Ole Miss","Memorial Stadium (Norman, OK)","401856887","2026-11-15T18:00Z","2026-11-14 10:01:36","CFB_2026-11-15_e401856887","2026-11-18T03:03:28.924Z",26722,26626,"CFB_2026-11-14_e401856887","CFB_2026-11-14_e401856887","{\"source\":\"draftkings\",\"captured_at\":\"2026-11-14T23:55:04Z\",\"moneyline\":{\"home\":-
+
+--- 2. writes
+    1 the copy entry on the keeper: 1 row(s)
+    2 the row_deleted entry on the old id: 1 row(s)
+
+--- 3. re-read
+    PASS  the event has exactly one row, the scored keeper, and none in postseason_games
+    PASS  the keeper holds an opening line
+    PASS  change_log 26626 is the old id's odds_api opening line, and it equals the keeper's line byte for byte
+    PASS  change_log 26722 is the old id's odds_backfill closing line, and it equals the text the old row was read with
+    PASS  change_log is the state the apply left: 2 rows on the old id, 1 on the keeper, none of this plan's beyond the two entries
+    PASS  the odds_history row keyed to the old id is still there
+    PASS  each entry exists at most once
+    PASS  the copy entry is the keeper's opening_odds, first populated, carrying the line it holds
+    PASS  the deletion entry carries the removed row (both blobs, date, names, league, venue, ids, created_at) and names the keeper
+    PASS  the state is one the plan knows
+    PASS  the games table was not touched (the event's row is what it was)
+    PASS  the change_log rows that existed are unchanged
+
+OK: two entries written, once each; nothing else changed.
