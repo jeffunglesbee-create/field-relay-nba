@@ -1,0 +1,71 @@
+name: Oklahoma v Ole Miss audit rows (one-shot)
+
+# docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md. The owner ordered these two
+# change_log entries on 2026-11-18 ("Write the audit rows"): option A's copy of the
+# opening line and its deletion of CFB_2026-11-14_e401856887 (run 44223383680) left
+# no record. Two APPEND-ONLY inserts, no update and no delete; the script refuses
+# any state other than the one the order was given against, and a re-run changes
+# nothing.
+#
+# DRY RUN BY DEFAULT. The `apply` input must be typed as the literal word APPLY.
+# MAIN ONLY: the log step pushes to main, and the apply would run that ref's script
+# with the secret.
+#
+# Runs here rather than from a session because sandbox egress to *.workers.dev is
+# blocked, and the D1 connector in a session is read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type APPLY to execute. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oklahoma-audit-rows
+  cancel-in-progress: false
+
+jobs:
+  write:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The plan must pass its own checks, and its own mutations, before it may run
+        run: |
+          node scripts/check-write-oklahoma-audit-rows.mjs
+          node scripts/mutate-write-oklahoma-audit-rows.mjs
+          # The harness mutates copies. This asserts it: the script that runs next is the checked-in one.
+          git diff --exit-code -- scripts .github
+
+      - name: Run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+          APPLY_INPUT: ${{ github.event.inputs.apply }}
+        run: |
+          if [ "$APPLY_INPUT" = "APPLY" ]; then
+            echo "::warning title=Applying::two audit rows, authorised by input"
+            node scripts/write-oklahoma-audit-rows.mjs --apply
+          else
+            node scripts/write-oklahoma-audit-rows.mjs
+          fi
+
+      - name: Commit the log
+        if: always()
+        run: |
+          # Only this workflow's own logs are staged, so the Drive ledger in outbox/
+          # is never swept into the commit.
+          PROBE_AUTHOR_NAME="oklahoma-audit-rows" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          PROBE_PATHS="outbox/oklahoma-audit-rows-*.log" \
+          bash scripts/probe-commit-retry.sh "chore: oklahoma audit rows log"
