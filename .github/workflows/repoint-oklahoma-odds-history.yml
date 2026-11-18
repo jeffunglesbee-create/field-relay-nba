@@ -1,0 +1,71 @@
+name: Oklahoma v Ole Miss odds_history repoint (one-shot)
+
+# docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md. The owner ordered this on
+# 2026-11-18 ("Repoint the odds_history row"): option A deleted
+# CFB_2026-11-14_e401856887 and left its one odds_history row on that game id. One
+# UPDATE moves that row's game_id to CFB_2026-11-15_e401856887. The primary key is not
+# changed, and nothing else is written. The script refuses any state other than the
+# one the order was given against, and a re-run changes nothing.
+#
+# DRY RUN BY DEFAULT. The `apply` input must be typed as the literal word APPLY.
+# MAIN ONLY: the log step pushes to main, and the apply would run that ref's script
+# with the secret.
+#
+# Runs here rather than from a session because sandbox egress to *.workers.dev is
+# blocked, and the D1 connector in a session is read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type APPLY to execute. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oklahoma-odds-history-repoint
+  cancel-in-progress: false
+
+jobs:
+  repoint:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The plan must pass its own checks, and its own mutations, before it may run
+        run: |
+          node scripts/check-repoint-oklahoma-odds-history.mjs
+          node scripts/mutate-repoint-oklahoma-odds-history.mjs
+          # The harness mutates copies. This asserts it: the script that runs next is the checked-in one.
+          git diff --exit-code -- scripts .github
+
+      - name: Run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+          APPLY_INPUT: ${{ github.event.inputs.apply }}
+        run: |
+          if [ "$APPLY_INPUT" = "APPLY" ]; then
+            echo "::warning title=Applying::one odds_history row, authorised by input"
+            node scripts/repoint-oklahoma-odds-history.mjs --apply
+          else
+            node scripts/repoint-oklahoma-odds-history.mjs
+          fi
+
+      - name: Commit the log
+        if: always()
+        run: |
+          # Only this workflow's own logs are staged, so the Drive ledger in outbox/
+          # is never swept into the commit.
+          PROBE_AUTHOR_NAME="oklahoma-odds-history-repoint" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          PROBE_PATHS="outbox/oklahoma-odds-history-repoint-*.log" \
+          bash scripts/probe-commit-retry.sh "chore: oklahoma odds_history repoint log"
