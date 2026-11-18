@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (the source and the contract). One paired client change in jubilant-bassoon (Rule 70, ATOMIC-A): the relay deploys first, the client consumes.
 **Filed:** 2026-11-16 by CC, on the owner's order "file the relay CC-CMD for golf tee times", from the Deep Cuts design work (field-laboratory `docs/CC-CMD-2026-11-15-scout-daypart-picks.md`, section "Golf").
 **Confidence gate:** >= 95 before any commit
-**Status:** Task 1 DONE 2026-11-16 (run 43975853385, `outbox/golf-tee-times-probe-2026-11-16.json`): no tee-sheet endpoint; one request per competitor. Tasks 2 to 4 not built.
+**Status:** IN PROGRESS — Task 1 done 2026-11-16 (run 43975853385, `outbox/golf-tee-times-probe-2026-11-16.json`): no tee-sheet endpoint, one request per competitor. Tasks 2 to 4 being built from 2026-11-18.
 
 ---
 

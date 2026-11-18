@@ -1717,3 +1717,18 @@ game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-mat
 - **Producer:** field-relay-nba. **Consumer:** field-laboratory reads it as OPTIONAL (`get.Optional.Field`), so its
   absence on an older cached payload is tolerated. The laboratory's copy of this contract must be synced when the
   field is first consumed (`field-laboratory` `docs/CC-CMD-2026-10-27-lineups-on-game-cards.md`).
+
+## GET /v2/golf/enriched — round start times and ESPN's time flag (added 2026-11-18)
+
+`docs/CC-CMD-2026-11-16-golf-tee-times.md`, Task 2. Fields added to the active-tournament response (KV key `golf:enriched:v6:<date>`, 180 s):
+
+| field | type | meaning |
+|---|---|---|
+| `startDate` | ISO string or null | the event's start as ESPN serves it; on every PGA event read so far a DATE with a midnight-ET placeholder time |
+| `timeValid` | boolean or null | ESPN's own flag on `startDate`; `false` means the time is not a time and must not be read as a tee time |
+| `roundStart` | ISO UTC or null | the CURRENT round's first tee: the earliest `teeTime` among competitors whose `period` is the round (ESPN core API, per competitor) |
+| `roundLastTee` | ISO UTC or null | that round's latest `teeTime` |
+| `teeTimes` | `{ inRound, withTeeTime, failedReads }` or null | how many of the round's competitors were read and carried a time; null when the read failed |
+
+- **Producer:** field-relay-nba (`getGolfRoundTeeTimes`, cached per event and round in KV `golf:teetimes:v1:<event>:<round>`, 6 h when every in-round competitor carried a time, else 10 min; called only from this route). **Consumer:** jubilant-bassoon `saveGolfRoundFinal` (`src/legacy/field.js`) posts `roundStart` as the archive row's `start_time`. jubilant-bassoon's copy of this contract must be synced with that change.
+- A `roundStart` of null is "not read", never "no round": the round number is still `round`.

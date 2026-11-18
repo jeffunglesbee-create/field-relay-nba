@@ -365,6 +365,11 @@ jobs:
           node scripts/check-bsd-join-window-timing.mjs --self-test
           node scripts/check-bsd-join-window-timing.mjs
 
+      # docs/CC-CMD-2026-11-16-golf-tee-times.md, Task 2: a golf round's start is the
+      # earliest teeTime of its in-round competitors, held against the real probe read.
+      - name: Golf round tee times summarise the real read
+        run: node scripts/check-golf-tee-times.mjs --self-test && node scripts/check-golf-tee-times.mjs
+
       - name: No new bare empty catch
         run: |
           # DUPLICATED FROM guards.yml ON PURPOSE. guards.yml carries
