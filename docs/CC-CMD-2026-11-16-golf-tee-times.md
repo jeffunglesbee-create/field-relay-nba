@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (the source and the contract). One paired client change in jubilant-bassoon (Rule 70, ATOMIC-A): the relay deploys first, the client consumes.
 **Filed:** 2026-11-16 by CC, on the owner's order "file the relay CC-CMD for golf tee times", from the Deep Cuts design work (field-laboratory `docs/CC-CMD-2026-11-15-scout-daypart-picks.md`, section "Golf").
 **Confidence gate:** >= 95 before any commit
-**Status:** IN PROGRESS — Task 1 done 2026-11-16 (run 43975853385, `outbox/golf-tee-times-probe-2026-11-16.json`): no tee-sheet endpoint, one request per competitor. Tasks 2 to 4 being built from 2026-11-18.
+**Status:** STAGED 2026-11-18 — Tasks 1 to 4 built and deployed: relay `140fa56` (Task 2) and `20eb710` (Task 4), client jubilant-bassoon `b3e2c878` (Task 3). The live done-condition reads wait for the RSM Classic round 1 (2026-11-19); a read is scheduled for 17:30Z that day (`trig_01Xgs5MBnCBxLJiUS41EPefg`).
 
 ---
 
@@ -72,3 +72,17 @@ So Task 2 reads per competitor and filters to the current `period`. The cost to 
 - RELAY-IS-DUMB: a tee time is a fact a data vendor publishes. Nothing here ranks or recommends.
 - No change to cron frequencies, bindings or Durable Objects.
 - The historical `PGA Tour` rows are not deleted here (field-laboratory `CC-CMD-2026-08-25-golf-sport-label.md` step 4: human approval).
+
+
+## Build record (2026-11-18)
+
+- **Task 2** (`140fa56`): the scoreboard carries `timeValid`; `/v2/golf/enriched` serves `startDate`, `timeValid`, `roundStart`, `roundLastTee`, `teeTimes`, read per competitor and cached per (event, round), only from that route. `scripts/check-golf-tee-times.mjs` 7/7 on the probe read, in `deploy.yml`; self-test 3/3.
+- **Task 3** (client `b3e2c878`, `SW_VERSION 2026-11-17a`): `saveGolfRoundFinal` posts `start_time: roundStart` when it is a string.
+- **Task 4, as built** (`20eb710`): the only writer of a placeholder golf start was the yesterday catch-up, posting every completed PGA event as `sport='PGA Tour'` with ESPN's midnight `startDate`. It now skips individual-competitor leagues before its ESPN call; `check-individual-sports-not-archived` holds it with a scoped assertion (red on the pre-fix source). The client never sends `startDate`, so the archive-side refusal the task first proposed has no writer left to refuse; it is not built.
+- **Deploys:** relay `deploy` job green on both (runs 44214106406, 44220890137); their `verify` job red only on the pre-existing Oklahoma v Ole Miss date-keying row (owner's option A, `3019b07`, not yet applied). Client deploy run 44221051792 green.
+
+### Done-condition reads, STAGED with their commands
+
+1. Round 1 of the RSM Classic: `/v2/golf/enriched?date=2026-11-19` returns `active:true`, `timeValid:false`, `roundStart` and `roundLastTee` as ISO strings, `teeTimes.withTeeTime == teeTimes.inRound`, `failedReads 0`.
+2. After that round completes and a client archives it: `SELECT id, start_time FROM regular_season_games WHERE sport='golf' AND date='2026-11-19'` shows `start_time` equal to read 1's `roundStart`.
+3. No `sport='PGA Tour'` row created after 2026-11-18T01:30Z: `SELECT id, created_at FROM regular_season_games WHERE sport='PGA Tour' AND created_at > '2026-11-18 01:30:00'` returns none, read from 2026-11-20 on.
