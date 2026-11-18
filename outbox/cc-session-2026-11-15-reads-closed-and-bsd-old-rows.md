@@ -51,3 +51,14 @@ What this session recorded, in `docs/CC-CMD-2026-10-16-cfl-archive-date-keying.m
 
 Owner-gated, unchanged: the two `change_log` entries for the apply; the writer fix after 2026-11-23; the 61-row `wc_results` delete and `wc_group` re-derivation; the item 3 landing go line; the BSD backfill; any Odds API spend.
 
+## 10. Update 2026-11-18: the two audit rows are written
+
+The owner ordered them ("Write the audit rows"), which is the word section 9 said was needed. Recorded in full in `docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md`, 2026-11-18 verification, item 8. In short:
+
+- Writer, check (148) and mutation harness (70 mutants, all caught) and a dispatch-only workflow, committed `e5fe9d4`.
+- Dry run, run 44227491296: phase `fresh`, 8 of 8 preconditions PASS, nothing written. Apply, run 44227605344: both statements `changes=1`, re-read 12 of 12.
+- Independent read-back from D1: `change_log` 27069 (keeper, `opening_odds`) and 27070 (old id, `row_deleted`, both blobs in `old_value`, the keeper's id in `new_value`) exist once each and equal the rows they were copied from by SQL `=`. The games row, 26626, 26722, 26734 and the `odds_history` row are unchanged.
+- One defect found on the way and fixed before the push: the absence-collapse ratchet (`scripts/absence-collapse-ratchet.sh`) flagged a `?? ''` in the run-id header line (3 sites against a baseline of 2). It was rewritten to say `sha not set` when `GITHUB_SHA` is absent; the ratchet passes.
+
+Owner-gated, unchanged: the writer fix after 2026-11-23; the optional repoint of the `odds_history` row to the keeper; the 61-row `wc_results` delete and `wc_group` re-derivation; the item 3 landing go line; the BSD backfill; any Odds API spend.
+
