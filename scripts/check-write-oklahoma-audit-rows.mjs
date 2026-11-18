@@ -12,7 +12,7 @@
 // wire format, so the dry-run default, the secret header, the request shape and the
 // log file are exercised, not read. Every guard is tested on its own.
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, readdirSync, chmodSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, readdirSync, chmodSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
@@ -33,6 +33,7 @@ const eq = (label, got, want) => {
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${label}${ok ? '' : ` — got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`}`);
 };
 const throws = async (fn) => { try { await fn(); return null; } catch (e) { return e.message; } };
+const temps = [];   // every temp directory this check makes, removed at the end (the harness runs it once per mutant)
 
 const TS = '2026-11-18T12:00:00.000Z';
 // The keeper's line, as it stands in D1 (277 characters; identical to change_log 26626's new_value).
@@ -185,8 +186,14 @@ refused('a missing change_log 26722 is refused', { noCloseLog: true }, 'change_l
 refused('a third change_log row on the old id is refused (the order was given against two)', { extraStaleLogs: 1 }, 'change_log is the state the apply left');
 refused('no change_log row on the keeper is refused', { keeperLogs: 0 }, 'change_log is the state the apply left');
 refused('a second change_log row on the keeper is refused', { keeperLogs: 2 }, 'change_log is the state the apply left');
-refused('a second odds_history row on the old id is refused', { history: 2 }, 'odds_history row keyed to the old id is still there');
-refused('no odds_history row on the old id is refused', { history: 0 }, 'odds_history row keyed to the old id is still there');
+refused('a second odds_history row on the old id is refused', { history: 2 }, 'at most the one odds_history row');
+{
+  // the state after the 2026-11-18 repoint: the one history row now sits on the keeper, none on the old id
+  const db = seed({ history: 0 });
+  db.prepare('INSERT INTO odds_history (id, game_id) VALUES (?,?)').run('h0', KEEPER);
+  const v = evaluate(read(db));
+  eq('after the repoint (no odds_history row on the old id) every precondition still holds', [v.ok, v.phase, v.checks.filter(c => !c.ok).map(c => c.name)], [true, 'fresh', []]);
+}
 refused('another row of this plan\'s source is refused', {}, 'change_log is the state the apply left',
   (db) => db.prepare(`INSERT INTO change_log (game_id, source, field, old_value, new_value, ts) VALUES (?, ?, 'closing_odds', NULL, '{}', ?)`).run(KEEPER, SOURCE, TS));
 refused('two copy entries are refused', {}, 'at most once',
@@ -248,6 +255,11 @@ const go = async (db, { apply = false, hooks } = {}) => {
   eq('executor: and says OK only after the re-read', /OK: two entries written, once each/.test(r.lines), true);
   const r2 = await go(db, { apply: true });
   eq('executor: a second apply is a no-op that says so', [r2.code, r2.kind, r2.calls.writes], [0, 'already', 0]);
+  // THE REAL SEQUENCE: the entries were written, then the history row was repointed to the keeper. A re-dispatch must
+  // still read the state as done instead of refusing (and committing a refused log).
+  db.prepare('UPDATE odds_history SET game_id = ?').run(KEEPER);
+  const r3 = await go(db, { apply: true });
+  eq('executor: after the repoint a re-dispatch still reads ALREADY DONE and writes nothing', [r3.code, r3.kind, r3.calls.writes, /ALREADY DONE/.test(r3.lines)], [0, 'already', 0, true]);
 }
 { // E3 refusals before any write, with --apply
   for (const [label, mut] of [['a games row still under the old id', { staleRow: true }], ['a keeper line that is not change_log 26626\'s', { keeperLine: '{"x":1}' }],
@@ -350,6 +362,7 @@ const go = async (db, { apply = false, hooks } = {}) => {
   const db = seed();
   const relay = await startRelay(db);
   const cwd = mkdtempSync(join(tmpdir(), 'audit-rows-cli-'));
+  temps.push(cwd);
   const before = [snap(db, 'change_log'), snap(db, 'regular_season_games')];
 
   const dry = await runCli([], { RELAY_BASE: relay.base, RELAY_SHARED_SECRET: SECRET }, cwd);
@@ -403,6 +416,7 @@ const go = async (db, { apply = false, hooks } = {}) => {
   const indent = Math.min(...runBlock.map(l => l.match(/^ */)[0].length));
   const script = runBlock.map(l => l.slice(indent)).join('\n');
   const dir = mkdtempSync(join(tmpdir(), 'audit-rows-wf-'));
+  temps.push(dir);
   mkdirSync(join(dir, 'bin'));
   writeFileSync(join(dir, 'bin', 'node'), `#!/bin/sh\necho "$@" >> "${dir}/args.txt"\n`);
   chmodSync(join(dir, 'bin', 'node'), 0o755);
@@ -421,5 +435,6 @@ const go = async (db, { apply = false, hooks } = {}) => {
   eq('workflow gate: no input at all is a dry run', gate(undefined), [0, false, true]);
 }
 
+for (const d of temps) rmSync(d, { recursive: true, force: true });
 console.log(`\n${checked - failed}/${checked} checks passed`);
 process.exit(failed ? 1 : 0);

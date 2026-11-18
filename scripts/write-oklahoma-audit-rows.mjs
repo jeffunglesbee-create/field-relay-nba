@@ -132,7 +132,11 @@ export function evaluate(state) {
   checks.push(check('change_log is the state the apply left: 2 rows on the old id, 1 on the keeper, none of this plan\'s beyond the two entries',
     state.logStale === BASELINE.stale_change_log && state.logKeeper === BASELINE.keeper_change_log && state.ownOther === 0,
     `old id ${state.logStale} (want ${BASELINE.stale_change_log}), keeper ${state.logKeeper} (want ${BASELINE.keeper_change_log}), other own rows ${state.ownOther}`));
-  checks.push(check('the odds_history row keyed to the old id is still there', state.historyStale === BASELINE.stale_odds_history, `rows ${state.historyStale}`));
+  // AT MOST the one row the order was given against. This plan never writes odds_history, so its
+  // presence was never a precondition of the two entries; the 2026-11-18 repoint moved the row to the
+  // keeper and left none, and a re-dispatch must still read the state as done (not refuse and commit a
+  // refused log). A second row on the old id is still not the state the order was given against.
+  checks.push(check('at most the one odds_history row the order was given against is keyed to the old id (the repoint of 2026-11-18 moved it to the keeper)', state.historyStale <= BASELINE.stale_odds_history, `rows ${state.historyStale}`));
   checks.push(check('each entry exists at most once', state.copy.length <= 1 && state.deleted.length <= 1,
     `copy entries ${state.copy.length}, deletion entries ${state.deleted.length}`));
   if (copy) {
