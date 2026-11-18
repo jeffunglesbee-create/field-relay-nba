@@ -649,3 +649,13 @@ OWNER GO archive date-keying row: 2026-11-15 (the owner's own word, "Go", in ans
 OWNER GO archive duplicate row, option A: 2026-11-18 (the owner's own words, "Go with claudes best recommendations", in answer to "reply A, B, C or D" after the 2026-11-16 probe; the recommendation was A: copy the opening line of `CFB_2026-11-14_e401856887` into `CFB_2026-11-15_e401856887`, then delete `CFB_2026-11-14_e401856887`. This covers that one pair and no other row, and no Odds API call.)
 
 - **Found 2026-11-18, before the write: a third table is keyed to the old id.** `odds_history` holds one row for it (`CFB_2026-11-14_e401856887_draftkings_close`, `snapshot_time` 2026-11-14T23:55:04Z, decimal moneylines 1.68 / 2.24, total 48.5 with over 1.89 and under 1.93). Today 0 of 1,556 `odds_history` rows have no games row, so this would be the first. `briefs` hold 2 rows for the event id 401856887 and none for either games id, and `game_thread_notes` hold none for either id, so neither is affected. The over and under prices exist only in that history row (the closing blob in `closing_odds` carries no prices), so deleting it would lose data; the plan does not touch it (decision below, after the reader census).
+
+## 2026-11-18: option A APPLIED (the owner, again the same day: "Option A")
+
+Applied by `scripts/apply-oklahoma-duplicate-option-a.mjs` through the dispatch-only `.github/workflows/apply-oklahoma-duplicate-option-a.yml` (`/d1/execute`, the pattern of `reset-drama-refused-read`), run 44223383680:
+
+- **Before:** `CFB_2026-11-14_e401856887` (2026-11-14, unscored, opening line present) and `CFB_2026-11-15_e401856887` (2026-11-15, 24-17, opening line NULL), exactly as measured beforehand.
+- **Copy:** the old row's `opening_odds` into the new row, `changes=1`. **Delete:** the old row, `changes=1`.
+- **After:** one row for event 401856887, `CFB_2026-11-15_e401856887`, scored, carrying the copied line byte for byte.
+- **Kept:** the one `odds_history` row keyed to the old id, by the plan (its over and under prices exist nowhere else); it is now the table's only orphan.
+- No Odds API call. The writer fix (the upsert that updates `start_time` but never `date`) is still the separate change after 2026-11-23.
