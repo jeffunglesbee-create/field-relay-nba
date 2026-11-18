@@ -62,3 +62,15 @@ The owner ordered them ("Write the audit rows"), which is the word section 9 sai
 
 Owner-gated, unchanged: the writer fix after 2026-11-23; the optional repoint of the `odds_history` row to the keeper; the 61-row `wc_results` delete and `wc_group` re-derivation; the item 3 landing go line; the BSD backfill; any Odds API spend.
 
+## 11. Update 2026-11-18: the odds_history row is repointed
+
+The owner ordered it ("Repoint the odds_history row"), which is the owner-gated item section 9 left open. Recorded in full in `docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md`, 2026-11-18 verification, items 9 and 10. In short:
+
+- **Probed first (Rule 100), read-only, 5 agents:** the item 4 warning that the row would read as misjoined to `repair-odds-wrong-pairs.mjs` is refuted (no mismatch predicate, closed id lists, no workflow runs it). Two latent paths the repoint arms were found and made refused preconditions: a NULLed keeper blob refilled by the daily sync, and a deleted 2026-11-15 progress row letting a reprocess insert a second close row. The primary key was not renamed (outside the order).
+- **Built and reviewed:** a writer, a check of 153 assertions, 87 mutants (all caught for their named reason) and a dispatch-only workflow, committed `0356907`; a four-lens adversarial review returned safe-to-run from all four, and its gaps (an unbacked dry-run default among them) were closed with mutants before the push.
+- **Run:** dry run 44239518896 (8 of 8 preconditions), apply 44239772368 (`changes=1`, re-read 9 of 9). **Independent D1 read-back:** the row is on the keeper with every other column and its primary key unchanged; history rows with no games row 0 (was 1); the table's 1,556 rows and 1,556 distinct triples unchanged.
+- **Found on the way, not fixed (shared tooling):** `scripts/probe-commit-retry.sh` does not check its own `git add`, so a failed add with an empty index prints "nothing to commit" and exits 0. Added as a dated note to `docs/CC-CMD-2026-09-14-git-state-swallow-sweep.md`.
+- **Goes stale, not changed:** the spent audit-rows one-shot pins one history row on the old id, so a re-dispatch of `write-oklahoma-audit-rows.yml` now refuses (exit 1, nothing written) instead of printing ALREADY DONE.
+
+Owner-gated, unchanged: the writer fix after 2026-11-23; the optional primary-key rename of this row (one statement, closes the duplicate path only); the 61-row `wc_results` delete and `wc_group` re-derivation; the item 3 landing go line; the BSD backfill; any Odds API spend.
+
