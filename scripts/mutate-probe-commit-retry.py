@@ -88,8 +88,8 @@ MUTATIONS = [
     # the appended ledger this loop refuses to auto-resolve. The staging
     # parameter exists to prevent exactly that.
     dict(name='R9  the staging parameter is ignored and outbox/ is always staged',
-         anchor='git add -- "${PATHS[@]}"',
-         replace='git add outbox/',
+         anchor='LC_ALL=C git add -- "$p" 2>"$err"',
+         replace='LC_ALL=C git add -- outbox/ 2>"$err"',
          expect='a narrow PROBE_PATHS stages only that file'),
 
     # A single unquoted default would stage one path and silently drop the rest.
@@ -97,6 +97,71 @@ MUTATIONS = [
          anchor='PATHS=(${PROBE_PATHS:-outbox/})',
          replace='PATHS=("${PROBE_PATHS:-outbox/}")',
          expect='several paths stage together, including outside outbox/'),
+
+    # THE DEFECT FOUND 2026-11-18, restored: an add that fails is read as an empty
+    # index and reported as "nothing to commit", exit 0, with the log never pushed.
+    dict(name='R11 a failed git add is swallowed again',
+         anchor="""    echo "git add failed for $p for a reason that is not an empty pathspec; not reporting 'nothing to commit'"
+    exit 1""",
+         replace="""    echo "git add failed for $p, carrying on"
+    continue""",
+         expect='a git add that fails (a held index.lock) is a failure, not nothing to commit'),
+
+    # The other direction: git add exits 128 on a pathspec that matches nothing,
+    # and 74 workflows rely on that being a clean exit when their earlier step
+    # wrote no file. A guard that fails on every add error breaks them all.
+    dict(name='R12 an empty pathspec is treated as a failure',
+         anchor="""    if grep -q 'did not match any files' "$err"; then""",
+         replace="""    if false; then""",
+         expect='a pathspec that matches nothing is not a failure'),
+
+    # git stages NOTHING when any one pathspec fails, so adding every path in one
+    # call strands the file that exists. Joining the paths into one pathspec is the
+    # same shape: it matches nothing and the file that does exist stays behind.
+    dict(name='R13 the paths are added as one pathspec again',
+         anchor='for p in "${PATHS[@]}"; do',
+         replace='for p in "${PATHS[*]}"; do',
+         expect='and does not strand the one that exists'),
+
+    # The empty-pathspec test reads git's English message. A localised git would
+    # print something else, the test would miss it, and every caller whose earlier
+    # step wrote no file would fail. LC_ALL=C is what prevents that.
+    dict(name='R14 the add no longer forces the C locale',
+         anchor='LC_ALL=C git add -- "$p" 2>"$err"',
+         replace='git add -- "$p" 2>"$err"',
+         expect='a localised git does not turn an empty pathspec into a failure'),
+
+    # A skip that stops at the first miss passes the present-first case and strands
+    # every path after an absent one.
+    dict(name='R15 the skip of an empty pathspec stops the loop instead of continuing',
+         anchor="""      echo "nothing matched $p; skipping it"
+      continue""",
+         replace="""      echo "nothing matched $p; skipping it"
+      break""",
+         expect='and both present files are committed'),
+
+    # git's own words are the only way an operator sees a skipped directory.
+    dict(name='R16 git stderr is printed only when the add fails',
+         anchor="""  cat "$err"
+  if [ "$rc" -ne 0 ]; then""",
+         replace="""  if [ "$rc" -ne 0 ]; then
+    cat "$err\"""",
+         expect="a successful add's warnings are still printed"),
+
+    # A mis-set variable that splits into nothing runs no add at all.
+    dict(name='R17 an empty path list is allowed',
+         anchor='if [ "${#PATHS[@]}" -eq 0 ]; then',
+         replace='if false; then',
+         expect='a PROBE_PATHS of only whitespace is a failure, not nothing to commit'),
+
+    # The commit was the unchecked line two below the add.
+    dict(name='R18 a refused commit falls through to the push',
+         anchor="""if ! git commit -m "$MESSAGE"; then
+  echo "git commit failed; nothing was pushed"
+  exit 1
+fi""",
+         replace="""git commit -m "$MESSAGE\"""",
+         expect='a git commit that is refused is a failure'),
 ]
 
 bad = 0

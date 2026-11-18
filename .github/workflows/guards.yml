@@ -80,6 +80,15 @@ jobs:
           python3 scripts/mutate-push-lands.py
           python3 scripts/check-push-lands.py
 
+      # scripts/probe-commit-retry.sh is the loop 74 workflows end in (55 directly, 19 through
+      # _reusable-probe.yml). Its check ran only in deploy.yml (paths: src/**, wrangler.toml,
+      # workers/**) and in _reusable-probe.yml, so an edit confined to scripts/ was verified by
+      # nothing on the push that landed it (found by review, 2026-11-18). The check drives the
+      # real file through real local races in about 7 seconds. The mutation script (about 2.5
+      # minutes, and it rewrites the script in place) stays out of the push path.
+      - name: the shared commit-retry stages what exists and fails loudly on anything else
+        run: bash scripts/check-probe-commit-retry.sh
+
       # Task 1 of CC-CMD-2026-09-18. The CC-CMD says the schema goes in `DB`
       # (field-d1). It is wrong, and the check exists because the document is
       # what a later session will read: wrangler.toml gives DB and WC2026_DB the

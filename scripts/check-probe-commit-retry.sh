@@ -180,6 +180,118 @@ setup
 out="$(cd "$WORK/b"; PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: none" 2>&1)"
 eq "no change to commit exits clean" "$?" "0"
 
+# ── 6. A FAILED git add IS NOT "NOTHING TO COMMIT" ─────────────────────────
+# Until 2026-11-18 the add was unchecked: any add that failed left an empty index,
+# and the script printed "nothing to commit", exited 0 and pushed nothing. Two ways
+# it fails (a held index.lock, an explicitly ignored path) and the cases that must
+# stay clean (an empty pathspec, one absent path among several, in every position),
+# each driven for real. The 74 workflows that reach this script (55 directly, 19
+# through _reusable-probe.yml) depend on the empty-pathspec case staying a clean exit.
+remote_commits() { git --git-dir="$WORK/remote.git" rev-list --count main; }
+
+setup
+before="$(remote_commits)"
+out="$(cd "$WORK/b"; echo 'data' > outbox/lockme.log
+      touch "$(git rev-parse --git-path index.lock)"
+      PROBE_PATHS="outbox/lockme.log" PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: lock" 2>&1)"
+rc=$?
+eq "a git add that fails (a held index.lock) is a failure, not nothing to commit" "$rc" "1"
+case "$out" in *"git add failed for outbox/lockme.log"*) ok "and names the path it could not stage";; *) bad "and names the path it could not stage — $out";; esac
+if printf '%s\n' "$out" | grep -qx 'nothing to commit'; then bad "and does not claim there was nothing to commit"; else ok "and does not claim there was nothing to commit"; fi
+eq "and nothing was pushed" "$(remote_commits)" "$before"
+
+setup
+out="$(cd "$WORK/b"; echo 'data' > outbox/ignored.log; echo 'outbox/ignored.log' > .gitignore
+      PROBE_PATHS="outbox/ignored.log" PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: ignored" 2>&1)"
+eq "an explicit path git ignores is a failure, not nothing to commit" "$?" "1"
+case "$out" in *"git add failed for outbox/ignored.log"*) ok "and names the ignored path";; *) bad "and names the ignored path — $out";; esac
+
+# THE CASE THE FIX MUST NOT BREAK. `git add` exits 128 on a pathspec that matches
+# nothing; a step that produced no file is not a failure.
+setup
+out="$(cd "$WORK/b"; PROBE_PATHS="outbox/nomatch-*.log" PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: empty" 2>&1)"
+eq "a pathspec that matches nothing is not a failure" "$?" "0"
+case "$out" in *"nothing to commit"*) ok "and says there was nothing to commit";; *) bad "and says there was nothing to commit — $out";; esac
+
+# One path present, one absent. git stages NOTHING when any pathspec fails, so the
+# unchecked add stranded the file that did exist and the run stayed green.
+setup
+out="$(cd "$WORK/b"; echo 'kept' > outbox/present.log
+      PROBE_PATHS="outbox/present.log outbox/absent.log" PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: partial" 2>&1)"
+eq "one missing pathspec among several is not a failure" "$?" "0"
+staged="$(cd "$WORK/b"; git show --name-only --format= HEAD | tr '\n' ' ')"
+eq "and does not strand the one that exists" "$staged" "outbox/present.log "
+final="$(cd "$WORK/seed"; git fetch -q origin; git show origin/main:outbox/present.log)"
+eq "and it reached the remote" "$final" "kept"
+
+# ── 7. A LOCALISED git MUST NOT TURN AN EMPTY PATHSPEC INTO A FAILURE ──────
+# The empty-pathspec test reads git's English message. On a runner with another
+# locale git would say something else, the test would miss it, and every caller
+# whose earlier step wrote no file would fail. The script forces LC_ALL=C for the
+# add; this drives that with a git that answers in German unless LC_ALL is C.
+setup
+mkdir -p "$WORK/shim"
+REALGIT="$(command -v git)"
+cat > "$WORK/shim/git" <<SHIM
+#!/bin/sh
+if [ "\$1" = "add" ] && [ "\${LC_ALL:-}" != "C" ]; then
+  echo "fatal: Pfadspezifikation 'x' stimmt mit keiner Datei überein" >&2
+  exit 128
+fi
+exec "$REALGIT" "\$@"
+SHIM
+chmod +x "$WORK/shim/git"
+out="$(cd "$WORK/b"; PATH="$WORK/shim:$PATH" LC_ALL=de_DE.UTF-8 PROBE_PATHS="outbox/nomatch-*.log" PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: de" 2>&1)"
+eq "a localised git does not turn an empty pathspec into a failure" "$?" "0"
+
+# Same defect, the other positions: the absent path FIRST and in the MIDDLE. A skip
+# that stops at the first miss (a `break` where there is a `continue`) passes the
+# present-first case above and strands everything after the miss.
+setup
+out="$(cd "$WORK/b"; echo 'one' > outbox/p1.log; echo 'two' > outbox/p2.log
+      PROBE_PATHS="outbox/absent-first.log outbox/p1.log outbox/p2.log" PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: first" 2>&1)"
+eq "an absent path FIRST does not strand the ones after it" "$?" "0"
+staged="$(cd "$WORK/b"; git show --name-only --format= HEAD | sort | tr '\n' ' ')"
+eq "and both present files are committed" "$staged" "outbox/p1.log outbox/p2.log "
+setup
+out="$(cd "$WORK/b"; echo 'one' > outbox/p1.log; echo 'two' > outbox/p2.log
+      PROBE_PATHS="outbox/p1.log outbox/absent-middle.log outbox/p2.log" PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: middle" 2>&1)"
+eq "an absent path in the MIDDLE does not strand the one after it" "$?" "0"
+staged="$(cd "$WORK/b"; git show --name-only --format= HEAD | sort | tr '\n' ' ')"
+eq "and both present files are committed from that call" "$staged" "outbox/p1.log outbox/p2.log "
+
+# git's own words are printed on a SUCCESSFUL add too. An embedded repository makes
+# git warn and still exit 0; the old script printed that, and a script that only
+# prints stderr on failure would make a skipped directory look like a clean add.
+setup
+out="$(cd "$WORK/b"; mkdir -p outbox/embedded; git init -q outbox/embedded
+      (cd outbox/embedded; git config user.email t@t; git config user.name t; echo x > f; git add f; git commit -qm e)
+      PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: embedded" 2>&1)"
+case "$out" in *"embedded git repository"*) ok "a successful add's warnings are still printed";; *) bad "a successful add's warnings are still printed — $out";; esac
+
+# A PROBE_PATHS that splits into nothing must not read as "nothing to commit".
+setup
+out="$(cd "$WORK/b"; echo 'data' > outbox/exists.log
+      PROBE_PATHS="  " PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: blank" 2>&1)"
+eq "a PROBE_PATHS of only whitespace is a failure, not nothing to commit" "$?" "1"
+case "$out" in *"PROBE_PATHS names no path"*) ok "and says why";; *) bad "and says why — $out";; esac
+
+# ── 8. A REFUSED git commit IS NOT "pushed" ────────────────────────────────
+# The commit was unchecked: a refusal fell through to a push of the unchanged HEAD
+# and the script printed "pushed on attempt 1" with the file never committed.
+setup
+before="$(remote_commits)"
+out="$(cd "$WORK/b"; echo 'data' > outbox/hooked.log
+      mkdir -p "$(git rev-parse --git-path hooks)"
+      printf '#!/bin/sh\necho "hook refuses"\nexit 1\n' > "$(git rev-parse --git-path hooks)/pre-commit"
+      chmod +x "$(git rev-parse --git-path hooks)/pre-commit"
+      PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: hooked" 2>&1)"
+rc=$?
+eq "a git commit that is refused is a failure" "$rc" "1"
+case "$out" in *"git commit failed; nothing was pushed"*) ok "and says nothing was pushed";; *) bad "and says nothing was pushed — $out";; esac
+case "$out" in *"pushed on attempt"*) bad "and does not claim it pushed";; *) ok "and does not claim it pushed";; esac
+eq "and the remote did not move" "$(remote_commits)" "$before"
+
 echo
 if [ "$failed" -eq 0 ]; then echo "PASS: $((checked-failed))/$checked assertions — real clones, real conflicts, real pushes"; exit 0
 else echo "FAILED: $((checked-failed))/$checked assertions"; exit 1; fi

@@ -21,7 +21,7 @@
 # turns a failure into a silently corrupted tree, and the loop then reports the
 # symptom of its own damage instead of the original race.
 #
-# THREE RULES THIS FILE KEEPS:
+# FOUR RULES THIS FILE KEEPS:
 #
 #   1. A push rejected for anything OTHER than a race fails immediately and
 #      loudly. The old loop retried a permission error five times and then
@@ -32,6 +32,28 @@
 #      every run. outbox/.drive-uploaded is an APPENDED ledger living in the same
 #      directory this step stages; taking one side of it would discard another
 #      run's deliveries. Anything not on the regenerated list aborts.
+#   4. A FAILED `git add` IS NOT "NOTHING TO COMMIT". Until 2026-11-18 the add was
+#      unchecked and the next test was `git diff --cached --quiet`, so any add that
+#      failed left an empty index and the script printed "nothing to commit" and
+#      exited 0 with the log never pushed. Reproduced two ways on that date: an
+#      index.lock with a real file present, and two pathspecs of which one matched
+#      nothing (git stages NOTHING then, so the file that did exist stayed
+#      uncommitted and the run was green). Each path is staged on its own now: a
+#      pathspec that matches nothing is skipped (a step that produced no file is
+#      not a failure), every other add error fails the script loudly.
+#      `git add` exits 128 on an empty pathspec, so a bare `|| exit 1` would have
+#      turned that benign case red in every caller whose earlier step wrote nothing.
+#      Three things follow, stated so a later reader does not have to rediscover them:
+#        - several paths commit the SUBSET THAT EXISTS (before, one missing path
+#          stranded all of them); no current caller needs all-or-nothing;
+#        - an explicit path that git ignores fails the script, and nothing is
+#          committed from that call (paths staged before it stay staged);
+#        - git's own words are always printed, success included, so a warning such as
+#          a directory it could not open stays visible in a green run.
+#      The commit is checked for the same reason: a refused commit used to fall
+#      through to a push of the unchanged HEAD and print "pushed on attempt 1".
+#      55 workflow files execute this script directly and 19 more reach it through
+#      _reusable-probe.yml (counted 2026-11-18, 74 in all).
 set -uo pipefail
 
 REMOTE="${PROBE_REMOTE:-origin}"
@@ -65,15 +87,39 @@ is_regenerated() {
 # row — provenance this repo spent a whole CC-CMD recovering once already.
 git config user.name "${PROBE_AUTHOR_NAME:-reusable-probe-bot}"
 git config user.email "${PROBE_AUTHOR_EMAIL:-actions@github.com}"
-git add -- "${PATHS[@]}"
+
+err="$(mktemp)"
+trap 'rm -f "$err"' EXIT
+
+# A PROBE_PATHS of only whitespace splits into no path at all: no add would run and the
+# next test would report "nothing to commit" over a file that exists.
+if [ "${#PATHS[@]}" -eq 0 ]; then
+  echo "PROBE_PATHS names no path; refusing to report 'nothing to commit'"
+  exit 1
+fi
+
+# LC_ALL=C because the empty-pathspec test below reads git's English message.
+for p in "${PATHS[@]}"; do
+  rc=0
+  LC_ALL=C git add -- "$p" 2>"$err" || rc=$?
+  cat "$err"
+  if [ "$rc" -ne 0 ]; then
+    if grep -q 'did not match any files' "$err"; then
+      echo "nothing matched $p; skipping it"
+      continue
+    fi
+    echo "git add failed for $p for a reason that is not an empty pathspec; not reporting 'nothing to commit'"
+    exit 1
+  fi
+done
 if git diff --cached --quiet; then
   echo "nothing to commit"
   exit 0
 fi
-git commit -m "$MESSAGE"
-
-err="$(mktemp)"
-trap 'rm -f "$err"' EXIT
+if ! git commit -m "$MESSAGE"; then
+  echo "git commit failed; nothing was pushed"
+  exit 1
+fi
 
 for ((i = 1; i <= ATTEMPTS; i++)); do
   if git push "$REMOTE" "HEAD:$BRANCH" 2>"$err"; then
