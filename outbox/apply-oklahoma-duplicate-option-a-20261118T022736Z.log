@@ -1,0 +1,10 @@
+=== Option A for event 401856887: copy the opening line into CFB_2026-11-15_e401856887, delete CFB_2026-11-14_e401856887 ===
+
+[before] CFB_2026-11-14_e401856887 date=2026-11-14 score=null-null opening=present
+[before] CFB_2026-11-15_e401856887 date=2026-11-15 score=24-17 opening=NULL
+[copy] changes=1
+[delete] changes=1
+[after]  CFB_2026-11-15_e401856887 date=2026-11-15 score=24-17 opening=present
+[kept] odds_history rows keyed to CFB_2026-11-14_e401856887: 1 (left in place by the plan)
+
+Done: one row for the event, scored and carrying its opening line.
