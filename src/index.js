@@ -8925,7 +8925,16 @@ async function handleJournalismCycle(env, opts = {}) {
       const yesterdayEspnDate = yesterdayKey.replace(/-/g, '');
       const ydayRelayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
       const yesterdayFinals = [];
-      for (const {sport, league, label} of LEAGUES) {
+      for (const {sport, league, label, individual} of LEAGUES) {
+        // The THIRD gate, the one the 2026-08-25 golf-label fix missed
+        // (field-laboratory docs/CC-CMD-2026-08-25-golf-sport-label.md). This sweep
+        // walks LEAGUES itself, so the slate walk's gate never reached it, and every
+        // PGA event since 2026-10-08 was archived here as sport='PGA Tour' with no
+        // sides, the top two players' scores, and ESPN's midnight placeholder as its
+        // start (rows created the day after their date, finalized at creation;
+        // ARCHIVE_DB read 2026-11-18). Skipped before the ESPN call, as the slate
+        // walk does.
+        if (individual) continue;
         try {
           const yr = await fetch(`${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${yesterdayEspnDate}`);
           if (!yr.ok) continue;

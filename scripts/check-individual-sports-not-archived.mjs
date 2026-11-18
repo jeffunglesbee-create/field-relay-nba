@@ -115,6 +115,20 @@ export function golfBuilderState(src) {
   };
 }
 
+// THE THIRD WALK, added 2026-11-18. The yesterday catch-up iterates LEAGUES on its own
+// and posted every completed PGA event as sport='PGA Tour'. `gateState.gated` below
+// could not see it: it matches `if (gm.individual) continue;` ANYWHERE in the file,
+// and the final-score loop's gate satisfied it for every loop. This one is scoped to
+// the sweep's own loop and to the ESPN call it must precede.
+export function yesterdayGateState(src) {
+  const head = src.indexOf('for (const {sport, league, label, individual} of LEAGUES) {');
+  if (head < 0) return { destructured: false, gatedBeforeFetch: false };
+  const win = src.slice(head, head + 2500);
+  const g = win.indexOf('if (individual) continue;');
+  const f = win.indexOf('/scoreboard?dates=${yesterdayEspnDate}');
+  return { destructured: true, gatedBeforeFetch: g >= 0 && f >= 0 && g < f };
+}
+
 export function gateState(src) {
   return {
     // The gate itself.
@@ -174,6 +188,18 @@ if (SELF_TEST) {
       .replace('gameLines.push(line);', 'if (individual) continue; gameLines.push(line);')).beforeFetch,
     'a gate below the ESPN call passed the before-fetch assertion');
 
+  // ── the yesterday sweep (2026-11-18) ───────────────────────────────────
+  check('the real source gates the yesterday sweep before its fetch',
+    yesterdayGateState(good).gatedBeforeFetch, JSON.stringify(yesterdayGateState(good)));
+  const ydayHead = 'for (const {sport, league, label, individual} of LEAGUES) {';
+  const ydayGate = good.indexOf('if (individual) continue;', good.indexOf(ydayHead));
+  check('removing the yesterday gate is detected',
+    !yesterdayGateState(good.slice(0, ydayGate) + good.slice(ydayGate + 'if (individual) continue;'.length)).gatedBeforeFetch,
+    'the sweep with its gate deleted still read as gated');
+  check('dropping individual from the sweep\'s loop head is detected',
+    !yesterdayGateState(good.replace(ydayHead, 'for (const {sport, league, label} of LEAGUES) {')).destructured,
+    'the sweep without the destructure still read as destructured');
+
   // ── the golf builder ────────────────────────────────────────────────────
   const gb = golfBuilderState(good);
   check('buildGolfCronContext is defined once and called',
@@ -220,6 +246,10 @@ check('the flagged entries are exactly the non-team ones',
   flagged.every(r => !TEAM_SPORTS.has(r.sport)),
   flagged.filter(r => TEAM_SPORTS.has(r.sport)).map(r => r.label).join('; ') +
   ' — a team sport marked individual would drop real games from the archive');
+
+const yg = yesterdayGateState(src);
+check('the yesterday sweep refuses a flagged event, before its ESPN call', yg.destructured && yg.gatedBeforeFetch,
+  `destructured=${yg.destructured} gatedBeforeFetch=${yg.gatedBeforeFetch} — without both, every completed PGA event is archived as sport='PGA Tour' the day after`);
 
 const sg = slateGateState(src);
 check('the slate walk refuses a flagged event', sg.gated && sg.beforeFetch,
