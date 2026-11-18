@@ -1,0 +1,48 @@
+name: Apply option A to the Oklahoma v Ole Miss duplicate (one-shot)
+
+# docs/CC-CMD-2026-10-16-cfl-archive-date-keying.md, the owner's GO for option A (2026-11-18).
+# Copies the opening line of CFB_2026-11-14_e401856887 into CFB_2026-11-15_e401856887, then deletes
+# the old row. The script refuses unless both rows are exactly as measured. Dispatch only.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply option A
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          node scripts/apply-oklahoma-duplicate-option-a.mjs 2>&1 | tee "outbox/apply-oklahoma-duplicate-option-a-${TS}.log"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/apply-oklahoma-duplicate-option-a-*.log
+          git diff --staged --quiet && { echo "(nothing new)"; exit 0; }
+          git commit -m "archive: option A applied to the Oklahoma v Ole Miss duplicate"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop above exits 0 when ALL THREE attempts fail: its last command is `sleep`.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
