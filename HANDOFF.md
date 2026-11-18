@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-18 — /v2/golf/enriched serves real golf round start times (Task 2 of the tee-times CC-CMD)
+
+**HEAD:** `02dd3cd` → `140fa56` · **Branch:** main · this close-out is the next commit. One `src/` commit (`140fa56`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-18-golf-tee-times.md (task: the owner's "tee times build next please")
+
+- **Built:** the scoreboard carries ESPN's `timeValid`; `/v2/golf/enriched` serves `startDate`, `timeValid`, `roundStart`, `roundLastTee` and `teeTimes`, from per-competitor ESPN core reads cached per event and round, called only from that route. `check-golf-tee-times` 7/7 on the real probe read, in `deploy.yml`.
+- **Unrecorded commits since `02dd3cd`:** the scheduled watches and probes (chore/probe/census/seed-coverage, all `[skip ci]` or doc-only), the 11-16 tee-times CC-CMD and its Task 1 probe (`e14b183`, `ecf05814`, `2a24e060`), and another session's `3019b07` (the owner's go for option A on the Oklahoma v Ole Miss duplicate). None touches `src/` besides `140fa56`.
+- **Repo guards:** "CC-CMD status lines" was red from `ecf05814` on my own status wording, fixed in `140fa56`. "Every archived game is dated on the ET day of its own kickoff" is red on the Oklahoma v Ole Miss duplicate until option A is applied (`3019b07`).
+- **Open:** the client change (Task 3, jubilant-bassoon `saveGolfRoundFinal` posts `roundStart`), the archive guard (Task 4), and the live done-condition reads.
+
 ## SESSION CLOSE-OUT — 2026-11-15 (02:00Z) — the NFL R2 tick and memory reads and the patent-watch CC-CMD closed (DONE), three daily odds reads green, and the 197 older BSD rows have a read cause
 
 **HEAD:** `10389fe` → `02dd3cd` · **Branch:** main · this close-out is the next commit. No `src/` commit; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
