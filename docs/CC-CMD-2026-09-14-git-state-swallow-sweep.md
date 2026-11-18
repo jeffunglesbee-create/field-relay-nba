@@ -174,3 +174,12 @@ not "the loop looks right" (Rule 89).
 That the eight are the only sites. The grep covers `pull --rebase --autostash`;
 a `git merge … || true` or a `git cherry-pick … || true` would not have matched
 it, though the check's own pattern does cover those verbs going forward.
+
+## Found 2026-11-18: `scripts/probe-commit-retry.sh` does not check its own `git add`
+
+Status above is unchanged. This is one more instance of the class this CC-CMD closed, found by a read-only reviewer of the odds_history repoint workflow and reproduced there; it is in the shared script all ten converted workflows call, so it was not fixed inside an unrelated order.
+
+- **The gap.** The script runs under `set -uo pipefail` with no `-e`. Its `git add -- "${PATHS[@]}"` is unchecked, and the next test is `git diff --cached --quiet`. If the add fails and the index is empty, the script prints "nothing to commit" and exits 0.
+- **Reproduced once, by a reviewer, with an `index.lock` in place:** a log existed, `git add` failed, the script printed "nothing to commit", exited 0, and the log never reached the remote. The case where no file matches (the earlier step failed, so no log exists) correctly exits 0.
+- **What it costs.** A job that is green with its log missing. The write the log describes is unaffected; the run's own console output still holds the same text.
+- **The fix, not built.** `git add -- "${PATHS[@]}" || { echo "git add failed"; exit 1; }`, with a case in `scripts/check-probe-commit-retry.sh`'s harness that fails the add (an `index.lock`) and expects a non-zero exit, and a mutant that removes the guard. It changes how ten workflows end, so it wants its own commit and the harness's own run.
