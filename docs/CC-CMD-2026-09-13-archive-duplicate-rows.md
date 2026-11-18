@@ -175,3 +175,9 @@ That 197 is the total number of duplicate rows in the archive. It is the number
 of duplicate rows **that collide on a join key within one slate** — which is the
 only duplication this instrument can see. Two rows for one game on different
 dates, or with a name that folds differently, are invisible to it.
+
+## Found 2026-11-18 (read-only; added here under BUILD-ON-A, nothing built)
+
+1. **The delete path guards on briefs only.** `scripts/collision-cleanup-plan.mjs` (`blocked_by_briefs`) and `scripts/run-collision-cleanup.mjs` do not read `odds_history` or `game_thread_notes` before they delete a row. The laboratory's MLS merge of 2026-09-03 (`field-laboratory`, `outbox/2026-09-03-mls-merge.md`) found 22 `odds_history` rows its first draft would have deleted. Today 1,556 `odds_history` rows have 1 without a games row (the Oklahoma v Ole Miss old id, left in place on purpose), so the 82 rows deleted on 2026-09-13 left none; nothing to repair. A future delete through this path should read both tables first.
+2. **A second same-date duplicate is live and no document records it.** ESPN event 401909985, 2026-11-15, both rows sport `NBA`: `NBA_2026-11-15_e401909985` (76ers v Pacers 131-124, created 10:00:24, `start_time` 2026-11-15T18:00Z, opening and closing odds) and `nba_2026-11-15_e401909985` (Philadelphia 76ers v Indiana Pacers 131-124, created 20:30:18, no `start_time`, no odds). Read from D1 on 2026-11-18. It differs from the cross-date Oklahoma pair: same date, a case-variant id, the second row without a start time and without odds, which is the shape of the finalization path writing under its own id; that mechanism was read from code and not isolated. Not touched.
+
