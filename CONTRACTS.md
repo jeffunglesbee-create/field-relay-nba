@@ -695,6 +695,13 @@ GET /soccer/xg?league={espnLeagueSlug}&event={espnEventId}
     completed: boolean|null, homeAggregate: number|null,
     awayAggregate: number|null, otherLegEventId: string|null
   } | null,
+  _mirror:         {         // added 2026-11-19 — when the runner mirror read each
+                              // side's statistics (ISO), or null; `error` says why a
+                              // side is missing ("not mirrored", or a read failure).
+                              // _hasXG/_hasMatchStats false WITH a non-null error means
+                              // "not read", never "no xG". See "ESPN core API mirror".
+    home: string|null, away: string|null, error: string|null
+  },
   _source:         "espn-core"
   home: { id, name, abbr, expectedGoals?, possessionPct?, totalShots?,
           shotsOnTarget?, totalPasses?, passPct?, totalTackles?,
@@ -709,6 +716,31 @@ ESPN-sourced soccer. Stats-api-sourced tournaments (e.g. TELUS Canadian
 Championship, via the tournament multiplexer) have NO equivalent field —
 two-legged ties there are two independent `postseason_games` rows with no
 linking aggregate. Do not assume this contract covers that source.
+
+---
+
+## ESPN core API mirror — /soccer/xg, /soccer/sub-impact, /v2/golf/competitor-stats, /v2/golf/eventlog (added 2026-11-19)
+
+`docs/CC-CMD-2026-10-14-espn-host-flip.md` Task 3. ESPN's core API answers 403 to the relay Worker, so these
+routes no longer fetch it: a GitHub runner (`scripts/espn-core-mirror.mjs`, dispatched by the relay's */15
+cron) reads it and writes ARCHIVE_DB `espn_core_mirror` (`url` primary key = the core URL, https, no query;
+`kind`; `body` trimmed to the fields the routes read, in ESPN's shape; `fetched_at`; `final`). The routes
+read that table (`readCoreMirror`, `src/espn-core-mirror.js`). Freshness: a live soccer game about every 2
+minutes, a finished one once at full time; golf stats every 15 minutes while anyone is on the course and once
+when each player finishes; golf eventlogs daily.
+
+Fields added:
+
+| route | field | meaning |
+|---|---|---|
+| `/soccer/xg` | `_mirror {home, away, error}` | above |
+| `/soccer/sub-impact` | `positionsUnresolved` (number) | incoming substitutes whose position could not be read; `defensiveSubs: []` with this above 0 is "not read", not "none happened" |
+| `/v2/golf/competitor-stats` | `mirroredAt` (ISO) | when the runner read the stats; a missing row is `{ok:false, error:"not mirrored"}` (was `"ESPN 403"`) |
+| `/v2/golf/eventlog` | `mirroredAt` (ISO) | the same |
+
+- **Producer:** field-relay-nba. **Consumers:** context-assembler `buildSoccerXGContext` and `handleV2Games`
+  (xg, unchanged fields), jubilant-bassoon MLS panels (`hasDefensiveSubImpact`, `defensiveSubs`, xg fields;
+  none read the new fields), `/v2/golf/enriched`'s top-20 stats. jubilant-bassoon's copy must be synced.
 
 ---
 

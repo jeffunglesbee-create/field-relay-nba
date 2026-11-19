@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-11-19T00:53:06.741Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-11-19T02:09:33.569Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/bsd-game-join": { k: "trigger", s: "d1:ARCHIVE_DB" },
@@ -161,8 +161,8 @@ export const ROUTE_PROVENANCE = {
   "/soccer-fbref/": { k: "proxy", s: "r2:FIELD_DATA + raw.githubusercontent.com", p: 1 },
   "/soccer/fbref/fetch": { k: "upstream", s: "fbref.com + r2:FIELD_DATA" },
   "/soccer/season-form": { k: "upstream", s: "stats-api.mlssoccer.com" },
-  "/soccer/sub-impact": { k: "upstream", s: "site.api.espn.com + sports.core.api.espn.com" },
-  "/soccer/xg": { k: "upstream", s: "site.api.espn.com + sports.core.api.espn.com" },
+  "/soccer/sub-impact": { k: "upstream", s: "d1:ARCHIVE_DB + site.api.espn.com" },
+  "/soccer/xg": { k: "upstream", s: "d1:ARCHIVE_DB + site.api.espn.com" },
   "/sportradar-ufl": { k: "proxy", s: "api.sportradar.com", p: 1 },
   "/squiggle": { k: "proxy", s: "api.squiggle.com.au", p: 1 },
   "/stat/": { k: "upstream", s: "stat-job-watcher.jeffunglesbee.workers.dev", p: 1 },
@@ -176,9 +176,9 @@ export const ROUTE_PROVENANCE = {
   "/user/event": { k: "computed", s: "do:USER_DO (inherited from the enclosing block)" },
   "/v2/": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com", p: 1 },
   "/v2/games": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com" },
-  "/v2/golf/competitor-stats": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },
+  "/v2/golf/competitor-stats": { k: "store", s: "d1:ARCHIVE_DB" },
   "/v2/golf/enriched": { k: "upstream", s: "kv:FIELD_JOURNALISM + site.api.espn.com" },
-  "/v2/golf/eventlog": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },
+  "/v2/golf/eventlog": { k: "store", s: "d1:ARCHIVE_DB" },
   "/v2/golf/player-stats": { k: "upstream", s: "kv:FIELD_JOURNALISM + site.api.espn.com" },
   "/wc-context-patch": { k: "store", s: "r2:FIELD_DATA" },
   "/wc/": { k: "store", s: "d1:WC2026_DB", p: 1 },

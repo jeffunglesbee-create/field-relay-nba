@@ -10,7 +10,7 @@ const SITE = 'https://site.api.espn.com/apis/site/v2'
 const CORE = 'https://sports.core.api.espn.com/v2/sports'
 const get = async (url) => {
   const t0 = Date.now()
-  try { const r = await fetch(url); const text = await r.text(); let j = null; try { j = JSON.parse(text) } catch {}
+  try { const r = await fetch(url); const text = await r.text(); let j = null; try { j = JSON.parse(text) } catch { /* catch-ok: a body that is not JSON is recorded as json null beside its status and bytes */ }
     return { url, status: r.status, bytes: text.length, ms: Date.now() - t0, json: j } }
   catch (e) { return { url, status: null, error: e.message } }
 }

@@ -370,6 +370,12 @@ jobs:
       - name: Golf round tee times summarise the real read
         run: node scripts/check-golf-tee-times.mjs --self-test && node scripts/check-golf-tee-times.mjs
 
+      # docs/CC-CMD-2026-10-14-espn-host-flip.md Task 3: the core API is 403 to the Worker, so the five
+      # read sites read the runner's mirror; no core fetch is left, both sides key a resource the same
+      # way, and trimming keeps every value a reader uses (held on raw bodies a runner read).
+      - name: ESPN core reads come from the runner mirror
+        run: node scripts/check-espn-core-mirror.mjs --self-test && node scripts/check-espn-core-mirror.mjs
+
       - name: No new bare empty catch
         run: |
           # DUPLICATED FROM guards.yml ON PURPOSE. guards.yml carries

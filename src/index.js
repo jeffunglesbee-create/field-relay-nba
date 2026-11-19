@@ -148,6 +148,7 @@ import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { summariseGolfTeeTimes, teeTimeRound } from './golf-tee-times.js';
+import { readCoreMirror, CORE_MIRROR_TABLE } from './espn-core-mirror.js';
 import { playEpa, epTableFrom } from './nfl-epa.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
@@ -4000,29 +4001,38 @@ async function handleGolfPlayerStats(athleteId, season, env) {
     return result;
 }
 
+// ── ESPN core API mirror: the dispatch (src/espn-core-mirror.js) ─────────────
+// GitHub's own schedule fires this repo's crons a median 377 minutes apart
+// (wnba-slate-to-kv.yml at */5, 60 runs, measured 2026-11-19), so the mirror's
+// runner is dispatched from here, on the Worker's */15 tick; a dispatched run starts
+// within seconds. The same GITHUB_PAT and dispatch call as the MCP trigger_workflow
+// tool. Returns the status so a failure is logged, never thrown into the cron.
+async function dispatchEspnCoreMirror(env) {
+    if (!env.GITHUB_PAT) { console.error('[CORE-MIRROR] GITHUB_PAT not configured'); return { ok: false, status: null }; }
+    const r = await fetch(`${repoApiFor('field-relay-nba')}/actions/workflows/espn-core-mirror.yml/dispatches`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${env.GITHUB_PAT}`, 'Accept': 'application/vnd.github+json', 'User-Agent': 'FIELD-relay', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: 'main' }),
+    });
+    if (r.status !== 204) console.error(`[CORE-MIRROR] dispatch HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    return { ok: r.status === 204, status: r.status };
+}
+
 // ── ESPN Golf competitor-stats (per-tournament, per-athlete) ────────────────
-// Fetches sports.core.api.espn.com competitor statistics for an athlete at one
-// PGA event. Note ESPN's URL pattern: eventId appears TWICE — once as the
-// event ID, again as the competition ID. The spec confirms this is intentional.
-// Returns the same stat fields as player-stats but scoped to a single event.
+// ESPN's core competitor statistics for an athlete at one PGA event. Note ESPN's
+// URL pattern: eventId appears TWICE — once as the event ID, again as the
+// competition ID. Returns the same stat fields as player-stats, scoped to one event.
+//
+// READ FROM THE RUNNER MIRROR, not fetched (2026-11-19): the core API answers 403 to
+// the Worker (src/espn-core-mirror.js). scripts/espn-core-mirror.mjs writes the body
+// while any competitor is on the course and once more when each finishes. No KV cache
+// in front: it only added staleness to a D1 read. `mirroredAt` says how old the read is.
 async function handleGolfCompetitorStats(eventId, athleteId, env) {
-    const cacheKey = `golf:competitor-stats:${eventId}:${athleteId}`;
-    if (env.FIELD_JOURNALISM) {
-        try {
-            const cached = await env.FIELD_JOURNALISM.get(cacheKey);
-            if (cached) return JSON.parse(cached);
-        } catch (e) { console.error("[GOLF] competitor-stats KV read failed:", e.message); }
-    }
     // eventId appears twice — events/{id}/competitions/{same_id}/competitors/{athleteId}
-    const url = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/${encodeURIComponent(eventId)}/competitions/${encodeURIComponent(eventId)}/competitors/${encodeURIComponent(athleteId)}/statistics/0`;
-    let data;
-    try {
-        const resp = await fetch(url, { cf: { cacheTtl: 600, cacheEverything: true } });
-        if (!resp.ok) return { ok: false, error: `ESPN ${resp.status}`, eventId, athleteId };
-        data = await resp.json();
-    } catch (err) {
-        return { ok: false, error: `network: ${err.message}`, eventId, athleteId };
-    }
+    const path = `golf/leagues/pga/events/${encodeURIComponent(eventId)}/competitions/${encodeURIComponent(eventId)}/competitors/${encodeURIComponent(athleteId)}/statistics/0`;
+    const mirror = await readCoreMirror(env, path);
+    if (!mirror.body) return { ok: false, error: mirror.error, eventId, athleteId };
+    const data = mirror.body;
     // sports.core.api response shape: splits.categories[].stats[] OR top-level stats[]
     const flatStats = [];
     if (Array.isArray(data?.splits?.categories)) {
@@ -4051,37 +4061,23 @@ async function handleGolfCompetitorStats(eventId, athleteId, env) {
         birdies:           pickStat('birdies'),
         bogeys:            pickStat('bogeys'),
         doublesOrWorse:    pickStat('doubleBogeysAndWorse'),
+        mirroredAt:        mirror.fetchedAt,
     };
-    // Cache 600s — fits both active rounds (600s) and post-round (longer is fine
-    // but a single TTL keeps the helper simple; clients may set their own).
-    if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 }); }
-        catch (e) { console.error("[GOLF] competitor-stats KV write failed:", e.message); }
-    }
     return result;
 }
 
 // ── ESPN Golf eventlog (per-athlete season schedule + $refs) ────────────────
-// Fetches sports.core.api.espn.com season eventlog for a PGA athlete. Each
-// item carries $ref URLs (event, competition, competitor, statistics) which
-// callers can use to fan out further. Skips non-PGA entries (e.g. tgl-league).
+// ESPN's core season eventlog for a PGA athlete. Each item carries $ref URLs
+// (event, competition, competitor, statistics) which callers can use to fan out
+// further. Skips non-PGA entries (e.g. tgl-league).
+//
+// READ FROM THE RUNNER MIRROR (2026-11-19; src/espn-core-mirror.js): the runner
+// refreshes the eventlog of every player in the current PGA field once a day.
 async function handleGolfEventlog(athleteId, season, env) {
-    const cacheKey = `golf:eventlog:${athleteId}:${season}`;
-    if (env.FIELD_JOURNALISM) {
-        try {
-            const cached = await env.FIELD_JOURNALISM.get(cacheKey);
-            if (cached) return JSON.parse(cached);
-        } catch (e) { console.error("[GOLF] eventlog KV read failed:", e.message); }
-    }
-    const url = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/seasons/${encodeURIComponent(season)}/athletes/${encodeURIComponent(athleteId)}/eventlog?limit=25`;
-    let data;
-    try {
-        const resp = await fetch(url, { cf: { cacheTtl: 21600, cacheEverything: true } });
-        if (!resp.ok) return { ok: false, error: `ESPN ${resp.status}`, athleteId, season, events: [] };
-        data = await resp.json();
-    } catch (err) {
-        return { ok: false, error: `network: ${err.message}`, athleteId, season, events: [] };
-    }
+    const path = `golf/leagues/pga/seasons/${encodeURIComponent(season)}/athletes/${encodeURIComponent(athleteId)}/eventlog`;
+    const mirror = await readCoreMirror(env, path);
+    if (!mirror.body) return { ok: false, error: mirror.error, athleteId, season, events: [] };
+    const data = mirror.body;
     const items = Array.isArray(data?.events?.items) ? data.events.items
                  : Array.isArray(data?.items) ? data.items : [];
     const extractId = ref => {
@@ -4107,11 +4103,7 @@ async function handleGolfEventlog(athleteId, season, env) {
             };
         })
         .filter(ev => ev.league === 'pga');
-    const result = { ok: true, athleteId, season, events };
-    if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 }); }
-        catch (e) { console.error("[GOLF] eventlog KV write failed:", e.message); }
-    }
+    const result = { ok: true, athleteId, season, events, mirroredAt: mirror.fetchedAt };
     return result;
 }
 
@@ -9938,6 +9930,11 @@ export default {
         console.log(`[JOURNALISM-GATE] cron=${event.cron} fired=${_journalismShouldFire}`);
         if (_journalismShouldFire) {
             ctx.waitUntil(handleJournalismCycle(env));
+            // The ESPN core API mirror's runner, dispatched on the same */15 tick
+            // (src/espn-core-mirror.js): one GitHub API call, its own waitUntil, so
+            // a failed dispatch never touches the journalism cycle.
+            ctx.waitUntil(dispatchEspnCoreMirror(env).catch(e =>
+                console.error('[CORE-MIRROR] dispatch failed:', e.message)));
         }
         // Per-tick KV → D1 brief sweep. Runs in parallel with the
         // journalism cycle so briefs the cycle just wrote to KV land in
@@ -17229,7 +17226,12 @@ export default {
                 // Listed so the post-deploy proof can show the rows. /d1/execute runs
                 // writes on every listed table, as it does on the others here: the
                 // listing is not read-only, and the worker is the only intended writer.
-                'odds_budget_refusal'];
+                'odds_budget_refusal',
+                // espn_core_mirror added 2026-11-19 (docs/CC-CMD-2026-10-14-espn-host-flip.md
+                // Task 3): the runner that reads ESPN's core API, which answers 403 to this
+                // Worker, writes each body here; the five read sites read it. This route is
+                // the runner's only write path. The relay computes nothing for it (Rule 47).
+                CORE_MIRROR_TABLE];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),
@@ -20075,8 +20077,8 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 return new Response(JSON.stringify({ error: 'league and event required' }),
                     { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
             }
-            const CORE = 'https://sports.core.api.espn.com/v2/sports/soccer';
-            const compBase = `${CORE}/leagues/${league}/events/${eventId}/competitions/${eventId}`;
+            // A core PATH: the competitor statistics are read from the runner mirror below.
+            const compPath = `soccer/leagues/${league}/events/${eventId}/competitions/${eventId}`;
 
             let homeId, awayId, homeName, awayName, homeAbbr, awayAbbr;
             let seriesPayload = null;
@@ -20124,14 +20126,17 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 );
             }
 
-            const [homeStats, awayStats] = await Promise.all([
-                fetch(`${compBase}/competitors/${homeId}/statistics`,
-                    { headers: { 'User-Agent': 'FIELD/1.0' } })
-                    .then(r => r.ok ? r.json() : null).catch(e => { console.error("[SOCCER-XG] home competitor stats fetch failed:", e.message); return null; }),
-                fetch(`${compBase}/competitors/${awayId}/statistics`,
-                    { headers: { 'User-Agent': 'FIELD/1.0' } })
-                    .then(r => r.ok ? r.json() : null).catch(e => { console.error("[SOCCER-XG] away competitor stats fetch failed:", e.message); return null; }),
+            // The two team statistics come from the RUNNER MIRROR (2026-11-19;
+            // src/espn-core-mirror.js): the core API answers 403 to the Worker, and
+            // a 403 used to read as `_hasXG:false`, a plausible empty answer. The
+            // runner refreshes a live game about every 2 minutes and a finished one
+            // once more at full time. `_mirror` says when each side was read, or why
+            // it was not.
+            const [homeMirror, awayMirror] = await Promise.all([
+                readCoreMirror(env, `${compPath}/competitors/${homeId}/statistics`),
+                readCoreMirror(env, `${compPath}/competitors/${awayId}/statistics`),
             ]);
+            const homeStats = homeMirror.body, awayStats = awayMirror.body;
 
             const XG_FIELDS = new Set([
                 'expectedGoals', 'expectedGoalsNonPenalty', 'expectedGoalsOpenPlay',
@@ -20180,6 +20185,10 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 _hasMatchStats: hasMatchStats,
                 _source: 'espn-core',
                 _series: seriesPayload,
+                _mirror: {
+                    home: homeMirror.fetchedAt, away: awayMirror.fetchedAt,
+                    error: homeMirror.error || awayMirror.error || null,
+                },
                 home: { id: homeId, name: homeName, abbr: homeAbbr, ...homeXG },
                 away: { id: awayId, name: awayName, abbr: awayAbbr, ...awayXG },
             };
@@ -20260,20 +20269,19 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             // Midfielder/Forward -> G/D/M/F), never the granular roster abbreviations
             // this CC-CMD's classify step assumed (LB/RB/CB/DM never appear here).
             // "Defensive ON" is checked against this real, verified, coarse vocabulary.
+            // Read from the RUNNER MIRROR (2026-11-19; src/espn-core-mirror.js): the
+            // core API answers 403 to the Worker, and an unread position used to make
+            // every substitution "not defensive", so the route answered
+            // `defensiveSubs: []` as if none happened. `positionsUnresolved` now counts
+            // the incoming players whose position could not be read.
             const athletePosCache = new Map();
+            let positionsUnresolved = 0;
             async function resolveIncomingPosition(athleteId) {
                 if (athletePosCache.has(athleteId)) return athletePosCache.get(athleteId);
-                let abbr = null;
-                try {
-                    const r = await fetch(
-                        `https://sports.core.api.espn.com/v2/sports/soccer/leagues/${league}/athletes/${athleteId}`,
-                        { headers: { 'User-Agent': 'FIELD/1.0' } }
-                    );
-                    if (r.ok) {
-                        const d = await r.json();
-                        abbr = d?.position?.abbreviation || null;
-                    }
-                } catch (e) { console.error('[SUB-IMPACT] athlete lookup failed:', athleteId, e.message); }
+                const m = await readCoreMirror(env,
+                    `soccer/leagues/${league}/athletes/${athleteId}`);
+                const abbr = m.body?.position?.abbreviation || null;
+                if (!abbr) positionsUnresolved++;
                 athletePosCache.set(athleteId, abbr);
                 return abbr;
             }
@@ -20362,6 +20370,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 league,
                 defensiveSubs,
                 hasDefensiveSubImpact: defensiveSubs.length > 0,
+                positionsUnresolved,
                 _source: 'espn-site',
             }), {
                 headers: {
