@@ -1,0 +1,171 @@
+{
+ "probedAt": "2026-11-19T01:54:07.184Z",
+ "samples": [
+  {
+   "site": "golf competitor-stats",
+   "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11183/statistics/0",
+   "status": 200,
+   "bytes": 6361,
+   "ms": 208,
+   "event": "401850980",
+   "athlete": "11183",
+   "statCount": 26,
+   "picked": {
+    "scoreToPar": -17,
+    "driveDistAvg": 299.2,
+    "driveAccuracyPct": 60.71,
+    "gir": 75,
+    "girPoss": 72,
+    "puttsGirAvg": 1.704,
+    "sandSaves": 100,
+    "sandSavesPoss": 3,
+    "birdies": 25,
+    "bogeys": 8,
+    "doubleBogeysAndWorse": 0
+   }
+  },
+  {
+   "site": "golf competitor-stats",
+   "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981/competitions/401850981/competitors/3257/statistics/0",
+   "status": 200,
+   "bytes": 6305,
+   "ms": 33,
+   "event": "401850981",
+   "athlete": "3257",
+   "statCount": 26,
+   "picked": {
+    "scoreToPar": 0,
+    "driveDistAvg": 0,
+    "driveAccuracyPct": 0,
+    "gir": 0,
+    "girPoss": 0,
+    "puttsGirAvg": 0,
+    "sandSaves": 0,
+    "sandSavesPoss": 0,
+    "birdies": 0,
+    "bogeys": 0,
+    "doubleBogeysAndWorse": 0
+   }
+  },
+  {
+   "site": "golf eventlog",
+   "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/seasons/2026/athletes/11183/eventlog?limit=25",
+   "status": 200,
+   "bytes": 12115,
+   "ms": 43,
+   "items": 19,
+   "firstEventRef": "http://sports.core.api.espn.com/v2/sports/golf/leagues/ntw/events/401837433?lang=en&region=us"
+  },
+  {
+   "site": "soccer xg (team stats)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/usa.1/events/761934/competitions/761934/competitors/9720/statistics",
+   "status": 200,
+   "bytes": 63886,
+   "ms": 54,
+   "league": "usa.1",
+   "event": "761934",
+   "team": "9720",
+   "statCount": 172,
+   "hasXG": true,
+   "hasPossession": true
+  },
+  {
+   "site": "soccer xg (team stats)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/usa.1/events/761934/competitions/761934/competitors/9727/statistics",
+   "status": 200,
+   "bytes": 63910,
+   "ms": 46,
+   "league": "usa.1",
+   "event": "761934",
+   "team": "9727",
+   "statCount": 172,
+   "hasXG": true,
+   "hasPossession": true
+  },
+  {
+   "site": "soccer sub-impact (athlete)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/usa.1/athletes/362775",
+   "status": 200,
+   "bytes": 5188,
+   "ms": 25,
+   "league": "usa.1",
+   "event": "761934",
+   "athlete": "362775",
+   "position": "M"
+  },
+  {
+   "site": "soccer xg (team stats)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/eng.1/events/401879244/competitions/401879244/competitors/331/statistics",
+   "status": 200,
+   "bytes": 64090,
+   "ms": 49,
+   "league": "eng.1",
+   "event": "401879244",
+   "team": "331",
+   "statCount": 171,
+   "hasXG": true,
+   "hasPossession": true
+  },
+  {
+   "site": "soccer xg (team stats)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/eng.1/events/401879244/competitions/401879244/competitors/337/statistics",
+   "status": 200,
+   "bytes": 64308,
+   "ms": 51,
+   "league": "eng.1",
+   "event": "401879244",
+   "team": "337",
+   "statCount": 172,
+   "hasXG": true,
+   "hasPossession": true
+  },
+  {
+   "site": "soccer sub-impact (athlete)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/eng.1/athletes/342029",
+   "status": 200,
+   "bytes": 5241,
+   "ms": 26,
+   "league": "eng.1",
+   "event": "401879244",
+   "athlete": "342029",
+   "position": "M"
+  },
+  {
+   "site": "soccer xg (team stats)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/uefa.champions/events/401915383/competitions/401915383/competitors/887/statistics",
+   "status": 200,
+   "bytes": 67134,
+   "ms": 45,
+   "league": "uefa.champions",
+   "event": "401915383",
+   "team": "887",
+   "statCount": 172,
+   "hasXG": true,
+   "hasPossession": true
+  },
+  {
+   "site": "soccer xg (team stats)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/uefa.champions/events/401915383/competitions/401915383/competitors/86/statistics",
+   "status": 200,
+   "bytes": 69761,
+   "ms": 47,
+   "league": "uefa.champions",
+   "event": "401915383",
+   "team": "86",
+   "statCount": 172,
+   "hasXG": true,
+   "hasPossession": true
+  },
+  {
+   "site": "soccer sub-impact (athlete)",
+   "url": "https://sports.core.api.espn.com/v2/sports/soccer/leagues/uefa.champions/athletes/297754",
+   "status": 200,
+   "bytes": 5141,
+   "ms": 42,
+   "league": "uefa.champions",
+   "event": "401915383",
+   "athlete": "297754",
+   "position": "F"
+  }
+ ]
+}

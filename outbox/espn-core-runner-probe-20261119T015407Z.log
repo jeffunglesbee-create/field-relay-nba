@@ -1,0 +1,15 @@
+golf competitor-stats        200 6361 B {"event":"401850980","athlete":"11183","statCount":26,"picked":{"scoreToPar":-17,"driveDistAvg":299.2,"driveAccuracyPct":60.71,"gir":75,"girPoss":72,"puttsGirAv
+golf competitor-stats        200 6305 B {"event":"401850981","athlete":"3257","statCount":26,"picked":{"scoreToPar":0,"driveDistAvg":0,"driveAccuracyPct":0,"gir":0,"girPoss":0,"puttsGirAvg":0,"sandSav
+golf eventlog                200 12115 B {"items":19,"firstEventRef":"http://sports.core.api.espn.com/v2/sports/golf/leagues/ntw/events/401837433?lang=en&region=us"}
+soccer xg (team stats)       200 63886 B {"league":"usa.1","event":"761934","team":"9720","statCount":172,"hasXG":true,"hasPossession":true}
+soccer xg (team stats)       200 63910 B {"league":"usa.1","event":"761934","team":"9727","statCount":172,"hasXG":true,"hasPossession":true}
+soccer sub-impact (athlete)  200 5188 B {"league":"usa.1","event":"761934","athlete":"362775","position":"M"}
+soccer xg (team stats)       200 64090 B {"league":"eng.1","event":"401879244","team":"331","statCount":171,"hasXG":true,"hasPossession":true}
+soccer xg (team stats)       200 64308 B {"league":"eng.1","event":"401879244","team":"337","statCount":172,"hasXG":true,"hasPossession":true}
+soccer sub-impact (athlete)  200 5241 B {"league":"eng.1","event":"401879244","athlete":"342029","position":"M"}
+soccer xg (team stats)       200 67134 B {"league":"uefa.champions","event":"401915383","team":"887","statCount":172,"hasXG":true,"hasPossession":true}
+soccer xg (team stats)       200 69761 B {"league":"uefa.champions","event":"401915383","team":"86","statCount":172,"hasXG":true,"hasPossession":true}
+soccer sub-impact (athlete)  200 5141 B {"league":"uefa.champions","event":"401915383","athlete":"297754","position":"F"}
+
+checked 12 core reads from the runner: 12 answered 200
+wrote outbox/espn-core-runner-probe-2026-11-19T01-54-07-184Z.json
