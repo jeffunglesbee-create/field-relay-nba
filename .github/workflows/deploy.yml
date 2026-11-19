@@ -2214,21 +2214,65 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # `git add` is atomic across pathspecs and this step runs under
-          # `bash -e`, so an unmatched glob returns non-zero and would abort the
-          # whole step before the push ever runs. Same defect class really hit
-          # in soccer-league-mislabel-scope-probe.yml on 2026-08-06.
-          git add outbox/live-verify-*.md || echo "(no live-verify artifact to stage)"
+          # `git add` stages NOTHING when any pathspec in the call fails, and this
+          # step runs under `bash -e`, so an unmatched glob returns non-zero (128)
+          # and would abort the whole step before the push ever runs. Same defect
+          # class really hit in soccer-league-mislabel-scope-probe.yml on 2026-08-06.
+          #
+          # The cure that shipped, `git add ... || echo "(no ... artifact to
+          # stage)"`, also swallowed EVERY OTHER add failure (a held index.lock, a
+          # gitignored file) and claimed no artifact existed, and the commit below
+          # turned any refusal into "Nothing to commit" with exit 0. That is the
+          # silent failure CC-CMD-2026-08-06-deploy-verify-commit-push-race warned
+          # about for the push (a blanket swallow trades a noisy false failure for a
+          # silent real one), left standing on the two lines before it. Each glob is
+          # staged in its own call now, and ONLY a bare no-match is skipped: a
+          # no-match that arrives with any other error or warning (a directory git
+          # could not open) fails like everything else. One call per glob, not per
+          # file: the shell expands each glob to every artifact this checkout
+          # tracks (hundreds, one more of each per deploy), and a call per file
+          # measured about 4 s against 0.06 s. LC_ALL=C because the no-match test
+          # reads git's English message. If the second glob fails, the first is left
+          # staged and nothing is committed: the step fails closed. A sibling of the
+          # loop in scripts/probe-commit-retry.sh (same rule, separate text);
+          # scripts/check-deploy-commit-results.sh runs THIS step's text against
+          # real local races.
+          stage() {
+            local out rc=0
+            out="$(LC_ALL=C git add -- "$@" 2>&1)" || rc=$?
+            if [ -n "$out" ]; then echo "$out"; fi
+            if [ "$rc" -eq 0 ]; then
+              return 0
+            fi
+            case "$out" in
+              *'did not match any files'*)
+                case "$out" in
+                  *'error: '*|*'warning: '*) ;;
+                  *)
+                    echo "(nothing matched $1; nothing to stage for it)"
+                    return 0
+                    ;;
+                esac
+                ;;
+            esac
+            echo "::error::git add failed for $1 ($# path(s) in this call) for a reason that is not an empty pathspec."
+            exit 1
+          }
+          stage outbox/live-verify-*.md
           # The readout is the artifact (Rule 89). Written on the runner and
           # never staged, it dies with the runner -- which is what happened on
           # run 32659418899: the step went green, printed the six entry counts,
           # and committed nothing. An artifact nobody can read afterwards is
           # the same defect as the count that was computed and discarded.
-          git add outbox/health-sources-*.json || echo "(no health-sources artifact to stage)"
+          stage outbox/health-sources-*.json
 
-          if ! git commit -m "chore: post-deploy live verification [skip ci]"; then
+          if git diff --cached --quiet; then
             echo "Nothing to commit — no push needed."
             exit 0
+          fi
+          if ! git commit -m "chore: post-deploy live verification [skip ci]"; then
+            echo "::error::git commit failed; the verification note was not committed."
+            exit 1
           fi
 
           # CC-CMD-2026-08-06-deploy-verify-commit-push-race: this was a bare

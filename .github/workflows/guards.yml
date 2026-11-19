@@ -89,6 +89,20 @@ jobs:
       - name: the shared commit-retry stages what exists and fails loudly on anything else
         run: bash scripts/check-probe-commit-retry.sh
 
+      # The `Commit results` step of deploy.yml (job `verify`) is the sole deploy path's own
+      # commit. Until 2026-11-18 it swallowed a failed `git add` as "(no ... artifact to stage)"
+      # and a refused `git commit` as "Nothing to commit". This extracts THAT step's text and
+      # runs it through real local clones and races (about 4 seconds). deploy.yml itself does
+      # not trigger on its own edit (paths: src/**, wrangler.toml, workers/**), so this is
+      # where an edit to the step is verified. The 19 mutants (about 1.5 minutes, on temp
+      # copies) stay out of the push path; the anchors-only run below is the part of them that
+      # is cheap, and it is what stops them rotting when the step is edited.
+      - name: the deploy workflow's Commit results step fails loudly on a real add or commit error
+        run: bash scripts/check-deploy-commit-results.sh
+
+      - name: the Commit results mutants still have an anchor in deploy.yml
+        run: python3 scripts/mutate-deploy-commit-results.py --anchors-only
+
       # Task 1 of CC-CMD-2026-09-18. The CC-CMD says the schema goes in `DB`
       # (field-d1). It is wrong, and the check exists because the document is
       # what a later session will read: wrangler.toml gives DB and WC2026_DB the
