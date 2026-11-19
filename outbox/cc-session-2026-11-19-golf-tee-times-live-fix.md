@@ -33,7 +33,9 @@
 
 ## Live
 
-- Follows the deploy of `464d4f7`. See the HANDOFF entry for the read.
+- Deploy run 44432843013: `deploy` and `verify` green.
+- **Read 1 PASSED** (~01:05Z, `probe_relay_route`): `roundStart` 2026-11-19T13:30:00.000Z, `roundLastTee` 15:42Z, `teeTimes` {round 1, 147/147, 147 competitors}, `venue` Sea Island Golf Club (Seaside Course), Saint Simons Island, GA, `timeValid:false`.
+- The `CONTRACTS.md identity check` has been red since 2026-11-11 (client copy missing the soccer board entry and my 11-18 golf entry). Synced in jubilant-bassoon `47d59909`; rerun 44434776572 green.
 
 ## Still open
 

@@ -112,3 +112,7 @@ So Task 2 reads per competitor and filters to the current `period`. The cost to 
 - `check-golf-tee-times` 14/14 (adds the leaderboard read, the round choice and the wiring); self-test 9 of 9 mutants caught, among them "core API put back in the route" and "pre-round round left null".
 
 Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roundLastTee` `2026-11-19T15:42:00.000Z`, `teeTimes` `{round:1, inRound:147, withTeeTime:147}`, `venue` `Sea Island Golf Club (Seaside Course)`.
+
+### Done-condition read 1: PASSED live, 2026-11-19 ~01:05Z (before round 1)
+
+`probe_relay_route /v2/golf/enriched?date=2026-11-19`, after deploy run 44432843013 (`deploy` and `verify` both green): `active:true`, event `401850981` The RSM Classic, `round:null`, `startDate` `2026-11-19T05:00Z`, `timeValid:false`, **`roundStart` `2026-11-19T13:30:00.000Z`**, `roundLastTee` `2026-11-19T15:42:00.000Z`, `teeTimes` `{round:1, inRound:147, withTeeTime:147, competitors:147}`, `venue` `Sea Island Golf Club (Seaside Course)`, `venueLocation` `Saint Simons Island, GA`. Every value equals the expectation above; `roundStart` equals the owner's screenshot (8:30 AM ET). Reads 2 (archive `start_time` after round 1) and 3 (no new `PGA Tour` rows) are still open (`trig_01Xgs5MBnCBxLJiUS41EPefg` re-reads today 17:30Z; `trig_01RHFUoJYLWiiVM7hCh1nuva` 2026-11-20 15:00Z).

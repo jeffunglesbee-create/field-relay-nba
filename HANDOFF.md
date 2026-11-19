@@ -8,7 +8,8 @@
 - **The 11-18 build never worked live.** ESPN's core API answers 403 to the Worker (measured through the relay's own `/web-fetch`, `outbox/golf-core-reach-probe-2026-11-19T00-41-40-114Z.json`). This was already in `docs/CC-CMD-2026-10-14-espn-host-flip.md` Task 3, and the build did not read it. Separately, no round exists before the first shot.
 - **Fixed in `464d4f7`:** tee times and venue now come from ESPN's golf leaderboard on `ESPN_API_BASE`, one read; before play the round is the field's `period`. On the read before RSM round 1: 147/147 tee times, 13:30Z to 15:42Z.
 - **Unrecorded commits since `140fa56`:** `20eb710` (Task 4), the option-A one-shot and its follow-ups (another session and this one), the scheduled reads, and `5cc1947`/`f2dfd9e` (the reach probe). All are recorded in their own CC-CMDs and the 11-18 entry.
-- **Open:** the live done-condition reads after the deploy (`trig_01Xgs5MBnCBxLJiUS41EPefg` 17:30Z today, `trig_01RHFUoJYLWiiVM7hCh1nuva` 2026-11-20 15:00Z), and the five other core-API read sites (owner's decision, host-flip Task 3).
+- **Live, read 1 PASSED** (deploy 44432843013 green): `roundStart` 13:30Z, 147/147, venue Sea Island. `CONTRACTS.md identity check` red since 11-11 is fixed: the client copy was synced (jubilant-bassoon `47d59909`) and run 44434776572 is green.
+- **Open:** the remaining live done-condition reads (`trig_01Xgs5MBnCBxLJiUS41EPefg` 17:30Z today, `trig_01RHFUoJYLWiiVM7hCh1nuva` 2026-11-20 15:00Z), and the five other core-API read sites (owner's decision, host-flip Task 3).
 
 ## SESSION CLOSE-OUT — 2026-11-18 — /v2/golf/enriched serves real golf round start times (Task 2 of the tee-times CC-CMD)
 
