@@ -1,0 +1,1378 @@
+{
+ "source": "site.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga&event=401850981",
+ "readAt": "2026-11-19, before round 1, through the FIELD browser tool; the same URL answered HTTP 200 from a Cloudflare Worker IP (html_probe) while sports.core.api.espn.com answered 403",
+ "kept": "event id/date, competition status, courses without holes or weather, each competitor id and status (period, teeTime, startHole, type.state)",
+ "event": {
+  "id": "401850981",
+  "name": "The RSM Classic",
+  "date": "2026-11-19T05:00Z"
+ },
+ "competitionStatus": {
+  "period": 0,
+  "type": {
+   "id": "1",
+   "name": "STATUS_SCHEDULED",
+   "state": "pre",
+   "description": "Scheduled",
+   "detail": "November 19 - 22",
+   "shortDetail": "11/19 - 11/22"
+  }
+ },
+ "courses": [
+  {
+   "id": "10586",
+   "name": "Sea Island Golf Club (Seaside Course)",
+   "totalYards": 7157,
+   "shotsToPar": 70,
+   "parIn": 35,
+   "parOut": 35,
+   "host": true,
+   "address": {
+    "city": "Saint Simons Island",
+    "state": "GA",
+    "country": "USA",
+    "zipCode": "31522"
+   }
+  },
+  {
+   "id": "10694",
+   "name": "Sea Island Golf Club (Plantation Course)",
+   "totalYards": 7060,
+   "shotsToPar": 72,
+   "parIn": 36,
+   "parOut": 36,
+   "host": false,
+   "address": {
+    "city": "Saint Simons Island",
+    "state": "GA",
+    "country": "USA",
+    "zipCode": "31522"
+   }
+  }
+ ],
+ "competitors": [
+  {
+   "id": "10030",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10048",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10054",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10057",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10058",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10231",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10372",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10505",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10522",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10548",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10562",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10577",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10588",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1059",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10596",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10664",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1077",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10863",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "10990",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11056",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11098",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11101",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11143",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11183",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11253",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11332",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11333",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11383",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11385",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11387",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11393",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11395",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "11456",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1225",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1264",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1548",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1564",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1614",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "1651",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "2230",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "2283",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "2552",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "257",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "2571",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "3089127",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "3257",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "3449",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "3454",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "3683",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "3970",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "3980",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4267",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4350033",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4351896",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4358081",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4358083",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4361934",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4375977",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4404991",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4408315",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4408318",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4408319",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4408320",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4410612",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4423323",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4425898",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4425904",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4426181",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4426182",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4513",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4565482",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4585548",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4585549",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4587989",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4589438",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4602218",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4610387",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4618114",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4638",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4671",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4691931",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4699329",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4723205",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4791222",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4832046",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4837368",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4844",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4858572",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4858859",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4868733",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4921329",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "4982182",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5075548",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5075652",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5076011",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:42Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5077389",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "508",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5113338",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:31Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5139663",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5147097",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5150294",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5209442",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5211425",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5215013",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5215039",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5217048",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5338",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5362018",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5369915",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:42Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5408",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5502",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5548",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5573",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5574",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5619",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5692",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5765",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "5882",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6196",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:41Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6701",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "676",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6798",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6825",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6922",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6931",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6962",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "6999",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "7120",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:42Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "8889",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "8906",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "8910",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "8961",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9040",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:30Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9127",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9143",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:58Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9144",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9221",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9243",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:09Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9364",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:47Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9484",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:03Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9506",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T15:20Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9517",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9530",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9569",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:14Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9600",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:25Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9658",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T13:52Z",
+    "startHole": 1,
+    "state": "pre"
+   }
+  },
+  {
+   "id": "9788",
+   "status": {
+    "period": 1,
+    "teeTime": "2026-11-19T14:36Z",
+    "startHole": 10,
+    "state": "pre"
+   }
+  }
+ ]
+}

@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-27T23:24:04.800Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-11-19T00:53:06.741Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/bsd-game-join": { k: "trigger", s: "d1:ARCHIVE_DB" },
@@ -177,7 +177,7 @@ export const ROUTE_PROVENANCE = {
   "/v2/": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com", p: 1 },
   "/v2/games": { k: "upstream", s: "api-web.nhle.com + api.squiggle.com.au + api.the-odds-api.com + d1:ARCHIVE_DB + d1:WC2026_DB + do:BRACKET_DO + do:GAME_DO + espn-primary-forced-failure.invalid + kaliaflstats.com + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + r2:FIELD_DATA + site.api.espn.com + sports.bzzoiro.com" },
   "/v2/golf/competitor-stats": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },
-  "/v2/golf/enriched": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },
+  "/v2/golf/enriched": { k: "upstream", s: "kv:FIELD_JOURNALISM + site.api.espn.com" },
   "/v2/golf/eventlog": { k: "upstream", s: "kv:FIELD_JOURNALISM + sports.core.api.espn.com" },
   "/v2/golf/player-stats": { k: "upstream", s: "kv:FIELD_JOURNALISM + site.api.espn.com" },
   "/wc-context-patch": { k: "store", s: "r2:FIELD_DATA" },

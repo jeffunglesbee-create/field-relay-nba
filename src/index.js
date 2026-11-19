@@ -147,7 +147,7 @@ import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
-import { summariseGolfTeeTimes } from './golf-tee-times.js';
+import { summariseGolfTeeTimes, teeTimeRound } from './golf-tee-times.js';
 import { playEpa, epTableFrom } from './nfl-epa.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
@@ -4121,70 +4121,46 @@ async function handleGolfEventlog(athleteId, season, env) {
 // stats fetches are wrapped in try/catch — a single failure does not break
 // the enrichment. Cached 600s KV golf:enriched:{date}.
 // ── Golf round tee times (docs/CC-CMD-2026-11-16-golf-tee-times.md, Task 2) ──
-// ESPN's scoreboard carries no tee time; its core API carries a UTC `teeTime` on
-// each competitor's `status`, one request per competitor. Measured 2026-11-16
-// (outbox/golf-tee-times-probe-2026-11-16.json): no tee-sheet endpoint, 120 status
-// reads in 266 ms, and every competitor still in the tournament carries a teeTime
-// for its current `period` (67 of 67) while those cut carry none.
+// ESPN's scoreboard carries no tee time. Its golf LEADERBOARD does, on every
+// competitor's `status` (`period`, UTC `teeTime`, `startHole`), in one request, and
+// it carries the event's `courses` with their addresses.
 //
-// So the round's start is the EARLIEST teeTime among competitors whose `period` is
-// that round (a two-tee start sends groups off 1 and 10 together; the minimum is the
-// start either way), and its last tee the latest.
+// The first build read ESPN's CORE API instead, one request per competitor, and it
+// never worked live: sports.core.api.espn.com answers 403 to Cloudflare Worker
+// egress (html_probe 2026-11-19, event and competitor status both 403), so
+// `roundStart`, `teeTimes` and `venue` were null on every tournament day. The
+// leaderboard sits on ESPN_API_BASE, the host the Worker can reach (200 from the
+// same probe), and follows it if ESPN's block flips again
+// (docs/CC-CMD-2026-10-14-espn-host-flip.md).
 //
-// Rule 78: read once per (event, round), not per request. A round's tee times are
-// set before it starts, so a complete read is kept 6 hours; an incomplete one
-// (some in-round competitor without a teeTime yet) 10 minutes. Each status fetch
-// is edge-cached too. Called only from /v2/golf/enriched, never from a cron path,
-// so a cache miss never adds 120 subrequests to the journalism cycle.
-const GOLF_TEE_CONCURRENCY = 8;
-async function getGolfRoundTeeTimes(competitionRef, eventId, round, env) {
-    const roundNum = Number(round);
-    if (!competitionRef || !eventId || !Number.isInteger(roundNum) || roundNum < 1) return null;
-    const cacheKey = `golf:teetimes:v1:${eventId}:${roundNum}`;
-    if (env.FIELD_JOURNALISM) {
-        try {
-            const cached = await env.FIELD_JOURNALISM.get(cacheKey);
-            if (cached) return JSON.parse(cached);
-        } catch (e) { console.error("[GOLF] tee-times KV read failed:", e.message); }
-    }
-    const https = u => String(u).replace(/^http:/, 'https:');
-    let competitors;
+// The round's start is the EARLIEST teeTime among competitors whose `period` is that
+// round (a two-tee start sends groups off 1 and 10 together; the minimum is the start
+// either way), its last tee the latest. Measured on the read
+// (outbox/golf-leaderboard-rsm-r1-2026-11-19.json): RSM Classic round 1, 147 of 147
+// with a teeTime, 13:30Z to 15:42Z, holes 1 and 10.
+//
+// Rule 78: one request, edge-cached 300 s as the scoreboard read is; the enriched
+// result that carries it is KV-cached 180 s. Called only from /v2/golf/enriched,
+// never from a cron path. The caller builds the URL, so the route's provenance
+// manifest (scripts/build-route-provenance.mjs reads one level of delegation for
+// hosts) names the host this read really contacts.
+async function getGolfLeaderboardFacts(url, eventId) {
+    if (!url || !eventId) return null;
     try {
-        const r = await fetch(https(competitionRef), { cf: { cacheTtl: 300, cacheEverything: true } });
-        if (!r.ok) { console.error(`[GOLF] tee-times competition read ${r.status}`); return null; }
-        const comp = await r.json();
-        competitors = Array.isArray(comp.competitors) ? comp.competitors : [];
+        const r = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });
+        if (!r.ok) { console.error(`[GOLF] leaderboard read ${r.status}`); return null; }
+        const data = await r.json();
+        const ev = (data.events || []).find(e => String(e?.id) === String(eventId)) || null;
+        if (!ev) { console.error(`[GOLF] leaderboard has no event ${eventId}`); return null; }
+        const competitors = ev.competitions?.[0]?.competitors;
+        return {
+            statuses: Array.isArray(competitors) ? competitors.map(c => c?.status) : [],
+            courses: Array.isArray(ev.courses) ? ev.courses : [],
+        };
     } catch (e) {
-        console.error("[GOLF] tee-times competition read failed:", e.message);
+        console.error("[GOLF] leaderboard read failed:", e.message);
         return null;
     }
-    const statusRefs = competitors
-        .map(c => c?.status?.$ref || (c?.$ref ? `${String(c.$ref).split('?')[0]}/status` : null))
-        .filter(Boolean);
-    const statuses = new Array(statusRefs.length);
-    let next = 0, failed = 0;
-    await Promise.all(Array.from({ length: Math.min(GOLF_TEE_CONCURRENCY, statusRefs.length) }, async () => {
-        while (next < statusRefs.length) {
-            const i = next++;
-            try {
-                const r = await fetch(https(statusRefs[i]), { cf: { cacheTtl: 300, cacheEverything: true } });
-                if (!r.ok) { failed++; continue; }
-                statuses[i] = await r.json();
-            } catch (e) {
-                failed++;
-                console.error("[GOLF] tee-times status read failed:", e.message);
-            }
-        }
-    }));
-    const result = summariseGolfTeeTimes(statuses.filter(Boolean), roundNum);
-    result.competitors = statusRefs.length;
-    result.failedReads = failed;
-    const complete = failed === 0 && result.inRound > 0 && result.withTeeTime === result.inRound;
-    if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: complete ? 21600 : 600 }); }
-        catch (e) { console.error("[GOLF] tee-times KV write failed:", e.message); }
-    }
-    return result;
 }
 
 async function handleGolfEnriched(date, env, ctx) {
@@ -4196,7 +4172,8 @@ async function handleGolfEnriched(date, env, ctx) {
     // bump invalidates them at deploy time so clients see the new shape
     // immediately rather than waiting out the 180s active TTL.
     // v6 (2026-11-18): timeValid, startDate, roundStart, roundLastTee, teeTimes.
-    const cacheKey = `golf:enriched:v6:${date_clean}`;
+    // v7 (2026-11-19): tee times and venue from the leaderboard; teeTimes.round.
+    const cacheKey = `golf:enriched:v7:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -4219,28 +4196,17 @@ async function handleGolfEnriched(date, env, ctx) {
     const lb        = Array.isArray(scoreboard.leaderboard) ? scoreboard.leaderboard : [];
     const top20     = lb.slice(0, 20);
 
-    // Course / venue details — only the event-details endpoint carries
-    // courses[]. Aggressive 24h cf cache: course never changes mid-event.
-    // Failure must NEVER block the enriched payload (Rule 5).
-    let courseName = null, courseCity = null, courseState = null;
-    let competitionRef = null;
-    try {
-        const evUrl  = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/${encodeURIComponent(eventId)}`;
-        const evResp = await fetch(evUrl, { cf: { cacheTtl: 86400, cacheEverything: true } });
-        if (evResp.ok) {
-            const evData = await evResp.json();
-            competitionRef = evData.competitions?.[0]?.$ref || null;
-            const c = Array.isArray(evData.courses) ? evData.courses[0] : null;
-            if (c) {
-                courseName  = c.name || null;
-                courseCity  = c.address?.city  || null;
-                courseState = c.address?.state || null;
-            }
-        }
-    } catch (e) {
-        console.error("[GOLF] enriched course-details fetch failed:", e.message);
-        /* course fetch failure never blocks enrichment */
-    }
+    // Course / venue and the round's tee times, from ESPN's golf leaderboard, one read
+    // (getGolfLeaderboardFacts above). The host course is the venue. Failure never
+    // blocks the enriched payload (Rule 5): the fields are null and say so.
+    let facts = null;
+    const leaderboardUrl = `${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=${encodeURIComponent(eventId)}`;
+    try { facts = await getGolfLeaderboardFacts(leaderboardUrl, eventId); }
+    catch (e) { console.error("[GOLF] enriched leaderboard facts failed:", e.message); }
+    const course = facts ? (facts.courses.find(c => c?.host) || facts.courses[0] || null) : null;
+    const courseName  = course?.name || null;
+    const courseCity  = course?.address?.city  || null;
+    const courseState = course?.address?.state || null;
 
     const statsByAthlete = {};
     await Promise.all(top20.map(async entry => {
@@ -4357,12 +4323,12 @@ async function handleGolfEnriched(date, env, ctx) {
         }
     })();
 
-    // Failure never blocks the enriched payload (Rule 5): null, and the fields say so.
+    // The round the tee times are for: the scoreboard's, or before the first shot the
+    // round the competitors are teed up for (teeTimeRound, src/golf-tee-times.js).
     let teeTimes = null;
-    try {
-        teeTimes = await getGolfRoundTeeTimes(competitionRef, eventId, scoreboard.round, env);
-    } catch (e) {
-        console.error("[GOLF] enriched tee-times failed:", e.message);
+    if (facts) {
+        const round = teeTimeRound(scoreboard.round, facts.statuses);
+        if (round !== null) teeTimes = { ...summariseGolfTeeTimes(facts.statuses.filter(Boolean), round), competitors: facts.statuses.length };
     }
     const result = {
         active: true,
@@ -4378,12 +4344,12 @@ async function handleGolfEnriched(date, env, ctx) {
         // time (docs/CC-CMD-2026-11-16-golf-tee-times.md).
         startDate: scoreboard.startDate ?? null,
         timeValid: scoreboard.timeValid ?? null,
-        // The CURRENT round's real start and last tee, UTC, from per-competitor tee
-        // times; null when they could not be read. `teeTimes` says how many of the
+        // The CURRENT round's real start and last tee, UTC, from the competitors' tee
+        // times on ESPN's leaderboard; null when they could not be read. `teeTimes` says how many of the
         // round's competitors carried one, so a partial read is visible (Rule 91).
         roundStart:   teeTimes?.roundStart ?? null,
         roundLastTee: teeTimes?.roundLastTee ?? null,
-        teeTimes: teeTimes ? { inRound: teeTimes.inRound, withTeeTime: teeTimes.withTeeTime, failedReads: teeTimes.failedReads } : null,
+        teeTimes: teeTimes ? { round: teeTimes.round, inRound: teeTimes.inRound, withTeeTime: teeTimes.withTeeTime, competitors: teeTimes.competitors } : null,
         cutLine: scoreboard.cutLine ?? null,
         venue:         courseName,
         venueLocation: (courseCity && courseState) ? `${courseCity}, ${courseState}` : null,

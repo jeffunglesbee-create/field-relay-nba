@@ -1720,15 +1720,15 @@ game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-mat
 
 ## GET /v2/golf/enriched — round start times and ESPN's time flag (added 2026-11-18)
 
-`docs/CC-CMD-2026-11-16-golf-tee-times.md`, Task 2. Fields added to the active-tournament response (KV key `golf:enriched:v6:<date>`, 180 s):
+`docs/CC-CMD-2026-11-16-golf-tee-times.md`, Task 2. Fields added to the active-tournament response (KV key `golf:enriched:v7:<date>` since 2026-11-19, 180 s):
 
 | field | type | meaning |
 |---|---|---|
 | `startDate` | ISO string or null | the event's start as ESPN serves it; on every PGA event read so far a DATE with a midnight-ET placeholder time |
 | `timeValid` | boolean or null | ESPN's own flag on `startDate`; `false` means the time is not a time and must not be read as a tee time |
-| `roundStart` | ISO UTC or null | the CURRENT round's first tee: the earliest `teeTime` among competitors whose `period` is the round (ESPN core API, per competitor) |
+| `roundStart` | ISO UTC or null | the CURRENT round's first tee: the earliest `teeTime` among competitors whose `period` is the round (ESPN's golf leaderboard, one read) |
 | `roundLastTee` | ISO UTC or null | that round's latest `teeTime` |
-| `teeTimes` | `{ inRound, withTeeTime, failedReads }` or null | how many of the round's competitors were read and carried a time; null when the read failed |
+| `teeTimes` | `{ round, inRound, withTeeTime, competitors }` or null | which round the times are for (the scoreboard's `round`, or before the first shot the round the field is teed up for), how many competitors are in it and carry a time, out of how many on the leaderboard; null when the read failed. `failedReads` (2026-11-18 shape) is gone: there is one read, not one per competitor |
 
-- **Producer:** field-relay-nba (`getGolfRoundTeeTimes`, cached per event and round in KV `golf:teetimes:v1:<event>:<round>`, 6 h when every in-round competitor carried a time, else 10 min; called only from this route). **Consumer:** jubilant-bassoon `saveGolfRoundFinal` (`src/legacy/field.js`) posts `roundStart` as the archive row's `start_time`. jubilant-bassoon's copy of this contract must be synced with that change.
-- A `roundStart` of null is "not read", never "no round": the round number is still `round`.
+- **Producer:** field-relay-nba (`getGolfLeaderboardFacts`: `${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=<id>`, edge-cached 300 s, called only from this route; it also supplies `venue` and `venueLocation`, from the host course). Changed 2026-11-19 from ESPN's core API, which answers 403 to the Worker and left these fields null live. **Consumer:** jubilant-bassoon `saveGolfRoundFinal` (`src/legacy/field.js`) posts `roundStart` as the archive row's `start_time`. jubilant-bassoon's copy of this contract must be synced with that change.
+- A `roundStart` of null is "not read", never "no round". `round` is unchanged and can still be null before the first shot; `teeTimes.round` names the round `roundStart` belongs to.
