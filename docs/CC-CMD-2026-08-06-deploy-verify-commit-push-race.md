@@ -126,3 +126,8 @@ real before/after of the step, the run ID whose `Commit results` step
 passed, the forced-race evidence (or an explicit statement that it could
 not be induced), and the list of any other workflows found with the same
 unguarded-push pattern.
+
+## Note 2026-11-19: the two lines before the push loop
+
+The loop this CC-CMD built (a lost race retries, a permission failure fails) is unchanged and still guarded. The two statements ABOVE it were the same defect class the CC-CMD named for the push, and they stood until now: `git add ... || echo "(no ... artifact to stage)"` swallowed every add failure, and `if ! git commit ...; then echo "Nothing to commit"; exit 0` swallowed a refused commit. Fixed on the owner's order "fix deploy.yml's swallowed add": one `LC_ALL=C git add` per glob, only a bare "did not match any files" skipped (the 2026-08-06 empty-glob ruling is kept and tested), anything else exits 1. Check `scripts/check-deploy-commit-results.sh` (59 assertions, 13 red on the old step), mutants `scripts/mutate-deploy-commit-results.py`. Full text: `docs/CC-CMD-2026-09-14-git-state-swallow-sweep.md`, section "Found and fixed 2026-11-19".
+
