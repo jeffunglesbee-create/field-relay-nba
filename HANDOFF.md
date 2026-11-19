@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-19 (02:45Z) — the five ESPN core reads come from a runner mirror
+
+**HEAD:** `3a528c0` → `b9eeb46` · **Branch:** main · this close-out is the next commit. Two `src/` commits (`9701fdd`, `b9eeb46`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-19-espn-core-runner-mirror.md (task: the owner's "Move the 5 other relay routes to runners")
+
+- **Built and live:** a runner (`espn-core-mirror.yml`, dispatched by the relay's */15 tick, because GitHub's own schedule fires here a median 377 min apart) writes trimmed ESPN core bodies to ARCHIVE_DB `espn_core_mirror`; golf competitor-stats, golf eventlog, the enriched top-20 stats, `/soccer/xg` and `/soccer/sub-impact` read it. Backfill run 44444787613: 337 rows (50 team stats, 140 positions, 147 eventlogs), 0 failed. The relay's own dispatch ran at 02:30:25Z.
+- **First deploy red, fixed:** the absence-collapse ratchet caught `res.results || []` in the runner (`b9eeb46`); deploy 44443119261 green.
+- **Open:** golf stats once RSM round 1 starts (`trig_01Xgs5MBnCBxLJiUS41EPefg`, 17:30Z); live soccer freshness from 2026-11-21; two recorded findings (xg `_hasMatchStats` on all-zero feeds; eventlog `competitorId`), in `docs/CC-CMD-2026-10-14-espn-host-flip.md` Task 3.
+
 ## SESSION CLOSE-OUT — 2026-11-19 — golf tee times read from ESPN's leaderboard; the core API is 403 to the Worker
 
 **HEAD:** `140fa56` → `464d4f7` · **Branch:** main · this close-out is the next commit. One `src/` commit since the 11-18 close-out's change (`464d4f7`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).

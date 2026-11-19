@@ -5,7 +5,9 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (live outage) — every ESPN read in the relay answered 403
 **Status:** **OPEN.** Task 1 (re-point) **DONE** 2026-10-14 (`2142bad`, all three
-done conditions met); Tasks 2-4 open.
+done conditions met); Task 3 RULED 2026-11-19 (runner mirror) and STAGED (built `9701fdd`,
+`b9eeb46`, live on three of the five sites; golf stats and live soccer reads pending, below);
+Tasks 2 and 4 open.
 
 Successor to `docs/CC-CMD-2026-08-08-espn-site-api-403-p0.md`, whose Task 2
 this repeats in the other direction.
@@ -138,3 +140,49 @@ sport checked this outage would have been invisible.
 - `/v2/golf/enriched`'s course read and its new tee-time read (`docs/CC-CMD-2026-11-16-golf-tee-times.md`) now come from ESPN's golf **leaderboard** on `ESPN_API_BASE` (`464d4f7`): a different endpoint on the host the relay already reads everything else from, not a second host for the core API and not a per-request fallback. If the block flips, it moves with `ESPN_API_BASE`.
 - Still on the core API and still 403, unchanged here: `/v2/golf/eventlog`, `/v2/golf/competitor-stats` and the enriched route's top-20 stats (all of which call `handleGolfCompetitorStats`), `/soccer/xg`, `/soccer/sub-impact`. The leaderboard read before round 1 carries `statistics` per competitor (`scoreToPar`, `officialAmount`, `cupPoints`) and not the shot stats the top-20 path reads, so it is not a replacement for those; the owner's decision (a non-ESPN source, or the route says it is degraded) stands for them.
 - The tee-times build of 2026-11-18 put a new core read into this list without reading this CC-CMD. Recorded there as a BUILD-ON-A miss.
+
+### Task 3, 2026-11-19: RULED and BUILT, the five read sites moved to a runner mirror
+
+**Ruling (owner, 2026-11-19):** "Move the 5 other relay routes to runners." This is the decision the section above left open; it supersedes "a non-ESPN source, or the route says it is degraded" for these five sites.
+
+**Premises, each tried before building (Rule 100):**
+
+| premise | command | result |
+|---|---|---|
+| a runner can read every core URL the five sites use | `espn-core-runner-probe.yml` (`outbox/espn-core-runner-probe-*.json`) | **held**: 12 of 12 answered 200 (golf stats, eventlog, MLS/EPL/UCL team stats, athlete positions) |
+| the bodies carry values and fit D1 rows | the same | **held**: golf stats 6 KB with values (Austin winner -17, 299.2 yd); soccer team stats 64 KB raw with xG in all three leagues; eventlog 12 KB |
+| a GitHub schedule can keep a live mirror fresh | gaps between 60 scheduled runs of `wnba-slate-to-kv.yml` (`*/5`) and `auto-merge-stray-branches.yml` (`*/30`) | **refuted**: median 377 and 403 minutes apart (p90 507, 509). So the runner is DISPATCHED by the relay's */15 Cloudflare cron; dispatched runs start within seconds |
+| ESPN's scoreboard takes a date range, so a backfill is one read per league | `html_probe` `?dates=20261101-20261119` | **refuted**: HTTP 400. One read per league per day |
+
+**Built:** `9701fdd` (the mirror), `b9eeb46` (a failed read is said, after the absence-collapse ratchet stopped the first deploy on `res.results || []`).
+
+- `scripts/espn-core-mirror.mjs` (runner) reads and trims, then writes ARCHIVE_DB `espn_core_mirror` through `/d1/execute`, which allow-lists the table.
+- `.github/workflows/espn-core-mirror.yml` has no schedule. The relay dispatches it from the */15 tick (`dispatchEspnCoreMirror`). With `backfill_days`, it also sweeps finished soccer games further back.
+- The read sites call `readCoreMirror(env, <core path>)` (`src/espn-core-mirror.js`). No route names the core host, so the provenance stamps read `d1:ARCHIVE_DB`.
+- A missing row is said, not served as empty: xg `_mirror`, sub-impact `positionsUnresolved`, golf `mirroredAt` / `"not mirrored"`. `CONTRACTS.md` "ESPN core API mirror" covers it; jubilant-bassoon is synced (`e1395d6e`).
+- `check-espn-core-mirror` is in `deploy.yml`: 30 checks on raw runner-read bodies, self-test 11 of 11 mutants.
+
+**Verified live, 2026-11-19 02:30Z** (deploy run 44443119261, `deploy` and `verify` green):
+
+- Backfill run 44444787613 (7 days):
+  - 152 scoreboards, 25 finished games (League One, League Two, EFL Trophy; the top leagues are on the international break);
+  - 50 team stats, 140 athlete positions, 147 golf eventlogs written;
+  - 0 failed, 15 s.
+- Run 44444809145 at 02:30:25, with `backfill_days` 0, was the relay's own */15 dispatch; the only other dispatch was the backfill. It re-read nothing: everything was already final or fresh.
+- D1 holds 50 `soccer-team-stats` (all final, largest body 6,751 bytes), 140 `soccer-athlete` and 147 `golf-eventlog` rows.
+- `probe_relay_route` reads:
+  - `/v2/golf/eventlog?athleteId=3257`: `ok:true`, 18 PGA events, `mirroredAt` 02:30:39Z.
+  - `/soccer/xg?league=eng.3&event=401880743`: `_mirror {home 02:30:35.947Z, away 02:30:35.949Z, error null}`.
+  - `/soccer/sub-impact` on the same game: `positionsUnresolved: 0`.
+  - `/v2/golf/competitor-stats?eventId=401850981&athleteId=3257`: `{ok:false, error:"not mirrored"}`. RSM round 1 has not started, and the runner reads stats only once a player is on the course or finished.
+  - `/soccer/xg?league=usa.1&event=761934`: `_mirror.error "not mirrored"`. That game is older than the 7-day window, and the client's MLS scans look back 6 days.
+
+**Still to read** (done conditions, artifacts named):
+
+1. Golf stats during RSM round 1: `/v2/golf/competitor-stats?eventId=401850981&athleteId=<a player on the course>` returns `ok:true` with a `mirroredAt` under 20 minutes old. Read by `trig_01Xgs5MBnCBxLJiUS41EPefg` (17:30Z today), which reads `/v2/golf/enriched` and now also this.
+2. The next live soccer game (the top leagues return 2026-11-21): `/soccer/xg` `_mirror.home` under 5 minutes old during play.
+
+**Found while building, recorded and not changed here** (Rule 69):
+
+- **`/soccer/xg` reports `_hasMatchStats: true` on all-zero stats.** ESPN serves every League One team statistic as 0 for game 401880743, `totalGoals` included. Read raw through the browser tool on 2026-11-19, so the zeros are ESPN's, not the mirror's. The route sets `_hasMatchStats` from whether `possessionPct` exists, not from its value, so an empty feed reads as a real 0% match. The context assembler would then write a stats block of zeros. The fix is owner-scoped: what counts as "has match stats".
+- **`/v2/golf/eventlog` returns `competitorId` equal to the event id.** `extractId` takes the first `/(events|competitions|competitors)/(\d+)` match, so the competitor `$ref` yields its event id (live read above: `competitorId` 401811936 for athlete 3257). This predates the mirror. The route has no consumer in any of the three repos (grep, 2026-11-19).
