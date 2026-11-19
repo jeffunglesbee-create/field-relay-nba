@@ -53,3 +53,12 @@
 - **Recorded findings:**
   - `/soccer/xg` `_hasMatchStats` is true on all-zero ESPN stats.
   - `/v2/golf/eventlog` `competitorId` is the event id. That route has no consumer.
+
+## 17:31Z read
+
+- `/v2/golf/competitor-stats?eventId=401850981&athleteId=11101` (Max Greyserman, T1, thru 15) returned `ok:true`, `scoreToPar` -5, `driveDistAvg` 277.3, `gir` 73.33, `birdies` 5, `mirroredAt` 17:30:36Z.
+- `/v2/golf/enriched`'s top 20 carry real stats: 17 of 20 have a full set (`fieldAvg.n` 17).
+  - Three show `drivingDistance` 0 with other stats present, as served by ESPN: Dou thru 12, Springer thru 7, Ventura thru 7.
+  - Positions after 20 show zeros. That is the existing design: only the top 20 are enriched.
+- **Cadence:** 60 `espn-core-mirror.yml` runs from 02:45Z to 17:30Z, one per */15 tick, 0 failed (GitHub API, 17:31Z).
+- Item 2 (live soccer freshness) waits for 2026-11-21.

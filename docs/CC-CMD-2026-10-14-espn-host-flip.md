@@ -186,3 +186,12 @@ sport checked this outage would have been invisible.
 
 - **`/soccer/xg` reports `_hasMatchStats: true` on all-zero stats.** ESPN serves every League One team statistic as 0 for game 401880743, `totalGoals` included. Read raw through the browser tool on 2026-11-19, so the zeros are ESPN's, not the mirror's. The route sets `_hasMatchStats` from whether `possessionPct` exists, not from its value, so an empty feed reads as a real 0% match. The context assembler would then write a stats block of zeros. The fix is owner-scoped: what counts as "has match stats".
 - **`/v2/golf/eventlog` returns `competitorId` equal to the event id.** `extractId` takes the first `/(events|competitions|competitors)/(\d+)` match, so the competitor `$ref` yields its event id (live read above: `competitorId` 401811936 for athlete 3257). This predates the mirror. The route has no consumer in any of the three repos (grep, 2026-11-19).
+
+### "Still to read" item 1: PASSED, 2026-11-19 17:31Z
+
+- `/v2/golf/competitor-stats?eventId=401850981&athleteId=11101` (Max Greyserman, T1, thru 15) returned `ok:true`, `scoreToPar` -5, `driveDistAvg` 277.3, `gir` 73.33, `birdies` 5, `mirroredAt` 17:30:36Z.
+- `/v2/golf/enriched`'s top 20 carry real stats: 17 of 20 have a full set (`fieldAvg.n` 17).
+  - Three show `drivingDistance` 0 with other stats present, as served by ESPN: Dou thru 12, Springer thru 7, Ventura thru 7.
+  - Positions after 20 show zeros. That is the existing design: only the top 20 are enriched.
+- **Cadence:** 60 `espn-core-mirror.yml` runs from 02:45Z to 17:30Z, one per */15 tick, 0 failed (GitHub API, 17:31Z).
+- Item 2 (live soccer freshness) waits for 2026-11-21.

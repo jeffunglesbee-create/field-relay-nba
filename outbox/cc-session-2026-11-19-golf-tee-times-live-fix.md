@@ -40,3 +40,7 @@
 ## Still open
 
 - Still on the core API and still 403: `/v2/golf/eventlog`, `/v2/golf/competitor-stats` and the enriched top-20 stats, `/soccer/xg`, `/soccer/sub-impact`. These are recorded in the host-flip CC-CMD's Task 3; that decision is the owner's.
+
+## 17:30Z read
+
+`/v2/golf/enriched?date=2026-11-19` at 17:30:56Z: `status` "In Progress", `round` 1, `timeValid` false, `roundStart` `2026-11-19T13:30:00.000Z`, `roundLastTee` `2026-11-19T15:42:00.000Z`, `teeTimes` `{round 1, inRound 147, withTeeTime 147, competitors 147}`, `venue` Sea Island Golf Club (Seaside Course). Unchanged from the pre-round read and equal to the owner's screenshot. Read 2 (the archive row's `start_time`) is `trig_01RHFUoJYLWiiVM7hCh1nuva`, 2026-11-20 15:00Z.
