@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.email "claude@field.dev"
           git config user.name "FIELD CI"
-          git add outbox/espn-core-runner-probe-*
+          git add outbox/espn-core-runner-probe-* outbox/espn-core-fixtures
           git diff --staged --quiet && { echo "(nothing new)"; exit 0; }
           git commit -m "chore: ESPN core API runner probe artifact"
           for i in 1 2 3; do
