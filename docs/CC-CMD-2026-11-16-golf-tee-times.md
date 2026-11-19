@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (the source and the contract). One paired client change in jubilant-bassoon (Rule 70, ATOMIC-A): the relay deploys first, the client consumes.
 **Filed:** 2026-11-16 by CC, on the owner's order "file the relay CC-CMD for golf tee times", from the Deep Cuts design work (field-laboratory `docs/CC-CMD-2026-11-15-scout-daypart-picks.md`, section "Golf").
 **Confidence gate:** >= 95 before any commit
-**Status:** STAGED 2026-11-18 — Tasks 1 to 4 built and deployed: relay `140fa56` (Task 2) and `20eb710` (Task 4), client jubilant-bassoon `b3e2c878` (Task 3). The live done-condition reads wait for the RSM Classic round 1 (2026-11-19); a read is scheduled for 17:30Z that day (`trig_01Xgs5MBnCBxLJiUS41EPefg`).
+**Status:** STAGED 2026-11-19 — Tasks 1 to 4 built: relay `140fa56` (Task 2), `20eb710` (Task 4), and `464d4f7` (Task 2 rebuilt on ESPN's leaderboard after the live read failed, below); client jubilant-bassoon `b3e2c878` (Task 3). The live done-condition reads follow `464d4f7`'s deploy; a read is scheduled for 17:30Z on 2026-11-19 (`trig_01Xgs5MBnCBxLJiUS41EPefg`).
 
 ---
 
@@ -86,3 +86,29 @@ So Task 2 reads per competitor and filters to the current `period`. The cost to 
 1. Round 1 of the RSM Classic: `/v2/golf/enriched?date=2026-11-19` returns `active:true`, `timeValid:false`, `roundStart` and `roundLastTee` as ISO strings, `teeTimes.withTeeTime == teeTimes.inRound`, `failedReads 0`.
 2. After that round completes and a client archives it: `SELECT id, start_time FROM regular_season_games WHERE sport='golf' AND date='2026-11-19'` shows `start_time` equal to read 1's `roundStart`.
 3. No `sport='PGA Tour'` row created after 2026-11-18T01:30Z: `SELECT id, created_at FROM regular_season_games WHERE sport='PGA Tour' AND created_at > '2026-11-18 01:30:00'` returns none, read from 2026-11-20 on.
+
+## The live read failed, and Task 2 is rebuilt (2026-11-19)
+
+**Read 2026-11-19 00:40Z**, `/v2/golf/enriched?date=2026-11-19` (RSM Classic, before round 1): `active:true`, `round:null`, `timeValid:false`, `roundStart:null`, `teeTimes:null`, `venue:null`. The Austin Championship read (`?date=2026-11-15`) had `round:4` and still `roundStart` and `venue` null. Two causes:
+
+1. **ESPN's core API answers 403 to the Worker.** Measured through the relay's own `/web-fetch` (`.github/workflows/golf-core-reach-probe.yml`, artifact `outbox/golf-core-reach-probe-2026-11-19T00-41-40-114Z.json`):
+
+   | URL | the Worker | a GitHub runner, no User-Agent | a runner, the relay's User-Agent |
+   |---|---|---|---|
+   | site.api scoreboard (control) | 200 | 200 | 200 |
+   | core event 401850981 | 403 | 200 | 200 |
+   | core competition | 403 | 200 | 200 |
+   | core competitor status | 403 | 200 | 200 |
+
+   The discriminator is the egress IP, not a header. **This was already known:** `docs/CC-CMD-2026-10-14-espn-host-flip.md` Task 3 (2026-10-14) lists `/v2/golf/enriched`'s core read among five 403 read sites. Task 1's probe ran from a runner, where the core API answers, and the 11-18 build never read the host-flip CC-CMD (BUILD-ON-A miss). It is the source-versus-copy defect: a runner's reach was taken as the Worker's.
+2. **No round before the first shot.** The scoreboard's `round` comes from linescores, which are empty until play starts, so the reader returned null before it fetched anything.
+
+**The rebuild (`464d4f7`).** ESPN's golf leaderboard, `${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=<id>`, answered 200 from a Worker IP (html_probe), and in ONE request carries every competitor's `status` (`period`, UTC `teeTime`, `startHole`) and the event's `courses` with addresses. Read before round 1 (`outbox/golf-leaderboard-rsm-r1-2026-11-19.json`): 147 competitors, all at `period` 1, **147 of 147 with a teeTime, 13:30Z to 15:42Z** (13:30Z is 8:30 AM ET, the first tee in the owner's PGA Tour app screenshot), holes 1 (72) and 10 (75); `status.teeTime` equals the round-1 `linescores[].teeTime` for 147 of 147.
+
+- Task 1's premise "one request per competitor" is **struck**: it held for the core API; the leaderboard is a per-round tee sheet in all but name.
+- The round is `teeTimeRound(scoreboard.round, statuses)`: the scoreboard's round when it has one, else the highest `period` among competitors (players cut stay on the cut round's period).
+- `venue` and `venueLocation` now come from the leaderboard's host course; the core event read is gone from the route.
+- `teeTimes` is `{ round, inRound, withTeeTime, competitors }` (`failedReads` dropped: one read). KV key v7. `CONTRACTS.md` updated; the client reads only `roundStart`.
+- `check-golf-tee-times` 14/14 (adds the leaderboard read, the round choice and the wiring); self-test 9 of 9 mutants caught, among them "core API put back in the route" and "pre-round round left null".
+
+Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roundLastTee` `2026-11-19T15:42:00.000Z`, `teeTimes` `{round:1, inRound:147, withTeeTime:147}`, `venue` `Sea Island Golf Club (Seaside Course)`.

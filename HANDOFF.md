@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-19 — golf tee times read from ESPN's leaderboard; the core API is 403 to the Worker
+
+**HEAD:** `140fa56` → `464d4f7` · **Branch:** main · this close-out is the next commit. One `src/` commit since the 11-18 close-out's change (`464d4f7`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-19-golf-tee-times-live-fix.md (task: the owner's "Approved", diagnose and fix the failed tee-time read)
+
+- **The 11-18 build never worked live.** ESPN's core API answers 403 to the Worker (measured through the relay's own `/web-fetch`, `outbox/golf-core-reach-probe-2026-11-19T00-41-40-114Z.json`). This was already in `docs/CC-CMD-2026-10-14-espn-host-flip.md` Task 3, and the build did not read it. Separately, no round exists before the first shot.
+- **Fixed in `464d4f7`:** tee times and venue now come from ESPN's golf leaderboard on `ESPN_API_BASE`, one read; before play the round is the field's `period`. On the read before RSM round 1: 147/147 tee times, 13:30Z to 15:42Z.
+- **Unrecorded commits since `140fa56`:** `20eb710` (Task 4), the option-A one-shot and its follow-ups (another session and this one), the scheduled reads, and `5cc1947`/`f2dfd9e` (the reach probe). All are recorded in their own CC-CMDs and the 11-18 entry.
+- **Open:** the live done-condition reads after the deploy (`trig_01Xgs5MBnCBxLJiUS41EPefg` 17:30Z today, `trig_01RHFUoJYLWiiVM7hCh1nuva` 2026-11-20 15:00Z), and the five other core-API read sites (owner's decision, host-flip Task 3).
+
 ## SESSION CLOSE-OUT — 2026-11-18 — /v2/golf/enriched serves real golf round start times (Task 2 of the tee-times CC-CMD)
 
 **HEAD:** `02dd3cd` → `140fa56` · **Branch:** main · this close-out is the next commit. One `src/` commit (`140fa56`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).

@@ -131,3 +131,10 @@ sport checked this outage would have been invisible.
 - Do not add browser headers to the scoreboard fetch.
 - Do not touch the `cf` cache options.
 - Do not add a per-request host fallback without the Task 2 decision.
+
+### Task 3, 2026-11-19: one of the five read sites moved off the core API
+
+- **Re-measured through the relay's own `/web-fetch`** (`outbox/golf-core-reach-probe-2026-11-19T00-41-40-114Z.json`): the core golf event, competition and competitor status still answer **403** to the Worker, while the site.api scoreboard answers 200; a GitHub runner gets 200 on all four with or without a User-Agent.
+- `/v2/golf/enriched`'s course read and its new tee-time read (`docs/CC-CMD-2026-11-16-golf-tee-times.md`) now come from ESPN's golf **leaderboard** on `ESPN_API_BASE` (`464d4f7`): a different endpoint on the host the relay already reads everything else from, not a second host for the core API and not a per-request fallback. If the block flips, it moves with `ESPN_API_BASE`.
+- Still on the core API and still 403, unchanged here: `/v2/golf/eventlog`, `/v2/golf/competitor-stats` and the enriched route's top-20 stats (all of which call `handleGolfCompetitorStats`), `/soccer/xg`, `/soccer/sub-impact`. The leaderboard read before round 1 carries `statistics` per competitor (`scoreToPar`, `officialAmount`, `cupPoints`) and not the shot stats the top-20 path reads, so it is not a replacement for those; the owner's decision (a non-ESPN source, or the route says it is degraded) stands for them.
+- The tee-times build of 2026-11-18 put a new core read into this list without reading this CC-CMD. Recorded there as a BUILD-ON-A miss.
