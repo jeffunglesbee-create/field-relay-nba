@@ -1,0 +1,9 @@
+golf competitor-stats        200 6361 B {"event":"401850980","athlete":"11183","statCount":26,"picked":{"scoreToPar":-17,"driveDistAvg":299.2,"driveAccuracyPct":60.71,"gir":75,"girPoss":72,"puttsGirAv
+golf competitor-stats        200 6305 B {"event":"401850981","athlete":"3257","statCount":26,"picked":{"scoreToPar":0,"driveDistAvg":0,"driveAccuracyPct":0,"gir":0,"girPoss":0,"puttsGirAvg":0,"sandSav
+golf eventlog                200 12115 B {"items":19,"firstEventRef":"http://sports.core.api.espn.com/v2/sports/golf/leagues/ntw/events/401837433?lang=en&region=us"}
+usa.1: no completed event in 10 days
+eng.1: no completed event in 10 days
+uefa.champions: no completed event in 10 days
+
+checked 3 core reads from the runner: 3 answered 200
+wrote outbox/espn-core-runner-probe-2026-11-19T01-53-00-753Z.json

@@ -1,0 +1,75 @@
+{
+ "probedAt": "2026-11-19T01:53:00.753Z",
+ "samples": [
+  {
+   "site": "golf competitor-stats",
+   "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850980/competitions/401850980/competitors/11183/statistics/0",
+   "status": 200,
+   "bytes": 6361,
+   "ms": 281,
+   "event": "401850980",
+   "athlete": "11183",
+   "statCount": 26,
+   "picked": {
+    "scoreToPar": -17,
+    "driveDistAvg": 299.2,
+    "driveAccuracyPct": 60.71,
+    "gir": 75,
+    "girPoss": 72,
+    "puttsGirAvg": 1.704,
+    "sandSaves": 100,
+    "sandSavesPoss": 3,
+    "birdies": 25,
+    "bogeys": 8,
+    "doubleBogeysAndWorse": 0
+   }
+  },
+  {
+   "site": "golf competitor-stats",
+   "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981/competitions/401850981/competitors/3257/statistics/0",
+   "status": 200,
+   "bytes": 6305,
+   "ms": 48,
+   "event": "401850981",
+   "athlete": "3257",
+   "statCount": 26,
+   "picked": {
+    "scoreToPar": 0,
+    "driveDistAvg": 0,
+    "driveAccuracyPct": 0,
+    "gir": 0,
+    "girPoss": 0,
+    "puttsGirAvg": 0,
+    "sandSaves": 0,
+    "sandSavesPoss": 0,
+    "birdies": 0,
+    "bogeys": 0,
+    "doubleBogeysAndWorse": 0
+   }
+  },
+  {
+   "site": "golf eventlog",
+   "url": "https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/seasons/2026/athletes/11183/eventlog?limit=25",
+   "status": 200,
+   "bytes": 12115,
+   "ms": 60,
+   "items": 19,
+   "firstEventRef": "http://sports.core.api.espn.com/v2/sports/golf/leagues/ntw/events/401837433?lang=en&region=us"
+  },
+  {
+   "site": "soccer",
+   "league": "usa.1",
+   "note": "no completed event in 10 days"
+  },
+  {
+   "site": "soccer",
+   "league": "eng.1",
+   "note": "no completed event in 10 days"
+  },
+  {
+   "site": "soccer",
+   "league": "uefa.champions",
+   "note": "no completed event in 10 days"
+  }
+ ]
+}
