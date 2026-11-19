@@ -1,0 +1,82 @@
+{
+  "probedAt": "2026-11-19T00:41:40.115Z",
+  "event": "401850981",
+  "worker": {
+    "scoreboard_control": {
+      "relayHttp": 200,
+      "upstreamStatus": 200,
+      "ok": true,
+      "error": null,
+      "bytes": 62483,
+      "head": "{\"leagues\":[{\"id\":\"1106\",\"uid\":\"s:1100~l:1106\",\"name\":\"PGA Tour\",\"abbreviation\":\"PGA\",\"slug\":\"pga\",\"season\":{\"year\":2026,\"startDate\":\"2026-01-08T05:00Z\",\"endDat"
+    },
+    "core_event": {
+      "relayHttp": 200,
+      "upstreamStatus": 403,
+      "ok": false,
+      "error": null,
+      "bytes": 27,
+      "head": "403 Forbidden 403 Forbidden"
+    },
+    "core_competition": {
+      "relayHttp": 200,
+      "upstreamStatus": 403,
+      "ok": false,
+      "error": null,
+      "bytes": 27,
+      "head": "403 Forbidden 403 Forbidden"
+    },
+    "core_status": {
+      "relayHttp": 200,
+      "upstreamStatus": 403,
+      "ok": false,
+      "error": null,
+      "bytes": 27,
+      "head": "403 Forbidden 403 Forbidden"
+    }
+  },
+  "runnerNoUA": {
+    "scoreboard_control": {
+      "status": 200,
+      "bytes": 62483,
+      "head": "{\"leagues\":[{\"id\":\"1106\",\"uid\":\"s:1100~l:1106\",\"name\":\"PGA Tour\",\"abbreviation\":\"PGA\",\"slug\":\"pga\",\"season\":{\"year\":2026"
+    },
+    "core_event": {
+      "status": 200,
+      "bytes": 139625,
+      "head": "{\"$ref\":\"http://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981?lang=en&region=us\",\"id\":\"401850981\""
+    },
+    "core_competition": {
+      "status": 200,
+      "bytes": 127035,
+      "head": "{\"$ref\":\"http://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981/competitions/401850981?lang=en&regi"
+    },
+    "core_status": {
+      "status": 200,
+      "bytes": 600,
+      "head": "{\"$ref\":\"http://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981/competitions/401850981/competitors/"
+    }
+  },
+  "runnerUA": {
+    "scoreboard_control": {
+      "status": 200,
+      "bytes": 62483,
+      "head": "{\"leagues\":[{\"id\":\"1106\",\"uid\":\"s:1100~l:1106\",\"name\":\"PGA Tour\",\"abbreviation\":\"PGA\",\"slug\":\"pga\",\"season\":{\"year\":2026"
+    },
+    "core_event": {
+      "status": 200,
+      "bytes": 139625,
+      "head": "{\"$ref\":\"http://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981?lang=en&region=us\",\"id\":\"401850981\""
+    },
+    "core_competition": {
+      "status": 200,
+      "bytes": 127035,
+      "head": "{\"$ref\":\"http://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981/competitions/401850981?lang=en&regi"
+    },
+    "core_status": {
+      "status": 200,
+      "bytes": 600,
+      "head": "{\"$ref\":\"http://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/401850981/competitions/401850981/competitors/"
+    }
+  }
+}

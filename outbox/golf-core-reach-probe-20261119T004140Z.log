@@ -1,0 +1,5 @@
+scoreboard_control   worker(with UA): 200 | runner no UA: 200 | runner UA: 200
+core_event           worker(with UA): 403 | runner no UA: 200 | runner UA: 200
+core_competition     worker(with UA): 403 | runner no UA: 200 | runner UA: 200
+core_status          worker(with UA): 403 | runner no UA: 200 | runner UA: 200
+wrote outbox/golf-core-reach-probe-2026-11-19T00-41-40-114Z.json
