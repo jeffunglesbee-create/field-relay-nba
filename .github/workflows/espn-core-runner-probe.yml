@@ -1,0 +1,45 @@
+name: ESPN core API runner probe
+
+# docs/CC-CMD-2026-10-14-espn-host-flip.md Task 3: can a runner read every core URL the five 403'd read
+# sites use, and how large are the bodies. Dispatch only.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Probe
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          node scripts/espn-core-runner-probe.mjs 2>&1 | tee "outbox/espn-core-runner-probe-${TS}.log"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/espn-core-runner-probe-*
+          git diff --staged --quiet && { echo "(nothing new)"; exit 0; }
+          git commit -m "chore: ESPN core API runner probe artifact"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop above exits 0 when ALL THREE attempts fail: its last command is `sleep`.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
