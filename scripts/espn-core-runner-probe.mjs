@@ -33,11 +33,11 @@ for (const [ev, ath] of [['401850980', '11183'], ['401850981', '3257']]) {
 const day = n => { const d = new Date(Date.now() - n * 86400000); return d.toISOString().slice(0, 10).replace(/-/g, '') }
 for (const lg of ['usa.1', 'eng.1', 'uefa.champions']) {
   let ev = null
-  for (let n = 1; n <= 10 && !ev; n++) {
+  for (let n = 1; n <= 21 && !ev; n++) {
     const sb = await get(`${SITE}/sports/soccer/${lg}/scoreboard?dates=${day(n)}`)
     ev = (sb.json?.events || []).find(e => e?.status?.type?.completed) || null
   }
-  if (!ev) { console.log(`${lg}: no completed event in 10 days`); out.samples.push({ site: 'soccer', league: lg, note: 'no completed event in 10 days' }); continue }
+  if (!ev) { console.log(`${lg}: no completed event in 21 days`); out.samples.push({ site: 'soccer', league: lg, note: 'no completed event in 21 days' }); continue }
   const comp = ev.competitions?.[0]
   for (const c of comp?.competitors || []) {
     const r = await get(`${CORE}/soccer/leagues/${lg}/events/${ev.id}/competitions/${ev.id}/competitors/${c.id}/statistics`)
