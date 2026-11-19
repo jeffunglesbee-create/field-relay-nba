@@ -53,7 +53,11 @@ const statsOnly = (stats) => (Array.isArray(stats) ? stats : [])
 export function trimCoreBody(kind, body) {
     if (!body || typeof body !== 'object') return null;
     if (kind === 'golf-competitor-stats' || kind === 'soccer-team-stats') {
-        const out = { splits: { categories: (body.splits?.categories || []).map(c => ({ name: c?.name ?? null, stats: statsOnly(c?.stats) })) } };
+        // A body with no statistics at all is not stored as one with empty statistics: the runner
+        // counts it failed, and the route keeps saying "not mirrored".
+        const cats = Array.isArray(body.splits?.categories) ? body.splits.categories : null;
+        if (!cats && !Array.isArray(body.stats)) return null;
+        const out = { splits: { categories: (cats ?? []).map(c => ({ name: c?.name ?? null, stats: statsOnly(c?.stats) })) } };
         if (Array.isArray(body.stats)) out.stats = statsOnly(body.stats);
         return out;
     }

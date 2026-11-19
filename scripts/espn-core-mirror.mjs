@@ -78,7 +78,9 @@ async function mirrored(keys) {
     const chunk = keys.slice(i, i + 90)
     if (!chunk.length) continue
     const res = await d1(`SELECT url, final, fetched_at FROM ${CORE_MIRROR_TABLE} WHERE url IN (${chunk.map(() => '?').join(',')})`, chunk)
-    for (const row of res.results || []) out.set(row.url, row)
+    // A SELECT answer without a results array is a failed read, not "nothing mirrored".
+    if (!Array.isArray(res.results)) throw new Error(`d1 SELECT returned no results array: ${JSON.stringify(res).slice(0, 200)}`)
+    for (const row of res.results) out.set(row.url, row)
   }
   return out
 }
@@ -119,7 +121,10 @@ async function soccerPass(leagues, days) {
   for (const lg of leagues) {
     for (const day of days) {
       const sb = await getJson(`${SITE}/soccer/${lg}/scoreboard?dates=${day}`)
-      for (const ev of sb.json?.events || []) {
+      count('site soccer scoreboard', 'wanted')
+      if (!Array.isArray(sb.json?.events)) { count('site soccer scoreboard', 'failed'); console.error(`  site ${sb.status ?? sb.error} ${lg} ${day}`); continue }
+      count('site soccer scoreboard', 'answered')
+      for (const ev of sb.json.events) {
         const state = ev?.status?.type?.state || ev?.competitions?.[0]?.status?.type?.state
         if (state !== 'in' && state !== 'post') continue
         if (state === 'in') live.add(lg)
@@ -129,7 +134,13 @@ async function soccerPass(leagues, days) {
   }
   const games = [...byId.values()]
   const teamUrl = (g, c) => `${CORE}/soccer/leagues/${g.lg}/events/${g.ev.id}/competitions/${g.ev.id}/competitors/${c.id}/statistics`
-  const teamUrls = games.flatMap(g => (g.ev.competitions?.[0]?.competitors || []).map(c => ({ url: teamUrl(g, c), final: g.state === 'post', game: g })))
+  const teamUrls = []
+  for (const g of games) {
+    const cs = g.ev.competitions?.[0]?.competitors
+    // A started or finished game always lists its two sides; one that does not is a bad read, said.
+    if (!Array.isArray(cs) || cs.length !== 2) { count('site soccer scoreboard', 'failed'); console.error(`  site ${g.lg} ${g.ev.id}: ${Array.isArray(cs) ? cs.length : 'no'} competitors`); continue }
+    for (const c of cs) teamUrls.push({ url: teamUrl(g, c), final: g.state === 'post', game: g })
+  }
   const have = await mirrored(teamUrls.map(t => coreMirrorKey(t.url)))
   // A finished game whose two sides are already final is done; everything else is read.
   const want = teamUrls.filter(t => !(t.final && have.get(coreMirrorKey(t.url))?.final === 1))
@@ -140,7 +151,12 @@ async function soccerPass(leagues, days) {
   const athleteUrls = []
   for (const g of wantGames) {
     const sum = await getJson(`${SITE}/soccer/${g.lg}/summary?event=${g.ev.id}`)
-    for (const k of sum.json?.keyEvents || []) {
+    count('site soccer summary', 'wanted')
+    if (!sum.json) { count('site soccer summary', 'failed'); console.error(`  site ${sum.status ?? sum.error} summary ${g.lg} ${g.ev.id}`); continue }
+    count('site soccer summary', 'answered')
+    // A game with no key events yet (kickoff minutes ago) has no substitutions to read.
+    const keyEvents = Array.isArray(sum.json.keyEvents) ? sum.json.keyEvents : []
+    for (const k of keyEvents) {
       if (k?.type?.text !== 'Substitution') continue
       const on = k.participants?.[0]?.athlete?.id
       if (on) athleteUrls.push(`${CORE}/soccer/leagues/${g.lg}/athletes/${on}`)
@@ -158,9 +174,13 @@ async function soccerPass(leagues, days) {
 // ── Golf ──────────────────────────────────────────────────────────────────────
 async function golfPass() {
   const lb = await getJson(`${SITE}/golf/leaderboard?league=pga`)
-  const ev = lb.json?.events?.[0]
-  if (!ev) { console.log(`golf: no PGA event on the leaderboard (HTTP ${lb.status})`); return }
-  const comps = ev.competitions?.[0]?.competitors || []
+  count('site golf leaderboard', 'wanted')
+  if (!lb.json) { count('site golf leaderboard', 'failed'); console.error(`  site ${lb.status ?? lb.error} golf leaderboard`); return }
+  count('site golf leaderboard', 'answered')
+  const ev = Array.isArray(lb.json.events) ? lb.json.events[0] : undefined
+  if (!ev) { console.log('golf: the leaderboard lists no PGA event (an off week)'); return }
+  const comps = ev.competitions?.[0]?.competitors
+  if (!Array.isArray(comps)) { count('site golf leaderboard', 'failed'); console.error(`  site golf leaderboard: event ${ev.id} lists no competitors`); return }
   const season = ev.season?.year
   const anyOn = comps.some(c => c?.status?.type?.state === 'in')
   const statUrl = c => `${CORE}/golf/leagues/pga/events/${ev.id}/competitions/${ev.id}/competitors/${c.id}/statistics/0`
