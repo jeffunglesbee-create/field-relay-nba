@@ -44,3 +44,10 @@
 ## 17:30Z read
 
 `/v2/golf/enriched?date=2026-11-19` at 17:30:56Z: `status` "In Progress", `round` 1, `timeValid` false, `roundStart` `2026-11-19T13:30:00.000Z`, `roundLastTee` `2026-11-19T15:42:00.000Z`, `teeTimes` `{round 1, inRound 147, withTeeTime 147, competitors 147}`, `venue` Sea Island Golf Club (Seaside Course). Unchanged from the pre-round read and equal to the owner's screenshot. Read 2 (the archive row's `start_time`) is `trig_01RHFUoJYLWiiVM7hCh1nuva`, 2026-11-20 15:00Z.
+
+## 2026-11-20
+
+- **Unblocked:** the deploy of `3cbe458` (run 44761140537) stopped at the staged-claim gate on another session's untagged claim. A verifier was built and the claim tagged (`8d25d02`). The owner ordered the deploy dispatched (2026-11-20, "Dispatch now"): run 44763794787 on `8d25d02`, `deploy` and `verify` green.
+- **Live read, round 2:** `/v2/golf/enriched?date=2026-11-20` returns `round` 2, `roundStart` `2026-11-20T13:30:00.000Z`, `roundLastTee` `2026-11-20T15:42:00.000Z`, `teeTimes {round 2, inRound 145, withTeeTime 145, competitors 147}`.
+- **Round-1 rows corrected** on the owner's GO (2026-11-20, "Correct both to 13:30Z"). Run 44763910890 (`scripts/fix-rsm-r1-start-time.mjs`, log `outbox/fix-rsm-r1-start-time-*.log`) changed one row per UPDATE. Read back: `golf_2026-11-19_thersmclassic_r1` and `golf_2026-11-20_thersmclassic_r1` both carry `start_time` `2026-11-19T13:30:00.000Z`.
+- **Still to read:** the round-2 archive row after round 2 completes, `start_time` `2026-11-20T13:30:00.000Z`. Armed below.
