@@ -4145,8 +4145,17 @@ async function getGolfLeaderboardFacts(url, eventId) {
         const ev = (data.events || []).find(e => String(e?.id) === String(eventId)) || null;
         if (!ev) { console.error(`[GOLF] leaderboard has no event ${eventId}`); return null; }
         const competitors = ev.competitions?.[0]?.competitors;
+        // Each round's tee times come from the competitor's linescores, one entry per
+        // round with its own teeTime. `status` names only the CURRENT round: once a
+        // player finishes round 1 it moves to period 2, so a round read from `status`
+        // loses its earliest groups as they finish (2026-11-19: the RSM round-1 row
+        // was archived at 13:41Z against a 13:30Z first tee; at 2026-11-20 15:05Z
+        // status showed 145 of 147 at period 2 and linescores kept all 147 round-1
+        // times, outbox/golf-leaderboard-rsm-r2-2026-11-20.json).
+        const list = Array.isArray(competitors) ? competitors : [];
         return {
-            statuses: Array.isArray(competitors) ? competitors.map(c => c?.status) : [],
+            statuses: list.map(c => c?.status),
+            roundTees: list.flatMap(c => (Array.isArray(c?.linescores) ? c.linescores : []).map(l => ({ period: l?.period, teeTime: l?.teeTime }))),
             courses: Array.isArray(ev.courses) ? ev.courses : [],
         };
     } catch (e) {
@@ -4165,7 +4174,8 @@ async function handleGolfEnriched(date, env, ctx) {
     // immediately rather than waiting out the 180s active TTL.
     // v6 (2026-11-18): timeValid, startDate, roundStart, roundLastTee, teeTimes.
     // v7 (2026-11-19): tee times and venue from the leaderboard; teeTimes.round.
-    const cacheKey = `golf:enriched:v7:${date_clean}`;
+    // v8 (2026-11-20): each round's tee times from linescores, not the current-round status.
+    const cacheKey = `golf:enriched:v8:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -4320,7 +4330,7 @@ async function handleGolfEnriched(date, env, ctx) {
     let teeTimes = null;
     if (facts) {
         const round = teeTimeRound(scoreboard.round, facts.statuses);
-        if (round !== null) teeTimes = { ...summariseGolfTeeTimes(facts.statuses.filter(Boolean), round), competitors: facts.statuses.length };
+        if (round !== null) teeTimes = { ...summariseGolfTeeTimes(facts.roundTees, round), competitors: facts.statuses.length };
     }
     const result = {
         active: true,

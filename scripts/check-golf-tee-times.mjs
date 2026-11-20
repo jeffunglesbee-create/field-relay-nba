@@ -48,6 +48,15 @@ const run = (summarise, pickRound, src) => {
   const cut = pickRound(null, [{ period: 2 }, { period: 4 }, { period: 4 }, {}])
   check('players cut stay on their period; the current round is the highest', cut === 4, String(cut))
 
+  // Read during round 2: status names only the current round, linescores keep every round.
+  const rsmR2 = JSON.parse(readFileSync('outbox/golf-leaderboard-rsm-r2-2026-11-20.json', 'utf8')).competitors
+  const tees = rsmR2.flatMap(c => c.linescores)
+  const past = summarise(tees, 1)
+  check('round 1 read back during round 2, from linescores: 147 of 147, first 13:30Z, last 15:42Z',
+    past.inRound === 147 && past.withTeeTime === 147 && past.roundStart === '2026-11-19T13:30:00.000Z' && past.roundLastTee === '2026-11-19T15:42:00.000Z', JSON.stringify(past))
+  const cur = summarise(tees, 2)
+  check('round 2 from linescores: first 13:30Z on 11-20', cur.roundStart === '2026-11-20T13:30:00.000Z' && cur.withTeeTime === cur.inRound, JSON.stringify(cur))
+
   const enriched = src.slice(src.indexOf('async function handleGolfEnriched('))
   const body = enriched.slice(0, enriched.indexOf('\nasync function ', 10))
   check('/v2/golf/enriched serves roundStart, roundLastTee, timeValid and teeTimes',
@@ -59,6 +68,8 @@ const run = (summarise, pickRound, src) => {
     body.includes('`${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=') && body.includes('getGolfLeaderboardFacts(leaderboardUrl, eventId)') && reader.includes('fetch(url'), 'no ESPN_API_BASE leaderboard read')
   check('no core-API read is left in the enriched route (403 from the Worker)', !body.includes('sports.core.api.espn.com') && !reader.includes('sports.core.api.espn.com'), 'a core-API URL is in the route')
   check('the round comes from teeTimeRound(scoreboard.round, ...)', body.includes('teeTimeRound(scoreboard.round, facts.statuses)'), 'the round is not chosen by teeTimeRound')
+  check('the tee times are summarised from linescores (roundTees), not the current-round status',
+    body.includes('summariseGolfTeeTimes(facts.roundTees, round)') && /roundTees: list\.flatMap\(c => \(Array\.isArray\(c\?\.linescores\)/.test(reader), 'not read from linescores')
   return results
 }
 
@@ -83,6 +94,7 @@ if (process.argv.includes('--self-test')) {
     'scoreboard round ignored': [S, (sb, st) => R(null, st), src],
     'core API put back in the route': [S, R, srcMut('const leaderboardUrl = `${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=', 'const leaderboardUrl = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/${eventId}`; const _u = `/sports/golf/leaderboard?league=pga&event=')],
     'the helper fetches something other than the URL it is given': [S, R, srcMut('        const r = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });\n        if (!r.ok) { console.error(`[GOLF] leaderboard read', '        const r = await fetch(String(eventId), { cf: { cacheTtl: 300, cacheEverything: true } });\n        if (!r.ok) { console.error(`[GOLF] leaderboard read')],
+    'tee times read from status again': [S, R, srcMut('summariseGolfTeeTimes(facts.roundTees, round)', 'summariseGolfTeeTimes(facts.statuses.filter(Boolean), round)')],
     'round not chosen by teeTimeRound': [S, R, srcMut('teeTimeRound(scoreboard.round, facts.statuses)', 'Number(scoreboard.round)')],
   }
   let survived = 0

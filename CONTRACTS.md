@@ -1752,13 +1752,13 @@ game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-mat
 
 ## GET /v2/golf/enriched — round start times and ESPN's time flag (added 2026-11-18)
 
-`docs/CC-CMD-2026-11-16-golf-tee-times.md`, Task 2. Fields added to the active-tournament response (KV key `golf:enriched:v7:<date>` since 2026-11-19, 180 s):
+`docs/CC-CMD-2026-11-16-golf-tee-times.md`, Task 2. Fields added to the active-tournament response (KV key `golf:enriched:v8:<date>` since 2026-11-20, 180 s):
 
 | field | type | meaning |
 |---|---|---|
 | `startDate` | ISO string or null | the event's start as ESPN serves it; on every PGA event read so far a DATE with a midnight-ET placeholder time |
 | `timeValid` | boolean or null | ESPN's own flag on `startDate`; `false` means the time is not a time and must not be read as a tee time |
-| `roundStart` | ISO UTC or null | the CURRENT round's first tee: the earliest `teeTime` among competitors whose `period` is the round (ESPN's golf leaderboard, one read) |
+| `roundStart` | ISO UTC or null | the CURRENT round's first tee: the earliest `teeTime` among competitors whose leaderboard `linescores[]` entry for that round carries a `teeTime` (ESPN's golf leaderboard, one read; since 2026-11-20 from linescores, because `status` names only the current round) |
 | `roundLastTee` | ISO UTC or null | that round's latest `teeTime` |
 | `teeTimes` | `{ round, inRound, withTeeTime, competitors }` or null | which round the times are for (the scoreboard's `round`, or before the first shot the round the field is teed up for), how many competitors are in it and carry a time, out of how many on the leaderboard; null when the read failed. `failedReads` (2026-11-18 shape) is gone: there is one read, not one per competitor |
 
