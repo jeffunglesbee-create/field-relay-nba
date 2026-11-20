@@ -103,6 +103,18 @@ jobs:
       - name: the Commit results mutants still have an anchor in deploy.yml
         run: python3 scripts/mutate-deploy-commit-results.py --anchors-only
 
+      # The deploy job's own gate "a staged claim names a verifier that exists and runs" scans
+      # docs/ for a STAGED claim with no verifier, and until 2026-11-20 it ran ONLY there. A docs
+      # push does not deploy (deploy.yml triggers on src/**, wrangler.toml and workers/** and this
+      # workflow on everything else), so an orphan claim sat on main until the next unrelated
+      # src push, which it then stopped: run 44761140537 (the golf linescores fix) on 2026-11-20,
+      # caused by the claim added by 1bb8b9b. The third time: the same text is in
+      # scripts/staged-verdicts.mjs for the odds budget item (2026-09-19) and the vendor watch.
+      # It is the only deploy-job gate that reads docs/ (checked: 13 gate scripts the deploy job
+      # runs and this workflow does not; one scans docs/). Here, a docs push is checked at push.
+      - name: a staged claim names a verifier that exists and runs (the deploy job's own gate, at push time)
+        run: node scripts/staged-verifier-check.mjs --self-test && node scripts/staged-verifier-check.mjs
+
       # Task 1 of CC-CMD-2026-09-18. The CC-CMD says the schema goes in `DB`
       # (field-d1). It is wrong, and the check exists because the document is
       # what a later session will read: wrangler.toml gives DB and WC2026_DB the
