@@ -1,0 +1,32 @@
+=== odds site drift  utc=2026-11-20T22:00:03.579Z ===
+
+  this reading   : 2026-11-20  used 165  by_site_sum 165  gap 0
+  ceiling        : no veto recorded today
+  unreadable     : none
+  reconcile      : 165 call(s) over 12 cell(s), credits_kept 399 of used 165
+    site                        state         cache        n   kept
+    handleCFLOddsProbs          error         HIT           39    234
+    archiveGameClosing          reconciled    MISS           3     90
+    fetchSportOddsLive          reconciled    MISS          13     39
+    ambientCaptureClosingOdds   reconciled    EXPIRED        7     21
+    ambientCaptureClosingOdds   reconciled    MISS           4     12
+    fetchSportOddsLive          reconciled    EXPIRED        1      3
+    handleCFLOddsProbs          cache-hit     HIT           84      0
+    handleCFLOddsProbs          reconciled    EXPIRED        8      0
+    ... and 4 more cell(s), ranked by kept
+  samples on file: 60  (keeping the last 60)
+
+  INTERVALS for 2026-11-20
+  from      to        usedD    gapD   verdict
+  04:32     14:27       78       0   gap-did-not-grow
+  14:27     22:00       63       0   gap-did-not-grow
+
+  verdict: inconclusive  over 2 interval(s) of 3 same-day sample(s)
+
+  store    : d1
+  a green here means: batch() is one transaction — the counters cannot disagree unless it is not
+
+COVERAGE: 3 sample(s) of the 2026-11-20 UTC day, 2 interval(s).
+Cross-midnight pairs are REFUSED, not merged, so a day's first reading yields no
+interval. A refund that lands and is undone between two samples is invisible —
+the sampling interval is the floor on what this can see.
