@@ -1,0 +1,8 @@
+[before] golf_2026-11-19_thersmclassic_r1 start_time=2026-11-19T13:41:00.000Z
+[before] golf_2026-11-20_thersmclassic_r1 start_time=2026-11-19T13:41:00.000Z
+[update] golf_2026-11-19_thersmclassic_r1 changes=1
+[update] golf_2026-11-20_thersmclassic_r1 changes=1
+[after]  golf_2026-11-19_thersmclassic_r1 start_time=2026-11-19T13:30:00.000Z
+[after]  golf_2026-11-20_thersmclassic_r1 start_time=2026-11-19T13:30:00.000Z
+
+Done: both RSM round-1 rows carry the round's first tee, 13:30Z.
