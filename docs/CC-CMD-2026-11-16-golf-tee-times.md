@@ -120,3 +120,13 @@ Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roun
 ### Read at 17:30Z, round 1 in play: PASSED
 
 `/v2/golf/enriched?date=2026-11-19` at 17:30:56Z: `status` "In Progress", `round` 1, `timeValid` false, `roundStart` `2026-11-19T13:30:00.000Z`, `roundLastTee` `2026-11-19T15:42:00.000Z`, `teeTimes` `{round 1, inRound 147, withTeeTime 147, competitors 147}`, `venue` Sea Island Golf Club (Seaside Course). Unchanged from the pre-round read and equal to the owner's screenshot. Read 2 (the archive row's `start_time`) is `trig_01RHFUoJYLWiiVM7hCh1nuva`, 2026-11-20 15:00Z.
+
+### Reads 2 and 3, 2026-11-20 15:01Z: 3 PASSED, 2 FAILED, the cause fixed
+
+- **Read 3 PASSED:** `SELECT id, created_at FROM regular_season_games WHERE sport='PGA Tour' AND created_at > '2026-11-18 01:30:00'` returns no rows.
+- **Read 2 FAILED:** `golf_2026-11-19_thersmclassic_r1` (created 2026-11-19 22:40:57) and `golf_2026-11-20_thersmclassic_r1` (created 2026-11-20 12:11:45, the known second-viewer-date row) both carry `start_time` `2026-11-19T13:41:00.000Z`. The round's first tee was 13:30Z.
+- **Cause:** a competitor's `status` on ESPN's leaderboard names only its CURRENT round. The live read at 15:05Z showed 145 of 147 at `period` 2, while `linescores[]` kept all 147 round-1 tee times (13:30Z to 15:42Z). By the time round 1 was archived, enough players had moved to period 2 that the earliest round-1 time still visible in `status` was 13:41Z. The premise "teeTime is the current round's" in the table above was right, and that is exactly why `status` cannot serve a finished round. The 11-18 build relied on it for both.
+- **Fix:** each round's tee times are now read from the leaderboard's `linescores[]`, one teeTime per round. Fixture `outbox/golf-leaderboard-rsm-r2-2026-11-20.json`. On the same read the old summary returns round 1 with 2 players and no start; the new one returns 147 and 13:30Z.
+- **The two archived rows are left as written.** Correcting their `start_time` to 13:30Z is a production write, and the choice is the owner's. The second row is the duplicate-date behaviour recorded under Task 3, not changed here.
+- **Re-read:** the round-2 archive row after round 2 completes: `start_time` must be `2026-11-20T13:30:00.000Z`.
+
