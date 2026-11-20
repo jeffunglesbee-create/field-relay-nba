@@ -291,6 +291,18 @@ export const cflAbortRepeatLosesNothing = ({ repeats, verdict, effective, calls,
 // The defect this exists to catch: the repeat came back lossy, so the registration did not keep the call alive on this route.
 cflAbortRepeatLosesNothing.mustFailOn = { repeats: 1, verdict: 'abort-loses-refund-and-tally', effective: 5, calls: 5, byDelta: 6, hitDelta: 0 }
 
+/// Did the fixed `Commit results` step of deploy.yml's `verify` job work on a real deploy?
+/// docs/CC-CMD-2026-09-14-git-state-swallow-sweep.md, the STAGED item "the fixed `Commit results`
+/// step on a real deploy" (fixed 2026-11-19, `1bb8b9b`). `found` is false until a Deploy run created
+/// after the fix has a `verify` job that actually RAN: a run stopped at a deploy gate skips `verify`
+/// and tests nothing, so it is PENDING, never FAIL.
+export const deployCommitResults = ({ found, deployConclusion, stepConclusion, pushed, errorLines }) =>
+  !found ? 'PENDING — no Deploy run since the fix has reached its verify job'
+  : (deployConclusion === 'success' && stepConclusion === 'success' && pushed && errorLines === 0) ? 'PASS'
+  : `FAIL — deploy ${deployConclusion}, Commit results ${stepConclusion}, ${pushed ? 'pushed' : 'no "Pushed verification note" line'}, ${errorLines} error line(s) in the step`
+// The defect it exists to catch: the step ran and failed, or claimed nothing and errored.
+deployCommitResults.mustFailOn = { found: true, deployConclusion: 'failure', stepConclusion: 'failure', pushed: false, errorLines: 1 }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
@@ -301,4 +313,5 @@ export const VERDICTS = {
   odds_budget_charging: oddsBudgetCharging,
   vendor_watch_window_aligned: vendorWatchWindowAligned,
   cfl_abort_repeat_loses_nothing: cflAbortRepeatLosesNothing,
+  deploy_commit_results: deployCommitResults,
 }

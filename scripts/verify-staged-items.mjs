@@ -42,7 +42,7 @@ import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
          threadNotesCleanup, d1WriteProvenance,
          oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
-         cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs';
+         cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles, deployCommitResults } from './staged-verdicts.mjs';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -134,7 +134,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 9;
+const EXPECTED_CHECKS = 10;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -717,6 +717,65 @@ try {
     add({
         id: 'cfl_abort_repeat_loses_nothing',
         what: 'a repeat of the CFL abort experiment returns abort-loses-nothing',
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
+
+// ── 10. Did the fixed `Commit results` step work on a real deploy? ────────────
+// docs/CC-CMD-2026-09-14-git-state-swallow-sweep.md STAGED item. Read from the
+// GitHub Actions API with the workflow's own GITHUB_TOKEN (actions: read). The
+// newest Deploy run created after the fix whose `verify` job RAN is the one that
+// tests it; a run stopped at a deploy gate skips `verify` and is not evidence.
+try {
+    const GH = 'https://api.github.com/repos/jeffunglesbee-create/field-relay-nba';
+    const FIX_AT = '2026-11-19T02:52:39Z';
+    const gh = async (path) => {
+        const r = await fetch(`${GH}${path}`, { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'field-staged-verification' } });
+        if (!r.ok) throw new Error(`GitHub ${r.status} ${path}`);
+        return r;
+    };
+    if (!process.env.GITHUB_TOKEN) throw new Error('GITHUB_TOKEN is not set');
+    const runs = (await (await gh(`/actions/workflows/deploy.yml/runs?per_page=30&created=%3E${FIX_AT}`)).json()).workflow_runs;
+    if (!Array.isArray(runs)) throw new Error('the runs listing has no workflow_runs array');
+    let chosen = null;
+    for (const run of runs) {   // newest first
+        if (run.status !== 'completed') continue;
+        const jobs = (await (await gh(`/actions/runs/${run.id}/jobs`)).json()).jobs;
+        const verify = Array.isArray(jobs) ? jobs.find(j => j.name === 'verify') : null;
+        if (!verify || verify.conclusion === 'skipped' || !Array.isArray(verify.steps)) continue;
+        const step = verify.steps.find(st => st.name === 'Commit results');
+        if (!step || step.conclusion === 'skipped') continue;
+        const log = await (await gh(`/actions/jobs/${verify.id}/logs`)).text();
+        // The step's own section: from its first command to the next step's group.
+        const start = log.indexOf('##[group]Run git config user.name "github-actions[bot]"');
+        // It ends at the next step or, for the job's last step, at "Post job cleanup.".
+        const ends = start < 0 ? [] : [log.indexOf('##[group]Run ', start + 10), log.indexOf('Post job cleanup.', start)].filter(i => i > 0);
+        const seg = start < 0 ? '' : log.slice(start, ends.length ? Math.min(...ends) : undefined);
+        chosen = { run, step, seg, sectionFound: start >= 0 };
+        break;
+    }
+    const v = chosen
+        ? { found: true, deployConclusion: chosen.run.conclusion, stepConclusion: chosen.step.conclusion,
+            pushed: /Pushed verification note on attempt \d+\./.test(chosen.seg),
+            // An emitted error is a line whose text, after the timestamp, begins with ##[error].
+            // The step's echoed script contains `echo "::error::..."` as source, which is not one
+            // (measured on run 44443119261's verify log).
+            errorLines: chosen.seg.split('\n').filter(l => /^\S+\s##\[error\]/.test(l)).length + (chosen.sectionFound ? 0 : 1) }
+        : { found: false };
+    add({
+        id: 'deploy_commit_results',
+        what: "deploy.yml's verify job Commit results step, as fixed on 2026-11-19, pushes its note on a real deploy",
+        qualifying_rows: chosen ? 1 : 0,
+        status: deployCommitResults(v),
+        run: chosen ? { id: chosen.run.id, created_at: chosen.run.created_at, head_sha: chosen.run.head_sha } : null,
+        evidence: v,
+        coverage: `checked ${runs.length} Deploy run(s) created after ${FIX_AT}; ${chosen ? 'the newest whose verify job ran' : 'none reached its verify job'}`,
+    });
+} catch (e) {
+    add({
+        id: 'deploy_commit_results',
+        what: "deploy.yml's verify job Commit results step, as fixed on 2026-11-19, pushes its note on a real deploy",
         qualifying_rows: 0,
         status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
     });

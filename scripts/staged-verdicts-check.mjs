@@ -74,6 +74,7 @@ const CAN_PASS = {
     briefRows: 4, postLeakFix: 4, grounded: 4, historicalLeaks: 0, liveNote: '', leaking: [],
   },
   recap_names_a_scoring_play: { recapRows: 6, testable: 6, named: 6 },
+  deploy_commit_results: { found: true, deployConclusion: 'success', stepConclusion: 'success', pushed: true, errorLines: 0 },
   thread_notes_cleanup: { total: 40, expiredBeyondGrace: 0 },
   odds_budget_charging: { tablesExist: true, dayRows: 1, charged: 1014, kvUsed: 1014 },
   vendor_watch_window_aligned: { logsSince: 1, judgedLogs: 1, refusal: '', verdictLines: 1, hasWindowLine: true, hasDiagnosticLines: true, hasKnownCi: true, seriesRow: 'found', seriesNumeric: true, seriesSourceD1: true },
