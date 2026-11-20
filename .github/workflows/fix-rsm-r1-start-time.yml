@@ -1,0 +1,48 @@
+name: RSM round-1 archive start_time correction (one-shot)
+
+# docs/CC-CMD-2026-11-16-golf-tee-times.md: the owner's GO of 2026-11-20 to correct the two RSM round-1
+# archive rows from 13:41Z to 13:30Z. Dispatch only; scripts/fix-rsm-r1-start-time.mjs refuses unless both rows
+# still read 13:41Z (or are already 13:30Z) and each UPDATE changes one row.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Correct
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          node scripts/fix-rsm-r1-start-time.mjs 2>&1 | tee "outbox/fix-rsm-r1-start-time-${TS}.log"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/fix-rsm-r1-start-time-*.log
+          git diff --staged --quiet && { echo "(nothing new)"; exit 0; }
+          git commit -m "archive: RSM round-1 start_time corrected to 13:30Z"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop above exits 0 when ALL THREE attempts fail: its last command is `sleep`.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
