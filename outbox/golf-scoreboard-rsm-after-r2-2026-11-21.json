@@ -1,0 +1,2536 @@
+{
+ "source": "site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard",
+ "readAt": "2026-11-21 ~13:05Z, through the FIELD browser tool; RSM Classic after round 2, before round 3",
+ "why": "linescores[] holds one entry per round (period, displayValue, per-hole linescores); the relay read today and thru from linescores[0], round 1, in every round",
+ "event": {
+  "id": "401850981",
+  "name": "The RSM Classic"
+ },
+ "competitors": [
+  {
+   "id": "4585549",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4858859",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4425904",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11383",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4404991",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5076011",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4691931",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11253",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9221",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10058",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11387",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11101",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-7",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4699329",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-8",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5408",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4589438",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "3980",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5150294",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5209442",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4513",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4267",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10505",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5215013",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5113338",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4587989",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "3449",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9530",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5882",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10588",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4602218",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "6798",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4585548",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9506",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4408319",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4351896",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "6196",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4361934",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11393",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-7",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "6922",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10048",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11332",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4858572",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4375977",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4408315",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9243",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5075548",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10596",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10057",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5147097",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10664",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4426182",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9143",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9658",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9040",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "2283",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4837368",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4832046",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10562",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11143",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5077389",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11456",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "8889",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "10054",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4921329",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "8910",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5502",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "8906",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9569",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9600",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1059",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4618114",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10548",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9517",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4408320",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6999",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11056",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4610387",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9127",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9484",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11333",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "676",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6701",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10030",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6825",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5338",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10231",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6931",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5211425",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6962",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4671",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11183",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5217048",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9144",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "8961",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5075652",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5573",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "2230",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4791222",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4350033",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4423323",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11385",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3257",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1225",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "2571",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4358083",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4982182",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4638",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10863",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5139663",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "2552",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4565482",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4426181",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5215039",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5369915",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4425898",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3454",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1651",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4868733",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4358081",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+6",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1077",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "7120",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "257",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1614",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4844",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+6",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10522",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+6",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9788",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11395",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3683",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5548",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4723205",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "508",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5574",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3089127",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+8",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4410612",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5765",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1564",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10372",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10577",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10990",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "774",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5692",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1548",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+9",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4408318",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5619",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5362018",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3970",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+8",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11098",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "1264",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 0
+    }
+   ]
+  }
+ ]
+}

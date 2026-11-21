@@ -373,6 +373,11 @@ jobs:
       # docs/CC-CMD-2026-10-14-espn-host-flip.md Task 3: the core API is 403 to the Worker, so the five
       # read sites read the runner's mirror; no core fetch is left, both sides key a resource the same
       # way, and trimming keeps every value a reader uses (held on raw bodies a runner read).
+      # src/golf-round-line.js: a golf player's today/thru are the current round's (they were round 1's in
+      # every round, so a new round read as complete the moment it began), held on a real scoreboard read.
+      - name: Golf today and thru are the current round's
+        run: node scripts/check-golf-round-line.mjs --self-test && node scripts/check-golf-round-line.mjs
+
       - name: ESPN core reads come from the runner mirror
         run: node scripts/check-espn-core-mirror.mjs --self-test && node scripts/check-espn-core-mirror.mjs
 

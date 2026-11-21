@@ -148,6 +148,7 @@ import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { summariseGolfTeeTimes, teeTimeRound } from './golf-tee-times.js';
+import { golfRoundLine } from './golf-round-line.js';
 import { readCoreMirror, CORE_MIRROR_TABLE } from './espn-core-mirror.js';
 import { playEpa, epTableFrom } from './nfl-epa.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
@@ -3774,7 +3775,8 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     // the new shape into handleGolfEnriched during the 300s active TTL.
     // r4 (2026-11-18): `timeValid` added beside `startDate`.
     // docs/CC-CMD-2026-11-16-golf-tee-times.md Task 2.
-    const cacheKey = `v2:golf:scoreboard:r4:${date}`;
+    // r5 (2026-11-21): today/thru from the current round's linescore, not round 1's.
+    const cacheKey = `v2:golf:scoreboard:r5:${date}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -3864,6 +3866,9 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     };
 
     const leaderboard = entries.map(c => {
+        // today/thru/round from the competitor's CURRENT round linescore
+        // (src/golf-round-line.js); until 2026-11-21 they read the first linescore, round 1, in every round.
+        const line     = golfRoundLine(c.linescores);
         const athlete  = c.athlete || {};
         const stats    = c.statistics || [];
         const findStat = name => {
@@ -3878,17 +3883,9 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
                        ?? c.position
                        ?? null,
             toPar:     findStat('scoreToPar') ?? c.score ?? null,
-            today:     (() => {
-                // Today's score is in linescores[0].displayValue (e.g. '-2')
-                const ls = Array.isArray(c.linescores) ? c.linescores[0] : null;
-                return ls?.displayValue ?? findStat('today') ?? null;
-            })(),
-            thru:      (() => {
-                // Holes completed = count of hole-level linescores
-                const ls = Array.isArray(c.linescores) ? c.linescores[0] : null;
-                const holes = Array.isArray(ls?.linescores) ? ls.linescores.length : 0;
-                return holes > 0 ? holes : (findStat('thru') ?? c.status?.thru ?? null);
-            })(),
+            // The current round's score (e.g. '-2') and holes completed in it.
+            today:     line.today ?? findStat('today') ?? null,
+            thru:      line.thru ?? findStat('thru') ?? c.status?.thru ?? null,
             round:     currentRoundFromLinescores(c.linescores)
                        ?? c.status?.period
                        ?? null,
@@ -4175,7 +4172,8 @@ async function handleGolfEnriched(date, env, ctx) {
     // v6 (2026-11-18): timeValid, startDate, roundStart, roundLastTee, teeTimes.
     // v7 (2026-11-19): tee times and venue from the leaderboard; teeTimes.round.
     // v8 (2026-11-20): each round's tee times from linescores, not the current-round status.
-    const cacheKey = `golf:enriched:v8:${date_clean}`;
+    // v9 (2026-11-21): the scoreboard's today/thru are the current round's.
+    const cacheKey = `golf:enriched:v9:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
