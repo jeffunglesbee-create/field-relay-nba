@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-21 (13:40Z) — golf rounds: tee times from linescores, today/thru from the current round
+
+**HEAD:** `b9eeb46` → `4943d43` · **Branch:** main · this close-out is the next commit. Two `src/` commits (`3cbe458`, `4943d43`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-19-golf-tee-times-live-fix.md (task: the scheduled done-condition reads of the tee-times CC-CMD, and the owner's GOs of 2026-11-20)
+
+- **`3cbe458`, live:** a round's tee times come from the leaderboard's per-round `linescores`, because `status` names only the current round. The RSM round-1 archive rows had been written 13:41Z against a 13:30Z first tee. Round 2 read live 13:30Z, 145/145. Both round-1 rows were corrected to 13:30Z on the owner's GO (run 44763910890).
+- **`8d25d02`:** a verifier (`deploy_commit_results`) for another session's untagged STAGED claim, which had stopped the deploy at the staged-claim gate. The owner ordered the deploy dispatched: run 44763794787 green. The verdict read PASS at 2026-11-21 13:02Z.
+- **`4943d43`, this deploy:** the golf scoreboard's `today`/`thru` were round 1's in every round, so the client's round-complete fallback fired the moment a round began. The round-2 row was archived at 15:34Z, before round 2's last tee. They are now the current round's (`src/golf-round-line.js`, check 8/8, 5 mutants).
+- **Unrecorded commits since `b9eeb46`:** the scheduled watches and probes, another session's Commit-results fix and records (`f699ca6`, `1bb8b9b`, `dbbfb9f`, `14da457`, `4ff8371`) and its tennis-draw verifications. None touches `src/` besides the two above.
+- **Open:** the round-3 archive row (written after `4943d43` deploys): `start_time` 2026-11-21T13:30Z if the first tee is 13:30Z, and created after round 3's last tee. The round-2 rows' leader fields are mid-round values; correcting them is the owner's call.
+
 ## SESSION CLOSE-OUT — 2026-11-19 (02:45Z) — the five ESPN core reads come from a runner mirror
 
 **HEAD:** `3a528c0` → `b9eeb46` · **Branch:** main · this close-out is the next commit. Two `src/` commits (`9701fdd`, `b9eeb46`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).

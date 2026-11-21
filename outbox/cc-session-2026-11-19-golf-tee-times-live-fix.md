@@ -51,3 +51,19 @@
 - **Live read, round 2:** `/v2/golf/enriched?date=2026-11-20` returns `round` 2, `roundStart` `2026-11-20T13:30:00.000Z`, `roundLastTee` `2026-11-20T15:42:00.000Z`, `teeTimes {round 2, inRound 145, withTeeTime 145, competitors 147}`.
 - **Round-1 rows corrected** on the owner's GO (2026-11-20, "Correct both to 13:30Z"). Run 44763910890 (`scripts/fix-rsm-r1-start-time.mjs`, log `outbox/fix-rsm-r1-start-time-*.log`) changed one row per UPDATE. Read back: `golf_2026-11-19_thersmclassic_r1` and `golf_2026-11-20_thersmclassic_r1` both carry `start_time` `2026-11-19T13:30:00.000Z`.
 - **Still to read:** the round-2 archive row after round 2 completes, `start_time` `2026-11-20T13:30:00.000Z`. Armed below.
+
+## 2026-11-21
+
+- **`start_time` holds for every RSM row:**
+  - `golf_2026-11-20_thersmclassic_r2` (created 2026-11-20 15:34:46) and `golf_2026-11-21_thersmclassic_r2` (created 2026-11-21 11:47:42) both carry `2026-11-20T13:30:00.000Z`.
+  - The two round-1 rows carry `2026-11-19T13:30:00.000Z` (corrected).
+  - The done conditions' start-time reads are met.
+- **Found: round 2 was archived while it was being played.** The first round-2 row was created at 15:34:46Z, 8 minutes before round 2's last tee (15:42Z). Its leader is "Rasmus Neergaard-Petersen -9"; the next morning's row says "Marco Penge -9".
+  - **Cause, read in the source:** `handleESPNGolfScoreboard` took each player's `today` and `thru` from `linescores[0]`, which is round 1, in every round.
+  - **Measured on the scoreboard after round 2** (`outbox/golf-scoreboard-rsm-after-r2-2026-11-21.json`): `today` was the round-1 score for 128 of the 145 players past round 1. Every player who had finished round 1 read `thru` 18, so the client's fallback in `_isGolfRoundComplete` (top 60 all `thru` >= 18) fired as soon as round 2 began.
+  - The 2026-11-20 15:40Z live read showed exactly that: `round` 2, every top player `thru` 18, each `today` equal to their round-1 score.
+- **Fixed in `4943d43`:** `src/golf-round-line.js` `golfRoundLine` reads `today` and `thru` from the current round's own linescore. `scripts/check-golf-round-line.mjs` is in `deploy.yml`: 8/8, 5 mutants, among them "round 1 read in every round".
+- **Not changed, the owner's call:** the two round-2 rows' `home_score`/`note` hold a mid-round leader. Their `start_time` is correct.
+- **Still to read:** the round-3 row, once round 3 finishes after `4943d43` deploys. It should be created after round 3's last tee, with `start_time` equal to the relay's round-3 `roundStart`.
+
+- `deploy_commit_results` read PASS at 2026-11-21 13:02Z (`outbox/staged-verification-20261121T130223Z.json`, run 44763794787).
