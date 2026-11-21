@@ -150,3 +150,8 @@ Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roun
 - **Fixed in `4943d43`:** `src/golf-round-line.js` `golfRoundLine` reads `today` and `thru` from the current round's own linescore. `scripts/check-golf-round-line.mjs` is in `deploy.yml`: 8/8, 5 mutants, among them "round 1 read in every round".
 - **Not changed, the owner's call:** the two round-2 rows' `home_score`/`note` hold a mid-round leader. Their `start_time` is correct.
 - **Still to read:** the round-3 row, once round 3 finishes after `4943d43` deploys. It should be created after round 3's last tee, with `start_time` equal to the relay's round-3 `roundStart`.
+
+- **`4943d43` live** (deploy run 44908060176, `deploy` and `verify` green), read 2026-11-21 13:30Z before round 3. `/v2/golf/enriched?date=2026-11-21` `today` is each player's round-2 score:
+  - Penge `toPar` -9, `today` -5 (round 1 was -4).
+  - Svensson -7, `today` +1 (round 1 was -8, the round-1 row's leader).
+  - `round` is 2 and `thru` is 18 while round 3 has not begun.

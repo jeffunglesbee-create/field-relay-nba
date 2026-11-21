@@ -67,3 +67,8 @@
 - **Still to read:** the round-3 row, once round 3 finishes after `4943d43` deploys. It should be created after round 3's last tee, with `start_time` equal to the relay's round-3 `roundStart`.
 
 - `deploy_commit_results` read PASS at 2026-11-21 13:02Z (`outbox/staged-verification-20261121T130223Z.json`, run 44763794787).
+
+- **`4943d43` live** (deploy run 44908060176, `deploy` and `verify` green), read 2026-11-21 13:30Z before round 3. `/v2/golf/enriched?date=2026-11-21` `today` is each player's round-2 score:
+  - Penge `toPar` -9, `today` -5 (round 1 was -4).
+  - Svensson -7, `today` +1 (round 1 was -8, the round-1 row's leader).
+  - `round` is 2 and `thru` is 18 while round 3 has not begun.
