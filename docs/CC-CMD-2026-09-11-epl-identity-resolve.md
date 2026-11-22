@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (bug fix)
-**Status:** PARTIAL, 2026-11-22. Defect 1 was resolved by another commit. Defect 2 is built, with the rule corrected (below), and merged in `966fe0c8`. It is NOT YET DEPLOYED: the relay's deploy has failed since another session's `79d9dfc8` (an absence-collapse ratchet, `scripts/bsd-next-goal-probe.mjs`, 57 against a baseline of 56; run 45044427433), and the last green deploy was 2026-11-21. Its reading on the live route is STAGED behind that deploy. Task 2 is built in field-laboratory. Task 0's live matchday payloads are not met (below). Carried forward on the owner's word, 2026-11-22 ("Carry forward"); the status line did not exist before.
+**Status:** PARTIAL, 2026-11-22. Defect 1 was resolved by another commit. Defect 2 is built, with the rule corrected (below), and merged in `966fe0c8`. It is DEPLOYED: the relay's deploy was red from another session's `79d9dfc8` (an absence-collapse ratchet on `scripts/bsd-next-goal-probe.mjs`; run 45044427433) until that session fixed it in `a21677c`, and a `workflow_dispatch` of `deploy.yml` on `a21677c` (run 45045304015, 2026-11-22) passed its deploy gate and shipped `966fe0c8`, the only `src` change since the last green deploy (`a6b9f866`, 2026-11-21). Its reading on the live route is STAGED, below. Task 2 is built in field-laboratory. Task 0's live matchday payloads are not met (below). Carried forward on the owner's word, 2026-11-22 ("Carry forward"); the status line did not exist before.
 **Run BEFORE** `field-laboratory` `CC-CMD-2026-09-11-epl-forecaster-phase1.md`.
 A bad team join fails silently and the forecaster would be built on it.
 
