@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (owns the contract, Rule 60); consumer field-laboratory
 **Filed and built:** 2026-11-22 by a field-laboratory session, from the first real halftime body (Rule 87.4: found, fixed, not carried)
 **Confidence gate:** >= 95 before any commit
-**Status:** BUILT 2026-11-22 in the commit that adds this file. Deployed and its done condition: see "Done condition" and the field-laboratory session record `outbox/cc-session-2026-11-22-other-sports-live-scores.md`.
+**Status:** DONE for football 2026-11-22 (built `8bdac8e`, deployed, read after the fix at 22:30:39Z and on the field-laboratory page at 22:31:00Z: see "Done condition"); the basketball flag (the section at the end) and the MLB adapter remain open.
 
 ---
 
@@ -40,3 +40,8 @@ The MLB adapter (`adaptESPNMLB`) reads only `STATUS_IN_PROGRESS` as live, so a r
 ## Added 2026-11-22 21:5xZ: the same flag for basketball
 
 The first NBA halftime body (field-laboratory capture `outbox/live-capture-nba-2026-11-22-2141Z.json`, 21:41:15Z): Hawks v Pistons, `state` `live`, `periodNum` 2, `periodLabel` `Q2`, `clock` `0.1`, scores 51-52, `situation` `{ quarter: 2, clock: "0.1", possession: null }`, no flag; ESPN's own summary for the game read `Halftime`. So basketball was right on `state` (CC-CMD-2026-10-22) and the card could only show `Q2 0.1`. `adaptESPNBasketball` (NBA, WNBA, AFL) now sets `situation.isHalftime` true exactly for `STATUS_HALFTIME`; the board check holds it (N9; `--mutate` 15 of 15 caught). **Not read:** the status NAME ESPN uses at an NBA halftime (the flag is false and the card unchanged if it is not `STATUS_HALFTIME`). Done condition 2b: a field-laboratory capture at a later NBA halftime (Heat v Thunder tipped 23:00Z, halftime about 23:55Z; the 00:00Z games about 00:55Z) with `situation.isHalftime` true: `node -e 'const j=require("./outbox/<file>");console.log(j.v2.body.games.filter(g=>g.situation&&g.situation.isHalftime).map(g=>[g.espnEventId,g.state,g.periodLabel,g.clock]))'`.
+
+## Done condition 2 and 3, read 2026-11-22 (football)
+
+2. **Read.** field-laboratory capture `outbox/live-capture-nfl-2026-11-22-2230Z.json` (22:30:39Z, after the deploy): Jets at Chargers (`401873074`) `state` `live`, `periodNum` 2, `periodLabel` `Q2`, `clock` `0:00`, scores 10 (home) and 17 (away), `situation` `{ down: 1, distance: 10, yardLine: 35, possession: null, isRedZone: false, isHalftime: true }`; ESPN's summary for the game read `LAC 10 vs NYJ 17 | Halftime`. Because the flag is set by the name `STATUS_HALFTIME` alone, ESPN's NFL halftime status name is `STATUS_HALFTIME`. Other games in the same body: `live` Q2 with `isHalftime` false, `post` with `situation` null.
+3. **The card.** field-laboratory `live-score-probe` manifest `outbox/live-score-manifest-2026-11-22-20261122-2232Z.json` (22:31:00Z, deployed `db3b9b53`): verdict PASS, `halfTimeMarker` true, Jets @ Chargers `In progress` `17–10` with the note `Half time`.

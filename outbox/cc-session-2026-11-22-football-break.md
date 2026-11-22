@@ -13,11 +13,11 @@ Written 2026-11-22 on `main`, by the field-laboratory session that shipped live 
 
 - The defect on a real body: laboratory capture 2026-11-22 19:41:15Z, three NFL games at halftime served `pre` (CC-CMD, "What was measured").
 - The fix on the real worker with a stubbed ESPN: `scripts/check-v2-games-nba-board.mjs` self-test 23 ok; `--mutate` 14 of 14 caught; three neighbouring checks pass.
-- Not verified: the fix on a live halftime after deploy (CC-CMD done condition 2; the late games' halftime, about 22:20Z to 23:00Z; the laboratory's reminder reads it); the MLB adapter; CFB beyond the shared adapter.
+- Verified after deploy (22:30:39Z): the fix on a real halftime, Jets at Chargers `live` Q2 `0:00` with `isHalftime` true (done condition 2), and the card saying `Half time` on the field-laboratory page at 22:31:00Z (done condition 3). Not verified: the MLB adapter; CFB beyond the shared adapter.
 
 ## Integration state (Rule 65)
 
-Relay contract: `situation.isHalftime` (boolean) on football `/v2/games` games, CONTRACTS.md "the other boards". Client consumer: field-laboratory `LiveFeed.decodeFeed` (`situation.isHalftime`, any sport) and `readingFor` (`HalfTime`). Status: STAGED until the post-deploy halftime read. Known mismatch: none expected; the page's `Half time` for football has not been seen.
+Relay contract: `situation.isHalftime` (boolean) on football `/v2/games` games, CONTRACTS.md "the other boards". Client consumer: field-laboratory `LiveFeed.decodeFeed` (`situation.isHalftime`, any sport) and `readingFor` (`HalfTime`). Status: VERIFIED on the deployed page for football (22:31:00Z). Known mismatch: none expected; the page's `Half time` for football has not been seen.
 
 ## Incidents (Rule 77)
 
