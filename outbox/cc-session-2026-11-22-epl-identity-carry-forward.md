@@ -48,3 +48,15 @@ The hold voids the calendar experiment on a commit to `handleCFLOddsProbs`, `con
 ## The live reading is scheduled
 
 `trig_01G11kB3mfykDMeQABCQpUAp`, one-off, 2026-11-29T08:00Z (the Saturday probe has started 01:24Z to 02:51Z on the Sunday), in a fresh session. It stores no connector tools; the main path needs only git and node, and the fallback reads the public relay repo's run list with curl.
+
+## The three matchday payloads were taken (the owner's "9 odds credits approved", 2026-11-22)
+
+The Saturday probe could not be used (no EPL, 12 credits, Saturday-only), so a dispatch-only `identity-mismatches-probe.yml` with a spend cap in its script took them. An independent 18-agent review of it before the first call found real ways to spend more than approved or to lose what was paid for (the cap was per process; a 200 carrying an error counted as a reading; redaction missed paths; a failed push went green) and a date-choice flaw (two of my three dates would have returned zeros by construction). All were fixed first (`4223fcec`), with the self-test at 30 cases and 24 mutations, each caught by its named check.
+
+One dispatch, run 45059147244, three calls (2026-09-12, 2026-10-18, 2026-10-25), all HTTP 200: `5b752147` committed the files. The deployed route returns `key_resolved`, `key_substituted`, `key_unchecked` and `corroborated`; each date shows `key_resolved 1, key_substituted 0`, and 2026-09-12 (the CC-CMD's own measured date) which counted `Ipswich -> ipswichtown` as substituted before now counts it resolved. The reading is in the CC-CMD with its limits. The ledger estimate is 9 credits; the provider's bill is unmeasured and likely lower (the three calls share one per-sport vendor URL with a 900 s cache).
+
+## A finding the dates exposed, filed as its own CC-CMD
+
+Every unpriced EPL row of 2026-27 is a `C Palace` row dated before the 2026-10-27 alias (8 of 8; the 3 `C Palace` rows after it are all priced) plus one unexplained `Coventry` opener: nine rows. Tested by a free D1 read, not assumed. Repair is billed and the owner's to authorize: `docs/CC-CMD-2026-11-22-epl-rows-left-unpriced-by-c-palace.md`, FILED, blocked on that decision.
+
+The CC-CMD this session carried forward is DONE.

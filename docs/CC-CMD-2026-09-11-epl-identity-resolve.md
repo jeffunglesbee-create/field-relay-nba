@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (bug fix)
-**Status:** PARTIAL, 2026-11-22. Done: Defect 1, Task 2 (live), Defect 2 (built and deployed). Open: the live-route reading of the new counts (Saturday probe, 2026-11-28 23:40Z) and the three-matchday payloads (needs the owner's word on Odds credits). Defect 1 was resolved by another commit. Defect 2 is built, with the rule corrected (below), and merged in `966fe0c8`. It is DEPLOYED: the relay's deploy was red from another session's `79d9dfc8` (an absence-collapse ratchet on `scripts/bsd-next-goal-probe.mjs`; run 45044427433) until that session fixed it in `a21677c`, and a `workflow_dispatch` of `deploy.yml` on `a21677c` (run 45045304015, 2026-11-22) passed its deploy gate and shipped `966fe0c8`, the only `src` change since the last green deploy (`a6b9f866`, 2026-11-21). Its reading on the live route is STAGED, below. Task 2 is built in field-laboratory and has run live (covered, 20 of 20). Task 0's live matchday payloads are not met (below). Carried forward on the owner's word, 2026-11-22 ("Carry forward"); the status line did not exist before.
+**Status:** DONE 2026-11-22 for all four done conditions (below). Defect 1 was resolved by another commit; Defect 2 is built with the rule corrected and deployed, and read live on three EPL matchdays; Task 2 is built in field-laboratory and ran live (covered, 20 of 20); the three payloads were taken on the owner's approval of 9 Odds credits ("9 odds credits approved", 2026-11-22). Carried forward on the owner's word ("Carry forward"). Open, and not part of this CC-CMD's done condition: the Saturday probe (2026-11-28) adds the wrong-sport (CFB) case on the live route, read by `trig_01G11kB3mfykDMeQABCQpUAp`; and the nine EPL rows this defect left unpriced are `docs/CC-CMD-2026-11-22-epl-rows-left-unpriced-by-c-palace.md`.
 **Run BEFORE** `field-laboratory` `CC-CMD-2026-09-11-epl-forecaster-phase1.md`.
 A bad team join fails silently and the forecaster would be built on it.
 
@@ -124,12 +124,14 @@ Measured before building, for the record (read with the relay probe tool on 2026
 
 | condition | state |
 |---|---|
-| `/identity/mismatches` re-run for three matchdays, payloads verbatim | NOT MET. The route is gated and each call spends billed Odds credits, and a standing instruction in the session that did this work forbids Odds calls. Replaced for Defect 1 by the D1 read, the census and the resolver run above. Unblock: the owner authorizes up to 9 credits (three EPL calls at 3 each, edge-cached 900 s, under the route's 150 a day) or accepts the Saturday probe below. |
+| `/identity/mismatches` re-run for three matchdays, payloads verbatim | MET, with the limits below. Run 45059147244 (`identity-mismatches-probe.yml`, one dispatch, three calls, 2026-11-22T19:09:40Z to :41Z) wrote `outbox/identity-mismatches-EPL-2026-09-12-20261122T190940Z.json`, `...2026-10-18-20261122T190940Z.json` and `...2026-10-25-20261122T190941Z.json`, each the relay's answer verbatim. Spent on the approval of 9 Odds credits: three calls, ledger estimate 9 (the provider's bill is unmeasured; the three calls share one per-sport vendor URL with a 900 s cache, so it is likely less). |
 | `C Palace` resolves; every other abbreviated D1 spelling listed and fixed | MET: 34 of 34 spellings resolve to 23 keys, none unresolved |
-| RESOLVED and SUBSTITUTED reported as separate counts | BUILT and proven on the real worker locally; deployed-route reading STAGED, below |
+| RESOLVED and SUBSTITUTED reported as separate counts | MET, on the deployed route. Each of the three payloads: HTTP 200, `probed 1`, `key_resolved 1`, `key_substituted 0`, `key_unchecked 0`, one entry with `corroborated: true` and `also_in []` (09-12 `Ipswich -> ipswichtown`, 10-18 `Brighton -> brightonhovealbion`, 10-25 `Newcastle -> newcastleunited`). 2026-09-12 is this CC-CMD's own measured date and row (`C Palace` v `Ipswich`): it was `key_substituted 1` there, the false alarm of Defect 2, and is now `key_resolved 1, key_substituted 0`. |
 | Seasonal check reports 20 of 20, or names the gaps | MET: field-laboratory sentinel run 45055875318 on the live routes, `checked 20 of 20 league clubs`, `VERDICT: covered` |
 
-### STAGED: the new counts on the deployed route (Rule 74)
+### The Saturday probe: the wrong-sport case on the live route (Rule 74)
+
+The EPL reading above was taken on 2026-11-22 through `identity-mismatches-probe.yml` and shows the benign case on the deployed route. What it cannot show is the wrong-sport case (CFB `Liberty -> newyorkliberty` with `corroborated: false`), which needs a slate where CFB is probed. That is what is still staged, and what follows is how it is read.
 
 Staged: `key_resolved`, `key_unchecked` and `corroborated` on the deployed `/identity/mismatches`. Blocked by: the route being gated and billed. Unblocked by: the scheduled `odds-identity-join-saturday.yml` (cron `40 23 * * 6`, next 2026-11-28 23:40Z) committing `outbox/odds-join-probe-<stamp>.json`; it probes CFB, NFL, Bundesliga and MLS, not EPL, so the EPL case is proven by the local worker run above and not by that payload. A one-off scheduled task, `trig_01G11kB3mfykDMeQABCQpUAp` (2026-11-29T08:00Z, a fresh session with no connector tools), runs the assertion below on that payload and records the result in this document; if the fields are absent it investigates the deploy and does not edit the assertion. Verify, tested to fail on the 2026-11-22 payload (which predates the fields) and to pass on a correct one:
 
@@ -147,3 +149,21 @@ console.assert(entries.every(e => !(e.corroborated === true && (e.also_in || [])
 ```
 
 Expected on that payload: no `Assertion failed` line. What this reading proves is that the deployed route returns the new fields, that they add up, and that no corroborated entry is also carried by another probed sport. It cannot tell the corrected rule from this CC-CMD's literal one (a payload holds the keys of six events per sport, not the feed): that distinction is proven locally by J12, M25 and J34. The recorded Saturday payloads carry at most a handful of substitutions (the 2026-11-22 one has CFB `Liberty -> newyorkliberty` only), so expect few entries, each CFB one `corroborated: false`.
+
+### The three EPL payloads, read (2026-11-22)
+
+Files: `outbox/identity-mismatches-EPL-2026-09-12-20261122T190940Z.json`, `outbox/identity-mismatches-EPL-2026-10-18-20261122T190940Z.json`, `outbox/identity-mismatches-EPL-2026-10-25-20261122T190941Z.json`. Chosen because the archive has exactly one unpriced EPL row on each (the substitution pass reads only unpriced rows, so a fully priced date returns zeros by construction), and each carries a different alias.
+
+| date | d1_rows / priced / missing | the unmatched row | key_substituted entry | counts |
+|---|---|---|---|---|
+| 2026-09-12 | 7 / 6 / 1 | `C Palace` v `Ipswich`, key `cpalace\|ipswichtown`, finalized | `Ipswich -> ipswichtown`, `corroborated: true`, `also_in: []` | resolved 1, substituted 0, unchecked 0 |
+| 2026-10-18 | 4 / 3 / 1 | `Brighton` v `C Palace`, key `brightonhovealbion\|cpalace`, finalized | `Brighton -> brightonhovealbion`, `corroborated: true` | resolved 1, substituted 0, unchecked 0 |
+| 2026-10-25 | 5 / 4 / 1 | `C Palace` v `Newcastle`, key `cpalace\|newcastleunited`, finalized | `Newcastle -> newcastleunited`, `corroborated: true` | resolved 1, substituted 0, unchecked 0 |
+
+All three: `odds_events 20`, `odds_events_in_window 0`, `matched 0`, `sports_compared ["EPL"]`.
+
+What this does and does not show (Rule 91):
+- It shows the deployed route returns the three counts and `corroborated`, that they add up, and that a benign EPL alias is no longer counted as substituted (Defect 2, on the CC-CMD's own date).
+- It does NOT show the join working. The three dates are in the past and the vendor feed lists only upcoming events, so the window is empty and `matched 0` is the feed, not a join fault; the report marks each unmatched row `finalized: true` for exactly that reason. `d1_key` does show `C Palace` resolving to `cpalace`, the key the vendor's `Crystal Palace` also resolves to since the alias of 2026-10-27.
+- Corroboration is against today's feed (20 upcoming events), not that date's events, and each payload classifies one name. Three names are a reading of the shape and of the benign case, not a rate.
+- It does not show the wrong-sport case (above).
