@@ -168,3 +168,7 @@ Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roun
   - The archive row is unaffected: it is written when the round completes, with `round` = 3.
   - A consumer showing an upcoming round's first tee (the laboratory's Deep Cuts golf windows) would see the last round's time. The fix would choose the round with the next unplayed tee times. It needs the owner's word on what "the current round" means between rounds.
 - **Re-read:** 2026-11-23 13:00Z (round 3 finishes today, round 4 is Monday's if the schedule slips).
+- **Owner, 2026-11-22:** "Rain delay yesterday. Round 3 today, final round Monday." Reads armed:
+  - Round 3: `trig_01JzUiSczKshFjKyjebxeCuB`, 2026-11-23 13:00Z.
+  - Round 4: `trig_011LFJx6dq5AmyZYKHusAq9U`, 2026-11-24 13:00Z. It closes the CC-CMD if both rounds pass.
+
