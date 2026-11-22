@@ -1,0 +1,783 @@
+{
+  "ts": "2026-11-22T18:44:06.676Z",
+  "base": "https://sports.bzzoiro.com",
+  "tokenPresent": true,
+  "callBudget": 24,
+  "callsMade": 18,
+  "stopped": null,
+  "deadlineSeconds": 400,
+  "analysisError": null,
+  "reachedVendor": true,
+  "reachedTarget": true,
+  "coverageLine": "next-goal list: 16 rows (gate OPEN 200) | events/live: 18 rows, 17 in play, 17 at minute 10+ (16 with a read, 1 without) | leagues with reads: 12 | ledger: 1533 calls since 2026-08-24, 200 page rows, 5 of 5 outcome counts | calls 18/24",
+  "responseHeaderNames": [
+    "access-control-allow-headers",
+    "access-control-allow-methods",
+    "allow",
+    "alt-svc",
+    "cf-cache-status",
+    "cf-ray",
+    "connection",
+    "content-encoding",
+    "content-type",
+    "cross-origin-opener-policy",
+    "date",
+    "nel",
+    "referrer-policy",
+    "report-to",
+    "server",
+    "transfer-encoding",
+    "vary",
+    "x-cache-status",
+    "x-content-type-options",
+    "x-frame-options"
+  ],
+  "calls": [
+    {
+      "key": "live",
+      "path": "/api/v2/events/live/",
+      "status": 200,
+      "ms": 318,
+      "bytes": 8058
+    },
+    {
+      "key": "ng_list",
+      "path": "/api/v2/next-goal/?limit=200",
+      "status": 200,
+      "ms": 1776,
+      "bytes": 11250
+    },
+    {
+      "key": "ng_calls_only",
+      "path": "/api/v2/next-goal/?calls_only=true&limit=200",
+      "status": 200,
+      "ms": 392,
+      "bytes": 751
+    },
+    {
+      "key": "ng_league",
+      "path": "/api/v2/next-goal/?league_id=14&limit=200",
+      "status": 200,
+      "ms": 225,
+      "bytes": 1453
+    },
+    {
+      "key": "ng_league_control",
+      "path": "/api/v2/next-goal/?league_id=100109&limit=200",
+      "status": 200,
+      "ms": 189,
+      "bytes": 52
+    },
+    {
+      "key": "ng_one",
+      "path": "/api/v2/next-goal/207118/",
+      "status": 200,
+      "ms": 183,
+      "bytes": 708
+    },
+    {
+      "key": "ng_noread",
+      "path": "/api/v2/next-goal/643071/",
+      "status": 200,
+      "ms": 415,
+      "bytes": 268
+    },
+    {
+      "key": "finished_list",
+      "path": "/api/v2/events/?date_from=2026-11-21&date_to=2026-11-21&limit=50",
+      "status": 200,
+      "ms": 208,
+      "bytes": 133534
+    },
+    {
+      "key": "ng_finished",
+      "path": "/api/v2/next-goal/654666/",
+      "status": 200,
+      "ms": 203,
+      "bytes": 268
+    },
+    {
+      "key": "calls_since",
+      "path": "/api/v2/next-goal/calls/?date_from=2026-08-24&limit=1",
+      "status": 200,
+      "ms": 185,
+      "bytes": 577
+    },
+    {
+      "key": "calls_page",
+      "path": "/api/v2/next-goal/calls/?limit=200",
+      "status": 200,
+      "ms": 489,
+      "bytes": 88205
+    },
+    {
+      "key": "calls_hit",
+      "path": "/api/v2/next-goal/calls/?date_from=2026-08-24&outcome=hit&limit=1",
+      "status": 200,
+      "ms": 188,
+      "bytes": 604
+    },
+    {
+      "key": "calls_miss",
+      "path": "/api/v2/next-goal/calls/?date_from=2026-08-24&outcome=miss&limit=1",
+      "status": 200,
+      "ms": 194,
+      "bytes": 604
+    },
+    {
+      "key": "calls_nogoal",
+      "path": "/api/v2/next-goal/calls/?date_from=2026-08-24&outcome=nogoal&limit=1",
+      "status": 200,
+      "ms": 179,
+      "bytes": 52
+    },
+    {
+      "key": "calls_unclear",
+      "path": "/api/v2/next-goal/calls/?date_from=2026-08-24&outcome=unclear&limit=1",
+      "status": 200,
+      "ms": 184,
+      "bytes": 52
+    },
+    {
+      "key": "calls_open",
+      "path": "/api/v2/next-goal/calls/?date_from=2026-08-24&outcome=open&limit=1",
+      "status": 200,
+      "ms": 179,
+      "bytes": 488
+    },
+    {
+      "key": "calls_all",
+      "path": "/api/v2/next-goal/calls/?limit=1",
+      "status": 200,
+      "ms": 175,
+      "bytes": 556
+    },
+    {
+      "key": "calls_last_offset",
+      "path": "/api/v2/next-goal/calls/?limit=1&offset=1743",
+      "status": 200,
+      "ms": 193,
+      "bytes": 540
+    }
+  ],
+  "analysis": {
+    "gate": {
+      "status": 200,
+      "verdict": "OPEN",
+      "bodyKeys": [
+        "count",
+        "next",
+        "previous",
+        "results"
+      ]
+    },
+    "gateCalls": {
+      "status": 200,
+      "verdict": "OPEN",
+      "bodyKeys": [
+        "count",
+        "next",
+        "previous",
+        "results"
+      ]
+    },
+    "gateLive": {
+      "status": 200,
+      "verdict": "OPEN",
+      "bodyKeys": [
+        "count",
+        "events"
+      ]
+    },
+    "rateLimit": {
+      "headersSeenOnCalls": 0,
+      "ofCallsWithAResponse": 18,
+      "values": {}
+    },
+    "live": {
+      "shape": "events",
+      "rows": 18,
+      "count": 18,
+      "statusPeriod": {
+        "inprogress/1st_half": 7,
+        "inprogress/2nd_half": 10,
+        "finished/FT": 1
+      },
+      "byClass": {
+        "inplay": 17,
+        "finished": 1
+      },
+      "websocketPlus": {
+        "true": 14,
+        "false": 4
+      }
+    },
+    "truncated": {
+      "reportedCount": 16,
+      "rowsRead": 16,
+      "nextPage": null,
+      "partial": false
+    },
+    "shape": {
+      "verdict": "ANSWERED",
+      "rows": 16,
+      "fieldCounts": {
+        "event": 16,
+        "event.id": 16,
+        "event.event_date": 16,
+        "event.status": 16,
+        "event.home_team_id": 16,
+        "event.home_team": 16,
+        "event.away_team_id": 16,
+        "event.away_team": 16,
+        "event.league_id": 16,
+        "event.league_name": 16,
+        "minute": 16,
+        "score": 16,
+        "score.home": 16,
+        "score.away": 16,
+        "probabilities": 16,
+        "probabilities.home": 16,
+        "probabilities.away": 16,
+        "probabilities.no_goal": 16,
+        "leader": 16,
+        "confidence": 16,
+        "is_call": 16,
+        "call_threshold": 16,
+        "call_paused": 16,
+        "minutes_since_goal": 16,
+        "evidence": 16,
+        "evidence.momentum_5m": 16,
+        "evidence.momentum_15m": 16,
+        "evidence.shots_home_10m": 16,
+        "evidence.shots_away_10m": 16,
+        "evidence.red_cards_home": 16,
+        "evidence.red_cards_away": 16,
+        "track_record": 16,
+        "track_record.accuracy": 16,
+        "track_record.base_rate": 16,
+        "track_record.brier_skill_score": 16,
+        "track_record.matches_evaluated": 16,
+        "generated_at": 16
+      },
+      "eventStatus": {
+        "1st_half": 6,
+        "2nd_half": 10
+      },
+      "leader": {
+        "away": 4,
+        "none": 5,
+        "home": 7
+      },
+      "probabilitiesSumToOne": {
+        "ok": 16,
+        "notOk": 0,
+        "tolerance": 0.011
+      },
+      "probabilityScale": "fraction (<=1)",
+      "confidenceScale": "fraction (<=1)",
+      "callThresholdScale": "fraction (<=1)",
+      "noGoalNull": 0,
+      "confidenceEqualsLeaderProbability": {
+        "equal": 11,
+        "notEqual": 0,
+        "unknown": 5
+      },
+      "isCallMatchesThreshold": {
+        "agree": 16,
+        "pausedExplained": 0,
+        "withinRounding": 0,
+        "disagree": 0,
+        "unknown": 0
+      },
+      "callThresholdValues": {
+        "0.7": 16
+      },
+      "isCall": {
+        "false": 15,
+        "true": 1
+      },
+      "callPaused": {
+        "false": 16
+      },
+      "minute": {
+        "min": 10,
+        "max": 85,
+        "n": 16
+      },
+      "minutesSinceGoal": {
+        "min": 1,
+        "max": 36,
+        "n": 12
+      },
+      "minutesSinceGoalNull": 4,
+      "momentum5m": {
+        "min": -37.8,
+        "max": 50.8,
+        "n": 16
+      },
+      "momentum15m": {
+        "min": -24.9,
+        "max": 34.2,
+        "n": 16
+      },
+      "shotsHome10m": {
+        "min": 0,
+        "max": 4,
+        "n": 16
+      },
+      "shotsAway10m": {
+        "min": 0,
+        "max": 3,
+        "n": 16
+      },
+      "evidenceKeys": [
+        "momentum_15m",
+        "momentum_5m",
+        "red_cards_away",
+        "red_cards_home",
+        "shots_away_10m",
+        "shots_home_10m"
+      ],
+      "trackRecordDistinct": 1,
+      "trackRecordFirst": {
+        "accuracy": 71.3,
+        "base_rate": 56.9,
+        "brier_skill_score": null,
+        "matches_evaluated": 4479
+      },
+      "trackRecordAccuracyScale": "percent (>1)",
+      "generatedAtAgeSeconds": {
+        "min": -1.32,
+        "max": -0.32,
+        "n": 16
+      }
+    },
+    "idSpace": {
+      "verdict": "SAME_ID_SPACE",
+      "nextGoalRows": 16,
+      "matchedInEventsLive": 16,
+      "nameAgree": 16,
+      "nameDisagree": 0,
+      "nameUnknown": 0,
+      "homeTeamIdAgree": 16,
+      "homeTeamIdDisagree": 0,
+      "idTypes": {
+        "number": 16
+      },
+      "partial": false,
+      "disagreements": []
+    },
+    "leagues": {
+      "verdict": "ANSWERED",
+      "distinct": 12,
+      "byLeague": {
+        "3": {
+          "league_name": "La Liga",
+          "rows": 1
+        },
+        "4": {
+          "league_name": "Serie A",
+          "rows": 1
+        },
+        "14": {
+          "league_name": "Pro League",
+          "rows": 2
+        },
+        "23": {
+          "league_name": "Superliga",
+          "rows": 1
+        },
+        "24": {
+          "league_name": "Stoiximan Super League",
+          "rows": 2
+        },
+        "36": {
+          "league_name": "Liga F",
+          "rows": 1
+        },
+        "38": {
+          "league_name": "Segunda División",
+          "rows": 2
+        },
+        "54": {
+          "league_name": "Eliteserien",
+          "rows": 2
+        },
+        "84": {
+          "league_name": "Danish Superliga",
+          "rows": 1
+        },
+        "97": {
+          "league_name": "Challenger Pro League",
+          "rows": 1
+        },
+        "99": {
+          "league_name": "Czech First League",
+          "rows": 1
+        },
+        "109": {
+          "league_name": "Niké liga",
+          "rows": 1
+        }
+      },
+      "fieldTrackedLeagueIds": [
+        "1",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "12",
+        "18"
+      ],
+      "rowsInFieldTrackedLeagues": 2,
+      "rowsOutsideFieldTrackedLeagues": 14
+    },
+    "coverage": {
+      "verdict": "ANSWERED",
+      "listTruncated": false,
+      "liveRows": 18,
+      "byClass": {
+        "inplay": 17,
+        "finished": 1
+      },
+      "inPlay": 17,
+      "inPlayAtMinute10Plus": 17,
+      "withReadAtMinute10Plus": 16,
+      "withoutReadAtMinute10Plus": 1,
+      "withoutReadByPeriod": {
+        "1st_half": 1
+      },
+      "withoutReadByMinuteBucket": {
+        "15+": 1
+      },
+      "withoutReadByWebsocketPlus": {
+        "false": 1
+      },
+      "withReadByWebsocketPlus": {
+        "true": 14,
+        "false": 2
+      },
+      "withoutReadByLeague": {
+        "92:Taça de Portugal": 1
+      },
+      "inPlayBeforeMinute10": {
+        "n": 0,
+        "withRead": 0
+      },
+      "inPlayUnknownMinute": {
+        "n": 0,
+        "withRead": 0
+      },
+      "halftime": {
+        "n": 0,
+        "withRead": 0
+      },
+      "readsForRowsNotInPlay": 0,
+      "nextGoalRowsNotInEventsLive": 0
+    },
+    "filterCallsOnly": {
+      "verdict": "HONOURED",
+      "unfilteredRows": 16,
+      "unfilteredCalls": 1,
+      "filteredRows": 1,
+      "pausedInFiltered": 0,
+      "plainNonCallsInFiltered": 0,
+      "unfilteredHadNonCalls": true
+    },
+    "filterLeagueId": {
+      "verdict": "HONOURED",
+      "leagueUsed": "14",
+      "filteredRows": 2,
+      "allFilteredInThatLeague": true,
+      "controlLeagueId": 100109,
+      "controlRows": 0,
+      "unfilteredRows": 16
+    },
+    "oneMatch": {
+      "verdict": "ANSWERED",
+      "id": 207118,
+      "available": true,
+      "keys": [
+        "available",
+        "event",
+        "minute",
+        "score",
+        "probabilities",
+        "leader",
+        "confidence",
+        "is_call",
+        "call_threshold",
+        "call_paused",
+        "minutes_since_goal",
+        "evidence",
+        "track_record",
+        "generated_at"
+      ],
+      "extraKeysVersusList": [
+        "available"
+      ],
+      "missingKeysVersusList": []
+    },
+    "noReadInPlay": {
+      "verdict": "ANSWERED",
+      "status": 200,
+      "id": 643071,
+      "eventStatus": "inprogress",
+      "available": false,
+      "reason": "too_early"
+    },
+    "finishedList": {
+      "requested": true,
+      "rows": 50,
+      "statusPeriod": {
+        "finished/FT": 49,
+        "postponed/": 1
+      },
+      "picked": 654666
+    },
+    "noReadFinished": {
+      "verdict": "ANSWERED",
+      "status": 200,
+      "id": 654666,
+      "eventStatus": "finished",
+      "available": false,
+      "reason": "not_live"
+    },
+    "ledger": {
+      "gate": {
+        "status": 200,
+        "verdict": "OPEN",
+        "bodyKeys": [
+          "count",
+          "next",
+          "previous",
+          "results"
+        ]
+      },
+      "countSince": 1533,
+      "since": "2026-08-24",
+      "outcomes": {
+        "hit": 1125,
+        "miss": 407,
+        "nogoal": 0,
+        "unclear": 0,
+        "open": 1
+      },
+      "countAllTime": 1744,
+      "countsSpanSeconds": 1,
+      "page": {
+        "rows": 200,
+        "fieldCounts": {
+          "id": 200,
+          "event": 200,
+          "event.id": 200,
+          "event.event_date": 200,
+          "event.status": 200,
+          "event.home_team_id": 200,
+          "event.home_team": 200,
+          "event.away_team_id": 200,
+          "event.away_team": 200,
+          "event.league_id": 200,
+          "event.league_name": 200,
+          "minute": 200,
+          "side": 200,
+          "team": 200,
+          "probability": 200,
+          "score_at_call": 200,
+          "score_at_call.home": 200,
+          "score_at_call.away": 200,
+          "outcome": 200,
+          "resolved_minute": 200,
+          "called_at": 200,
+          "resolved_at": 200
+        },
+        "outcome": {
+          "open": 1,
+          "hit": 136,
+          "miss": 63
+        },
+        "side": {
+          "home": 149,
+          "away": 51
+        },
+        "probability": {
+          "min": 0.7,
+          "max": 0.937,
+          "n": 200
+        },
+        "minute": {
+          "min": 10,
+          "max": 65,
+          "n": 200
+        },
+        "probabilityScale": "fraction (<=1)",
+        "rowsWithADate": 200,
+        "oldestRowDate": "2026-11-12T19:13:05Z",
+        "newestRowDate": "2026-11-22T18:40:10Z"
+      },
+      "lastOffsetRowDate": "2026-08-05T21:49:14Z",
+      "lastOffsetRowKeys": [
+        "id",
+        "event",
+        "minute",
+        "side",
+        "team",
+        "probability",
+        "score_at_call",
+        "outcome",
+        "resolved_minute",
+        "called_at",
+        "resolved_at"
+      ],
+      "ledgerOrder": "newest-first",
+      "reproduction": {
+        "verdict": "ANSWERED",
+        "vendorClaim": {
+          "source": "https://sports.bzzoiro.com/next-to-score/",
+          "read": "2026-11-22 via mcp__Exa__web_search_exa (crawl time unknown)",
+          "accuracy": 0.736,
+          "gradedCalls": 1508,
+          "windowDays": 90,
+          "accuracyAt80Plus": 0.812,
+          "callsAt80Plus": 287,
+          "bestFixedGuess": 0.569,
+          "matchesCalled": 998,
+          "competitions": 64
+        },
+        "sumOfFiveOutcomes": 1533,
+        "sumEqualsCountSince": true,
+        "partitionDifference": 0,
+        "definitions": {
+          "hit_over_hit_miss": {
+            "hits": 1125,
+            "denominator": 1532,
+            "accuracy": 0.7343,
+            "deltaVersusVendorAccuracy": -0.0017,
+            "deltaVersusVendorGradedCalls": 24
+          },
+          "hit_over_hit_miss_nogoal": {
+            "hits": 1125,
+            "denominator": 1532,
+            "accuracy": 0.7343,
+            "deltaVersusVendorAccuracy": -0.0017,
+            "deltaVersusVendorGradedCalls": 24
+          },
+          "hit_over_hit_miss_nogoal_unclear": {
+            "hits": 1125,
+            "denominator": 1532,
+            "accuracy": 0.7343,
+            "deltaVersusVendorAccuracy": -0.0017,
+            "deltaVersusVendorGradedCalls": 24
+          },
+          "hit_over_all_calls_since": {
+            "hits": 1125,
+            "denominator": 1533,
+            "accuracy": 0.7339,
+            "deltaVersusVendorAccuracy": -0.0021,
+            "deltaVersusVendorGradedCalls": 25
+          }
+        },
+        "closestToVendorAccuracy": "hit_over_hit_miss",
+        "note": "the vendor figure is a crawl of unknown date over a rolling 90 days; deltas are informative, not a pass or fail, and are not trustworthy unless the verdict is ANSWERED"
+      }
+    },
+    "coverageLine": "next-goal list: 16 rows (gate OPEN 200) | events/live: 18 rows, 17 in play, 17 at minute 10+ (16 with a read, 1 without) | leagues with reads: 12 | ledger: 1533 calls since 2026-08-24, 200 page rows, 5 of 5 outcome counts | calls 18/24"
+  },
+  "samples": {
+    "nextGoalRow": {
+      "event": {
+        "id": 207118,
+        "event_date": "2026-11-22T16:00:00Z",
+        "status": "1st_half",
+        "home_team_id": 2082,
+        "home_team": "KFUM Oslo",
+        "away_team_id": 141,
+        "away_team": "SK Brann",
+        "league_id": 54,
+        "league_name": "Eliteserien"
+      },
+      "minute": 43,
+      "score": {
+        "home": 1,
+        "away": 2
+      },
+      "probabilities": {
+        "home": 0.342,
+        "away": 0.502,
+        "no_goal": 0.156
+      },
+      "leader": "away",
+      "confidence": 0.502,
+      "is_call": false,
+      "call_threshold": 0.7,
+      "call_paused": false,
+      "minutes_since_goal": 1,
+      "evidence": {
+        "momentum_5m": -15.2,
+        "momentum_15m": -16.1,
+        "shots_home_10m": 0,
+        "shots_away_10m": 2,
+        "red_cards_home": 0,
+        "red_cards_away": 0
+      },
+      "track_record": {
+        "accuracy": 71.3,
+        "base_rate": 56.9,
+        "brier_skill_score": null,
+        "matches_evaluated": 4479
+      },
+      "generated_at": "2026-11-22T18:44:07Z"
+    },
+    "callsRow": {
+      "id": 1900,
+      "event": {
+        "id": 215319,
+        "event_date": "2026-11-22T18:00:00Z",
+        "status": "1st_half",
+        "home_team_id": 917,
+        "home_team": "Fútbol Club Barcelona",
+        "away_team_id": 911,
+        "away_team": "Athletic Club",
+        "league_id": 36,
+        "league_name": "Liga F"
+      },
+      "minute": 32,
+      "side": "home",
+      "team": "Fútbol Club Barcelona",
+      "probability": 0.891,
+      "score_at_call": {
+        "home": 1,
+        "away": 0
+      },
+      "outcome": "open",
+      "resolved_minute": null,
+      "called_at": "2026-11-22T18:33:05Z",
+      "resolved_at": null
+    },
+    "liveEventRow": {
+      "id": 207118,
+      "league_id": 54,
+      "league_name": "Eliteserien",
+      "home_team_id": 2082,
+      "home_team": "KFUM Oslo",
+      "away_team_id": 141,
+      "away_team": "SK Brann",
+      "event_date": "2026-11-22T16:00:00Z",
+      "status": "inprogress",
+      "period": "1st_half",
+      "current_minute": 42,
+      "home_score": 1,
+      "away_score": 2,
+      "penalty_shootout": null,
+      "extra_time_score": null,
+      "home_score_ht": 1,
+      "away_score_ht": 2,
+      "live_websocket": true,
+      "websocket_plus": true,
+      "last_updated": "2026-11-22T18:43:24Z"
+    }
+  }
+}
