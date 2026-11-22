@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+/**
+ * Rule 90 for scripts/check-odds-backfill-sport-filter.mjs.
+ *
+ * Each mutation changes ONE thing in a copy of src/index.js (the row filter on one table, the column it reads, the route's
+ * handoff, the refusal of a bad label, the answer's echo, the cron's call) and aims the check at the copy through INDEX_SRC.
+ * The check must go red for every one. A mutant counts as CAUGHT only when an assertion failed ("N of M passed." with N < M and a
+ * FAIL line): a crash or a syntax error proves nothing about what the check asserts and is reported as a harness error. A
+ * mutation whose anchor is missing or not unique applies NOTHING, so each fails the harness by name instead of passing quietly.
+ */
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join, resolve, dirname } from 'node:path';
+
+const INDEX = 'src/index.js';
+const original = readFileSync(INDEX, 'utf8');
+const born = [];
+const place = (text, tag) => {
+  const p = join(dirname(INDEX), `.mutant-${tag}-${Math.random().toString(36).slice(2, 8)}.js`);
+  writeFileSync(p, text); born.push(p); return resolve(p);
+};
+process.on('exit', () => { for (const p of born) rmSync(p, { force: true }); });
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));
+
+// 'pass' | 'red' (an assertion failed) | 'error' (anything else).
+const run = (indexSrc) => {
+  let out = '', code = 0;
+  try {
+    out = execFileSync(process.execPath, ['scripts/check-odds-backfill-sport-filter.mjs'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, INDEX_SRC: indexSrc } });
+  } catch (e) { out = String(e.stdout === undefined ? '' : e.stdout); code = e.status === undefined ? 1 : e.status; }
+  const m = /^(\d+) of (\d+) passed\.$/m.exec(out);
+  if (code === 0) return m && m[1] === m[2] ? 'pass' : 'error';
+  return m && Number(m[1]) < Number(m[2]) && /^FAIL  /m.test(out) ? 'red' : 'error';
+};
+
+if (run(resolve(INDEX)) !== 'pass') { console.log('FAIL: the check is already red on clean source.'); process.exit(1); }
+if (run(place(original, 'control')) !== 'pass') {
+  console.log('FAIL: an UNMUTATED copy at the mutant location is red, so no verdict below would mean anything.');
+  process.exit(1);
+}
+console.log('baseline: the check passes on current source and on an unmutated copy at the mutant location\n');
+
+const RS = "  const rsPicked = onlySport === null ? rsRows : rsRows.filter(r => r.sport === onlySport);";
+const PS = "  const psPicked = onlySport === null ? psRows : psRows.filter(r => r.sport === onlySport);";
+const GATE_ARG = "runOddsBackfillForDate(env, date, 'archiveOddsBackfill', sportParam)";
+const VALIDATE = "  if (sportParam === null || archiveSportToOddsKey(sportParam)) return null;";
+
+const MUTANTS = [
+  ['F1 the filter is ignored on the regular-season rows', RS, "  const rsPicked = rsRows;"],
+  ['F2 the filter is ignored on the postseason rows', PS, "  const psPicked = psRows;"],
+  ['F3 the filter reads the league column, not the sport', RS, RS.replace('r.sport === onlySport', 'r.league === onlySport')],
+  ['F4 the filter is inverted: every sport but the one asked for', RS, RS.replace('r.sport === onlySport', 'r.sport !== onlySport')],
+  ['F5 the route does not hand the sport to the function', GATE_ARG, "runOddsBackfillForDate(env, date, 'archiveOddsBackfill', null)"],
+  ['F6 a label with no Odds-API key is accepted', VALIDATE, "  return null;"],
+  ['F7 an empty ?sport= is read as "no filter" and not refused', VALIDATE, "  if (!sportParam || archiveSportToOddsKey(sportParam)) return null;"],
+  ['F8 the answer does not say which sport it covered', "    ...(onlySport === null ? {} : { sport: onlySport }),\n", ""],
+  ['F10 the route does not apply the refusal', "                if (sportRefusal !== null) return sportRefusal;\n", ""],
+  ['F9 the daily catch-up call is narrowed to one sport', "runOddsBackfillForDate(env, oddsDate)", "runOddsBackfillForDate(env, oddsDate, 'fetchSportOddsHistorical', 'EPL')"],
+];
+
+let missed = 0, nothing = 0, errored = 0;
+for (const [name, anchor, repl] of MUTANTS) {
+  const count = original.split(anchor).length - 1;
+  if (count !== 1) { nothing++; console.log(`NOTHING MUTATED  ${name}\n        the anchor occurs ${count} times in ${INDEX}, not once`); continue; }
+  const text = original.replace(anchor, () => repl);
+  if (text === original) { nothing++; console.log(`NOTHING MUTATED  ${name}`); continue; }
+  const verdict = run(place(text, name.slice(0, 2).trim()));
+  const label = verdict === 'red' ? 'CAUGHT    ' : verdict === 'pass' ? 'NOT CAUGHT' : 'HARNESS ERROR (no assertion failed; a crash is not a catch)';
+  console.log(`${label}  ${name}`);
+  if (verdict === 'pass') missed++;
+  if (verdict === 'error') errored++;
+}
+const caughtN = MUTANTS.length - missed - nothing - errored;
+console.log(`\nmutations: ${caughtN} of ${MUTANTS.length} caught${missed ? `, ${missed} SURVIVED` : ''}${errored ? `, ${errored} harness error(s)` : ''}${nothing ? `, ${nothing} not applied` : ''}`);
+console.log('COVERAGE: the filter on each table, the column it reads, its direction, the route\'s handoff, the refusal of a bad or empty label, the answer\'s echo and the cron\'s call, mutated in a copy of src/index.js.');
+console.log('NOT mutated here: the gate (scripts/check-odds-label-split.mjs), the credit guard and the match itself.');
+process.exit(missed || nothing || errored ? 1 : 0);

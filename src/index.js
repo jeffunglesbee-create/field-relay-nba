@@ -7081,7 +7081,22 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate, site) {
 // One-shot historical odds backfill for a single archive date. Per-sport
 // dispatch; cross-table (regular_season_games + postseason_games); only
 // touches rows where opening_odds IS NULL.
-async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistorical') {
+// The refusal for ?sport= on /archive/odds-backfill, or null. A label the relay has no Odds-API key for, or an empty value, is
+// refused before any billed call and is not read as "no filter". Lives here, not in the route, because the /archive/ handler is
+// scanned in a fixed 1500-line window (scripts/check-brace-balance.mjs) and has five lines of headroom.
+function oddsBackfillSportRefusal(sportParam) {
+  if (sportParam === null || archiveSportToOddsKey(sportParam)) return null;
+  return new Response(JSON.stringify({ ok: false, error: `unknown ?sport=${JSON.stringify(sportParam)}: not an archive sport the relay has an Odds-API key for` }),
+    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+}
+
+//
+// `onlySport` (the archive's label, e.g. 'EPL') narrows the pass to ONE sport. Without it every sport with a NULL row on the
+// date is a separate historical fetch at 30 credits, which is the right thing for a daily catch-up and the wrong one for a repair
+// of a few rows: the nine EPL rows the C Palace defect left unpriced sit on dates that also carry 5 to 10 other sports' NULL
+// rows (docs/CC-CMD-2026-11-22-epl-rows-left-unpriced-by-c-palace.md). Filtered BEFORE bucketing, so a sport that is not asked
+// for is never fetched and never charged. The cron's call passes nothing and is unchanged.
+async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null) {
   if (!env.ARCHIVE_DB) return { ok: false, reason: 'ARCHIVE_DB not bound', date: isoDate };
   const apiKey = _oddsPrimaryKey(env);
   if (!apiKey) return { ok: false, reason: 'ODDS_API_KEY not configured', date: isoDate };
@@ -7097,7 +7112,9 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
 
   const rsRows = rs.results || [];
   const psRows = ps.results || [];
-  const gamesFound = rsRows.length + psRows.length;
+  const rsPicked = onlySport === null ? rsRows : rsRows.filter(r => r.sport === onlySport);
+  const psPicked = onlySport === null ? psRows : psRows.filter(r => r.sport === onlySport);
+  const gamesFound = rsPicked.length + psPicked.length;
   if (!gamesFound) {
     return { ok: true, date: isoDate, games_found: 0, odds_populated: 0, odds_skipped: 0 };
   }
@@ -7113,8 +7130,8 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
     if (!buckets.has(sk)) buckets.set(sk, { rs: [], ps: [] });
     return buckets.get(sk);
   };
-  for (const row of rsRows) { const b = bucketOf(row.sport); if (b) b.rs.push(row); }
-  for (const row of psRows) { const b = bucketOf(row.sport); if (b) b.ps.push(row); }
+  for (const row of rsPicked) { const b = bucketOf(row.sport); if (b) b.rs.push(row); }
+  for (const row of psPicked) { const b = bucketOf(row.sport); if (b) b.ps.push(row); }
 
   let oddsPopulated = 0;
   let oddsSkipped  = 0;
@@ -7179,6 +7196,7 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
   return {
     ok: true,
     date: isoDate,
+    ...(onlySport === null ? {} : { sport: onlySport }),
     games_found: gamesFound,
     odds_populated: oddsPopulated,
     odds_skipped: oddsSkipped,
@@ -12930,8 +12948,11 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
+                const sportParam = url.searchParams.get('sport');   // ?sport=EPL: one sport only (runOddsBackfillForDate)
+                const sportRefusal = oddsBackfillSportRefusal(sportParam);
+                if (sportRefusal !== null) return sportRefusal;
                 try {
-                    const result = await runOddsBackfillForDate(env, date, 'archiveOddsBackfill');
+                    const result = await runOddsBackfillForDate(env, date, 'archiveOddsBackfill', sportParam);
                     return new Response(JSON.stringify(result),
                         { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 } catch (e) {

@@ -237,6 +237,8 @@ jobs:
         run: |
           node scripts/check-odds-label-split.mjs
           node scripts/mutate-odds-label-split.mjs
+          node scripts/check-odds-backfill-sport-filter.mjs
+          node scripts/mutate-odds-backfill-sport-filter.mjs
 
       # /identity/mismatches is the diagnostic the Saturday probe reads. It joined on resolved pair keys
       # alone and reported 0 of 80 on a slate the relay's own join solves 73 of and the backfill's
