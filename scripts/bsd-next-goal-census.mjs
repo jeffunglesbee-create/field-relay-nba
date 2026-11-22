@@ -13,13 +13,15 @@
 // repository is public).
 //
 // WHAT A CAPTURE IS. bsd/{slug}/{id}/incidents.json is {event_id, incidents:[...]}: goal rows (minute, is_home), a `period`
-// row per period carrying the running score, `injuryTime`, substitutions, cards. A match captured in play ends with a
-// `period` row whose is_live is TRUE and whose `minute` is the clock at the moment of capture; a finished one carries a
-// `period` row "FT" with is_live false and the final score (committed real examples: data/bsd-flow-{finished,inplay}-
-// incidents.json in field-laboratory). The relay's endgame capture takes its in-play snapshot late in the match and the
-// list is cumulative, so an in-play capture still holds every goal up to its clock. "Covers" below is therefore:
-// the capture saw full time, OR its live-marker clock (else its latest incident minute, a lower bound) has reached the
-// call's `resolved_minute`.
+// row per period carrying the running score, `injuryTime`, substitutions, cards (committed real examples:
+// data/bsd-flow-{finished,inplay}-incidents.json in field-laboratory). A `period` row's `minute` is NOT read as the capture's
+// clock: in those examples HT carries 45 beside a 4-minute injuryTime and FT carries 90 for a match whose event row says
+// current_minute 96, so it is a nominal period marker, and an in-play capture's live `Second half` row said 90 for a match
+// that went on to score. A first version of this census took that minute as the clock and found every call with a readable
+// capture "covered" (0 of 370 uncovered while 234 of 246 captures were in play): a check that could not fail. What a capture
+// can prove is the goals it holds. "Covers" below is therefore: the capture saw full time (its goal list is complete), OR it
+// holds a goal within WITNESS_TOLERANCE minute of the call's `resolved_minute` (the resolving goal itself, which the
+// cumulative list could not hold unless the capture was taken after it). The live row's minute is tallied, not used.
 //
 // MECHANISM. UPSTREAM for the ledger (the token, a runner), through the relay for R2 (its public /bsd/r2/list and
 // /bsd/r2/read, which read R2 and never BSD). The ledger is newest-first and grows while it is paged, so rows are de-duplicated
@@ -68,22 +70,22 @@ export async function listAll(get, prefix = 'bsd/', maxPages = 40) {
 }
 
 /** One incidents.json, reduced to what coverage needs. */
+export const WITNESS_TOLERANCE = 1;
 export function captureOf(json) {
   const rows = isObj(json) && Array.isArray(json.incidents) ? json.incidents : null;
   if (!rows) return { ok: false, why: isObj(json) ? 'no incidents array' : 'not an object' };
   const periods = rows.filter((r) => isObj(r) && r.type === 'period');
   const ft = periods.find((r) => /^(ft|aet|ap|pen)/i.test(String(r.text ?? '')) && r.is_live === false);
-  const live = periods.find((r) => r.is_live === true && num(r.minute) !== null);
-  const minutes = rows.map((r) => (isObj(r) ? num(r.minute) : null)).filter((m) => m !== null);
-  const maxMinute = minutes.length ? Math.max(...minutes) : null;
+  const live = periods.find((r) => r.is_live === true);
   const goals = rows.filter((r) => isObj(r) && r.type === 'goal' && num(r.minute) !== null);
+  const goalMinutes = goals.map((g) => g.minute).sort((a, b) => a - b);
   const fs_ = ft ? { home: num(ft.home_score), away: num(ft.away_score) } : null;
   return {
     ok: true,
     fullTime: Boolean(ft),
-    clock: ft ? 'full-time' : live ? 'live-marker' : maxMinute !== null ? 'lower-bound' : 'none',
-    captureMinute: ft ? null : live ? num(live.minute) : maxMinute,
-    maxMinute,
+    state: ft ? 'full-time' : live ? 'in-play' : 'unmarked',
+    liveRowMinute: live ? num(live.minute) : null,
+    goalMinutes,
     goals: goals.length,
     finalScore: fs_,
     goalCountMatchesFinal: fs_ && fs_.home !== null && fs_.away !== null ? goals.length === fs_.home + fs_.away : null,
@@ -91,12 +93,19 @@ export function captureOf(json) {
   };
 }
 
-/** Does this capture hold the call from its minute through its resolution? */
-export function covers(call, cap) {
+/** Minutes from the call's resolved minute to the nearest goal the capture holds; null when either is missing. */
+export function goalDistance(call, cap) {
+  const rm = num(call?.resolved_minute);
+  if (rm === null || !cap || !cap.ok || !cap.goalMinutes.length) return null;
+  return Math.min(...cap.goalMinutes.map((m) => Math.abs(m - rm)));
+}
+
+/** Does this capture hold the call's resolution? Full time, or the resolving goal itself. */
+export function covers(call, cap, tolerance = WITNESS_TOLERANCE) {
   if (!cap || !cap.ok) return false;
   if (cap.fullTime) return true;
-  const rm = num(call?.resolved_minute);
-  return rm !== null && cap.captureMinute !== null && cap.captureMinute >= rm;
+  const d = goalDistance(call, cap);
+  return d !== null && d <= tolerance;
 }
 
 // ---------------------------------------------------------------- the ledger side
@@ -176,7 +185,8 @@ export function analyseCensus({ ledger, r2, reads, ctx = {} }) {
   A.captures = {
     ofLedgerEvents: capList.length,
     fullTime: capList.filter((c) => c.fullTime).length,
-    clock: tally(capList, (c) => c.clock),
+    state: tally(capList, (c) => c.state),
+    liveRowMinute: tally(capList.filter((c) => c.state === 'in-play'), (c) => (c.liveRowMinute === null ? 'none' : c.liveRowMinute)),
     periodTexts: tally(capList.flatMap((c) => c.periodTexts), (t) => t),
     goalCountMatchesFinal: tally(capList.filter((c) => c.fullTime), (c) => (c.goalCountMatchesFinal === null ? 'unknown' : c.goalCountMatchesFinal ? 'yes' : 'no')),
   };
@@ -185,7 +195,8 @@ export function analyseCensus({ ledger, r2, reads, ctx = {} }) {
   if (!L) { A.calls = { verdict: 'UNKNOWN', why: A.ledger.why }; }
   else {
     const tracked = Array.isArray(ctx.trackedLeagueIds) ? new Set(ctx.trackedLeagueIds.map(String)) : null;
-    const reasons = {}, gradeableBySlug = {}, gradeableByMonth = {}, gradeableByOutcome = {};
+    const reasons = {}, gradeableBySlug = {}, gradeableByMonth = {}, gradeableByOutcome = {}, gradeableBy = {};
+    const distance = {}, byTolerance = { 0: 0, 1: 0, 2: 0 };
     let inTracked = 0, withKey = 0, withCapture = 0, withFullTime = 0, covered = 0, gradeable = 0, trackedNoKey = 0, keyUntracked = 0;
     const eventsTrackedNoKey = new Set(), eventsGradeable = new Set(), eventsTracked = new Set();
     for (const r of L.rows) {
@@ -209,11 +220,18 @@ export function analyseCensus({ ledger, r2, reads, ctx = {} }) {
       else if (!R.has(id)) reason = 'incidents.json not read (cap or deadline)';
       else if (!cap) reason = `incidents.json read failed (status ${R.get(id).status ?? 'none'})`;
       else if (!cap.ok) reason = `incidents.json unreadable: ${cap.why}`;
-      else if (!covers(r, cap)) reason = 'the capture ends before the resolution';
+      else if (!covers(r, cap)) reason = `the capture did not see full time and holds no goal within ${WITNESS_TOLERANCE} minute of the resolution`;
       else reason = null;
       if (cap && cap.ok && covers(r, cap)) covered++;
+      // every call with a readable capture, a hit or miss and a resolved minute: how far is the nearest goal in the capture, by state
+      if (cap && cap.ok && (outcome === 'hit' || outcome === 'miss') && num(r?.resolved_minute) !== null) {
+        const d = goalDistance(r, cap);
+        if (!distance[cap.state]) distance[cap.state] = {};
+        inc(distance[cap.state], d === null ? 'no goal in the capture' : d >= 3 ? '3+' : String(d));
+        for (const tol of [0, 1, 2]) if (cap.fullTime || (d !== null && d <= tol)) byTolerance[tol]++;
+      }
       if (reason === null) {
-        gradeable++; eventsGradeable.add(id);
+        gradeable++; eventsGradeable.add(id); inc(gradeableBy, cap.fullTime ? 'full time' : `a goal within ${WITNESS_TOLERANCE} minute`);
         inc(gradeableBySlug, [...key.slugs].sort().join('+')); inc(gradeableByMonth, monthOf(r?.called_at)); inc(gradeableByOutcome, outcome);
       } else inc(reasons, reason);
     }
@@ -227,9 +245,13 @@ export function analyseCensus({ ledger, r2, reads, ctx = {} }) {
       withIncidentsKeyOutsideTrackedLeagues: tracked ? keyUntracked : null,
       withIncidentsKey: withKey, withReadableCapture: withCapture, withFullTimeCapture: withFullTime, coveredByCapture: covered,
       gradeable, distinctEventsGradeable: eventsGradeable.size,
-      gradeableByOutcome, gradeableBySlug, gradeableByMonth,
+      gradeableBy, gradeableByOutcome, gradeableBySlug, gradeableByMonth,
+      // nearest goal in the capture to the ledger's resolved_minute, over hit/miss calls with a readable capture. For full-time
+      // captures (complete goal lists) this measures whether resolved_minute is the minute of a goal at all.
+      goalDistanceByCaptureState: distance,
+      gradeableIfToleranceWere: { 0: byTolerance[0], 1: byTolerance[1], 2: byTolerance[2] },
       notGradeableBecause: reasons,
-      note: 'gradeable = outcome hit or miss, a resolved_minute, an incidents.json that was read and covers the call (full time seen, or its clock has reached resolved_minute). It says nothing about whether the vendor was right.',
+      note: `gradeable = outcome hit or miss, a resolved_minute, an incidents.json that was read and either saw full time or holds a goal within ${WITNESS_TOLERANCE} minute of resolved_minute. A period row's minute is not a clock. It says nothing about whether the vendor was right.`,
     };
   }
 

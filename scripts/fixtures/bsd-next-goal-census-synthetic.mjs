@@ -2,7 +2,9 @@
 // real /next-goal/calls/ rows carry (measured 2026-11-22: id, event{...}, minute, side, team, probability, score_at_call,
 // outcome, resolved_minute, called_at, resolved_at); the capture shapes are those of the committed real examples
 // data/bsd-flow-{finished,inplay}-incidents.json in field-laboratory (goal rows with minute and is_home; a `period` row
-// "FT" with is_live false and the running score; a live `period` row with is_live true whose minute is the capture clock).
+// "FT" with is_live false and the running score; a live `period` row with is_live true. A period row's minute is a nominal
+// marker in the real files (HT 45, FT 90 beside a 6-minute injuryTime), so these fixtures put a DISTINCT number on the live
+// row to prove the census does not read it as a clock).
 // Nothing here is vendor data. Shared by check-bsd-next-goal-census.mjs and check-bsd-next-goal-census-run.mjs.
 
 export const call = (o) => ({
@@ -28,9 +30,9 @@ export const page = (rows, extra = {}) => ({ count: rows.length, next: null, pre
 
 // ---- one small world with every branch in it
 export const EVENTS = {
-  101: { slug: 'epl', league: 1, files: ['incidents.json', 'stats.json'] },     // finished capture, 2 goals, score 1-1
-  102: { slug: 'epl', league: 1, files: ['incidents.json'] },                  // live clock 70
-  103: { slug: 'mls', league: 2, files: ['incidents.json'] },                  // half-time only: lower bound 45
+  101: { slug: 'epl', league: 1, files: ['incidents.json', 'stats.json'] },     // finished capture, goals at 20 and 60, score 1-1
+  102: { slug: 'epl', league: 1, files: ['incidents.json'] },                  // in play (live row says 70), goals at 20 and 60
+  103: { slug: 'mls', league: 2, files: ['incidents.json'] },                  // half-time row only, one goal at 40
   104: { slug: 'epl', league: 1, files: ['incidents.json'] },                  // listed, read answers 404
   105: { slug: 'epl', league: 1, files: ['incidents.json'] },                  // listed, read answers 500
   106: { slug: 'epl', league: 1, files: ['incidents.json'] },                  // listed, read answers garbage
@@ -45,17 +47,17 @@ export const worldKeys = () => {
   return ks;
 };
 export const worldCalls = () => [
-  call({ id: 1, ev: 101, outcome: 'hit', rm: 55 }),
-  call({ id: 2, ev: 101, outcome: 'miss', rm: 70 }),
-  call({ id: 3, ev: 102, outcome: 'hit', rm: 60, at: '2026-10-20T15:30:00Z' }),
-  call({ id: 4, ev: 102, outcome: 'hit', rm: 75 }),
-  call({ id: 5, ev: 103, outcome: 'miss', rm: 50, league: 2 }),
-  call({ id: 6, ev: 103, outcome: 'hit', rm: 44, league: 2 }),
+  call({ id: 1, ev: 101, outcome: 'hit', rm: 60 }),          // full time; the goal is at 60 (distance 0)
+  call({ id: 2, ev: 101, outcome: 'miss', rm: 70 }),         // full time; nearest goal 60 (distance 10)
+  call({ id: 3, ev: 102, outcome: 'hit', rm: 60, at: '2026-10-20T15:30:00Z' }),  // in play; the goal is at 60 (0): covered
+  call({ id: 4, ev: 102, outcome: 'hit', rm: 75 }),          // in play; no goal near 75 (the live row's 70 is not a clock)
+  call({ id: 5, ev: 103, outcome: 'miss', rm: 42, league: 2 }),  // half-time row; goal at 40 is 2 away: not within 1
+  call({ id: 6, ev: 103, outcome: 'hit', rm: 41, league: 2 }),   // half-time row; goal at 40 is 1 away: covered
   call({ id: 7, ev: 104, outcome: 'hit' }),
   call({ id: 8, ev: 105, outcome: 'miss' }),
   call({ id: 9, ev: 106, outcome: 'hit' }),
   call({ id: 10, ev: 107, outcome: 'hit' }),
-  call({ id: 11, ev: 108, outcome: 'hit', rm: 30, league: 99 }),
+  call({ id: 11, ev: 108, outcome: 'hit', rm: 11, league: 99 }), // full time, untracked league; goal at 10 (distance 1)
   call({ id: 12, ev: 109, outcome: 'hit' }),
   call({ id: 13, ev: 101, outcome: 'open', rm: null }),
   call({ id: 14, ev: 102, outcome: 'nogoal', rm: null }),

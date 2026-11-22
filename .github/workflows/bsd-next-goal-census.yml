@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: '22'
 
-      # About 10 seconds. The mutation harness (about 180 mutants, a few minutes) runs LAST, after the artifact is committed.
+      # About 10 seconds. The mutation harness (about 190 mutants, a few minutes) runs LAST, after the artifact is committed.
       - name: The checks can still fail
         run: |
           node scripts/check-bsd-next-goal-census.mjs --self-test
