@@ -1,0 +1,84 @@
+{
+  "probed_at": "2026-11-22T19:09:41.724Z",
+  "date": "2026-10-25",
+  "sport": "EPL",
+  "url": "https://field-relay-nba.jeffunglesbee.workers.dev/identity/mismatches?date=2026-10-25&sports=EPL",
+  "http": 200,
+  "report": {
+    "date": "2026-10-25",
+    "probed": 1,
+    "matched": 0,
+    "unmatched": 1,
+    "key_resolved": 1,
+    "key_substituted": 0,
+    "key_unchecked": 0,
+    "key_substituted_cross_sport": 0,
+    "sports": {
+      "EPL": {
+        "sport_key": "soccer_epl",
+        "odds_events": 20,
+        "d1_rows": 5,
+        "d1_priced": 4,
+        "d1_priced_late": 0,
+        "d1_missing": 1,
+        "odds_events_in_window": 0,
+        "matched": 0,
+        "priceable": 0,
+        "slate_matched": 0,
+        "key_substituted": [
+          {
+            "name": "Newcastle",
+            "key": "newcastleunited",
+            "also_in": [],
+            "corroborated": true
+          }
+        ],
+        "unmatched": [
+          {
+            "d1_home": "C Palace",
+            "d1_away": "Newcastle",
+            "d1_key": "cpalace|newcastleunited",
+            "start_time": "2026-10-25T14:00Z",
+            "finalized": true
+          }
+        ],
+        "odds_sample": [
+          {
+            "odds_home": "Brentford",
+            "odds_away": "Everton",
+            "key": "brentford|everton"
+          },
+          {
+            "odds_home": "Nottingham Forest",
+            "odds_away": "Chelsea",
+            "key": "nottinghamforest|chelsea"
+          },
+          {
+            "odds_home": "Manchester United",
+            "odds_away": "Brentford",
+            "key": "manchesterunited|brentford"
+          },
+          {
+            "odds_home": "Leeds United",
+            "odds_away": "Coventry City",
+            "key": "leedsunited|coventrycity"
+          },
+          {
+            "odds_home": "Ipswich Town",
+            "odds_away": "Aston Villa",
+            "key": "ipswichtown|astonvilla"
+          },
+          {
+            "odds_home": "Everton",
+            "odds_away": "Liverpool",
+            "key": "everton|liverpool"
+          }
+        ]
+      }
+    },
+    "sports_compared": [
+      "EPL"
+    ]
+  },
+  "error": null
+}
