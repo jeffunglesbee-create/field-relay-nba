@@ -23,7 +23,6 @@ const MUTATIONS = [
   ['M2 a date named twice is allowed', 'if (new Set(dates).size !== dates.length)', 'if (false)', 'S5'],
   ['M3 several sports are allowed in one call', "if (sport.includes(','))", 'if (false)', 'S6'],
   ['M4 no secret is allowed', "if (secret === '')", 'if (false)', 'S7'],
-  ['M5 a malformed date is allowed', 'if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))', 'if (false)', 'S8'],
   ['M6 a failure does not end the run', 'stoppedBecause = `${date}: ${rec.error}`; break; }', 'stoppedBecause = `${date}: ${rec.error}`; }', 'S9'],
   ['M7 the secret is not redacted', "const redact = (text) => String(text).split(p.secret).join('[redacted]');", 'const redact = (text) => String(text);', 'S10'],
   ['M8 a body that does not echo the date is read as a report', 'else if (j.date !== date)', 'else if (false)', 'S12'],
@@ -33,6 +32,17 @@ const MUTATIONS = [
   ['M12 the credential is not sent', 'Authorization: `Bearer ${p.secret}`', "Authorization: 'none'", 'S2'],
   ['M13 the denominator is the request list, not the calls made', 'called ${attempted} of', 'called ${p.dates.length} of', 'S16'],
   ['M14 a stopped run does not say it stopped', 'if (stoppedBecause !== null) log(', 'if (false) log(', 'S16'],
+  ['M15 the calls already made are not counted', 'if (made + p.dates.length > CALL_CAP) {', 'if (false) {', 'S17'],
+  ['M16 the ledger does not recognise a payload file', "n.endsWith('.json'))", "n.endsWith('.jsonx'))", 'S18'],
+  ['M17 a redirect is followed', "redirect: 'manual', ", '', 'S21'],
+  ['M18 a 200 with an error entry is read as a report', 'else if (entry.error !== undefined) rec.error =', 'else if (false) rec.error =', 'S22'],
+  ['M19 a fan-out to other sports is not noticed', 'if (keys.length !== 1 || keys[0] !== p.sport) rec.error =', 'if (false) rec.error =', 'S24'],
+  ['M20 report.probed is not checked', 'else if (j.probed !== 1) rec.error =', 'else if (false) rec.error =', 'S25'],
+  ['M21 a malformed or impossible date is allowed', 'Number.isNaN(t.getTime()) || t.toISOString().slice(0, 10) !== d', 'false', 'S20'],
+  ['M22 the last redaction pass over the whole record is removed', "const text = redact(JSON.stringify(rec, null, 2)) + '\\n';", "const text = JSON.stringify(rec, null, 2) + '\\n';", 'S29'],
+  ['M23 neither the non-JSON path nor the final pass redacts', [["`non-JSON body (${text.length} bytes): ${redact(text).slice(0, 120)}`", "`non-JSON body (${text.length} bytes): ${text.slice(0, 120)}`"], ["const text = redact(JSON.stringify(rec, null, 2)) + '\\n';", "const text = JSON.stringify(rec, null, 2) + '\\n';"]], null, 'S27'],
+  ['M24 a thrown fetch error is not redacted and the final pass is gone', [["catch (e) { rec.error = redact(e.message === undefined ? e : e.message); }", "catch (e) { rec.error = e.message === undefined ? e : e.message; }"], ["const text = redact(JSON.stringify(rec, null, 2)) + '\\n';", "const text = JSON.stringify(rec, null, 2) + '\\n';"]], null, 'S28'],
+  ['M25 each payload is not echoed to the run log', 'log(`--- ${file}\\n${text}`);', '', 'S26'],
 ];
 
 const TMP = realpathSync(mkdtempSync(join(tmpdir(), 'mutate-probe-idm-')));
@@ -45,9 +55,11 @@ console.log('positive control: the unmutated copy passes\n');
 
 let failed = 0;
 for (const [name, from, to, expect] of MUTATIONS) {
-  const n = ORIG.split(from).length - 1;
-  if (n !== 1) { console.log(`FAIL  ${name}: anchor found ${n} times, must be exactly once, nothing mutated`); failed++; continue; }
-  const mutated = ORIG.replace(from, () => to);
+  const pairs = Array.isArray(from) ? from : [[from, to]];
+  const counts = pairs.map(([f]) => ORIG.split(f).length - 1);
+  if (counts.some(n => n !== 1)) { console.log(`FAIL  ${name}: anchor found ${counts.join('/')} times, must be exactly once each, nothing mutated`); failed++; continue; }
+  let mutated = ORIG;
+  for (const [f, t] of pairs) mutated = mutated.replace(f, () => t);
   if (mutated === ORIG) { console.log(`FAIL  ${name}: replacement changed nothing`); failed++; continue; }
   writeFileSync(COPY, mutated);
   const r = run(COPY);

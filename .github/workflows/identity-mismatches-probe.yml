@@ -31,18 +31,34 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
+      # `ref: main`, so a dispatch that queued behind another one reads the payloads the first one committed: the script
+      # counts them as calls already made. Every step below runs on attempt 1 only: "Re-run jobs" repeats the same inputs on
+      # the same commit, which would not see the first attempt's payloads, and a re-run would spend the approval again.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       # The inputs travel through `env`, never spliced into the script text.
       - name: Read the route, at most three calls, no retry
+        if: github.run_attempt == 1
         env:
           PROBE_DATES: ${{ inputs.dates }}
           PROBE_SPORT: ${{ inputs.sport }}
           FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
         run: node scripts/probe-identity-mismatches.mjs
 
+      # A paid reading must not exist only on a runner that is about to be thrown away: it is also printed in the log above.
+      - name: Keep the payloads
+        if: always() && github.run_attempt == 1
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity-mismatches-payloads
+          path: outbox/identity-mismatches-*.json
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Commit the payloads
-        if: always()
+        if: always() && github.run_attempt == 1
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
@@ -59,6 +75,9 @@ jobs:
           done
           echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
           if grep -qiE 'denied|403|permission|forbidden' "$LOG"; then
-            echo "Push failed on PERMISSIONS."; exit 1
+            echo "Push failed on PERMISSIONS."
           fi
-          echo "Race contention."; exit 0
+          # The push did not land, and this step does not turn that green: the payloads are in the artifact and the log.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "::error::the payloads are NOT on main; they are in the run's artifact and in the log above. Do not re-run: it would spend the approval again."; exit 1; }
