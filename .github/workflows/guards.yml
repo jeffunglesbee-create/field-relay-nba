@@ -300,6 +300,13 @@ jobs:
           node scripts/check-identity-route-join.mjs
           node scripts/mutate-identity-route-join.mjs
 
+      # The identity probe spends billed Odds credits, so its cap, its refusal to retry and its redaction of the secret are
+      # proved on a local stub server, and each mutation that would spend more must go red by a named check.
+      - name: the identity probe is capped at three calls, never retries, and never prints the secret
+        run: |
+          node scripts/probe-identity-mismatches.mjs --self-test
+          node scripts/mutate-probe-identity-mismatches.mjs
+
       # Every reader that prints an "opening" line took the blob as it came, and the CI backfill writes one
       # blob into both columns, so a line captured during the game was reported as the open (2026-10-29,
       # docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, Task A2). Run on six real blobs.

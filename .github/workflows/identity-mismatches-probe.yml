@@ -1,0 +1,64 @@
+name: Identity mismatches probe (spend-capped)
+
+# docs/CC-CMD-2026-09-11-epl-identity-resolve.md, Task 0 / Done condition 1: a verbatim reading of GET /identity/mismatches
+# for ONE sport on up to THREE dates. The route is gated (FIELD_MCP_SECRET) and every call is a billed vendor fetch, so this
+# is dispatch-only and the cap is in scripts/probe-identity-mismatches.mjs, not in this file: at most three dates, no repeat
+# of a date, one sport, one attempt per date, and the first failure ends the run. Three calls are 9 credits at the relay's
+# ledger estimate (3 per sport per call; the provider's real bill is unmeasured). The owner approved 9 credits on 2026-11-22.
+#
+# scripts/probe-odds-join.mjs and odds-identity-join-saturday.yml cannot do this: their sport list is fixed (no EPL), they probe
+# four sports at once (12 credits) and refuse a day that is not a Saturday.
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: 'Up to 3 dates, YYYY-MM-DD, comma-separated, none twice (3 credits per date at the ledger estimate)'
+        required: true
+      sport:
+        description: 'One sport, as the archive labels it'
+        required: false
+        default: 'EPL'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: identity-mismatches-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      # The inputs travel through `env`, never spliced into the script text.
+      - name: Read the route, at most three calls, no retry
+        env:
+          PROBE_DATES: ${{ inputs.dates }}
+          PROBE_SPORT: ${{ inputs.sport }}
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/probe-identity-mismatches.mjs
+
+      - name: Commit the payloads
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/identity-mismatches-*.json || { echo "no payload"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "outbox: identity mismatches payloads"
+          LOG=/tmp/push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed on attempt $i."; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention."; exit 0
