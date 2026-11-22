@@ -1,0 +1,199 @@
+{
+  "ts": "2026-11-22T20:04:47.394Z",
+  "base": "https://sports.bzzoiro.com",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "tokenPresent": true,
+  "callBudget": 16,
+  "readCap": 1500,
+  "deadlineSeconds": 420,
+  "bsdCallsMade": 11,
+  "stopped": null,
+  "analysisError": null,
+  "readsMade": 246,
+  "reachedTarget": true,
+  "coverageLine": "ledger: 1746 unique calls (COMPLETE, reported 1746 then 1746, 9 pages, 0 duplicates) | R2: 2857 keys, 1355 events with incidents.json (COMPLETE) | reads: 246 parsed of 246 attempted | calls: 370 gradeable of 1746 (391 in a tracked league, 390 with an incidents.json, 16 with a full-time capture) | BSD calls 11/16",
+  "bsdLog": [
+    {
+      "key": "count_first",
+      "status": 200,
+      "ms": 924
+    },
+    {
+      "key": "page_0",
+      "status": 200,
+      "ms": 951
+    },
+    {
+      "key": "page_1",
+      "status": 200,
+      "ms": 1055
+    },
+    {
+      "key": "page_2",
+      "status": 200,
+      "ms": 823
+    },
+    {
+      "key": "page_3",
+      "status": 200,
+      "ms": 520
+    },
+    {
+      "key": "page_4",
+      "status": 200,
+      "ms": 635
+    },
+    {
+      "key": "page_5",
+      "status": 200,
+      "ms": 510
+    },
+    {
+      "key": "page_6",
+      "status": 200,
+      "ms": 559
+    },
+    {
+      "key": "page_7",
+      "status": 200,
+      "ms": 411
+    },
+    {
+      "key": "page_8",
+      "status": 200,
+      "ms": 403
+    },
+    {
+      "key": "count_last",
+      "status": 200,
+      "ms": 160
+    }
+  ],
+  "analysis": {
+    "ledger": {
+      "verdict": "COMPLETE",
+      "why": null,
+      "uniqueCalls": 1746,
+      "duplicates": 0,
+      "rowsWithoutId": 0,
+      "pages": 9,
+      "reportedFirst": 1746,
+      "reportedLast": 1746,
+      "drift": 0,
+      "distinctEvents": 1140,
+      "outcomes": {
+        "hit": 1260,
+        "miss": 467,
+        "nogoal": 19
+      },
+      "byMonth": {
+        "2026-11": 414,
+        "2026-10": 595,
+        "2026-09": 404,
+        "2026-08": 333
+      },
+      "rowsWithoutEventId": 0,
+      "rowsWithoutResolvedMinute": 116,
+      "oldestCalledAt": "2026-08-05T17:47:07Z",
+      "newestCalledAt": "2026-11-22T19:57:06Z"
+    },
+    "r2": {
+      "verdict": "COMPLETE",
+      "why": null,
+      "keys": 2857,
+      "pages": 4,
+      "keysNotMatchingTheLayout": 0,
+      "files": {
+        "incidents.json": 1355,
+        "stats.json": 1357,
+        "average-positions.json": 145
+      },
+      "events": 1357,
+      "eventsWithIncidents": 1355,
+      "eventsPerSlug": {
+        "bundesliga": 90,
+        "eflchamp": 192,
+        "epl": 109,
+        "europa": 144,
+        "laliga": 127,
+        "ligue1": 98,
+        "mls": 293,
+        "seriea": 118,
+        "ucl": 135,
+        "wc26": 49
+      },
+      "idsUnderMoreThanOneSlug": 0
+    },
+    "reads": {
+      "attempted": 246,
+      "parsed": 246,
+      "notFound404": 0,
+      "failedOrBlocked": 0,
+      "blockedByDeadline": 0,
+      "parseFailures": 0,
+      "capped": false
+    },
+    "captures": {
+      "ofLedgerEvents": 246,
+      "fullTime": 12,
+      "clock": {
+        "live-marker": 234,
+        "full-time": 12
+      },
+      "periodTexts": {
+        "Second half/true": 234,
+        "HT/false": 246,
+        "FT/false": 12,
+        "ET/false": 1
+      },
+      "goalCountMatchesFinal": {
+        "yes": 11,
+        "no": 1
+      }
+    },
+    "calls": {
+      "partialBecause": [],
+      "verdict": "ANSWERED",
+      "uniqueCalls": 1746,
+      "inTrackedLeague": 391,
+      "distinctEventsInTrackedLeague": 247,
+      "trackedLeagueWithoutIncidentsKey": 1,
+      "distinctTrackedEventsWithoutKey": 1,
+      "withIncidentsKeyOutsideTrackedLeagues": 0,
+      "withIncidentsKey": 390,
+      "withReadableCapture": 390,
+      "withFullTimeCapture": 16,
+      "coveredByCapture": 370,
+      "gradeable": 370,
+      "distinctEventsGradeable": 236,
+      "gradeableByOutcome": {
+        "hit": 280,
+        "miss": 90
+      },
+      "gradeableBySlug": {
+        "epl": 31,
+        "ligue1": 27,
+        "laliga": 59,
+        "seriea": 49,
+        "eflchamp": 22,
+        "bundesliga": 42,
+        "mls": 58,
+        "europa": 30,
+        "ucl": 52
+      },
+      "gradeableByMonth": {
+        "2026-11": 79,
+        "2026-10": 144,
+        "2026-09": 97,
+        "2026-08": 50
+      },
+      "notGradeableBecause": {
+        "no incidents.json in R2 for the event": 1260,
+        "no resolved_minute": 97,
+        "outcome is nogoal": 19
+      },
+      "note": "gradeable = outcome hit or miss, a resolved_minute, an incidents.json that was read and covers the call (full time seen, or its clock has reached resolved_minute). It says nothing about whether the vendor was right."
+    },
+    "coverageLine": "ledger: 1746 unique calls (COMPLETE, reported 1746 then 1746, 9 pages, 0 duplicates) | R2: 2857 keys, 1355 events with incidents.json (COMPLETE) | reads: 246 parsed of 246 attempted | calls: 370 gradeable of 1746 (391 in a tracked league, 390 with an incidents.json, 16 with a full-time capture) | BSD calls 11/16"
+  }
+}
