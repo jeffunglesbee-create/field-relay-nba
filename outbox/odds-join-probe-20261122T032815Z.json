@@ -1,0 +1,284 @@
+{
+  "probed_at": "2026-11-22T03:28:15.443Z",
+  "probe_date": "2026-11-21",
+  "sports_requested": [
+    "CFB",
+    "NFL",
+    "Bundesliga",
+    "MLS"
+  ],
+  "http": 200,
+  "report": {
+    "date": "2026-11-21",
+    "probed": 4,
+    "matched": 0,
+    "unmatched": 8,
+    "key_substituted": 1,
+    "key_substituted_cross_sport": 0,
+    "sports": {
+      "CFB": {
+        "sport_key": "americanfootball_ncaaf",
+        "odds_events": 23,
+        "d1_rows": 58,
+        "d1_priced": 52,
+        "d1_priced_late": 0,
+        "d1_missing": 6,
+        "odds_events_in_window": 15,
+        "matched": 0,
+        "priceable": 0,
+        "slate_matched": 0,
+        "key_substituted": [
+          {
+            "name": "Liberty",
+            "key": "newyorkliberty",
+            "also_in": []
+          }
+        ],
+        "unmatched": [
+          {
+            "d1_home": "Liberty",
+            "d1_away": "Western KY",
+            "d1_key": "newyorkliberty|westernky",
+            "start_time": "2026-11-21T18:00Z",
+            "finalized": true
+          },
+          {
+            "d1_home": "Jax State",
+            "d1_away": "Missouri St",
+            "d1_key": "jaxstate|missourist",
+            "start_time": "2026-11-21T19:00Z",
+            "finalized": true
+          },
+          {
+            "d1_home": "Sam Houston",
+            "d1_away": "MTSU",
+            "d1_key": "samhouston|mtsu",
+            "start_time": "2026-11-21T19:00Z",
+            "finalized": true
+          },
+          {
+            "d1_home": "FAU",
+            "d1_away": "South Florida",
+            "d1_key": "fau|southflorida",
+            "start_time": "2026-11-21T19:30Z",
+            "finalized": true
+          },
+          {
+            "d1_home": "Kennesaw St",
+            "d1_away": "FIU",
+            "d1_key": "kennesawst|fiu",
+            "start_time": "2026-11-21T20:00Z",
+            "finalized": true
+          },
+          {
+            "d1_home": "Troy",
+            "d1_away": "GA Southern",
+            "d1_key": "troy|gasouthern",
+            "start_time": "2026-11-21T21:00Z",
+            "finalized": true
+          }
+        ],
+        "odds_sample": [
+          {
+            "odds_home": "San Jose State Spartans",
+            "odds_away": "UNLV Rebels",
+            "key": "sanjosestatespartans|unlvrebels"
+          },
+          {
+            "odds_home": "Miami Hurricanes",
+            "odds_away": "Virginia Tech Hokies",
+            "key": "miamihurricanes|virginiatechhokies"
+          },
+          {
+            "odds_home": "Kansas State Wildcats",
+            "odds_away": "Arizona Wildcats",
+            "key": "kansasstatewildcats|arizonawildcats"
+          },
+          {
+            "odds_home": "California Golden Bears",
+            "odds_away": "Stanford Cardinal",
+            "key": "californiagoldenbears|stanfordcardinal"
+          },
+          {
+            "odds_home": "Louisville Cardinals",
+            "odds_away": "Pittsburgh Panthers",
+            "key": "louisvillecardinals|pittsburghpanthers"
+          },
+          {
+            "odds_home": "Notre Dame Fighting Irish",
+            "odds_away": "SMU Mustangs",
+            "key": "notredamefightingirish|smumustangs"
+          }
+        ]
+      },
+      "NFL": {
+        "sport_key": "americanfootball_nfl",
+        "odds_events": 28,
+        "d1_rows": 0,
+        "d1_priced": 0,
+        "d1_priced_late": 0,
+        "d1_missing": 0,
+        "odds_events_in_window": 10,
+        "matched": 0,
+        "priceable": 0,
+        "slate_matched": 0,
+        "key_substituted": [],
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "Kansas City Chiefs",
+            "odds_away": "Arizona Cardinals",
+            "key": "kansascitychiefs|arizonacardinals"
+          },
+          {
+            "odds_home": "Carolina Panthers",
+            "odds_away": "Baltimore Ravens",
+            "key": "carolinapanthers|baltimoreravens"
+          },
+          {
+            "odds_home": "Buffalo Bills",
+            "odds_away": "Miami Dolphins",
+            "key": "buffalobills|miamidolphins"
+          },
+          {
+            "odds_home": "Chicago Bears",
+            "odds_away": "New Orleans Saints",
+            "key": "chicagobears|neworleanssaints"
+          },
+          {
+            "odds_home": "Dallas Cowboys",
+            "odds_away": "Tennessee Titans",
+            "key": "dallascowboys|tennesseetitans"
+          },
+          {
+            "odds_home": "Detroit Lions",
+            "odds_away": "Tampa Bay Buccaneers",
+            "key": "detroitlions|tampabaybuccaneers"
+          }
+        ]
+      },
+      "Bundesliga": {
+        "sport_key": "soccer_germany_bundesliga",
+        "odds_events": 11,
+        "d1_rows": 6,
+        "d1_priced": 5,
+        "d1_priced_late": 0,
+        "d1_missing": 1,
+        "odds_events_in_window": 2,
+        "matched": 0,
+        "priceable": 0,
+        "slate_matched": 0,
+        "key_substituted": [],
+        "unmatched": [
+          {
+            "d1_home": "Gladbach",
+            "d1_away": "Dortmund",
+            "d1_key": "gladbach|dortmund",
+            "start_time": "2026-11-21T14:30Z",
+            "finalized": true
+          }
+        ],
+        "odds_sample": [
+          {
+            "odds_home": "Augsburg",
+            "odds_away": "FSV Mainz 05",
+            "key": "augsburg|fsvmainz05"
+          },
+          {
+            "odds_home": "Werder Bremen",
+            "odds_away": "Hamburger SV",
+            "key": "werderbremen|hamburg"
+          },
+          {
+            "odds_home": "Werder Bremen",
+            "odds_away": "Borussia Monchengladbach",
+            "key": "werderbremen|borussiamonchengladbach"
+          },
+          {
+            "odds_home": "1. FC Köln",
+            "odds_away": "Elversberg",
+            "key": "cologne|elversberg"
+          },
+          {
+            "odds_home": "Hamburger SV",
+            "odds_away": "Bayern Munich",
+            "key": "hamburg|bayernmunich"
+          },
+          {
+            "odds_home": "SC Paderborn",
+            "odds_away": "FC Schalke 04",
+            "key": "scpaderborn|schalke"
+          }
+        ]
+      },
+      "MLS": {
+        "sport_key": "soccer_usa_mls",
+        "odds_events": 12,
+        "d1_rows": 6,
+        "d1_priced": 5,
+        "d1_priced_late": 0,
+        "d1_missing": 1,
+        "odds_events_in_window": 2,
+        "matched": 0,
+        "priceable": 0,
+        "slate_matched": 0,
+        "key_substituted": [],
+        "unmatched": [
+          {
+            "d1_home": "Inter Miami CF",
+            "d1_away": "Columbus Crew",
+            "d1_key": "intermiamicf|columbuscrew",
+            "start_time": null,
+            "finalized": false
+          }
+        ],
+        "odds_sample": [
+          {
+            "odds_home": "Nashville SC",
+            "odds_away": "FC Cincinnati",
+            "key": "nashvillesc|fccincinnati"
+          },
+          {
+            "odds_home": "Chicago Fire",
+            "odds_away": "Charlotte FC",
+            "key": "chicagofirefc|charlottefc"
+          },
+          {
+            "odds_home": "Vancouver Whitecaps FC",
+            "odds_away": "Real Salt Lake",
+            "key": "vancouverwhitecapsfc|realsaltlake"
+          },
+          {
+            "odds_home": "St. Louis City SC",
+            "odds_away": "Los Angeles FC",
+            "key": "stlouiscitysc|losangelesfc"
+          },
+          {
+            "odds_home": "San Jose Earthquakes",
+            "odds_away": "Houston Dynamo",
+            "key": "sanjoseearthquakes|houstondynamofc"
+          },
+          {
+            "odds_home": "Columbus Crew SC",
+            "odds_away": "Inter Miami CF",
+            "key": "columbuscrewsc|intermiamicf"
+          }
+        ]
+      }
+    },
+    "sports_compared": [
+      "CFB",
+      "NFL",
+      "Bundesliga",
+      "MLS"
+    ]
+  },
+  "verdict": {
+    "CFB": "NO_JOIN_EVIDENCE: 6 unpriced rows, all finished or under way, so the live feed cannot say whether the join solves them; 52 of 58 rows already priced (0 after kickoff); slate matcher 0",
+    "NFL": "NO_ROWS_AT_ALL: the archive holds no americanfootball_nfl rows on 2026-11-21, and the vendor lists 10 events for it",
+    "Bundesliga": "NO_JOIN_EVIDENCE: 1 unpriced rows, all finished or under way, so the live feed cannot say whether the join solves them; 5 of 6 rows already priced (0 after kickoff); slate matcher 0",
+    "MLS": "NO_JOIN_EVIDENCE: 1 unpriced rows, all finished or under way, so the live feed cannot say whether the join solves them; 5 of 6 rows already priced (0 after kickoff); slate matcher 0"
+  },
+  "failed": [],
+  "error": null
+}
