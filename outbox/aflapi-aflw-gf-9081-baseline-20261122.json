@@ -1,0 +1,99 @@
+{
+  "capturedAtUtc": "2026-11-22T23:50Z (approx, session clock)",
+  "tool": "mcp__FIELD_Handoff__html_probe (GET from a Cloudflare Worker IP, not cached)",
+  "url": "https://aflapi.afl.com.au/afl/v2/matches/9081",
+  "httpStatus": 200,
+  "bytesReported": 1272,
+  "conditions": "match SCHEDULED, 5 days before kickoff; no live body can exist yet",
+  "note": "body re-serialised from the tool visibleText; the tool reported 1272 bytes",
+  "topLevelKeysOfMatch": [
+    "id",
+    "providerId",
+    "compSeason",
+    "round",
+    "home",
+    "away",
+    "venue",
+    "utcStartTime",
+    "status",
+    "metadata"
+  ],
+  "body": {
+    "meta": {
+      "code": 200
+    },
+    "matches": [
+      {
+        "id": 9081,
+        "providerId": "CD_M20262641601",
+        "compSeason": {
+          "id": 96,
+          "providerId": "CD_S2026264",
+          "name": "2026 NAB AFLW Season",
+          "shortName": "2026 AFL Womens",
+          "currentRoundNumber": 16
+        },
+        "round": {
+          "id": 1546,
+          "providerId": "CD_R202626416",
+          "abbreviation": "GF",
+          "name": "Grand Final",
+          "roundNumber": 16,
+          "byes": [],
+          "utcStartTime": "2026-11-27T08:45:00.000+0000",
+          "utcEndTime": "2026-11-27T08:45:00.000+0000"
+        },
+        "home": {
+          "team": {
+            "id": 30,
+            "providerId": "CD_T8466",
+            "name": "North Melbourne",
+            "abbreviation": "NMFC",
+            "nickname": "Kangaroos",
+            "club": {
+              "id": 20,
+              "providerId": "CD_O20",
+              "name": "North Melbourne",
+              "abbreviation": "Kangaroos",
+              "nickname": "Kangaroos"
+            },
+            "teamType": "WOMEN"
+          }
+        },
+        "away": {
+          "team": {
+            "id": 29,
+            "providerId": "CD_T7386",
+            "name": "Melbourne",
+            "abbreviation": "MELB",
+            "nickname": "Demons",
+            "club": {
+              "id": 14,
+              "providerId": "CD_O18",
+              "name": "Melbourne",
+              "abbreviation": "Demons",
+              "nickname": "Demons"
+            },
+            "teamType": "WOMEN"
+          }
+        },
+        "venue": {
+          "id": 37,
+          "providerId": "CD_V50",
+          "name": "IKON Park",
+          "abbreviation": "IKP",
+          "location": "Melbourne",
+          "state": "VIC",
+          "timezone": "Australia/Melbourne",
+          "landOwner": "Wurundjeri"
+        },
+        "utcStartTime": "2026-11-27T08:45:00.000+0000",
+        "status": "SCHEDULED",
+        "metadata": {
+          "finals_match_label": "NAB AFLW Grand Final",
+          "ticket_link": "https://www.ticketmaster.com.au/event/130065568F9D36B6"
+        }
+      }
+    ]
+  }
+}
