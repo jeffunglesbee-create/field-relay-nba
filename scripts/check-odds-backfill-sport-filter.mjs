@@ -35,6 +35,9 @@ const MCP_SECRET = 'mcp-secret-for-the-check';
 const INDEX = resolve(process.env.INDEX_SRC || 'src/index.js');
 const worker = (await import(pathToFileURL(INDEX).href)).default;
 const { archiveSportToOddsKey } = await import(pathToFileURL(resolve('src/odds-sport-keys.js')).href);
+const { resolveTeamKey } = await import(pathToFileURL(resolve('src/identity-resolver.js')).href);
+// The runner's price per call is a copy of what the relay charges; this check ties the two (B2).
+const { CREDITS_PER_CALL } = await import(pathToFileURL(resolve('scripts/run-odds-backfill-capped.mjs')).href);
 const { readFileSync } = await import('node:fs');
 
 const results = [];
@@ -68,15 +71,25 @@ const ROWS = [
   { id: 'NFL_2026-10-25_chiefs_bills',      sport: 'NFL', league: 'NFL', home: 'Kansas City Chiefs', away: 'Buffalo Bills', start: '2026-10-25T20:00Z', date: '2026-10-25', odds: null },
 ];
 
-// A real-shaped Odds API event: the vendor's full names, one preferred bookmaker, a three-way soccer h2h.
-const EPL_EVENT = {
-  id: 'ev1', sport_key: 'soccer_epl', home_team: 'Crystal Palace', away_team: 'Newcastle United', commence_time: '2026-10-25T14:00:00Z',
+// Real-shaped Odds API events: the vendor's full names, one preferred bookmaker, a three-way soccer h2h. A noon snapshot carries many
+// events across several days, so the target is NOT alone: decoys share one team with it (Crystal Palace v Liverpool, Newcastle United v
+// Everton), repeat the pair reversed a week later, and carry DIFFERENT prices, so a mis-pairing is a wrong number, not a pass.
+const ev = (id, home, away, commence, h, a, d) => ({
+  id, sport_key: 'soccer_epl', home_team: home, away_team: away, commence_time: commence,
   bookmakers: [{ key: 'draftkings', title: 'DraftKings', markets: [{ key: 'h2h', outcomes: [
-    { name: 'Crystal Palace', price: 160 }, { name: 'Newcastle United', price: 175 }, { name: 'Draw', price: 250 }] }] }],
-};
+    { name: home, price: h }, { name: away, price: a }, { name: 'Draw', price: d }] }] }],
+});
+const EPL_EVENT = ev('ev1', 'Crystal Palace', 'Newcastle United', '2026-10-25T14:00:00Z', 160, 175, 250);
+const EPL_EVENTS = [
+  ev('d1', 'Crystal Palace', 'Liverpool', '2026-10-31T15:00:00Z', 900, 101, 801),
+  ev('d2', 'Newcastle United', 'Crystal Palace', '2026-11-01T14:00:00Z', 902, 103, 803),   // the pair reversed, a week later
+  EPL_EVENT,
+  ev('d3', 'Newcastle United', 'Everton', '2026-10-26T19:00:00Z', 904, 105, 805),
+  ev('ps1', 'Everton', 'Liverpool', '2026-10-25T16:30:00Z', 210, 140, 300),                // the postseason EPL row's game
+];
 
 /** One scenario: a fresh world, one request, then the readings. */
-async function world(path, { auth = true, method = 'GET', siteUsed = {} } = {}) {
+async function world(path, { auth = true, method = 'GET', siteUsed = {}, servedAt = null } = {}) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(SCHEMA);
   sqlite.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(DAY, 100);
@@ -85,6 +98,9 @@ async function world(path, { auth = true, method = 'GET', siteUsed = {} } = {}) 
   // A postseason NFL row on the same date: the filter must cover BOTH tables, or this one would be fetched under sport=EPL.
   sqlite.prepare(`INSERT INTO postseason_games (id, sport, league, home, away, start_time, date, opening_odds, finalized_at, series_key)
                   VALUES ('NFL_PS_2026-10-25_a_b', 'NFL', 'NFL', 'Team A', 'Team B', '2026-10-25T20:00Z', '2026-10-25', NULL, '2026-10-26T00:00:00Z', 'ps')`).run();
+  // A postseason row OF THE REQUESTED SPORT, with a league unlike its sport: the postseason filter must select it, by sport.
+  sqlite.prepare(`INSERT INTO postseason_games (id, sport, league, home, away, start_time, date, opening_odds, finalized_at, series_key)
+                  VALUES ('EPL_PS_2026-10-25_everton_liverpool', 'EPL', 'Playoff', 'Everton', 'Liverpool', '2026-10-25T16:30Z', '2026-10-25', NULL, '2026-10-26T00:00:00Z', 'ps')`).run();
   for (const r of ROWS) sqlite.prepare(`INSERT INTO regular_season_games (id, sport, league, home, away, start_time, date, opening_odds, finalized_at)
                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, '2026-10-26T00:00:00Z')`).run(r.id, r.sport, r.league, r.home, r.away, r.start, r.date, r.odds);
   const odds = /odds_budget|odds_reconcile/;
@@ -110,8 +126,8 @@ async function world(path, { auth = true, method = 'GET', siteUsed = {} } = {}) 
     if (!url.includes('api.the-odds-api.com')) return new Response('{}', { status: 200 });
     const m = /\/v4\/historical\/sports\/([a-z0-9_]+)\/odds\?.*?date=([0-9T:Z-]+)/.exec(url);
     asked.push({ key: m?.[1] ?? null, snapshot: m?.[2] ?? null });
-    const data = m?.[1] === 'soccer_epl' && m[2].startsWith('2026-10-25') ? [EPL_EVENT] : [];
-    return new Response(JSON.stringify({ timestamp: m?.[2] ?? null, data }), { status: 200, headers: { 'x-requests-last': '30', 'x-requests-remaining': '400000' } });
+    const data = m?.[1] === 'soccer_epl' && m[2].startsWith('2026-10-25') ? EPL_EVENTS : [];
+    return new Response(JSON.stringify({ timestamp: servedAt ?? m?.[2] ?? null, data }), { status: 200, headers: { 'x-requests-last': '30', 'x-requests-remaining': '400000' } });
   };
   const env = { FIELD_JOURNALISM: KV, ARCHIVE_DB: D1, ODDS_API_KEY: 'k', RELAY_SHARED_SECRET: 's', FIELD_MCP_SECRET: MCP_SECRET };
   const w = console.warn, l = console.log, e = console.error;
@@ -122,8 +138,9 @@ async function world(path, { auth = true, method = 'GET', siteUsed = {} } = {}) 
     const text = await res.text();
     let body = null; try { body = JSON.parse(text); } catch { body = null; }
     const opening = Object.fromEntries(sqlite.prepare('SELECT id, opening_odds FROM regular_season_games').all().map(r => [r.id, r.opening_odds]));
+    const psOpening = Object.fromEntries(sqlite.prepare('SELECT id, opening_odds FROM postseason_games').all().map(r => [r.id, r.opening_odds]));
     const spent = sqlite.prepare('SELECT used FROM odds_budget_site WHERE day = ? AND site = ?').get(DAY, 'archiveOddsBackfill')?.used ?? 0;
-    return { status: res.status, body, asked, opening, spent };
+    return { status: res.status, body, asked, opening, psOpening, spent };
   } finally { console.warn = w; console.log = l; console.error = e; }
 }
 
@@ -142,17 +159,55 @@ check('fixture: the four sports have an Odds-API key and the vendor key of EPL i
   check('B1 ...so the ledger moves by 120 (four sport-dates at 30)', r.spent === 120, String(r.spent));
 }
 
-// ── B2. ?sport=EPL: one fetch, 30 credits, only the EPL row of that date is touched ──
+// ── B2. ?sport=EPL: one fetch, 30 credits, only the EPL rows of that date are touched ──
 {
   const r = await world('/archive/odds-backfill?date=2026-10-25&sport=EPL');
   check('B2 sport=EPL: exactly one historical fetch, and it is soccer_epl at noon UTC of the date', JSON.stringify(r.asked) === JSON.stringify([{ key: EPL, snapshot: '2026-10-25T12:00:00Z' }]), JSON.stringify(r.asked));
-  check('B2 ...the ledger moves by 30, not 120', r.spent === 30, String(r.spent));
-  check('B2 ...the answer says what it was asked: 200, sport EPL, games_found 1, odds_populated 1', r.status === 200 && r.body.sport === 'EPL' && r.body.games_found === 1 && r.body.odds_populated === 1, JSON.stringify(r.body));
+  check('B2 ...the ledger moves by 30, not 120, and 30 is what the runner prices a call at', r.spent === 30 && r.spent === CREDITS_PER_CALL, String(r.spent));
+  check('B2 ...the answer says what it was asked: 200, sport EPL, games_found 2 (one regular row, one postseason row), odds_populated 2', r.status === 200 && r.body.sport === 'EPL' && r.body.games_found === 2 && r.body.odds_populated === 2 && r.body.guarded === undefined, JSON.stringify(r.body));
   const row = JSON.parse(r.opening['EPL_2026-10-25_cpalace_newcastle'] === null ? 'null' : r.opening['EPL_2026-10-25_cpalace_newcastle']);
-  check('B2 ...the C Palace row was priced from the vendor\'s Crystal Palace event (the alias, end to end), with the preferred book and the snapshot\'s own time',
+  // Not "the alias": since f4bea6af (2026-10-24) a row WITH a kickoff also joins on name tokens, so 'C Palace' joins 'Crystal Palace' with or
+  // without the identity alias. What this proves is the outcome the repair needs, against a vendor slate with decoys and different prices.
+  check('B2 ...the C Palace row was priced from ITS event (Crystal Palace v Newcastle United: 160/175/250), not a decoy that shares a team or repeats the pair reversed, with the preferred book and the snapshot\'s own time',
     row !== null && row.source === 'draftkings' && row.captured_at === '2026-10-25T12:00:00Z' && row.moneyline?.home === 160 && row.moneyline?.away === 175 && row.moneyline?.draw === 250, JSON.stringify(row));
+  const ps = JSON.parse(r.psOpening['EPL_PS_2026-10-25_everton_liverpool'] === null ? 'null' : r.psOpening['EPL_PS_2026-10-25_everton_liverpool']);
+  check('B2 ...the postseason EPL row (a league unlike its sport) was priced from ITS event (Everton v Liverpool: 210/140/300) and the postseason NFL row of the same date was not touched',
+    ps !== null && ps.moneyline?.home === 210 && ps.moneyline?.away === 140 && ps.moneyline?.draw === 300 && r.psOpening['NFL_PS_2026-10-25_a_b'] === null, JSON.stringify(ps));
   check('B2 ...every other row is exactly as it was: the other sports and the other date stay NULL, the priced row keeps its blob',
     JSON.stringify(nullIds(r)) === JSON.stringify(['EPL_2026-10-18_brighton_cpalace', 'LL_2026-10-25_realmadrid_barca', 'MLS_2026-10-25_columbus_miami', 'NFL_2026-10-25_chiefs_bills']) && r.opening['EPL_2026-10-25_arsenal_spurs'] === '{"already":"priced"}', JSON.stringify(nullIds(r)));
+  // The identity claims the CC-CMD makes about the two spellings, each made to fail by deleting its alias (Rule 90).
+  check('B2 the alias: the resolver gives C Palace and Crystal Palace one key', resolveTeamKey('C Palace') === resolveTeamKey('Crystal Palace') && resolveTeamKey('C Palace') !== undefined);
+  check('B2 the alias: the resolver gives Coventry and Coventry City one key (the opening fixture, 2026-08-21)', resolveTeamKey('Coventry') === resolveTeamKey('Coventry City') && resolveTeamKey('Coventry') !== undefined);
+}
+
+// ── B2b. The same request by POST; a lower-case label is the same sport and is echoed as typed ──
+{
+  const r = await world('/archive/odds-backfill?date=2026-10-25&sport=EPL', { method: 'POST' });
+  check('B2b POST with sport=EPL behaves as GET: one fetch, 30 credits, sport echoed', r.status === 200 && r.body.sport === 'EPL' && r.asked.length === 1 && r.spent === 30);
+  const l = await world('/archive/odds-backfill?date=2026-10-25&sport=epl');
+  check('B2b sport=epl: the same one fetch and the same two rows priced, the label echoed as typed (the filter, the lookup and the bucketing all ignore case)',
+    l.status === 200 && l.body.sport === 'epl' && l.body.games_found === 2 && l.body.odds_populated === 2 && l.asked.length === 1, JSON.stringify(l.body));
+}
+
+// ── B2c. A date with no rows of the sport: no fetch, no charge, and the answer STILL says which sport it covered ──
+{
+  const r = await world('/archive/odds-backfill?date=2026-10-25&sport=Bundesliga');
+  check('B2c a sport with no NULL rows on the date: 200, games_found 0, no vendor call, nothing spent, and `sport` echoed (a caller checks it before trusting the counts)',
+    r.status === 200 && r.body.games_found === 0 && r.body.sport === 'Bundesliga' && r.asked.length === 0 && r.spent === 0, JSON.stringify(r.body));
+}
+
+// ── B2d. The credit guard declines the fetch: nothing spent, and the answer says so (`guarded`), it does not read as a spend ──
+{
+  const r = await world('/archive/odds-backfill?date=2026-10-25&sport=EPL', { siteUsed: { archiveOddsBackfill: 271 } });
+  check('B2d label cap reached (271 of 300 used, a call costs 30): 200, no vendor call, the ledger unmoved, guarded 1, nothing populated, the rows still NULL',
+    r.status === 200 && r.asked.length === 0 && r.spent === 271 && r.body.guarded === 1 && r.body.odds_populated === 0 && r.body.sport === 'EPL' && r.opening['EPL_2026-10-25_cpalace_newcastle'] === null, JSON.stringify(r.body));
+}
+
+// ── B2e. A snapshot the vendor serves AFTER kickoff prices nothing: the line is not an opener ──
+{
+  const r = await world('/archive/odds-backfill?date=2026-10-25&sport=EPL', { servedAt: '2026-10-25T15:00:00Z' });
+  check('B2e vendor serves a snapshot at 15:00Z, after the 14:00Z kickoff of the C Palace row: that row stays NULL (the 16:30Z postseason row is still priced)',
+    r.opening['EPL_2026-10-25_cpalace_newcastle'] === null && r.psOpening['EPL_PS_2026-10-25_everton_liverpool'] !== null && r.body.odds_populated === 1, JSON.stringify(r.body));
 }
 
 // ── B3. The filter selects the sport asked for, not EPL by default ──
@@ -169,9 +224,11 @@ check('fixture: the four sports have an Odds-API key and the vendor key of EPL i
 }
 
 // ── B5. Refused before any billed call ──
-for (const [what, path] of [['a label the relay has no key for', '/archive/odds-backfill?date=2026-10-25&sport=Quidditch'], ['an empty value', '/archive/odds-backfill?date=2026-10-25&sport=']]) {
+for (const [what, path] of [['a label the relay has no key for', '/archive/odds-backfill?date=2026-10-25&sport=Quidditch'], ['an empty value', '/archive/odds-backfill?date=2026-10-25&sport='],
+  ['the name of an Object property (constructor)', '/archive/odds-backfill?date=2026-10-25&sport=constructor'], ['__proto__', '/archive/odds-backfill?date=2026-10-25&sport=__proto__'],
+  ['the runner\'s preflight label', '/archive/odds-backfill?date=2099-01-01&sport=__filter_preflight__']]) {
   const r = await world(path);
-  check(`B5 ${what}: 400, no vendor call, nothing spent, no row written`, r.status === 400 && r.asked.length === 0 && r.spent === 0 && nullIds(r).length === 5, `status ${r.status}, ${r.asked.length} calls, spent ${r.spent}`);
+  check(`B5 ${what}: 400, no vendor call, nothing spent, no row written`, r.status === 400 && r.asked.length === 0 && r.spent === 0 && nullIds(r).length === 5 && /unknown \?sport=/.test(r.body?.error ?? ''), `status ${r.status}, ${r.asked.length} calls, spent ${r.spent}`);
 }
 
 // ── B6. The gate still comes first, with the filter present ──
@@ -186,6 +243,8 @@ for (const [what, path] of [['a label the relay has no key for', '/archive/odds-
 {
   const src = readFileSync(INDEX, 'utf8');
   check('B7 the daily catch-up call site passes no sport filter', /runOddsBackfillForDate\(env, oddsDate\)/.test(src));
+  check('B7 ...and the function\'s own default is no filter (a default of one sport would narrow the cron while its call text stayed the same)',
+    /async function runOddsBackfillForDate\(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null\) \{/.test(src));
 }
 
 let failed = 0;

@@ -7085,7 +7085,7 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate, site) {
 // refused before any billed call and is not read as "no filter". Lives here, not in the route, because the /archive/ handler is
 // scanned in a fixed 1500-line window (scripts/check-brace-balance.mjs) and has five lines of headroom.
 function oddsBackfillSportRefusal(sportParam) {
-  if (sportParam === null || archiveSportToOddsKey(sportParam)) return null;
+  if (sportParam === null || typeof archiveSportToOddsKey(sportParam) === 'string') return null;
   return new Response(JSON.stringify({ ok: false, error: `unknown ?sport=${JSON.stringify(sportParam)}: not an archive sport the relay has an Odds-API key for` }),
     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
@@ -7112,11 +7112,13 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
 
   const rsRows = rs.results || [];
   const psRows = ps.results || [];
-  const rsPicked = onlySport === null ? rsRows : rsRows.filter(r => r.sport === onlySport);
-  const psPicked = onlySport === null ? psRows : psRows.filter(r => r.sport === onlySport);
+  const wantSport = onlySport === null ? null : onlySport.toLowerCase();   // the lookup and bucketOf below are case-insensitive too
+  const rsPicked = wantSport === null ? rsRows : rsRows.filter(r => String(r.sport).toLowerCase() === wantSport);
+  const psPicked = wantSport === null ? psRows : psRows.filter(r => String(r.sport).toLowerCase() === wantSport);
+  const sportEcho = onlySport === null ? {} : { sport: onlySport };   // on EVERY answer: a caller checks it before it trusts the counts
   const gamesFound = rsPicked.length + psPicked.length;
   if (!gamesFound) {
-    return { ok: true, date: isoDate, games_found: 0, odds_populated: 0, odds_skipped: 0 };
+    return { ok: true, date: isoDate, ...sportEcho, games_found: 0, odds_populated: 0, odds_skipped: 0 };
   }
 
   // Bucket pending rows by Odds API sport key.
@@ -7135,6 +7137,7 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
 
   let oddsPopulated = 0;
   let oddsSkipped  = 0;
+  let oddsGuarded  = 0;   // buckets the credit guard declined: no vendor call, no spend
   let lastQuota    = null;
   let stopped      = false;
   let stopReason   = null;
@@ -7143,8 +7146,8 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
     if (typeof lastQuota === 'number' && lastQuota < ODDS_QUOTA_FLOOR) {
       stopped = true; stopReason = 'quota_low'; break;
     }
-    const { games, quotaRemaining, ok, snapshotAt } = await fetchSportOddsHistorical(env, sportKey, isoDate, site);
-    if (!ok) { oddsSkipped += group.rs.length + group.ps.length; continue; }
+    const { games, quotaRemaining, ok, snapshotAt, guarded } = await fetchSportOddsHistorical(env, sportKey, isoDate, site);
+    if (!ok) { oddsSkipped += group.rs.length + group.ps.length; if (guarded) oddsGuarded++; continue; }
     lastQuota = quotaRemaining;   // only after ok, same reason as snapshotCronOdds
     if (typeof quotaRemaining === 'number' && quotaRemaining < ODDS_QUOTA_FLOOR) {
       stopped = true; stopReason = 'quota_low';
@@ -7196,10 +7199,11 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
   return {
     ok: true,
     date: isoDate,
-    ...(onlySport === null ? {} : { sport: onlySport }),
+    ...sportEcho,
     games_found: gamesFound,
     odds_populated: oddsPopulated,
     odds_skipped: oddsSkipped,
+    guarded: oddsGuarded || undefined,
     quota_remaining: lastQuota,
     stopped: stopped || undefined,
     reason: stopReason || undefined,
