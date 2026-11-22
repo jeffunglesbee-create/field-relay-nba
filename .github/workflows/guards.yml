@@ -667,3 +667,14 @@ jobs:
           node scripts/check-bsd-next-goal-probe.mjs --self-test
           node scripts/check-bsd-next-goal-probe.mjs
           node scripts/check-bsd-next-goal-probe-run.mjs
+
+      # docs/CC-CMD-2026-11-22-bsd-next-goal-ledger-census.md. The census turns the vendor's ledger and the relay's R2 captures into
+      # counts (how many calls are gradeable against FIELD's own goal timelines); the first check runs the pure functions on a small
+      # synthetic world with every branch in it, the second runs the WHOLE census against a stub vendor and a stub relay and counts
+      # what they received (paging, the 429 stop, the budget, the read cap, the artifact). The mutants run in the census workflow.
+      - name: the BSD next-goal ledger census's counts and its spend cannot be wrong without this going red
+        if: always()
+        run: |
+          node scripts/check-bsd-next-goal-census.mjs --self-test
+          node scripts/check-bsd-next-goal-census.mjs
+          node scripts/check-bsd-next-goal-census-run.mjs

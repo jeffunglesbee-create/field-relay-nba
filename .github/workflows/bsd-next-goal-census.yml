@@ -1,0 +1,85 @@
+name: BSD next-goal ledger census
+
+# docs/CC-CMD-2026-11-22-bsd-next-goal-ledger-census.md.
+#
+# Of the vendor's published next-goal calls (GET /api/v2/next-goal/calls/), how many sit on a match whose goal timeline FIELD
+# captured in R2 (bsd/{slug}/{id}/incidents.json), from the call's minute to its resolution? Counts only: no ledger row, team,
+# player or event id is written (the licence bars redistributing raw data as a standalone dataset and this repository is public).
+#
+# UPSTREAM for the ledger, with the token (a runner holds it; the lab does not), and through the relay's public /bsd/r2/list and
+# /bsd/r2/read for R2 (they read R2, never BSD). About 11 BSD requests (a count, 9 pages of 200, a closing count), cap 16; a 429 or
+# 401 stops the run; a 420-second deadline writes the artifact whatever happened. Dispatch-only: the ledger is a record, not a
+# live feed, so there is nothing to time.
+
+on:
+  workflow_dispatch:
+    inputs:
+      call_budget:
+        description: 'Max BSD requests (default 16)'
+        required: false
+      read_cap:
+        description: 'Max incidents.json reads through the relay (default 1500)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-next-goal-census
+  cancel-in-progress: false
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # About 10 seconds. The mutation harness (about 180 mutants, a few minutes) runs LAST, after the artifact is committed.
+      - name: The checks can still fail
+        run: |
+          node scripts/check-bsd-next-goal-census.mjs --self-test
+          node scripts/check-bsd-next-goal-census.mjs
+          node scripts/check-bsd-next-goal-census-run.mjs
+
+      - name: Census
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+          READ_CAP: ${{ inputs.read_cap }}
+        run: node scripts/bsd-next-goal-census.mjs
+
+      # The evidence is committed whatever the verdict: a census that was throttled or could not list R2 still left a record of
+      # what was asked, and a partial one says why under its stamp.
+      - name: Commit the artifact
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-next-goal-census-*.json' \
+          bash scripts/probe-commit-retry.sh "chore: BSD next-goal ledger census artifact"
+
+      # A PARTIAL census (ledger, listing, read cap or deadline) is evidence, not a result: -latest.json does not advance on it,
+      # and neither does this step stay green.
+      - name: A census that left something out is not a result
+        run: |
+          set -euo pipefail
+          LATEST=$(ls outbox/bsd-next-goal-census-2*.json | sort | tail -1)
+          echo "reading $LATEST"
+          node -e '
+            const fs=require("fs");
+            const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            console.log(`bsd ${d.bsdCallsMade}/${d.callBudget}, reads ${d.readsMade}, token ${d.tokenPresent}, stopped ${d.stopped}, analysisError ${d.analysisError}, reachedTarget ${d.reachedTarget}`);
+            console.log(d.coverageLine);
+            if(!d.tokenPresent){console.error("BSD_API_TOKEN absent: the ledger was not read, so every count is UNKNOWN, not zero");process.exit(1);}
+            if(d.analysisError){console.error("the analysis threw: the request log is kept, the counts are not");process.exit(1);}
+            if(!d.reachedTarget){console.error("the census is partial: "+JSON.stringify(d.analysis.calls&&d.analysis.calls.partialBecause)+" "+JSON.stringify(d.analysis.ledger&&d.analysis.ledger.why));process.exit(1);}
+          ' "$LATEST"
+
+      - name: The mutation harness still catches every break
+        if: always()
+        run: node scripts/mutate-bsd-next-goal-census.mjs
