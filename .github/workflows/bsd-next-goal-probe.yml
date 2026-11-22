@@ -10,8 +10,9 @@ name: BSD next-goal probe
 #
 # UPSTREAM, with the token, like bsd-newsletter-claims.yml. CI because the container cannot reach
 # sports.bzzoiro.com (403 at CONNECT) and the token is a secret here. Read-only: at most CALL_BUDGET requests
-# (default 24, normally 18), stops on the first 429 or 401, commits one artifact. Dispatch during a live slate;
-# an empty slate answers the gate and says so, and the coverage line carries the denominators.
+# (default 24, normally 18), stops on the first 429 or 401, and has a 400-second run deadline so the artifact is always
+# written inside the job's limit. Dispatch during a live slate; an empty slate answers the gate and says so, and the
+# coverage line carries the denominators (in-play matches at minute 10 or later, not every row events/live returns).
 #
 # No schedule on purpose: a probe of a live-only endpoint at a fixed UTC hour measures the hour.
 
@@ -32,7 +33,7 @@ concurrency:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -40,12 +41,13 @@ jobs:
         with:
           node-version: '22'
 
-      - name: The check can still fail
+      # About 6 seconds. The mutation harness (265 mutants, about 3 minutes) runs LAST, after the artifact is committed,
+      # so it cannot cost a live slate.
+      - name: The checks can still fail
         run: |
           node scripts/check-bsd-next-goal-probe.mjs --self-test
           node scripts/check-bsd-next-goal-probe.mjs
           node scripts/check-bsd-next-goal-probe-run.mjs
-          node scripts/mutate-bsd-next-goal-probe.mjs
 
       - name: Probe next-goal
         env:
@@ -53,26 +55,35 @@ jobs:
           CALL_BUDGET: ${{ inputs.call_budget }}
         run: node scripts/bsd-next-goal-probe.mjs
 
-      # A GATED answer is a result. A run that never reached the vendor is not: a green tick on that
-      # would be the 200-with-an-empty-body failure this repo keeps rediscovering.
-      - name: A run that reached nothing is not a result
-        run: |
-          set -euo pipefail
-          LATEST=$(ls -t outbox/bsd-next-goal-probe-2*.json | head -1)
-          echo "reading $LATEST"
-          node -e '
-            const fs=require("fs");
-            const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
-            const ok=d.calls.filter(c=>c.status===200).length;
-            console.log(`calls ${d.callsMade}/${d.callBudget}, 200s ${ok}, token ${d.tokenPresent}, stopped ${d.stopped}`);
-            console.log(d.coverageLine);
-            if(!d.tokenPresent){console.error("BSD_API_TOKEN absent: every question is UNKNOWN, not answered");process.exit(1);}
-            if(ok===0){console.error("zero 200s: never reached the vendor");process.exit(1);}
-          ' "$LATEST"
-
+      # The evidence is committed whatever the verdict: a probe that was refused, throttled or could not read the
+      # endpoint still left a call log, and losing it would lose the only record of what was asked.
       - name: Commit the artifact
+        if: always()
         run: |
           PROBE_AUTHOR_NAME="FIELD CI" \
           PROBE_AUTHOR_EMAIL="claude@field.dev" \
           PROBE_PATHS='outbox/bsd-next-goal-probe-*.json' \
           bash scripts/probe-commit-retry.sh "chore: BSD next-goal probe artifact"
+
+      # A GATED answer is a result. A run that got no definite answer from the endpoint under test (a 429, a 401, an
+      # error, events/live alone) or whose analysis threw is not, and a green tick on that would be the
+      # 200-with-an-empty-body failure this repo keeps rediscovering.
+      - name: A run with no definite answer is not a result
+        run: |
+          set -euo pipefail
+          LATEST=$(ls outbox/bsd-next-goal-probe-2*.json | sort | tail -1)
+          echo "reading $LATEST"
+          node -e '
+            const fs=require("fs");
+            const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            const ok=d.calls.filter(c=>c.status===200).length;
+            console.log(`calls ${d.callsMade}/${d.callBudget}, 200s ${ok}, token ${d.tokenPresent}, stopped ${d.stopped}, analysisError ${d.analysisError}, reachedTarget ${d.reachedTarget}`);
+            console.log(d.coverageLine);
+            if(!d.tokenPresent){console.error("BSD_API_TOKEN absent: every question is UNKNOWN, not answered");process.exit(1);}
+            if(d.analysisError){console.error("the analysis threw: the call log is kept, the verdicts are not");process.exit(1);}
+            if(!d.reachedTarget){console.error("no definite answer from the endpoint under test (stopped "+d.stopped+")");process.exit(1);}
+          ' "$LATEST"
+
+      - name: The mutation harness still catches every break
+        if: always()
+        run: node scripts/mutate-bsd-next-goal-probe.mjs
