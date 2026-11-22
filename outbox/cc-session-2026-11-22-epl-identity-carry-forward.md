@@ -29,7 +29,7 @@ HEAD progression: relay `bd4a6c7d` -> `966fe0c8` (the feature) -> the docs commi
 
 The new fields on the DEPLOYED route. Blocked by the route being gated and billed. Unblocked by the scheduled Saturday probe, next 2026-11-28 23:40Z; the exact assertion, tested to fail on the 11-22 payload and pass on a correct one, is in the CC-CMD. EPL is not in that probe's sports, so the EPL case rests on the local worker run.
 
-The laboratory check's first run on LIVE routes is the drift sentinel's. Unblock: dispatch `drift-sentinel` after the laboratory landing, or the next scheduled run.
+The laboratory check's first live run is no longer staged: drift-sentinel run 45055875318 (2026-11-22, after the laboratory landing `fca5a1c9`) printed `checked 20 of 20 league clubs against 2 feed(s): fpl 20 name(s), 0 orphan(s), 0 unseen; archive 21 name(s), 0 orphan(s), 0 unseen (109 of 135 rows since 2026-07-01)`, `resolver: .relay-src/src/identity-resolver.js @ cb3c7d1` (a commit that includes the Defect 2 change), `VERDICT: covered`. The step passed.
 
 ## Not met, named
 
