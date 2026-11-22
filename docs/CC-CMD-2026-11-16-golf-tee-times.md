@@ -155,3 +155,16 @@ Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roun
   - Penge `toPar` -9, `today` -5 (round 1 was -4).
   - Svensson -7, `today` +1 (round 1 was -8, the round-1 row's leader).
   - `round` is 2 and `thru` is 18 while round 3 has not begun.
+
+### 2026-11-22 13:01Z: no round-3 row, because round 3 has not been played
+
+- **D1:** no `R3` row for `golf_401850981`; the four R1/R2 rows are unchanged.
+- **ESPN leaderboard** (FIELD browser tool, 13:01Z):
+  - The competition reads `Suspended`, period 3.
+  - All 66 players who made the cut are `pre` at period 3 with 0 round-3 holes.
+  - Round-3 tee times run 2026-11-22T14:10Z to 16:00Z, 66 of 66.
+  - So round 3 is played today. No row is the correct answer, and no round was archived at its start: `4943d43` held through the suspension.
+- **Gap found, not changed:** before a round's first shot, `roundStart` serves the PREVIOUS round. At 13:01Z, `/v2/golf/enriched` would read round 2 (13:30Z on 11-20), not round 3's 14:10Z. The scoreboard's `round` counts rounds begun, and `teeTimeRound` uses it whenever it is set. Round 1 is the only round whose tee times show before play (the scoreboard's round is null then).
+  - The archive row is unaffected: it is written when the round completes, with `round` = 3.
+  - A consumer showing an upcoming round's first tee (the laboratory's Deep Cuts golf windows) would see the last round's time. The fix would choose the round with the next unplayed tee times. It needs the owner's word on what "the current round" means between rounds.
+- **Re-read:** 2026-11-23 13:00Z (round 3 finishes today, round 4 is Monday's if the schedule slips).
