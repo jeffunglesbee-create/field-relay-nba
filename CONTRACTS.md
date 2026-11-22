@@ -1069,7 +1069,8 @@ What the laboratory reads of a FieldGame beyond the soccer board's keys (`state`
   periodLabel   verbatim, one string: nba/wnba/afl 'Q<n>' while live (overtime 'OT', 'OT2'...), 'F' when over, 'NS' before; nfl/cfb 'Q<n>' while live, 'F' when over, '' before;
                 nhl 'P<n>' (or the period type when not regulation) while live, '' before; mlb 'T<n>' (top) or 'B<n>' (bottom) of inning n, 'F', 'NS'.
   clock         verbatim: nba 'M:SS' and 'SS.t' under a minute; nhl 'MM:SS' (the adapter's timeRemaining); nfl/cfb 'M:SS'; mlb's clock is not read (its note is the inning alone).
-  situation.isHalftime   boolean, nfl/cfb (from 2026-11-22): true exactly when ESPN's status name is STATUS_HALFTIME. A halftime and an end of quarter are 'live' (see below), and the
+  situation.isHalftime   boolean, nfl/cfb and nba/wnba/afl (from 2026-11-22): true exactly when ESPN's status name is STATUS_HALFTIME. For basketball it is in the live situation object
+                `{ quarter, clock, possession, isHalftime }`; the first NBA halftime body (laboratory capture 2026-11-22 21:41:15Z) was `live`, `Q2`, clock `0.1`, scores 51-52, before the flag existed. A halftime and an end of quarter are 'live' (see below), and the
                 laboratory shows 'Half time' for the flag. Football situation objects now always carry the key (false while in play); a halftime game with no ESPN situation carries
                 { down: null, distance: null, yardLine: null, possession: null, isRedZone: false, isHalftime: true }.
 ```

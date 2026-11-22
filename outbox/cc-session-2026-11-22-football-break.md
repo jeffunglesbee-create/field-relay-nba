@@ -22,3 +22,7 @@ Relay contract: `situation.isHalftime` (boolean) on football `/v2/games` games, 
 ## Incidents (Rule 77)
 
 None in this change. The defect was shipped in the page change that read the other sports, whose evidence table said football halftime was not read; the premise was tested by the first halftime of the day and found true.
+
+## Addendum, the same evening
+
+21:41:15Z, the first NBA halftime body: `live`, `Q2`, `0.1`, no flag. The basketball adapter now carries `situation.isHalftime` as the football one does (board check N9, 15 of 15 mutations caught). Verification after deploy: the next NBA halftime (about 23:55Z); the status name ESPN uses is not read.

@@ -157,6 +157,9 @@ async function selfTest() {
       state: g('401909853').state, start: g('401909853').start, home: g('401909853').home.name },
     { id: 'espn:401909853', sport: 'nba', league: 'NBA', state: 'pre', start: `${DATE}T23:00Z`, home: 'Charlotte Hornets' });
   eq('N1 a game in progress is live', g('401909854')?.state, 'live');
+  // N9: the break flag. Halftime says so (the laboratory shows Half time for it); an end of quarter and a game in progress do not.
+  eq('N9 halftime carries isHalftime true; an end of quarter and a game in progress carry false',
+    [g('401909856')?.situation?.isHalftime, g('401909857')?.situation?.isHalftime, g('401909854')?.situation?.isHalftime], [true, false, false]);
   eq('N1 a halftime and an end of quarter are live, not pre',
     [[g('401909856')?.state, g('401909856')?.periodLabel], [g('401909857')?.state, g('401909857')?.periodLabel]], [['live', 'Q2'], ['live', 'Q3']]);
   eq('N1 a postponed game is neither final nor live', g('401909858')?.state, 'pre');
@@ -257,6 +260,9 @@ const MUTATIONS = [
   ['the football halftime flag is lost when ESPN sends no situation', [[
     "const situation = (sit || isHalftime) ? {",
     "const situation = sit ? {"]]],
+  ['basketball halftime is live but never flagged', [[
+    "isHalftime: stt === 'STATUS_HALFTIME',\n    } : null;\n\n    return {\n        id:          `espn:${ev.id}`,\n        espnEventId: ev.id,\n        sport:       sportKey,",
+    "isHalftime: false,\n    } : null;\n\n    return {\n        id:          `espn:${ev.id}`,\n        espnEventId: ev.id,\n        sport:       sportKey,"]]],
   ['a postponed game reads as final', [[
     "stt === 'STATUS_FINAL'                              ? (sportKey === 'nba' ? 'final' : 'post')",
     "stt === 'STATUS_FINAL' || st.type?.state === 'post' ? (sportKey === 'nba' ? 'final' : 'post')"]]],

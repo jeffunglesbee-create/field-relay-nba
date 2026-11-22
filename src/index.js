@@ -1666,11 +1666,15 @@ function adaptESPNBasketball(ev, sportKey = 'wnba') {
         (typeof l === 'object' && l !== null ? l?.value : l) ?? null
     );
 
-    // Situation (live only)
+    // Situation (live only). isHalftime: true exactly when ESPN's status name is STATUS_HALFTIME, as on the
+    // soccer and football boards; the laboratory shows 'Half time' for it. First NBA halftime body, laboratory
+    // capture 2026-11-22 21:41:15Z: state 'live', Q2, clock '0.1', no flag (ESPN's own summary read 'Halftime').
+    // docs/CC-CMD-2026-11-22-football-break-served-as-pre.md.
     const situation = state === 'live' ? {
         quarter:    period,
         clock,
         possession: sit.possession ?? null,
+        isHalftime: stt === 'STATUS_HALFTIME',
     } : null;
 
     return {
