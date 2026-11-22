@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba executes it (the BSD token is a relay secret; the container cannot reach the vendor host); the artifact is read by field-laboratory sessions
 **Filed:** 2026-11-22, by CC, from the owner's reply `Census` to the offer in the probe's result ("a laboratory proof that grades `/calls/` ... its first task is a census")
 **Type:** A (probe) — **counts only.** No feature ships from this document, nothing under `src/`, no verdict about the vendor.
-**Status:** OPEN 2026-11-22. Task 1 built twice (the first coverage rule was refuted by its own first run, see "The first run"; the checks and harness listed under Task 1 are for the second). Task 2 (the dispatch of the second version) and Task 3 (the record) not yet done.
+**Status:** DONE 2026-11-22. Task 1 built twice (the first coverage rule was refuted by its own first run, see "The first run"); Task 2 run on the second version (run 45065701482, artifact commit `5b34600`): 370 of 1,746 calls gradeable, verdict ANSWERED. Result below. Session doc: `outbox/cc-session-2026-11-22-bsd-next-goal-census.md`.
 
 Builds on `docs/CC-CMD-2026-11-22-bsd-next-goal-probe.md` (DONE; BUILD-ON-A). That document's result is the premise here, not repeated: the
 relay's token passes the gate, `event.id` on a call is the id `events/live` uses, and the ledger (`GET /api/v2/next-goal/calls/`, newest-first,
@@ -103,7 +103,7 @@ finding: fix what it names (a ledger that grew, a raised cap) and dispatch again
 ## Task 3 — record the result here, in HANDOFF and in the session doc
 
 Quote the coverage line and the counts verbatim in Result below, in the HANDOFF close-out, and in `outbox/cc-session-2026-11-22-bsd-next-goal-census.md`
-(Rule 67). Update Status. Then write the second CC-CMD (Rule 87.4): the grading proof in field-laboratory (LAB-FIRST-A), sized by the gradeable count.
+(Rule 67). Update Status. Then file the second CC-CMD (Rule 87.4): the grading proof in field-laboratory (LAB-FIRST-A), sized by the gradeable count. Filed, not started: it is a verdict on the vendor.
 
 ## Not in scope
 
@@ -113,4 +113,45 @@ beyond the probe's recomputation of its own counts; displaying or pushing anythi
 
 ## Result
 
-*(pending Task 2)*
+**Task 2, 2026-11-22T20:18Z, run 45065701482** (workflow `bsd-next-goal-census.yml` at `17180f5`, artifacts `outbox/bsd-next-goal-census-2026-11-22T20-18-55-286Z.json` and `-latest.json`,
+committed by the run as `5b34600`). The relay's `BSD_API_TOKEN`, 11 BSD requests of a cap of 16, 246 relay reads of a cap of 1,500, `stopped` null, `analysisError` null, `reachedTarget` true,
+`analysis.calls.verdict` ANSWERED, `partialBecause` empty. Every step green, including the checks and the 193-mutant harness on the runner. Coverage line, verbatim:
+
+> ledger: 1746 unique calls (COMPLETE, reported 1746 then 1746, 9 pages, 0 duplicates) | R2: 2857 keys, 1355 events with incidents.json (COMPLETE) | reads: 246 parsed of 246 attempted | calls: 370 gradeable of 1746 (391 in a tracked league, 390 with an incidents.json, 16 with a full-time capture) | BSD calls 11/16
+
+**370 of the vendor's 1,746 published calls (21.2%) are gradeable against FIELD's own goal timelines.** The funnel, each step a count from the artifact:
+
+| step | calls | note |
+|---|---|---|
+| in the ledger (2026-08-05 to 2026-11-22, 1,140 distinct matches) | 1,746 | hit 1,260, miss 467, nogoal 19; by month Aug 333, Sep 404, Oct 595, Nov 414 |
+| in a league FIELD tracks | 391 | 247 distinct matches; **1,355 calls (77.6%) are in leagues it does not** |
+| with an `incidents.json` in R2 | 390 | 1 tracked-league call has none; 0 calls outside the tracked leagues have one |
+| with a readable capture | 390 | 246 captures read, 246 parsed, 0 failed |
+| gradeable (hit or miss, a `resolved_minute`, a capture that covers it) | **370** | 236 distinct matches; hit 280, miss 90; 16 by a full-time capture, 354 by a goal at the resolution |
+
+Not gradeable, by reason (sums to 1,746 with the 370): no `incidents.json` for the event 1,260; hit or miss with no `resolved_minute` 97; outcome `nogoal` 19. **No call failed for "the capture holds no goal near the resolution"**: 0.
+Gradeable by R2 directory (the slug as written): laliga 59, mls 58, ucl 52, seriea 49, bundesliga 42, epl 31, europa 30, ligue1 27, eflchamp 22 (370); by month Aug 50, Sep 97, Oct 144, Nov 79.
+R2 holds 1,355 events with an `incidents.json` across 10 directories (mls 293, eflchamp 192, europa 144, ucl 135, laliga 127, seriea 118, epl 109, ligue1 98, bundesliga 90, wc26 49); 0 ids sit under more than one.
+
+What the run found that the first version missed (Rule 72, measured in this one run):
+
+- **Every in-play capture's live row says minute 90** (234 of 234). It is a nominal period marker, not a clock, as the real examples suggested; the first version's rule could not have failed. Of the 246 captures, 234 were taken in play (a `Second half` row with `is_live` true, never a full-time row) and 12 saw full time. All 246 have a half-time row.
+- **The nearest goal to the ledger's `resolved_minute` is at distance 0 for all 370 calls** (354 in-play captures, 16 full-time), so the tolerance of 1 minute decided nothing: the count is 370 at tolerance 0, 1 and 2. A ledger `resolved_minute` is the minute of a goal row in FIELD's capture, every time it could be tested. That is what two records of one BSD incident feed would show; the artifact does not say the ledger's `outcome` was computed from the same feed (not measured).
+- **Of 12 full-time captures, 11 hold as many goals as the final score says and 1 does not** (`goalCountMatchesFinal`). One `ET/false` period row exists in the 246.
+- C3 holds: the ledger `event.id` is the id in FIELD's R2 keys (390 of 391 tracked-league calls have a key; a different id space would give about none).
+
+**What this run does not say** (Rule 73): it grades nothing and says nothing about whether any call was right; "gradeable" means FIELD's data lets a proof attempt the grade, not that the grade is independent, because FIELD's captures and the vendor's ledger both come from BSD
+(that the two share one incident feed is inferred from the 370 of 370 exact minutes, not measured). It does not check that a gradeable row carries the called minute and the side a grade needs (`minute`, `side` were seen on the probe's sample rows, not counted here).
+97 hit/miss calls have no `resolved_minute` and were not graded by this definition. It is one ledger snapshot (newest call 2026-11-22T19:57:06Z) and one R2 listing (2,857 keys at 20:18Z); both grow. The ledger window and R2's capture window were not aligned by date.
+No ledger row, team, player or event id is in the artifact (licence v4.0 section 4; the repository is public).
+
+## Done conditions, as probed
+
+Done condition 1: `check-bsd-next-goal-census.mjs` `scenarios 10, assertions 96, failed 0`; `check-bsd-next-goal-census-run.mjs` `scenarios 15, assertions 62, failed 0`; the harness `mutations 193: caught 193 (census mutants: 134 by the analysis check, 50 by the run check), NOT CAUGHT 0, NOT APPLIED 0`;
+`workflow-yaml-check` `0 failing`; the ratchet `ratchet OK`. Done condition 2: `outbox/bsd-next-goal-census-latest.json` exists (equal to the stamped file); `bsdCallsMade` 11 (at most 16); `reachedTarget` true; `analysisError` null; `analysis.calls.verdict` ANSWERED; the coverage line is quoted above.
+
+## What the result decides next
+
+370 is enough to be worth a laboratory proof, and the join is clean. The proof is a verdict on the vendor, which this census was ordered not to be, so it is filed and not started: `field-laboratory/docs/CC-CMD-2026-11-22-bsd-next-goal-grade-against-field-timelines.md`
+(its premises, its pre-registered rule, and the two things only the owner can unblock: whether the proof may run, and where the ledger token lives). The 1,355 calls in leagues FIELD does not track are a finding for the owner, not residue: capturing those leagues would be a change to what the relay captures
+(`bsd-live-capture-path`), not to this census.

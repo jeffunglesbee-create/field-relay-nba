@@ -1,5 +1,19 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-22 (20:40Z) — BSD next-goal ledger census: 370 of 1,746 published calls are gradeable against FIELD's own goal timelines
+
+**HEAD:** `be873ae` → `5b34600` · **Branch:** main · this close-out is the next commit. No `src/` change; none of the CFL experiment's functions (VOID window to 2026-11-23).
+**Session doc:** outbox/cc-session-2026-11-22-bsd-next-goal-census.md (task: the owner's `Census`, after the probe; counts only)
+
+- **Measured, run 45065701482 (11 BSD requests, 246 relay reads, artifact commit `5b34600`):** ledger 1,746 unique calls (COMPLETE, 0 duplicates); R2 2,857 keys holding 1,355 events with an `incidents.json` (COMPLETE); 391 calls in a league FIELD tracks, 390 of them with a capture;
+  **370 gradeable** (hit or miss, a `resolved_minute`, a capture that saw full time or holds the resolving goal): 354 by a goal at the resolution, 16 by a full-time capture, 236 matches, hit 280 / miss 90. 1,355 calls (77.6%) are in leagues FIELD does not capture. Details and limits: `docs/CC-CMD-2026-11-22-bsd-next-goal-ledger-census.md`, Result.
+- **A green run was wrong, and was caught by its own zero:** the first run (20:04Z, `6d06e7b`) said 370 with 0 calls uncovered while 234 of 246 captures were in play. Its rule read a live `period` row's `minute` as the capture clock; period-row minutes are nominal (HT 45, FT 90, a live row of 90 on all 234 in-play captures).
+  Fixed in `f23b1d3` (a call is covered by full time or by the goal it holds); the withdrawn artifact stays in `outbox/` as the record. The same lesson as 2026-08-29: the premise had been written into the script header as fact from one example, and every check tested the code against the premise, not the premise against the data.
+- **The nearest goal to `resolved_minute` is at distance 0 for 370 of 370 calls**, so the tolerance of 1 minute decided nothing. That is what two records of one BSD incident feed would show; whether the ledger's `outcome` shares that feed is not measured, and it bears on whether a grade against FIELD's captures is independent.
+- **Filed, not started:** `field-laboratory/docs/CC-CMD-2026-11-22-bsd-next-goal-grade-against-field-timelines.md`. It is a verdict on the vendor; the owner ordered counts only. It names what only the owner unblocks.
+- **Repo guards is red from two steps that are not this session's, and both of this session's guard steps (the probe's and the census's) pass** (run 45065698907 at `17180f5`): `every BSD frame the contract declares matches the captures` (`check-bsd-frame-contract.mjs`, "reads capped", carried from the previous close-out)
+  and `the unauthenticated odds routes spend under their own labels`, which was also red at `e58f052` (run 45063685136), before this session's first push of the census. The second was not investigated here. Neither touched (Rule 69).
+
 ## SESSION CLOSE-OUT — 2026-11-22 (19:10Z) — BSD Next to Score measured on a live slate: the relay's token passes the gate, ids join, filters honoured
 
 **HEAD:** `85127fb` → `7668eec` · **Branch:** main · this close-out is the next commit. No `src/` change; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
