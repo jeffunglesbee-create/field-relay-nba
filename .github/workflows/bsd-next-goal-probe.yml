@@ -1,0 +1,78 @@
+name: BSD next-goal probe
+
+# docs/CC-CMD-2026-11-22-bsd-next-goal-probe.md.
+#
+# BSD's Next to Score API (GET /api/v2/next-goal/, /{event_id}/, /calls/) is announced by the vendor's
+# newsletter and read by nothing in FIELD. This measures what one authenticated token can see of it, on a
+# live slate: whether the plan gate opens, whether event.id is the id events/live and the relay use, which
+# leagues get a read, whether league_id and calls_only are honoured, what `available:false` says, and whether
+# the vendor's published 73.6% of 1,508 reproduces from its own /calls/ counts.
+#
+# UPSTREAM, with the token, like bsd-newsletter-claims.yml. CI because the container cannot reach
+# sports.bzzoiro.com (403 at CONNECT) and the token is a secret here. Read-only: at most CALL_BUDGET requests
+# (default 24, normally 18), stops on the first 429 or 401, commits one artifact. Dispatch during a live slate;
+# an empty slate answers the gate and says so, and the coverage line carries the denominators.
+#
+# No schedule on purpose: a probe of a live-only endpoint at a fixed UTC hour measures the hour.
+
+on:
+  workflow_dispatch:
+    inputs:
+      call_budget:
+        description: 'Max upstream calls (default 24)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-next-goal-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The check can still fail
+        run: |
+          node scripts/check-bsd-next-goal-probe.mjs --self-test
+          node scripts/check-bsd-next-goal-probe.mjs
+          node scripts/check-bsd-next-goal-probe-run.mjs
+          node scripts/mutate-bsd-next-goal-probe.mjs
+
+      - name: Probe next-goal
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+        run: node scripts/bsd-next-goal-probe.mjs
+
+      # A GATED answer is a result. A run that never reached the vendor is not: a green tick on that
+      # would be the 200-with-an-empty-body failure this repo keeps rediscovering.
+      - name: A run that reached nothing is not a result
+        run: |
+          set -euo pipefail
+          LATEST=$(ls -t outbox/bsd-next-goal-probe-2*.json | head -1)
+          echo "reading $LATEST"
+          node -e '
+            const fs=require("fs");
+            const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            const ok=d.calls.filter(c=>c.status===200).length;
+            console.log(`calls ${d.callsMade}/${d.callBudget}, 200s ${ok}, token ${d.tokenPresent}, stopped ${d.stopped}`);
+            console.log(d.coverageLine);
+            if(!d.tokenPresent){console.error("BSD_API_TOKEN absent: every question is UNKNOWN, not answered");process.exit(1);}
+            if(ok===0){console.error("zero 200s: never reached the vendor");process.exit(1);}
+          ' "$LATEST"
+
+      - name: Commit the artifact
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-next-goal-probe-*.json' \
+          bash scripts/probe-commit-retry.sh "chore: BSD next-goal probe artifact"

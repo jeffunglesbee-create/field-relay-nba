@@ -639,3 +639,15 @@ jobs:
       - name: The odds harness's mutation anchors still match the source
         if: always()
         run: node scripts/mutate-deploy-odds-wrappers.mjs --anchors-only
+
+      # docs/CC-CMD-2026-11-22-bsd-next-goal-probe.md. The probe turns a vendor's answers into verdicts (gate, id space,
+      # filters, the 73.6% reproduction); the first check runs `analyse` on synthetic payloads, one scenario per verdict.
+      # The second runs the WHOLE probe against a stub vendor and counts what the stub received (budget, the stop on a
+      # 429, the token header, the token-leak guard, when -latest advances). The 46 mutations (about 15 seconds) run in
+      # the probe's own workflow, not here.
+      - name: the BSD next-goal probe's verdicts and its spend cannot be wrong without this going red
+        if: always()
+        run: |
+          node scripts/check-bsd-next-goal-probe.mjs --self-test
+          node scripts/check-bsd-next-goal-probe.mjs
+          node scripts/check-bsd-next-goal-probe-run.mjs
