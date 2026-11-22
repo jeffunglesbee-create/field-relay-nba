@@ -309,6 +309,13 @@ jobs:
           node scripts/probe-identity-mismatches.mjs --self-test
           node scripts/mutate-probe-identity-mismatches.mjs
 
+      # The backfill runner spends billed Odds credits AND writes opening_odds: its cap, its approval number, its once-per-date
+      # ledger and its stop on a call that wrote nothing are proved on a local stub server, each mutation red by a named check.
+      - name: the odds backfill runner is capped by the owner's number, attempts a date once, and never prints the secret
+        run: |
+          node scripts/run-odds-backfill-capped.mjs --self-test
+          node scripts/mutate-run-odds-backfill-capped.mjs
+
       # Every reader that prints an "opening" line took the blob as it came, and the CI backfill writes one
       # blob into both columns, so a line captured during the game was reported as the open (2026-10-29,
       # docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md, Task A2). Run on six real blobs.
