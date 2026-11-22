@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (bug fix)
-**Status:** PARTIAL, 2026-11-22. Defect 1 was resolved by another commit. Defect 2 is built, with the rule corrected (below), and landed in `28177d71`; its reading on the live route is STAGED. Task 2 is built in field-laboratory. Task 0's live matchday payloads are not met (below). Carried forward on the owner's word, 2026-11-22 ("Carry forward"); the status line did not exist before.
+**Status:** PARTIAL, 2026-11-22. Defect 1 was resolved by another commit. Defect 2 is built, with the rule corrected (below), and landed in `966fe0c8`; its reading on the live route is STAGED. Task 2 is built in field-laboratory. Task 0's live matchday payloads are not met (below). Carried forward on the owner's word, 2026-11-22 ("Carry forward"); the status line did not exist before.
 **Run BEFORE** `field-laboratory` `CC-CMD-2026-09-11-epl-forecaster-phase1.md`.
 A bad team join fails silently and the forecaster would be built on it.
 

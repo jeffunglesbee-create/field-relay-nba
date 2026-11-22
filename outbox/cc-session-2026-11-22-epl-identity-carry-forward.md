@@ -2,7 +2,7 @@
 
 Session: https://claude.ai/code/session_01CggeNbCfJwZGqP88Ttq7r2
 Trigger: the owner's status question on this CC-CMD, then "Carry forward" (2026-11-22), after "The forecaster should be for laboratory".
-HEAD progression: relay `bd4a6c7d` -> `28177d71` (the feature) -> the docs commit that carries this file. Companion work in field-laboratory, below.
+HEAD progression: relay `bd4a6c7d` -> `966fe0c8` (the feature) -> the docs commit that carries this file. Companion work in field-laboratory, below.
 
 ## What was found before anything was built
 
@@ -15,7 +15,7 @@ HEAD progression: relay `bd4a6c7d` -> `28177d71` (the feature) -> the docs commi
 
 | where | what |
 |---|---|
-| field-relay-nba `28177d71` | `classifySubstitution` in `src/identity-resolver.js`; `/identity/mismatches` returns `key_resolved`, `key_substituted`, `key_unchecked` and `corroborated` per entry |
+| field-relay-nba `966fe0c8` | `classifySubstitution` in `src/identity-resolver.js`; `/identity/mismatches` returns `key_resolved`, `key_substituted`, `key_unchecked` and `corroborated` per entry |
 | same commit, checks | `check-team-key-substitution` 59 -> 78; `check-identity-route-join` 41 -> 50 (the real worker, `outbox/fixture-cfb-2026-09-12.json`, EPL rows added, section J12) |
 | same commit, mutations | 25 -> 35 in place, each red by its named assertion; 32 -> 41 on a copy |
 | field-laboratory | `scripts/epl-alias-coverage-check.mjs` (Task 2), its self-test 28/28, `scripts/mutate-epl-alias-coverage.mjs` 19 of 19, a drift-sentinel step with a read-only relay checkout, a verify step, the browser guard's pin 72 -> 73 |
