@@ -44,3 +44,7 @@ Relay contract: `GET /identity/mismatches?date=&sports=` (gated), report gains `
 The hold voids the calendar experiment on a commit to `handleCFLOddsProbs`, `consumeOddsCredit`, `chargeOdds` (`src/budget-helpers.js`), `reconcileOddsCredit`, the client's `fetchCFLOddsProbs`/`fetchSchedule`, or an option of the odds-charge CC-CMD (`outbox/odds-cfl-season-end-prediction-2026-10-18.md`, "What voids the experiment"). Checked by command before the deploy: `git log -L :<function>:src/index.js --since=2026-11-08` returns nothing for the three functions and nothing touches `budget-helpers.js`, with a positive control (the same search without the date limit finds `6589bc16`, `7ec2d03f` and `0e6a8947`). This change's hunks are the import line and the `/identity/mismatches` handler. Other `src/index.js` commits (golf, ESPN core) landed and deployed inside the window. Not checked: the client repo's two listed calls (this change touches no client file).
 
 `Repo guards` was also red on `check-bsd-frame-contract` (it fails on a clean `origin/main` as well); that belongs to the BSD work and was not touched.
+
+## The live reading is scheduled
+
+`trig_01G11kB3mfykDMeQABCQpUAp`, one-off, 2026-11-29T08:00Z (the Saturday probe has started 01:24Z to 02:51Z on the Sunday), in a fresh session. It stores no connector tools; the main path needs only git and node, and the fallback reads the public relay repo's run list with curl.

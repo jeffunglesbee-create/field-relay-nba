@@ -131,7 +131,7 @@ Measured before building, for the record (read with the relay probe tool on 2026
 
 ### STAGED: the new counts on the deployed route (Rule 74)
 
-Staged: `key_resolved`, `key_unchecked` and `corroborated` on the deployed `/identity/mismatches`. Blocked by: the route being gated and billed. Unblocked by: the scheduled `odds-identity-join-saturday.yml` (cron `40 23 * * 6`, next 2026-11-28 23:40Z) committing `outbox/odds-join-probe-<stamp>.json`; it probes CFB, NFL, Bundesliga and MLS, not EPL, so the EPL case is proven by the local worker run above and not by that payload. Verify, tested to fail on the 2026-11-22 payload (which predates the fields) and to pass on a correct one:
+Staged: `key_resolved`, `key_unchecked` and `corroborated` on the deployed `/identity/mismatches`. Blocked by: the route being gated and billed. Unblocked by: the scheduled `odds-identity-join-saturday.yml` (cron `40 23 * * 6`, next 2026-11-28 23:40Z) committing `outbox/odds-join-probe-<stamp>.json`; it probes CFB, NFL, Bundesliga and MLS, not EPL, so the EPL case is proven by the local worker run above and not by that payload. A one-off scheduled task, `trig_01G11kB3mfykDMeQABCQpUAp` (2026-11-29T08:00Z, a fresh session with no connector tools), runs the assertion below on that payload and records the result in this document; if the fields are absent it investigates the deploy and does not edit the assertion. Verify, tested to fail on the 2026-11-22 payload (which predates the fields) and to pass on a correct one:
 
 ```
 node -e '
