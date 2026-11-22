@@ -108,7 +108,7 @@ import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
+import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, classifySubstitution, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
 import { matchSlate, slateWindow } from './odds-name-match.js';
 import { joinBatch, eventDaysFor, BSD_SOCCER_SPORTS } from './bsd-game-join.js';
@@ -16007,11 +16007,23 @@ export default {
             const sportParam = (url.searchParams.get('sports') || 'EPL,MLS,WNBA,MLB,La Liga').trim();
             const sports = sportParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
 
-            // key_substituted counts rows whose resolved team key is not derived
-            // from their own display name — a wrong row, not a naming difference.
+            // A name whose resolved key is not derived from its own text is counted
+            // THREE ways, never as one number (docs/CC-CMD-2026-09-11-epl-identity-resolve.md,
+            // Defect 2; Rule 99: an alarm that fires on correct behaviour trains people to
+            // ignore it). Measured 2026-09-11: EPL `Ipswich` -> `ipswichtown` was counted
+            // beside the CFB schools sent to a pro club, and both read as "substituted".
+            //   key_resolved     the key is a team in THIS sport's vendor feed and no other
+            //                    probed sport's: corroborated (classifySubstitution)
+            //   key_substituted  it is not: the key may belong to another sport
+            //   key_unchecked    there was no feed to compare with. An entry is only listed after
+            //                    its own sport's feed was read, so this is 0 today; an EMPTY feed (the
+            //                    vendor listed no events) corroborates nothing and counts as substituted
+            // For each distinct sport in ?sports= they add up to the count this field used to be (a
+            // sport named twice has one entry, so it is counted once). Corroboration is not proof,
+            // and an alias hit is not corroboration; see classifySubstitution.
             const vendorKeysBySport = new Map();
-            const report = { date, probed: 0, matched: 0, unmatched: 0, key_substituted: 0,
-                             key_substituted_cross_sport: 0, sports: {} };
+            const report = { date, probed: 0, matched: 0, unmatched: 0, key_resolved: 0, key_substituted: 0,
+                             key_unchecked: 0, key_substituted_cross_sport: 0, sports: {} };
             for (const sport of sports) {
                 const sportKey = archiveSportToOddsKey(sport);
                 if (!sportKey) {
@@ -16104,7 +16116,6 @@ export default {
                     if (hk) substituted.push({ name: row.home, key: hk });
                     if (ak) substituted.push({ name: row.away, key: ak });
                 }
-                report.key_substituted += substituted.length;
 
                 report.matched   += matched.length;
                 report.unmatched += unmatched.length;
@@ -16160,6 +16171,11 @@ export default {
                     }
                     sub.also_in = alsoIn;
                     if (alsoIn.length) report.key_substituted_cross_sport++;
+                    // The entry says which way it was counted, so a reader of the list sees the same
+                    // split as the totals. null is "no feed", not "benign".
+                    const verdict = classifySubstitution(sub.key, vendorKeysBySport.get(sport), alsoIn);
+                    sub.corroborated = verdict === 'unchecked' ? null : verdict === 'resolved';
+                    report[`key_${verdict}`]++;
                 }
             }
             report.sports_compared = [...vendorKeysBySport.keys()];

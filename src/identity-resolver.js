@@ -767,6 +767,36 @@ function substitutedKey(name) {
     return key;
 }
 
+// Whether a substituted key is CORROBORATED: it names a team that the row's OWN
+// sport's vendor feed carries today, and no other probed sport's feed carries it.
+//
+//   'resolved'     corroborated. `Ipswich` -> `ipswichtown` on an EPL slate
+//                  whose vendor events include `ipswichtown`.
+//   'substituted'  not corroborated: the key is not a team in this sport's feed
+//                  (CFB `Liberty` -> `newyorkliberty`), or it is in another
+//                  probed sport's feed as well, so the evidence does not say
+//                  whose team it is.
+//   'unchecked'    there is no feed to compare with. Never read as 'resolved':
+//                  absent evidence is not evidence (Rule 99).
+//
+// WHY AN ALIAS HIT IS NOT CORROBORATION. docs/CC-CMD-2026-09-11-epl-identity-resolve.md
+// (Defect 2) proposed "a key reached through a CANONICAL entry is RESOLVED, any
+// other way SUBSTITUTED". Measured 2026-11-22 against this resolver: all six
+// CFB schools the sport-blind map sends to a pro club (Colorado, Liberty,
+// Minnesota, Houston, Cincinnati, Charlotte) are reached through CANONICAL, and
+// so are the benign ones (Ipswich, Columbus). That rule calls every one of them
+// RESOLVED, so it would clear the wrong rows this diagnostic exists to find.
+// What tells the two apart is the sport the key belongs to, and the feed for
+// the row's own sport is the evidence at hand.
+//
+// It is corroboration, not proof: a key can be a real team of the right sport
+// and still the wrong one for the row (two schools called Miami). It says the
+// key is not from another sport, which is the failure the count was built for.
+function classifySubstitution(key, ownKeys, alsoIn = []) {
+    if (!ownKeys || typeof ownKeys.has !== 'function') return 'unchecked';
+    return ownKeys.has(key) && alsoIn.length === 0 ? 'resolved' : 'substituted';
+}
+
 // ── Soccer player identity — separate algorithm from both _strip() and
 // _stripPlayer() (MLB) ──────────────────────────────────────────────
 // MLB's _stripPlayer strips Jr/Sr/II/III/IV suffixes and takes only the
@@ -952,4 +982,4 @@ function resolveMLSClubId(name) {
     return MLS_CLUB_ID_BY_NAME[key] || null;
 }
 
-export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, foldTeamName, substitutedKey, resolveTeamCandidates, resolveTeamKeyIn, AMBIGUOUS_TEAM };
+export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, foldTeamName, substitutedKey, classifySubstitution, resolveTeamCandidates, resolveTeamKeyIn, AMBIGUOUS_TEAM };

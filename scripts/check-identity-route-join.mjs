@@ -90,9 +90,10 @@ const BOOK = [{ key: 'book', markets: [] }];                                // e
  *   noise                             rows of other sports, dates and tables added to the same D1
  *   sports                            the ?sports= list
  *   feeds                             vendor payloads for the other sports, by Odds-API key
+ *   extraRows                         archive rows added on the slate date, each { id, sport, home, away, start_time }
  */
 async function report({ priced = [], pricedLate = [], pricedBad = [], finalized = [], postseason = [], events = fx.vendor, noise = true,
-  sports = ['CFB'], feeds = {}, now = DELAYED_RUN, query = null, auth = true } = {}) {
+  sports = ['CFB'], feeds = {}, now = DELAYED_RUN, query = null, auth = true, extraRows = [] } = {}) {
   clock = now;
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(SCHEMA);
@@ -105,6 +106,7 @@ async function report({ priced = [], pricedLate = [], pricedBad = [], finalized 
     put(postseason.includes(r.id) ? 'postseason_games' : 'regular_season_games',
       { ...r, sport: 'CFB', date: fx.date, opening_odds: blob(r.id), finalized_at: finalized.includes(r.id) ? '2026-09-13T04:00:00Z' : null });
   }
+  for (const r of extraRows) put('regular_season_games', { ...r, date: fx.date, opening_odds: null, finalized_at: null });
   if (noise) {
     // Other sports on the SAME date with the SAME team names (a shared index would join them), CFB on OTHER dates, both tables.
     for (const r of fx.archive.slice(0, 5)) put('regular_season_games', { ...r, id: `NFL_${r.id}`, sport: 'NFL', date: fx.date });
@@ -299,6 +301,59 @@ async function report({ priced = [], pricedLate = [], pricedBad = [], finalized 
 {
   const r = await report({ auth: false });
   check('J11 without the credential: 401 and the vendor is never called', r.status === 401 && r.asked.length === 0, `status ${r.status}, ${r.asked.length} calls`);
+}
+
+// ── J12. key_substituted is counted three ways: a benign alias is RESOLVED, a wrong-sport row is not ──
+// docs/CC-CMD-2026-09-11-epl-identity-resolve.md, Defect 2. The CC-CMD's own measurement was one EPL
+// request: `Ipswich -> ipswichtown` counted beside the CFB schools as "substituted". The EPL rows and
+// vendor names below are real spellings: the archive's (D1 read of 2026-11-22: `Ipswich`, `Man City`, `Spurs`,
+// `C Palace`) and the Odds API's full names. The PAIRINGS are constructed, not rows the archive holds.
+{
+  const EPL_ROWS = [
+    { id: 'EPL_a', sport: 'EPL', home: 'Ipswich', away: 'Man City', start_time: '2026-09-12T14:00Z' },
+    { id: 'EPL_b', sport: 'EPL', home: 'Spurs', away: 'C Palace', start_time: '2026-09-12T16:30Z' },
+  ];
+  const EPL_FEED = [
+    { id: 'e1', home_team: 'Ipswich Town', away_team: 'Manchester City', commence_time: '2026-09-12T14:00:00Z' },
+    { id: 'e2', home_team: 'Tottenham Hotspur', away_team: 'Crystal Palace', commence_time: '2026-09-12T16:30:00Z' },
+  ];
+  const both = await report({ sports: ['CFB', 'EPL'], extraRows: EPL_ROWS, feeds: { soccer_epl: EPL_FEED } });
+  const b = both.body || {}, ee = (b.sports || {}).EPL || {}, cc = (b.sports || {}).CFB || {};
+  const named = (e) => (e.key_substituted || []).map(k => `${k.name}->${k.key}:${k.corroborated}`).sort();
+  check('J12 both sports answer', both.status === 200 && !!ee.sport_key && !!cc.sport_key, `status ${both.status}`);
+  check('J12 EPL: the three benign aliases are listed and every one is corroborated by the EPL feed',
+    JSON.stringify(named(ee)) === JSON.stringify(['Ipswich->ipswichtown:true', 'Man City->manchestercity:true', 'Spurs->tottenhamhotspur:true']), JSON.stringify(named(ee)));
+  check('J12 CFB: the six wrong-sport schools are listed and NONE is corroborated (an alias hit is not corroboration)',
+    (cc.key_substituted || []).length === 6 && cc.key_substituted.every(k => k.corroborated === false), JSON.stringify(named(cc)));
+  check('J12 the totals: 3 resolved, 6 substituted, 0 unchecked, and they add up to the 9 entries listed',
+    b.key_resolved === 3 && b.key_substituted === 6 && b.key_unchecked === 0 && b.key_resolved + b.key_substituted + b.key_unchecked === 9,
+    JSON.stringify({ r: b.key_resolved, s: b.key_substituted, u: b.key_unchecked }));
+  check('J12 key_substituted_cross_sport keeps its meaning: none of the nine is a key the other sport\'s feed carries', b.key_substituted_cross_sport === 0, String(b.key_substituted_cross_sport));
+
+  // The CC-CMD's own request shape: ONE sport. The old cross-sport pass had nothing to compare against and
+  // left every entry unclassified; the sport's own feed is evidence a single-sport request has.
+  const solo = await report({ sports: ['EPL'], extraRows: EPL_ROWS, feeds: { soccer_epl: EPL_FEED }, noise: false });
+  const sb = solo.body || {};
+  check('J12 one sport (the shape the CC-CMD measured): probed 1, key_resolved 3, key_substituted 0, key_unchecked 0',
+    sb.probed === 1 && sb.key_resolved === 3 && sb.key_substituted === 0 && sb.key_unchecked === 0, JSON.stringify({ p: sb.probed, r: sb.key_resolved, s: sb.key_substituted, u: sb.key_unchecked }));
+
+  // The honest limit: a feed that does not list Ipswich's game cannot corroborate Ipswich. It stays counted as
+  // substituted, because "the vendor is silent" is not "the alias is right".
+  const gap = await report({ sports: ['EPL'], extraRows: EPL_ROWS, feeds: { soccer_epl: EPL_FEED.slice(1) }, noise: false });
+  const gb = gap.body || {};
+  check('J12 a feed without the Ipswich v Man City event corroborates neither club: both are substituted, Spurs stays resolved',
+    gb.key_resolved === 1 && gb.key_substituted === 2 && (gb.sports.EPL.key_substituted || []).filter(k => k.corroborated === false).map(k => k.name).sort().join() === 'Ipswich,Man City', JSON.stringify({ r: gb.key_resolved, s: gb.key_substituted, n: named(gb.sports.EPL) }));
+
+  // A key that BOTH probed sports carry is not corroborated by either: the evidence does not say whose team it is.
+  // Constructed: an MLS feed that also lists `ipswichtown`. This is the route-level proof of the alsoIn clause.
+  const MLS_FEED = [{ id: 'm1', home_team: 'Ipswich Town', away_team: 'Columbus Crew', commence_time: '2026-09-12T23:00:00Z' }];
+  const x = await report({ sports: ['EPL', 'MLS'], extraRows: EPL_ROWS, feeds: { soccer_epl: EPL_FEED, soccer_usa_mls: MLS_FEED }, noise: false });
+  const xb = x.body || {}, xe = (xb.sports || {}).EPL || {};
+  const ip = (xe.key_substituted || []).find(k => k.name === 'Ipswich') || {};
+  check('J12 a key a second probed sport also carries is not resolved: Ipswich is substituted, corroborated false, also_in names the sport',
+    ip.corroborated === false && JSON.stringify(ip.also_in) === JSON.stringify(['MLS']), JSON.stringify(ip));
+  check('J12 ...and the totals say so: 2 resolved, 1 substituted, key_substituted_cross_sport 1',
+    xb.key_resolved === 2 && xb.key_substituted === 1 && xb.key_substituted_cross_sport === 1, JSON.stringify({ r: xb.key_resolved, s: xb.key_substituted, c: xb.key_substituted_cross_sport }));
 }
 
 let failed = 0;

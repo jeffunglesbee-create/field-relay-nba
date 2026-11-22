@@ -92,6 +92,17 @@ const MUTANTS = [
   ['J30 an unmatched row says finalized when it is not', UNMATCHED, 'start_time: row.start_time, finalized: row.finalized_at == null,'],
   ['J31 an unmatched row\'s key is the two names the wrong way round', KEY, 'd1_key: `${resolveTeamKey(row.away)}|${resolveTeamKey(row.home)}`,\n                            start_time'],
   // THE GATE.
+  // THE THREE-WAY COUNT of a substituted key (check J6; docs/CC-CMD-2026-09-11-epl-identity-resolve.md, Defect 2).
+  ['J33 the handler stops classifying: every substitution is just substituted', "const verdict = classifySubstitution(sub.key, vendorKeysBySport.get(sport), alsoIn);", "const verdict = 'substituted';"],
+  ['J34 an alias hit is called resolved (the CC-CMD\'s literal rule): the six CFB schools are corroborated', "const verdict = classifySubstitution(sub.key, vendorKeysBySport.get(sport), alsoIn);", "const verdict = 'resolved';"],
+  ['J35 a row is judged against the CFB feed, not its own sport\'s', "const verdict = classifySubstitution(sub.key, vendorKeysBySport.get(sport), alsoIn);", "const verdict = classifySubstitution(sub.key, vendorKeysBySport.get('CFB'), alsoIn);"],
+  ['J36 the entry records the opposite of its verdict', "sub.corroborated = verdict === 'unchecked' ? null : verdict === 'resolved';", "sub.corroborated = verdict === 'unchecked' ? null : verdict !== 'resolved';"],
+  ['J37 every verdict is counted as substituted', "report[`key_${verdict}`]++;", "report.key_substituted++;"],
+  ['J38 key_resolved is never initialised, so it counts NaN', "key_resolved: 0, key_substituted: 0,\n                             key_unchecked: 0,", "key_substituted: 0,\n                             key_unchecked: 0,"],
+  // THE CROSS-SPORT CLAUSE (check section J12, the second probed sport that also carries the key).
+  ['J39 a key another probed sport carries is never noticed', "if (other !== sport && keys.has(sub.key)) alsoIn.push(other);", "if (other !== sport && false) alsoIn.push(other);"],
+  ['J40 the cross-sport counter is dead', "if (alsoIn.length) report.key_substituted_cross_sport++;", "if (false) report.key_substituted_cross_sport++;"],
+  ['J41 the classifier is not told which other sports carry the key', "const verdict = classifySubstitution(sub.key, vendorKeysBySport.get(sport), alsoIn);", "const verdict = classifySubstitution(sub.key, vendorKeysBySport.get(sport), []);"],
   ['J32 the gate is removed', GATE, "            if (!env.ARCHIVE_DB) {\n                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),"],
 ];
 
@@ -114,5 +125,5 @@ for (const [name, anchor, repl] of MUTANTS) {
 const caughtN = MUTANTS.length - missed - nothing - errored;
 console.log(`\nmutations: ${caughtN} of ${MUTANTS.length} caught${missed ? `, ${missed} SURVIVED` : ''}${errored ? `, ${errored} harness error(s)` : ''}${nothing ? `, ${nothing} not applied` : ''}`);
 console.log('COVERAGE: the date, both SELECTs and their scoping, the join, priceable, the slate matcher, the denominators, the unmatched row\'s fields and the gate, mutated in a copy');
-console.log('of src/index.js. NOT mutated: the cross-sport substitution pass (scripts/check-team-key-substitution.mjs reads it) and the credit guard.');
+console.log('of src/index.js, and the three-way count of a substituted key (check section J6). NOT mutated here: the classifier itself (scripts/mutate-team-key-substitution.mjs) and the credit guard.');
 process.exit(missed || nothing || errored ? 1 : 0);

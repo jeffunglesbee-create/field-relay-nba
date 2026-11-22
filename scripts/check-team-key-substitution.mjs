@@ -15,7 +15,7 @@
 // Rule 90: every assertion here was made to fail on purpose first. See
 // scripts/mutate-team-key-substitution.mjs.
 import { readFileSync } from 'node:fs';
-import { foldTeamName, substitutedKey } from '../src/identity-resolver.js';
+import { foldTeamName, substitutedKey, classifySubstitution, resolveTeamKey } from '../src/identity-resolver.js';
 import { routes, bodyOf, decomment } from './lib/route-scan.mjs';
 
 let failed = 0, checked = 0;
@@ -216,6 +216,49 @@ if (!census) {
     }
     eq('F census calls no write helper',
        /\b(reconcile|recordD1Write)\s*\(/.test(code), false);
+}
+
+// ── G. a substituted key is counted by CORROBORATION, never by alias hit ───
+// docs/CC-CMD-2026-09-11-epl-identity-resolve.md, Defect 2. The split between a benign alias
+// (EPL `Ipswich` -> `ipswichtown`) and a wrong row (CFB `Colorado` -> `coloradorapids`) cannot be
+// "reached through a CANONICAL entry": measured 2026-11-22, all eight of those are. What separates
+// them is whether the key is a team in the row's own sport's vendor feed.
+{
+    const epl = new Set(['ipswichtown', 'cpalace', 'manchestercity', 'tottenhamhotspur']);
+    eq('G EPL Ipswich -> ipswichtown, a team in the EPL feed, is resolved', classifySubstitution(resolveTeamKey('Ipswich'), epl), 'resolved');
+    eq('G a key the sport\'s own feed lacks is substituted', classifySubstitution('newyorkliberty', new Set(['libertyflames'])), 'substituted');
+    eq('G a key in the own feed AND another probed sport\'s is not called resolved', classifySubstitution('portland', new Set(['portland']), ['MLS']), 'substituted');
+    eq('G no feed at all is unchecked, never resolved', classifySubstitution('ipswichtown', undefined), 'unchecked');
+    eq('G ...and an EMPTY feed is not "no feed": it corroborates nothing, so substituted', classifySubstitution('ipswichtown', new Set()), 'substituted');
+    eq('G a null feed is unchecked', classifySubstitution('ipswichtown', null), 'unchecked');
+
+    // The refuted premise, kept as a guard. Each of these is an alias hit (substitutedKey is not null), and
+    // against a CFB feed that carries the schools themselves, none of the six wrong-sport rows is corroborated.
+    const wrong = ['Colorado', 'Liberty', 'Minnesota', 'Houston', 'Cincinnati', 'Charlotte'];
+    const cfb = new Set(['coloradobuffaloes', 'libertyflames', 'minnesotagoldengophers', 'houstoncougars', 'cincinnatibearcats', 'charlotte49ers']
+        .concat(wrong.map(n => foldTeamName(n))));
+    for (const n of wrong) {
+        eq(`G CFB ${n} is an alias hit (substitutedKey ${substitutedKey(n)}) and is NOT resolved`,
+           substitutedKey(n) !== null && classifySubstitution(resolveTeamKey(n), cfb), 'substituted');
+    }
+    eq('G MLS Columbus -> columbuscrew in the MLS feed is resolved', classifySubstitution(resolveTeamKey('Columbus'), new Set(['columbuscrew'])), 'resolved');
+
+    // The handler uses the one definition and reports all three kinds.
+    const mm = routes.find(r => r.path === '/identity/mismatches');
+    if (!mm) {
+        fail('G mismatches route is registered', 'no route matching /identity/mismatches');
+    } else {
+        const mb = bodyOf(mm.line);
+        const code = decomment(mb.text);
+        eq('G the mismatches body was read whole', !!mb.text && !mb.truncated, true);
+        eq('G the handler classifies with the shared function, against the row\'s OWN sport feed',
+           /^\s*const verdict = classifySubstitution\(sub\.key, vendorKeysBySport\.get\(sport\), alsoIn\);/m.test(code), true);
+        eq('G the report starts all three counters at zero',
+           /key_resolved:\s*0,\s*key_substituted:\s*0,\s*key_unchecked:\s*0/.test(code), true);
+        eq('G the handler counts each verdict under its own name', /^\s*report\[`key_\$\{verdict\}`\]\+\+;/m.test(code), true);
+        eq('G the raw count is gone: key_substituted is no longer every entry', /report\.key_substituted\s*\+=\s*substituted\.length/.test(code), false);
+        eq('G each entry says which way it was counted', /^\s*sub\.corroborated\s*=/m.test(code), true);
+    }
 }
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
