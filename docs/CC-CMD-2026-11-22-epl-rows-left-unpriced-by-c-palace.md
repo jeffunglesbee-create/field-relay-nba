@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (data repair, billed)
-**Status:** FILED 2026-11-22, not started. Blocked on the owner's word: the repair spends billed historical Odds credits whose cost is not yet measured (Task 0), and the owner chooses whether it runs at all.
+**Status:** IN PROGRESS 2026-11-22. Task 0 done (results below). The owner said "Backfill approved" with no credit number; Task 1 says not to proceed on an inferred yes, so the number is asked for (270 recommended) before the one billed dispatch. The filter (`38754bb1`) and the capped runner (`4f718b6c`) are built and gated; nothing has been spent.
 **Filed from:** `docs/CC-CMD-2026-09-11-epl-identity-resolve.md` (DONE 2026-11-22). That CC-CMD's scope was "two defects, both measured. Do not extend", so this finding is its own document (Rule 87.4), not a carry-forward.
 
 ## What was measured, 2026-11-22 (read-only SELECTs of `field-archive`; no credit spent)
@@ -39,6 +39,14 @@ Statuses read 2026-11-22, none holds this work: `docs/CC-CMD-2026-09-15-backfill
 2. Read the route that would do the repair: `GET|POST /archive/odds-backfill?date=YYYY-MM-DD` (`src/index.js`, `pathname === '/archive/odds-backfill'`; quota floor `ODDS_QUOTA_FLOOR = 50`). It walks one date, calls the Odds API's HISTORICAL endpoint once per sport, matches by team pair and writes `opening_odds` where NULL. It is a write route: do not call it to see what it does.
 3. Find what a historical call costs, from evidence and not memory: the Results of `docs/CC-CMD-2026-10-19-odds-stage1-wrong-game.md` (a repair was applied there) and the Odds API's documentation. Write the figure with its source, per date and for nine dates. If it cannot be established without a billed call, say so; do not estimate silently.
 4. Confirm the nine rows would join: run `resolveTeamKey` on each name and compare with the vendor's historical names for that date (offline, from the relay's resolver).
+
+### Task 0 results, 2026-11-22 (no credit spent)
+
+1. **The nine rows re-read** (Cloudflare D1 tool, `field-archive`, SELECT only): 9 rows, the table above, each `start_time` 13:00Z or later. A second SELECT shows `odds_history_rows = 0` for all nine, so nothing partial exists to reconcile.
+2. **The route's cost model**, read from source and exercised in `scripts/check-odds-backfill-sport-filter.mjs` against a vendor stub: one historical fetch per sport bucket per date, markets `h2h,spreads,totals`, `regions=us`, snapshot `${date}T12:00:00Z` = **30 credits per sport-date** (10 per market). The route had no sport filter, so an unfiltered date costs 30 credits for every sport with NULL-opening rows on it: the check's baseline seeds four sports and spends 120. Measured in D1 (regular and postseason tables, SELECT only, 2026-11-22): the nine dates carry NULL-opening rows in 5, 7, 7, 7, 8, 8, 10, 7 and 9 distinct sports, 68 sport-dates in all. That is an upper bound on the unfiltered bill (68 x 30 = 2,040), because a sport with no odds key is not fetched; how many of the 68 map to a key was not measured. Either way a single date can reach 10 x 30 = 300, the route's whole day cap (`SITE_CEILINGS.archiveOddsBackfill`).
+3. **Why the filter, and why not an existing tool** (BUILD-ON-A, searched by content): `scripts/targeted-odds-fill.mjs` already takes `--sport` and `--date`, but its sport set `NEWLY_REACHABLE` (line 72) is twelve sports that excludes EPL, it asks for two markets (20 credits) and writes `odds_history`, not `opening_odds`. Using it would mean editing its set and routing the nine rows through a second table and a sync. The route's own writer already does the repair; the missing piece was only a way to name one sport. Added: `?sport=EPL` on `/archive/odds-backfill`, validated against `archiveSportToOddsKey`, refused with 400 on an unknown label before anything is spent.
+4. **Cost for the owner:** 9 sport-dates x 30 = **270 credits**, against the 300 day cap and the 50-credit floor. Nothing is fetched twice by design (the runner allows one attempt per date, and a 24-hour edge cache covers a repeat).
+5. **Would the nine rows join:** `scripts/check-odds-backfill-sport-filter.mjs` runs the real worker over a vendor stub that serves a real-shaped `Crystal Palace v Newcastle United` event, and the `C Palace` row is priced from it. All nine kickoffs are after the noon snapshot, so none is skipped as already started. The Coventry row (2026-08-21, Arsenal v Coventry, 19:00Z) is not explained; it is run last so that a zero there cannot stop the eight others, and the runner stops, naming the date, if a date finds games and populates none.
 
 ## Task 1 — the owner's decision
 
