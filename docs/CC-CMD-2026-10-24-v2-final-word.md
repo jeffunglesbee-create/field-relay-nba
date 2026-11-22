@@ -108,3 +108,13 @@ first leaves the guard never engaging for `'post'` sports.
    when the misreading is restored.
 3. The `sportKey === 'nba'` case is removed, and
    `scripts/check-v2-games-nba-board.mjs` N1/N7 are changed to the chosen word.
+
+---
+
+## Found 2026-11-22 (field-laboratory, live scores for the other sports)
+
+The laboratory's page now reads live scores for NBA, WNBA, NHL, MLB, NFL, CFB and AFL (`docs/CC-CMD-2026-11-11-live-scores-other-sports.md` in field-laboratory). Its decoder reads BOTH
+words for a finished game, `final` and `post`, which is this CC-CMD's option (b), so it works under either decision. It is a client-side compensation (Rule 64) the owner has not been
+asked to accept as the answer: if the owner picks option (a), `final` everywhere, the `post` branch in `LiveFeed.readingFor` is dead code (Rule 63) and is removed in the same session as the
+relay change, with its Suite row and its mutation (`other-post-is-not-over`). Evidence read 2026-11-22: a finished CFB game of 2026-11-21 serves `state` `post`
+(`outbox/relay-cfb-post-body-2026-11-22.md` in field-laboratory); the relay adapters in `src/index.js` give `post` for WNBA, AFL, MLB, NFL and CFB and `final` for NBA and NHL.

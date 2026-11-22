@@ -983,13 +983,13 @@ archive row), jubilant-bassoon `fetchV2Games` / `fetchV2AllScores` /
 
 Producer: `handleV2Games`, soccer branch, `adaptESPNWCSoccer(ev, sportKey)` (`src/index.js`), `source: 'espn-wc'`. The keys the
 laboratory asks for are its sixteen soccer sports: `epl`, `mls`, `laliga`, `seriea`, `bundesliga`, `ligue1`, `ucl`, `uclqual`,
-`europa`, `europaqual`, `conference`, `conferencequal`, `wc26`, `eflcup`, `efltrophy`, `facup`; an unknown key answers 400 and
-lists the keys the relay has.
+`europa`, `europaqual`, `conference`, `conferencequal`, `wc26`, `eflcup`, `efltrophy`, `facup`, and, from 2026-11-22, the seven keys of the
+section after this one (`nba`, `wnba`, `nhl`, `mlb`, `nfl`, `cfb`, `afl`); an unknown key answers 400 and lists the keys the relay has.
 Consumer: field-laboratory (`src/LiveFeed.fs` `feedGameDecoder` and `wholeScore`; `scripts/live-score-probe.mjs` `decodeFeed`, which
 keeps its own JS copy because it runs on a runner that builds nothing). Its CC-CMD is
 `docs/CC-CMD-2026-11-11-soccer-live-scores.md` (field-laboratory). As of this entry the laboratory's reader is built and not yet deployed
 (branch `live-scores-t3`, landing after its scored gate). Pull only: the page asks once a minute per key while a card is inside its
-window (kickoff to kickoff + 3 h) and the tab is visible; nothing is pushed.
+window (kickoff to kickoff + 3 h for soccer, longer for the other sports: next section) and the tab is visible; nothing is pushed.
 
 ```
 200 { sport, date, games: FieldGame[], count, source: 'espn-wc', ts }
@@ -1024,11 +1024,13 @@ What the laboratory does with it (the relay owns the shape, Rule 60; this is the
 - `state` `live` with both scores is a live reading; with `situation.isHalftime` true it is half time (the card's note says `Half time`,
   owner approved 2026-11-11). `final` with both scores is full time while the archive row has no score (the card stays `In progress`
   with a `Full time` note; only the archive makes a game `Final`). `pre` is no reading, whatever its score.
-- A game with no `espnEventId` or no `state`; a score that is not a JSON number, a numeric string included, or is fractional, negative or
+- A game with no `state`, or with neither an `espnEventId` nor both `home.name` and `away.name` (from 2026-11-22 a game with no id but both
+  names is valid: NHL, next section); a score that is not a JSON number, a numeric string included, or is fractional, negative or
   larger than the int32 maximum; a `clock` that is not a string; a `situation` that is neither absent, null nor an object; or an
   `isHalftime` that is not a boolean makes the laboratory fail the WHOLE answer for that sport key. Every card of that key inside
   its window then reads `live score unavailable`. Absent and null scores, clocks and flags are not errors.
-- Joined by `espnEventId`, never by team names (the archive says `Man Utd`, the feed `Manchester United`).
+- Joined by `espnEventId`, never by team names (the archive says `Man Utd`, the feed `Manchester United`); the one exception is a feed game
+  that carries no `espnEventId` at all (NHL, next section), which is joined by the card's two club names.
 
 Observed (Rule 73: date, method, conditions). 2026-11-11, EFL Trophy, kickoff 19:00Z, two games, read from the deployed relay by
 field-laboratory's `live-shape-capture` workflow into `outbox/live-capture-efltrophy-2026-11-11-{1918Z,1954Z,2059Z,2121Z}.json`
@@ -1043,6 +1045,45 @@ names ESPN uses for them; the relay sets `isHalftime` only for `STATUS_HALFTIME`
 `situation.isHalftime` (a new state word, a score as a string, `situation` as another type) is made together with
 `src/LiveFeed.fs` and `scripts/live-score-probe.mjs` in field-laboratory, relay first; the laboratory's
 `scripts/check-live-probe-keys.mjs` (on that branch until it lands) holds its two decoders to each other on a battery of bodies and on every committed capture.
+
+---
+
+## GET /v2/games?sport=<nba|wnba|nhl|mlb|nfl|cfb|afl> — the other boards (field-laboratory's live scores, written 2026-11-22)
+
+Producers (`src/index.js`, read 2026-11-22): `nba`, `wnba` and `afl` (ESPN sport `australian-football`) are `adaptESPNBasketball(ev, sportKey)`; `nfl` and `cfb` are
+`adaptESPNFootball`; `mlb` is `adaptESPNMLB`; `nhl` is `adaptNhle` (api-web.nhle.com). Consumer: field-laboratory (`src/LiveFeed.fs` `feedGameDecoder`, `readingFor`,
+`liveClockText`; `scripts/live-score-probe.mjs`, which keeps its own JS copy). Its CC-CMD is `docs/CC-CMD-2026-11-11-live-scores-other-sports.md` (field-laboratory). Pull only,
+as the soccer board: the page asks once a minute per key while a card is inside its window and the tab is visible. The window is the sport's: NBA, WNBA, NHL and AFL 3.5 h after the
+start, NFL 4 h, MLB and CFB 4.5 h (soccer 3 h); the laboratory chose them (not measured); a game outrunning one reads `live updates stopped` on the card.
+
+```
+200 { sport, date, games: FieldGame[], ... }     the same envelope as the soccer board
+
+What the laboratory reads of a FieldGame beyond the soccer board's keys (`state`, `home.score`, `away.score`, `clock`, `situation.isHalftime` as there):
+  espnEventId   a STRING for nba, wnba, afl, nfl, cfb and mlb. ABSENT on nhl: its id is 'nhl:<nhleGameId>' and the archive row carries ESPN's id, so the two cannot be joined by id.
+                The laboratory joins an id-less game to a card by the card's two club names (home to home, away to away), which is a stand-in for a field the relay does not serve:
+                `docs/CC-CMD-2026-11-22-nhl-feed-espn-event-id.md`.
+  home.name, away.name   strings; read for the NHL join.
+  state         'pre' | 'live' | 'final' | 'post'. A finished game is 'final' for nba, nhl and soccer and 'post' for wnba, afl, mlb, nfl and cfb, and the relay has not chosen one
+                word (`docs/CC-CMD-2026-10-24-v2-final-word.md`): the laboratory reads both as over. Anything else is a state the laboratory does not read.
+  periodLabel   verbatim, one string: nba/wnba/afl 'Q<n>' while live (overtime 'OT', 'OT2'...), 'F' when over, 'NS' before; nfl/cfb 'Q<n>' while live, 'F' when over, '' before;
+                nhl 'P<n>' (or the period type when not regulation) while live, '' before; mlb 'T<n>' (top) or 'B<n>' (bottom) of inning n, 'F', 'NS'.
+  clock         verbatim: nba 'M:SS' and 'SS.t' under a minute; nhl 'MM:SS' (the adapter's timeRemaining); nfl/cfb 'M:SS'; mlb's clock is not read (its note is the inning alone).
+```
+
+The card's note is the period and the clock (`Q2 6:17`, `P2 10:11`), the inning for MLB (`Top 5`), and `Game over` once the feed says the game is over (soccer says `Full time`).
+
+Observed (Rule 73: date, method, conditions), all through field-laboratory's `live-shape-capture` workflow into its `outbox/live-capture-<sport>-<date>-<HHMM>Z.json` (`v2.body`):
+NBA and NHL, 2026-11-12 01:00Z and 02:00Z (10 NBA games live: `Q2` to `Q4`; NHL `P1`, `P2`, no `espnEventId`); NFL, 2026-11-22 18:34:29Z (7 games live: `Q1`, `Q2`, `clock` `3:45`,
+`2:00`, `15:00`, `espnEventId` a string, `situation` `{ down, distance, yardLine, possession, isRedZone }`, no `isHalftime`; the capture joined 11 of 11 games to archive rows by id);
+NHL, 2026-11-22 18:34:16Z (`nhl:2026020373`, `P1`, `02:57`, no `espnEventId`); and a finished CFB game of 2026-11-21 read through the relay on 2026-11-22 (`state` `post`, `periodLabel`
+`F`, `clock` `0:00`; field-laboratory `outbox/relay-cfb-post-body-2026-11-22.md`).
+NOT observed: any MLB, WNBA or AFL game; a finished NBA or NHL game; a football halftime or end-of-quarter break (the adapter reads only `STATUS_IN_PROGRESS` as live, so an ESPN status
+that is not in progress would be served `pre`; not read from a body); a baseball delay (same adapter rule); a body with `staleSeconds` (field-laboratory
+`docs/CC-CMD-2026-11-22-live-feed-failover-staleness.md`).
+
+**The laboratory's copy must be synced** (ATOMIC-A), relay first, as for the soccer board: a change to any key above, to the state words, or to which sports carry an `espnEventId`.
+
 
 ---
 
