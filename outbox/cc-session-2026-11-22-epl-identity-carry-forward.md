@@ -37,7 +37,7 @@ The laboratory check's first run on LIVE routes is the drift sentinel's. Unblock
 
 ## Integration state (Rule 65)
 
-Relay contract: `GET /identity/mismatches?date=&sports=` (gated), report gains `key_resolved`, `key_unchecked` (numbers) and per-entry `corroborated` (true, false, null); `key_substituted` is now the uncorroborated count and, for each distinct sport requested, the three add up to its old value (a sport named twice has one entry). `key_unchecked` is 0 today. Consumers: none outside this repo (searched the other three). Status: BUILT, proven locally; deployed reading STAGED.
+Relay contract: `GET /identity/mismatches?date=&sports=` (gated), report gains `key_resolved`, `key_unchecked` (numbers) and per-entry `corroborated` (true, false, null); `key_substituted` is now the uncorroborated count and, for each distinct sport requested, the three add up to its old value (a sport named twice has one entry). `key_unchecked` is 0 today. Consumers: none outside this repo (searched the other three). Status: BUILT and merged, proven locally. NOT DEPLOYED: the relay's `deploy.yml` failed on run 45044427433 at the absence-collapse ratchet (`field-relay-nba flagged [|| ''] 57 > baseline 56`, new site `scripts/bsd-next-goal-probe.mjs`, from another session's commit `79d9dfc8`; the last green deploy was 2026-11-21, `a6b9f866`). I did not touch that file and told its session. Unblock: once the ratchet is resolved, dispatch `deploy.yml` on main (a change under `scripts/` does not trigger one). Deployed reading STAGED behind that.
 
 ## Independent review before the push (40 agents, 18 findings, 7 confirmed by both skeptics)
 
