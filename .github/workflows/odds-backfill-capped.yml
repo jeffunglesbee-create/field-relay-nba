@@ -4,8 +4,10 @@ name: Odds backfill (spend-capped, one sport)
 # GET /archive/odds-backfill is gated (FIELD_MCP_SECRET), WRITES opening_odds where it is NULL, and every call is a billed
 # historical vendor fetch at 30 credits per sport-date. Dispatch-only, and the cap is in scripts/run-odds-backfill-capped.mjs, not in
 # this file: the owner's credit number is a required input and the run refuses to cost more; a date is attempted once (a result
-# file in outbox/ makes a repeat refuse); at most nine sport-dates; one sport; one attempt per date; the first failure ends the run;
-# a call that spends credits and writes nothing ends it too.
+# file in outbox/ makes a repeat refuse, and it is written BEFORE the request); at most nine sport-dates; one sport; one attempt per
+# date; the first failure ends the run; a call that spends credits and writes nothing ends it too. A PREFLIGHT runs first: a relay
+# that has not deployed ?sport= would fetch every sport on the date, so the run is refused unless the relay answers 400 to an
+# unknown label (the preflight names a date with no rows and costs nothing on either relay).
 on:
   workflow_dispatch:
     inputs:
@@ -13,12 +15,17 @@ on:
         description: 'Up to 9 dates, YYYY-MM-DD, comma-separated, none twice. Each is 30 credits for the sport.'
         required: true
       sport:
-        description: 'One sport, as the archive labels it'
+        description: 'One sport, as the archive labels it (letters, digits and spaces; no list)'
         required: false
         default: 'EPL'
       approved_credits:
         description: 'The number of credits the owner approved, a whole number. The run refuses if dates x 30 is more.'
         required: true
+      preflight_only:
+        description: 'Check ONLY that the deployed relay honours ?sport= (no billed request, no file). Needs the same inputs.'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -30,7 +37,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 25   # nine calls, each bounded at 120 s by the script; the first failure ends the run
     steps:
       # `ref: main`, so a dispatch that queued behind another one reads the result files the first one committed: the script
       # refuses a date that already has one. Every step runs on attempt 1 only: "Re-run jobs" repeats the same inputs on the same
@@ -46,6 +53,7 @@ jobs:
           BACKFILL_DATES: ${{ inputs.dates }}
           BACKFILL_SPORT: ${{ inputs.sport }}
           APPROVED_CREDITS: ${{ inputs.approved_credits }}
+          PREFLIGHT_ONLY: ${{ inputs.preflight_only && '1' || '' }}
           FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
         run: node scripts/run-odds-backfill-capped.mjs
 
@@ -55,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: odds-backfill-results
-          path: outbox/odds-backfill-*.json
+          path: outbox/odds-backfill-*-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*Z.json   # this runner's files only: other tools' outbox/odds-backfill-*.json are tracked
           if-no-files-found: ignore
           retention-days: 30
 
@@ -64,7 +72,7 @@ jobs:
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
-          git add outbox/odds-backfill-*.json || { echo "no result"; exit 0; }
+          git add outbox/odds-backfill-*-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*Z.json || { echo "no result"; exit 0; }
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "outbox: odds backfill results"
           LOG=/tmp/push.log; : > "$LOG"
