@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-22 (21:50Z) — nine EPL rows left unpriced by the `C Palace` defect are priced; the deploy was red twice from this session's own commits and is fixed
+
+**HEAD:** `83c1e6c` (CI result files) → this close-out is the next commit. `src/index.js` changed (`/archive/odds-backfill` takes `?sport=`); none of the CFL experiment's functions (VOID window to 2026-11-23).
+**Session doc:** outbox/cc-session-2026-11-22-epl-rows-left-unpriced.md (task: the owner's "Backfill approved", then "Go with Claude's best recommendations and state what they are")
+
+- **Done condition met:** `SELECT COUNT(*) FROM regular_season_games WHERE sport = 'EPL' AND opening_odds IS NULL AND date >= '2026-07-01'` was 9 before the dispatch and is **0** after it. One capped run (`odds-backfill-capped.yml`, run `45072843545`, nine dates, `approved_credits` 270): nine clean answers, each 1 game found and 1 priced. The provider's `quota_remaining` fell by exactly 30 between consecutive calls, eight times (the first call's debit is not measured). Each row: draftkings, `captured_at` 11:55Z on its own date, before kickoff. Undo is in `change_log` (nine `old_value NULL` rows).
+- **How to run it again:** the filter is live (`?sport=EPL`), the runner preflights the relay before any billed call (`preflight_only=true` is the free check), a date is attempted once (its result file in `outbox/` is the ledger and is written before the request), the first failure ends the run. Do not re-run run `45072843545`.
+- **This session broke the deploy twice and fixed it:** run `45063685118` red at "the unauthenticated odds routes spend under their own labels" (the label-split mutation anchors moved; the vendor-host scope list lacked the new check), run `45068719768` red at "the odds quota gate distinguishes null from zero" (its anchor is the backfill loop's destructuring, which gained `guarded`), step 77 of 127, so 50 steps behind it did not run. Fixed by `c9fc09b` and `09b0074`; run `45071271664` is green (dispatched by hand: a script-only push is outside `deploy.yml`'s path filter). My local sweep missed the second because it matched only multi-line `run: |` steps; the whole job was then run locally from a YAML parse (125 of 125, three KV bootstrap steps need a token).
+- **An independent review (29 agents) found 19 real defects in the first version and 6 non-defects**; the biggest was that the workflow could be dispatched against a relay that did not yet honour `?sport=` and would have fetched every sport on the date. All fixed; the CC-CMD lists them.
+- **Repo guards is red from one step, not this session's:** run `45071139176` fails only at step 45 "every BSD frame the contract declares matches the captures"; this session's step 30 and every odds step pass. The "unauthenticated odds routes" red the BSD session noted at `e58f052` was this session's and is fixed.
+- **Filed, not started:** `docs/CC-CMD-2026-11-22-epl-june-seed-rows-unpriced.md`: 20 EPL rows seeded together on 2026-06-15 (no `start_time`, never finalized) have no odds; 150 credits for five dates, the owner decides. It also records 12 priced EPL rows with no draw price, not examined.
+- **Left alone:** stale `Wolves` / `West Ham` aliases in `jubilant-bassoon` `src/legacy/field.js:20277`; relay secret rotation (owner-gated); NFL R2 caller removal (11-24); the Saturday probe read (11-29, `trig_01G11kB3mfykDMeQABCQpUAp`).
+
 ## SESSION CLOSE-OUT — 2026-11-22 (20:40Z) — BSD next-goal ledger census: 370 of 1,746 published calls are gradeable against FIELD's own goal timelines
 
 **HEAD:** `be873ae` → `5b34600` · **Branch:** main · this close-out is the next commit. No `src/` change; none of the CFL experiment's functions (VOID window to 2026-11-23).

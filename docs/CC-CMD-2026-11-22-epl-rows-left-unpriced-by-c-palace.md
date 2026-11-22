@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (data repair, billed)
-**Status:** IN PROGRESS 2026-11-22. Task 0 done (results below). The owner said "Backfill approved" with no credit number; Task 1 says not to proceed on an inferred yes, so the number is asked for (270 recommended) before the one billed dispatch. Built and gated: the `?sport=` filter and the capped runner, hardened after an independent review (below); nothing has been spent. Remaining: the deploy of the hardened relay, the free preflight-only dispatch, the owner's number, one billed dispatch, the done-condition query, the manifest.
+**Status:** DONE 2026-11-22. The owner approved ("Backfill approved", then "Go with Claude's best recommendations and state what they are", the stated number being 270 credits); one capped dispatch (run `45072843545`) priced all nine rows; the done-condition query returns 0. Session doc: `outbox/cc-session-2026-11-22-epl-rows-left-unpriced.md`.
 **Filed from:** `docs/CC-CMD-2026-09-11-epl-identity-resolve.md` (DONE 2026-11-22). That CC-CMD's scope was "two defects, both measured. Do not extend", so this finding is its own document (Rule 87.4), not a carry-forward.
 
 ## What was measured, 2026-11-22 (read-only SELECTs of `field-archive`; no credit spent)
@@ -82,3 +82,12 @@ One date at a time, in date order, through a spend-capped runner step with the s
 ## Task 3 — outbox manifest (last task)
 
 `outbox/cc-session-<date>-epl-rows-left-unpriced.md`: the Task 0 numbers with sources, the owner's decision verbatim, the calls made and their cost as the ledger recorded them, and the done-condition query output.
+
+## Results, 2026-11-22
+
+- **Done condition:** `SELECT COUNT(*) FROM regular_season_games WHERE sport = 'EPL' AND opening_odds IS NULL AND date >= '2026-07-01'` returned `9` at 21:34Z before the dispatch and `0` after it (read-only, `field-archive`). Met.
+- **Task 1:** the owner's words are quoted in the Status line; the number was the one this CC-CMD recommended, 270 (nine sport-dates at 30).
+- **Task 2:** run `45072843545`, nine dates in the planned order (the eight `C Palace` dates, Arsenal v Coventry last): nine answers, each `games_found 1`, `odds_populated 1`, no guard refusal, no stop. The Coventry date populated like the rest, so the hedge of running it last was not needed. `quota_remaining` fell by exactly 30 between consecutive calls, eight times; the first call's debit is not measured (no reading before it).
+- **What was written:** `source draftkings`, `captured_at` 11:55Z on each row's own date, before each kickoff; the nine values are in the session doc. Undo: `change_log` holds the nine `old_value NULL` rows.
+- **Task 3:** `outbox/cc-session-2026-11-22-epl-rows-left-unpriced.md` (commit hashes, deploy and dispatch run ids, the query and its output, the spend as measured and as estimated, the residuals).
+- **Residual, filed as its own CC-CMD (Rule 87.4):** twenty unpriced EPL rows dated 2026-05-09 to 2026-05-24 are a different state (no `start_time`, never finalized): `docs/CC-CMD-2026-11-22-epl-june-seed-rows-unpriced.md`.
