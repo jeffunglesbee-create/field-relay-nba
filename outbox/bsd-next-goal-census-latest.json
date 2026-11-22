@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-22T20:04:47.394Z",
+  "ts": "2026-11-22T20:18:55.286Z",
   "base": "https://sports.bzzoiro.com",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "tokenPresent": true,
@@ -16,57 +16,57 @@
     {
       "key": "count_first",
       "status": 200,
-      "ms": 924
+      "ms": 3986
     },
     {
       "key": "page_0",
       "status": 200,
-      "ms": 951
+      "ms": 1074
     },
     {
       "key": "page_1",
       "status": 200,
-      "ms": 1055
+      "ms": 747
     },
     {
       "key": "page_2",
       "status": 200,
-      "ms": 823
+      "ms": 797
     },
     {
       "key": "page_3",
       "status": 200,
-      "ms": 520
+      "ms": 578
     },
     {
       "key": "page_4",
       "status": 200,
-      "ms": 635
+      "ms": 1029
     },
     {
       "key": "page_5",
       "status": 200,
-      "ms": 510
+      "ms": 567
     },
     {
       "key": "page_6",
       "status": 200,
-      "ms": 559
+      "ms": 795
     },
     {
       "key": "page_7",
       "status": 200,
-      "ms": 411
+      "ms": 919
     },
     {
       "key": "page_8",
       "status": 200,
-      "ms": 403
+      "ms": 503
     },
     {
       "key": "count_last",
       "status": 200,
-      "ms": 160
+      "ms": 154
     }
   ],
   "analysis": {
@@ -136,9 +136,12 @@
     "captures": {
       "ofLedgerEvents": 246,
       "fullTime": 12,
-      "clock": {
-        "live-marker": 234,
+      "state": {
+        "in-play": 234,
         "full-time": 12
+      },
+      "liveRowMinute": {
+        "90": 234
       },
       "periodTexts": {
         "Second half/true": 234,
@@ -166,6 +169,10 @@
       "coveredByCapture": 370,
       "gradeable": 370,
       "distinctEventsGradeable": 236,
+      "gradeableBy": {
+        "a goal within 1 minute": 354,
+        "full time": 16
+      },
       "gradeableByOutcome": {
         "hit": 280,
         "miss": 90
@@ -187,12 +194,25 @@
         "2026-09": 97,
         "2026-08": 50
       },
+      "goalDistanceByCaptureState": {
+        "in-play": {
+          "0": 354
+        },
+        "full-time": {
+          "0": 16
+        }
+      },
+      "gradeableIfToleranceWere": {
+        "0": 370,
+        "1": 370,
+        "2": 370
+      },
       "notGradeableBecause": {
         "no incidents.json in R2 for the event": 1260,
         "no resolved_minute": 97,
         "outcome is nogoal": 19
       },
-      "note": "gradeable = outcome hit or miss, a resolved_minute, an incidents.json that was read and covers the call (full time seen, or its clock has reached resolved_minute). It says nothing about whether the vendor was right."
+      "note": "gradeable = outcome hit or miss, a resolved_minute, an incidents.json that was read and either saw full time or holds a goal within 1 minute of resolved_minute. A period row's minute is not a clock. It says nothing about whether the vendor was right."
     },
     "coverageLine": "ledger: 1746 unique calls (COMPLETE, reported 1746 then 1746, 9 pages, 0 duplicates) | R2: 2857 keys, 1355 events with incidents.json (COMPLETE) | reads: 246 parsed of 246 attempted | calls: 370 gradeable of 1746 (391 in a tracked league, 390 with an incidents.json, 16 with a full-time capture) | BSD calls 11/16"
   }
