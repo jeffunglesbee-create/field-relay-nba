@@ -439,7 +439,9 @@ export function fieldLeagueIdsFromSource(file = 'src/index.js') {
 
 async function main() {
   const BASE = process.env.BSD_BASE || 'https://sports.bzzoiro.com';
-  const TOKEN = process.env.BSD_API_TOKEN || '';
+  // No fallback: an unset variable and an empty one both mean "no token", and `!TOKEN` already says so.
+  // (The absence-collapse ratchet counts `|| ''` as a collapse of absent into empty.)
+  const TOKEN = process.env.BSD_API_TOKEN;
   const TS = new Date().toISOString();
   const CALL_BUDGET = Number(process.env.CALL_BUDGET || 24);
   const d90 = new Date(Date.parse(TS) - VENDOR_CLAIMS.windowDays * 86400000).toISOString().slice(0, 10);
