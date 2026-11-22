@@ -1,5 +1,22 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-22 (19:10Z) — BSD Next to Score measured on a live slate: the relay's token passes the gate, ids join, filters honoured
+
+**HEAD:** `85127fb` → `7668eec` · **Branch:** main · this close-out is the next commit. No `src/` change; none of the CFL experiment's functions (VOID window 2026-11-08..11-23).
+**Session doc:** outbox/cc-session-2026-11-22-bsd-next-goal-probe.md (task: the owner's "what can we do with the next goal section", then "probe, commit to main")
+
+- **Measured, run 45056731513 (18 requests, artifact commit `7668eec`):** `/api/v2/next-goal/` and `/calls/` answer 200 to the relay's token; `event.id` is the `events/live` id (16 of 16, names and home team ids agree);
+  16 of 17 in-play matches at minute 10+ had a read; `league_id` and `calls_only` are honoured; the ledger's counts sum to its window (1,533 calls since 2026-08-24) and hit/(hit+miss) is 73.43% against the vendor's 73.6%.
+  Only 2 of the 16 reads were in leagues FIELD tracks. One instant, no EPL/MLS/UEFA on the slate. Details and the limits: `docs/CC-CMD-2026-11-22-bsd-next-goal-probe.md`, Result.
+- **Broke the deploy for about 20 minutes, fixed:** `79d9dfc` (pushed about 16:22Z) carried `process.env.BSD_API_TOKEN || ''`, which the absence-collapse ratchet counts as a new site (57 over 56); Deploy RELAY Worker failed at that step
+  (run 45044427433). Fixed in `a21677c` (16:41Z) by removing the fallback; the other session dispatched Deploy RELAY Worker at 16:42Z (run 45045304015, success).
+  The ratchet is not a `check-*.mjs`; run `bash scripts/absence-collapse-ratchet.sh` before pushing any new script.
+- **Repo guards is still red, from a different step, not this session's:** `check-bsd-frame-contract.mjs` ends `INSUFFICIENT: 0 read(s) failed, reads capped` because its census of the relay's R2 captures reached its `READ_CAP`
+  of 2500 (2,845 keys, 1,250 events read). It passed at `483d0e7` (15:23Z) and has failed on every run since the capture count grew past the cap (runs 45045210366, 45046157321, 45056058505). Not touched here (Rule 69): the cap is that
+  guard's own number and raising it is the owner of that guard's call.
+- **Reviewed before the run:** three adversarial reviews; the first version counted finished matches as matches in play; 135 of 169 reviewer mutations survived the first checks. Rebuilt: 19 scenarios / 241 assertions, 22 / 102 against a stub vendor, 265 mutations all caught.
+- **Open:** the owner rulings the CC-CMD lists; the lab proof grading `/calls/` against FIELD's own goal timelines (opens with a census of ledger calls in captured leagues) is a new CC-CMD when chosen. Another session's EPL identity commit waited on the red deploy; its dispatch is that session's call.
+
 ## SESSION CLOSE-OUT — 2026-11-21 (13:40Z) — golf rounds: tee times from linescores, today/thru from the current round
 
 **HEAD:** `b9eeb46` → `4943d43` · **Branch:** main · this close-out is the next commit. Two `src/` commits (`3cbe458`, `4943d43`); none of the CFL experiment's functions (VOID window 2026-11-08..11-23).

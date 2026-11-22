@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba executes it (the BSD token is a relay secret and the container cannot reach the vendor host); the artifact is read by field-laboratory and jubilant-bassoon sessions
 **Filed:** 2026-11-22, by CC, from the owner's question "what can we do with the next goal section?" and the order "probe, commit to main"
 **Type:** A (probe) — **no feature ships from this document.** One artifact, one run, nothing under `src/`.
-**Status:** FILED 2026-11-22. Task 1 built (see Result: build). Task 2 (the live run) not yet dispatched.
+**Status:** DONE 2026-11-22. Task 1 built and reviewed; Task 2 run once on a live slate (run 45056731513, artifact commit `7668eec`): the gate is OPEN for the relay's token, `event.id` is the `events/live` id, both filters are honoured, and the vendor's 73.6% reproduces within 0.2 points. Result below. Session doc: `outbox/cc-session-2026-11-22-bsd-next-goal-probe.md`.
 
 ---
 
@@ -138,4 +138,42 @@ and licence v4.0 §4 against the relay's existing `/bsd/*` passthrough and a new
 
 ## Result
 
-*(build, 2026-11-22: see Task 1; the live run is recorded below when it lands.)*
+**Task 2, 2026-11-22T18:44Z, run 45056731513** (workflow `bsd-next-goal-probe.yml` at `1c33fe9`, artifacts `outbox/bsd-next-goal-probe-2026-11-22T18-44-06-676Z.json`
+and `-latest.json`, committed by the run as `7668eec`). The relay's `BSD_API_TOKEN`, 18 requests of a cap of 24, `stopped` null, `analysisError` null,
+`reachedTarget` true. Every step of the run was green, including the mutation harness on the runner. Coverage line, verbatim:
+
+> next-goal list: 16 rows (gate OPEN 200) | events/live: 18 rows, 17 in play, 17 at minute 10+ (16 with a read, 1 without) | leagues with reads: 12 | ledger: 1533 calls since 2026-08-24, 200 page rows, 5 of 5 outcome counts | calls 18/24
+
+| # | premise | result |
+|---|---|---|
+| P1 | the relay's token passes the gate | **Holds.** `/next-goal/` and `/next-goal/calls/` both answered 200. No `RateLimit` or `Retry-After` header on any of the 18 responses (0 of 18). |
+| P2 | `event.id` is the `events/live` id | **Holds.** 16 of 16 next-goal ids are in `events/live`, 16 team-name pairs agree, 16 home team ids agree, ids are numbers. |
+| P3 | reads cover in-play matches without `websocket_plus`, and FIELD's leagues | **Mostly.** 16 of 17 in-play matches at minute 10+ had a read. The one without (Taça de Portugal, league 92, first half, minute 15+, `websocket_plus` false) answered `available:false, reason:"too_early"` on its own call, so `too_early` is not only a minute-under-10 state. 2 of the 3 non-`websocket_plus` matches at minute 10+ had reads, so a read does not need that tier. 12 leagues had reads; **2 of 16 rows are in a league FIELD tracks** (La Liga, Serie A; FIELD's BSD ids are 1, 3, 4, 5, 6, 7, 8, 12, 18) and 14 are in leagues it does not (Pro League, Superliga, Stoiximan Super League, Liga F, Segunda División, Eliteserien, Czech First League, Nike liga, and others). |
+| P4 | `league_id` and `calls_only` are honoured | **Both honoured.** `calls_only`: 1 row of 16 (the one call). `league_id=14`: 2 rows, all in league 14; control `league_id=100109`: 0 rows. |
+| P5 | the ledger is readable and the vendor's 73.6% of 1,508 reproduces | **Readable, and it reproduces.** 1,533 calls since 2026-08-24; hit 1,125, miss 407, open 1, nogoal 0, unclear 0; the five counts sum to the window (partition holds). Accuracy 1,125 / 1,532 = **73.43%**, 0.17 points under the vendor's 73.6%, and 24 calls over its 1,508 (a crawl of unknown date). `nogoal` and `unclear` are 0 in the window, so all three readings of "graded" give the same number and **this run cannot say which the vendor uses**. |
+
+Found that the vendor page did not say or got differently (Rule 72, each measured in this one run):
+
+- `leader` takes the value `none` (5 of 16 rows), not only `home` and `away`. `call_threshold` is 0.7 on all 16 rows (the page's example shows 0.6). `call_paused` was false on all 16.
+- `track_record` is `{"accuracy": 71.3, "base_rate": 56.9, "brier_skill_score": null, "matches_evaluated": 4479}`: accuracy and base rate are on a percent scale, the Brier skill is null, and the match count is 4,479 (the docs example shows 0.72, 0.51, 0.21 and 3,300).
+- `probabilities` sum to 1 on 16 of 16 rows within 0.011, `no_goal` is never null, all values are fractions; `is_call` agrees with `confidence >= call_threshold` on 16 of 16; `momentum_5m` ranges -37.8 to 50.8 and `momentum_15m` -24.9 to 34.2 (units not stated by the vendor).
+- `generated_at` is 0.3 to 1.3 seconds ahead of the runner's clock at the first call, so a read is stamped when it is served.
+- The ledger is newest-first: 1,744 calls in all, the oldest dated 2026-08-05T21:49:14Z; each row carries `called_at`, `resolved_at`, `resolved_minute`, `side`, `probability` (0.70 to 0.937 on the latest 200) and `score_at_call`. On the latest 200 (2026-11-12 to 2026-11-22) 136 hit, 63 missed, 1 open, and 149 were home calls.
+- `available:false` for a finished match answers `reason:"not_live"`, as documented. A single-match answer carries the same keys as a list row plus `available`.
+
+**What this run does not say** (Rule 73): it is one instant on a Sunday-evening Europe slate (no EPL, MLS or UEFA match among the 17), 16 reads, so league coverage is that slate's and not the product's;
+it does not test "beats the live market" (no next-goal price exists) and says nothing about whether a call was published before the goal beyond the vendor's own `called_at`; the accuracy is the vendor's ledger
+recomputed from its counts, not FIELD's grading; the plan the token is on is inferred from the 200, not read from the account. One verbatim row per endpoint is stored in the artifact as shape evidence and the repository is public:
+flagged for human review under Rule 45 (the licence's §2 permits storage and display in one's own applications; whether a sample row in a public repository is "display" is not decided here).
+
+## Done conditions, as probed
+
+Done condition 1: the three checks and the harness pass (see Task 1). Done condition 2: `outbox/bsd-next-goal-probe-latest.json` exists; `callsMade` 18 (at most 24); `reachedTarget` true;
+`analysisError` null; `analysis.gate.verdict` OPEN; `analysis.shape.verdict` ANSWERED (16 rows). The coverage line is quoted above.
+
+## What the result decides next
+
+The premises that gated every surface are answered, so the next CC-CMDs can be written against numbers. Unblocked on the data side: a laboratory proof that grades `/calls/` (its event ids are the `events/live` ids, the space FIELD's `bsdEventId` comes from; that they also key FIELD's R2 captures is not yet
+measured; it has `called_at` and `resolved_at`, 1,533 calls in 90 days, readable by the relay's token on a runner) against FIELD's own goal timelines; its first task is a census of how many of the ledger's calls fall in leagues
+FIELD captures (2 of 16 live reads did) and how many of those captures saw full time. Still gated by owner rulings and the 2026-11-24 relay `src` date, and not touched here: a relay pull route, a lab card line,
+anything pushed or shown. The rulings listed above stand.
