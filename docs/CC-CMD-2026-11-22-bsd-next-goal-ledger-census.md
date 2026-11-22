@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba executes it (the BSD token is a relay secret; the container cannot reach the vendor host); the artifact is read by field-laboratory sessions
 **Filed:** 2026-11-22, by CC, from the owner's reply `Census` to the offer in the probe's result ("a laboratory proof that grades `/calls/` ... its first task is a census")
 **Type:** A (probe) — **counts only.** No feature ships from this document, nothing under `src/`, no verdict about the vendor.
-**Status:** OPEN 2026-11-22. Task 1 built (checks and harness listed under Task 1); Task 2 (the dispatch) and Task 3 (the record) not yet done.
+**Status:** OPEN 2026-11-22. Task 1 built twice (the first coverage rule was refuted by its own first run, see "The first run"; the checks and harness listed under Task 1 are for the second). Task 2 (the dispatch of the second version) and Task 3 (the record) not yet done.
 
 Builds on `docs/CC-CMD-2026-11-22-bsd-next-goal-probe.md` (DONE; BUILD-ON-A). That document's result is the premise here, not repeated: the
 relay's token passes the gate, `event.id` on a call is the id `events/live` uses, and the ledger (`GET /api/v2/next-goal/calls/`, newest-first,
@@ -30,7 +30,8 @@ right (that is the proof, a separate document, below).
 | C1 | the ledger can be read in full | fewer unique rows than the count the vendor reports at the start of the run, or a closing count that has moved the other way | `analysis.ledger` (`COMPLETE` or `PARTIAL`, reported count first and last, duplicates) |
 | C2 | FIELD's R2 can be listed in full through the relay's public routes | a truncated page with no cursor, a page that answers a different prefix, a failed page | `analysis.r2` (`COMPLETE` or `PARTIAL`, the reason) |
 | C3 | a ledger `event.id` is the id in an R2 key `bsd/{slug}/{id}/...` | no ledger event in a league FIELD tracks has a key (which would be either no capture or a different id space, and the census cannot tell the two apart: it reports the count of tracked events without a key and says so) | `analysis.calls.trackedLeagueWithoutIncidentsKey`, `distinctTrackedEventsWithoutKey` |
-| C4 | an `incidents.json` says whether the match was seen to full time, and how far its clock got | a capture with no parseable period or minute rows | `analysis.captures` (full-time rows, clock kinds `full-time`, `live-marker`, `lower-bound`, `none`) |
+| C4 | an `incidents.json` holds the goal that resolved a call, or saw full time (so holds every goal) | a call with a readable capture whose nearest goal is far from `resolved_minute` (`resolved_minute` is not a goal minute), or an in-play capture with no goal near it | `analysis.calls.goalDistanceByCaptureState` (nearest goal to `resolved_minute`, by capture state), `analysis.captures.state` |
+| ~~C4a~~ | ~~a live `period` row's `minute` is the capture's clock~~ — **refuted**, see "The first run". It is tallied (`analysis.captures.liveRowMinute`), never used. | | |
 
 Not answered by this run, each named so it is not mistaken for answered: whether a call was right; whether the vendor published the call before the
 goal (`called_at` is the vendor's own stamp); whether the captures' clocks are accurate; the BSD licence v4.0 §4 question (Rule 45, human review —
@@ -44,8 +45,10 @@ A call is **gradeable** when all of these hold:
 2. it has a numeric `resolved_minute`;
 3. R2 holds `bsd/{slug}/{event.id}/incidents.json` for that event;
 4. that file was read and parses into goal and period rows;
-5. the capture **covers** the call: it saw full time (a `period` row whose text starts `FT`, `AET`, `AP` or `PEN` with `is_live` false), **or** its
-   clock reached the call's `resolved_minute`. A live `period` row's minute is the clock; absent one, the latest incident minute is a lower bound.
+5. the capture **covers** the call: it saw full time (a `period` row whose text starts `FT`, `AET`, `AP` or `PEN` with `is_live` false, so its goal list
+   is complete), **or** it holds a goal within 1 minute of the call's `resolved_minute` (`WITNESS_TOLERANCE`, one clock rounding; the resolving goal itself,
+   which the cumulative list cannot hold unless it was taken after the goal). **No `period` row's minute is read as a clock.** The count at tolerance 0, 1
+   and 2 is printed beside the headline (`gradeableIfToleranceWere`) so the choice of 1 can be seen to matter or not.
 
 Every call that is not gradeable is counted under exactly one reason (`analysis.calls.notGradeableBecause`), in the order above. The verdict is
 `ANSWERED` only when the ledger is complete, the R2 listing is complete, no read was left out by the read cap, and no read was blocked by the
@@ -65,14 +68,28 @@ and never call BSD, so the reads (up to `READ_CAP`, default 1,500, six at a time
 feed, so there is one dispatch.
 
 **Done condition 1 (Rule 89, artifacts):**
-`node scripts/check-bsd-next-goal-census.mjs` prints `scenarios 9, assertions 81, failed 0` (and `--self-test` prints `OK: check self-test`);
+`node scripts/check-bsd-next-goal-census.mjs` prints `scenarios 10, assertions 96, failed 0` (and `--self-test` prints `OK: check self-test`);
 `node scripts/check-bsd-next-goal-census-run.mjs` prints `scenarios 15, assertions 62, failed 0`;
-`node scripts/mutate-bsd-next-goal-census.mjs` prints `mutations 175: caught 175 (census mutants: 116 by the analysis check, 50 by the run check), NOT CAUGHT 0, NOT APPLIED 0`;
+`node scripts/mutate-bsd-next-goal-census.mjs` prints `mutations 193: caught 193 (census mutants: 134 by the analysis check, 50 by the run check), NOT CAUGHT 0, NOT APPLIED 0`;
 `node scripts/workflow-yaml-check.mjs` prints `0 failing`; `bash scripts/absence-collapse-ratchet.sh` ends `ratchet OK`.
 The fixtures are synthetic and say nothing about the vendor or about FIELD's captures; the checks prove the counting and the spending, not the data.
 
 The mutation harness was written before the checks were trusted (Rule 90): its first full run left 25 mutants alive and one not applied, and the checks
 were extended until every one was killed or shown equivalent (one redundant guard and one vacuous clause were removed from the census).
+
+### The first run, and why its number is withdrawn
+
+The first version was dispatched at 2026-11-22T20:04Z (run 45064332238, artifact commit `6d06e7b`, 11 BSD requests of 16, every step green) and reported
+`370 gradeable of 1746`, **with 0 calls failing the coverage test** while 234 of its 246 readable captures were in play (`Second half/true`). A check on
+that zero: the rule read a live `period` row's `minute` as the capture's clock, and the committed real captures in field-laboratory (`data/bsd-flow-{finished,inplay}-
+incidents.json`) show period rows carry a nominal minute: HT 45 beside a 4-minute `injuryTime`, FT 90 for a match whose event row says `current_minute` 96, and a live
+`Second half` row saying 90 on a capture whose score (0-0) was behind the final (1-0). The rule could not fail, which is what the zero was. The premise ("a
+live row's minute is the clock") had been written into the script's header as fact from the shape of one example and never measured; the synthetic fixtures were
+built to agree with it, and 175 mutants and every check passed on it, because they tested the code against the premise, not the premise against the data.
+
+What survives from that run, because none of it depended on the clock: 1,746 unique calls (complete, reported 1,746 then 1,746, 0 duplicates); 2,857 R2 keys
+(complete) holding 1,355 events with an `incidents.json`; 391 calls in a tracked league, 390 of them with an `incidents.json` (1 without), none outside a tracked league
+with one; 12 of 246 readable captures saw full time, 16 calls sit on those. The 370 does not survive. The artifact stays in `outbox/` as the record of the withdrawn rule.
 
 ## Task 2 — dispatch and read the artifact
 
