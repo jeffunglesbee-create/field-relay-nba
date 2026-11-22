@@ -1069,6 +1069,9 @@ What the laboratory reads of a FieldGame beyond the soccer board's keys (`state`
   periodLabel   verbatim, one string: nba/wnba/afl 'Q<n>' while live (overtime 'OT', 'OT2'...), 'F' when over, 'NS' before; nfl/cfb 'Q<n>' while live, 'F' when over, '' before;
                 nhl 'P<n>' (or the period type when not regulation) while live, '' before; mlb 'T<n>' (top) or 'B<n>' (bottom) of inning n, 'F', 'NS'.
   clock         verbatim: nba 'M:SS' and 'SS.t' under a minute; nhl 'MM:SS' (the adapter's timeRemaining); nfl/cfb 'M:SS'; mlb's clock is not read (its note is the inning alone).
+  situation.isHalftime   boolean, nfl/cfb (from 2026-11-22): true exactly when ESPN's status name is STATUS_HALFTIME. A halftime and an end of quarter are 'live' (see below), and the
+                laboratory shows 'Half time' for the flag. Football situation objects now always carry the key (false while in play); a halftime game with no ESPN situation carries
+                { down: null, distance: null, yardLine: null, possession: null, isRedZone: false, isHalftime: true }.
 ```
 
 The card's note is the period and the clock (`Q2 6:17`, `P2 10:11`), the inning for MLB (`Top 5`), and `Game over` once the feed says the game is over (soccer says `Full time`).
@@ -1078,9 +1081,11 @@ NBA and NHL, 2026-11-12 01:00Z and 02:00Z (10 NBA games live: `Q2` to `Q4`; NHL 
 `2:00`, `15:00`, `espnEventId` a string, `situation` `{ down, distance, yardLine, possession, isRedZone }`, no `isHalftime`; the capture joined 11 of 11 games to archive rows by id);
 NHL, 2026-11-22 18:34:16Z (`nhl:2026020373`, `P1`, `02:57`, no `espnEventId`); and a finished CFB game of 2026-11-21 read through the relay on 2026-11-22 (`state` `post`, `periodLabel`
 `F`, `clock` `0:00`; field-laboratory `outbox/relay-cfb-post-body-2026-11-22.md`).
-NOT observed: any MLB, WNBA or AFL game; a finished NBA or NHL game; a football halftime or end-of-quarter break (the adapter reads only `STATUS_IN_PROGRESS` as live, so an ESPN status
-that is not in progress would be served `pre`; not read from a body); a baseball delay (same adapter rule); a body with `staleSeconds` (field-laboratory
-`docs/CC-CMD-2026-11-22-live-feed-failover-staleness.md`).
+FOOTBALL BREAKS, observed 2026-11-22 19:41:15Z (field-laboratory `outbox/live-capture-nfl-2026-11-22-1941Z.json`): three NFL games at halftime (ESPN's own summary for one read `Halftime`) were served
+`state` `pre` with `periodNum` 2, `periodLabel` `""`, `clock` `0:00` and scores, because the adapter read only `STATUS_IN_PROGRESS` as live; four others were `live` in Q2 and Q3. Fixed the same day:
+`docs/CC-CMD-2026-11-22-football-break-served-as-pre.md` (a break is `live`, read by name and by ESPN's `type.state` `in`, and `situation.isHalftime` is set).
+NOT observed: any MLB, WNBA or AFL game; a finished NBA or NHL game; a football halftime AFTER the fix (the done condition of that CC-CMD); a baseball delay or break (the MLB adapter still reads
+only `STATUS_IN_PROGRESS` as live; its status names for them are not read); a body with `staleSeconds` (field-laboratory `docs/CC-CMD-2026-11-22-live-feed-failover-staleness.md`).
 
 **The laboratory's copy must be synced** (ATOMIC-A), relay first, as for the soccer board: a change to any key above, to the state words, or to which sports carry an `espnEventId`.
 

@@ -1741,8 +1741,15 @@ function adaptESPNFootball(ev, sport) {
     const stt   = st.type?.name || '';
     const sit   = comp.situation || null;
 
-    const state = stt === 'STATUS_FINAL'       ? 'post'
-                : stt === 'STATUS_IN_PROGRESS' ? 'live'
+    // A break is a game being played. ESPN marks halftime (and the breaks between quarters) type.state 'in'
+    // under another status name, exactly as the basketball adapter reads it (adaptESPNBasketball, the NBA
+    // board's CC-CMD-2026-10-22). Read as 'pre', the NFL games of 2026-11-22 went back to 'pre' at the
+    // break with scores and periodNum 2 still served (laboratory capture 2026-11-22 19:41:15Z,
+    // outbox/live-capture-nfl-2026-11-22-1941Z.json, three games at halftime), and a consumer that reads
+    // 'pre' as 'not started' showed a started game as not started.
+    // docs/CC-CMD-2026-11-22-football-break-served-as-pre.md.
+    const state = stt === 'STATUS_FINAL'                                           ? 'post'
+                : stt === 'STATUS_IN_PROGRESS' || stt === 'STATUS_HALFTIME' || st.type?.state === 'in' ? 'live'
                 : 'pre';
 
     const periodNum   = st.period || 0;
@@ -1750,12 +1757,16 @@ function adaptESPNFootball(ev, sport) {
                       : state === 'live' ? `Q${periodNum}`
                       : '';
 
-    const situation = sit ? {
-        down:        sit.down ?? null,
-        distance:    sit.distance ?? null,
-        yardLine:    sit.yardLine ?? null,
-        possession:  sit.possession ?? null,
-        isRedZone:   sit.isRedZone ?? false,
+    // isHalftime: true exactly when ESPN's status name is STATUS_HALFTIME, as on the soccer board; the
+    // laboratory shows 'Half time' for it. It is carried even when ESPN sends no situation object.
+    const isHalftime = stt === 'STATUS_HALFTIME';
+    const situation = (sit || isHalftime) ? {
+        down:        sit?.down ?? null,
+        distance:    sit?.distance ?? null,
+        yardLine:    sit?.yardLine ?? null,
+        possession:  sit?.possession ?? null,
+        isRedZone:   sit?.isRedZone ?? false,
+        isHalftime,
     } : null;
 
     return {

@@ -13,6 +13,10 @@
 // against a stubbed ESPN. src/index.js imports @cloudflare/puppeteer, which
 // this repo's CI does not install, so a resolve hook stubs that one package.
 //
+// Since 2026-11-22 it also holds the FOOTBALL board's breaks (sport=nfl): a halftime or an end of
+// quarter is live, not pre (docs/CC-CMD-2026-11-22-football-break-served-as-pre.md; the real bodies
+// are the laboratory's capture of 2026-11-22 19:41:15Z, three NFL games at halftime served 'pre').
+//
 // Coverage, printed with the result (Rule 91): sport=nba on the ESPN branch,
 // breaks read by ESPN's type.state, WNBA's final word as the control for NBA's,
 // and the WC writer's guard: NBA and EPL finals are not handed to it, wc26 is
@@ -59,6 +63,26 @@ const NBA_EVENTS = [
   bball('401909858', 'STATUS_POSTPONED', 'post', 'Toronto Raptors', 'Brooklyn Nets'),
 ];
 const WNBA_EVENTS = [bball('401857070', 'STATUS_FINAL', 'post', 'Las Vegas Aces', 'Seattle Storm', { period: 4, hs: 88, as: 80 })];
+// ESPN's NFL scoreboard events, the fields adaptESPNFootball reads. Ids and names from the 2026-11-22
+// slate; the halftime situation object is the one ESPN sent (possession null at the break).
+const nfl = (id, name, state, home, away, extra = {}) => ({
+  id, date: `${DATE}T18:00Z`, week: { number: 12 },
+  competitions: [{ status: { period: extra.period ?? 0, displayClock: extra.clock ?? '0:00', type: { name, state } },
+    ...(extra.situation === undefined ? {} : { situation: extra.situation }),
+    competitors: [
+      { homeAway: 'home', score: String(extra.hs ?? 0), team: { displayName: home, abbreviation: home.slice(0, 3).toUpperCase() } },
+      { homeAway: 'away', score: String(extra.as ?? 0), team: { displayName: away, abbreviation: away.slice(0, 3).toUpperCase() } },
+    ] }],
+});
+const NFL_EVENTS = [
+  nfl('401873074', 'STATUS_SCHEDULED', 'pre', 'Los Angeles Chargers', 'New York Jets'),
+  nfl('401873070', 'STATUS_IN_PROGRESS', 'in', 'Buffalo Bills', 'Miami Dolphins', { period: 2, clock: '3:48', hs: 20, as: 3, situation: { down: -1, distance: 0, yardLine: 35, possession: '2', isRedZone: true } }),
+  nfl('401873071', 'STATUS_HALFTIME', 'in', 'Chicago Bears', 'New Orleans Saints', { period: 2, hs: 16, as: 10, situation: { down: 1, distance: 10, yardLine: 65, possession: null, isRedZone: false } }),
+  nfl('401873072', 'STATUS_END_PERIOD', 'in', 'Detroit Lions', 'Tampa Bay Buccaneers', { period: 1, clock: '0:00', hs: 7, as: 0 }),
+  nfl('401873073', 'STATUS_FINAL', 'post', 'Dallas Cowboys', 'Tennessee Titans', { period: 4, hs: 34, as: 13 }),
+  nfl('401873075', 'STATUS_POSTPONED', 'post', 'Denver Broncos', 'Las Vegas Raiders'),
+  nfl('401873076', 'STATUS_HALFTIME', 'in', 'Philadelphia Eagles', 'Pittsburgh Steelers', { period: 2, hs: 13, as: 6 }),
+];
 const EPL_EVENTS = [{ id: '740001', date: `${DATE}T15:00Z`,
   competitions: [{ status: { type: { completed: true, state: 'post', name: 'STATUS_FULL_TIME' }, displayClock: "90'" },
     competitors: [
@@ -84,6 +108,7 @@ function stubUpstreams(mode, seen) {
       if (mode === 'empty') return Response.json({ events: [] });
       if (url.includes('/basketball/nba/')) return Response.json({ events: NBA_EVENTS });
       if (url.includes('/basketball/wnba/')) return Response.json({ events: WNBA_EVENTS });
+      if (url.includes('/football/nfl/')) return Response.json({ events: NFL_EVENTS });
       if (url.includes('/soccer/eng.1/')) return Response.json({ events: EPL_EVENTS });
       if (url.includes('/soccer/fifa.world/')) return Response.json({ events: WC_EVENTS });
     }
@@ -168,7 +193,27 @@ async function selfTest() {
   eq('N8 control: a World Cup group final is, and writes its result',
     [(wc.body?.games ?? []).map(x => x.state), wc.waits, wc.wcInserts > 0], [['final'], 1, true]);
 
-  console.log(`\nchecked sport=nba on the ESPN branch (served, empty, refused, thrown; breaks and a postponement), WNBA's final word, and the WC writer guard: NBA and EPL finals refused, wc26 kept`);
+  // F1-F5: the football board. A break is live and says so; the state words and the situation keys the
+  // laboratory reads (state, periodNum/periodLabel, clock, scores, situation.isHalftime).
+  const nflR = await get('nfl', 'ok');
+  const f = (id) => (nflR.body?.games ?? []).find(x => x.espnEventId === id) ?? null;
+  eq('F1 a served NFL day answers 200 with every game', [nflR.status, nflR.body?.count], [200, 7]);
+  eq('F1 a game in progress is live in its quarter, with the situation as ESPN sent it and no half time flag',
+    f('401873070') && { state: f('401873070').state, periodLabel: f('401873070').periodLabel, clock: f('401873070').clock, s: [f('401873070').home.score, f('401873070').away.score], sit: f('401873070').situation },
+    { state: 'live', periodLabel: 'Q2', clock: '3:48', s: [20, 3], sit: { down: -1, distance: 0, yardLine: 35, possession: '2', isRedZone: true, isHalftime: false } });
+  eq('F2 halftime is live, keeps its quarter and scores, and carries isHalftime true',
+    f('401873071') && { state: f('401873071').state, periodNum: f('401873071').periodNum, periodLabel: f('401873071').periodLabel, clock: f('401873071').clock, s: [f('401873071').home.score, f('401873071').away.score], half: f('401873071').situation?.isHalftime },
+    { state: 'live', periodNum: 2, periodLabel: 'Q2', clock: '0:00', s: [16, 10], half: true });
+  eq('F2 halftime with no situation object from ESPN still carries the flag (the other keys null)',
+    f('401873076')?.situation, { down: null, distance: null, yardLine: null, possession: null, isRedZone: false, isHalftime: true });
+  eq('F3 an end of quarter (state in, not halftime) is live with no situation and no flag', [f('401873072')?.state, f('401873072')?.periodLabel, f('401873072')?.situation], ['live', 'Q1', null]);
+  eq("F4 a final carries 'post' and 'F'; a scheduled game is pre with an empty label; a postponed one is neither final nor live",
+    [[f('401873073')?.state, f('401873073')?.periodLabel], [f('401873074')?.state, f('401873074')?.periodLabel], f('401873075')?.state], [['post', 'F'], ['pre', ''], 'pre']);
+  eq('F5 the requested date is the one asked of ESPN for football',
+    nflR.urls.filter(u => u.includes('/scoreboard?dates=')).map(u => u.replace(/^https:\/\/[^/]+/, '')),
+    [`/apis/site/v2/sports/football/nfl/scoreboard?dates=${DATE.replace(/-/g, '')}`]);
+
+  console.log(`\nchecked sport=nba on the ESPN branch (served, empty, refused, thrown; breaks and a postponement), WNBA's final word, the WC writer guard: NBA and EPL finals refused, wc26 kept; and sport=nfl: in progress, halftime (with and without ESPN's situation), end of quarter, final, scheduled, postponed. Not checked: sport=cfb (the same adapter), MLB breaks, the status NAME ESPN uses for an NFL break (the mapping reads STATUS_HALFTIME by name and every break by type.state 'in')`);
   console.log(failed ? `SELF-TEST FAILED: ${failed}` : 'self-test passed');
   return failed;
 }
@@ -200,6 +245,18 @@ const MUTATIONS = [
   ['a break reads as pre again', [[
     "stt === 'STATUS_IN_PROGRESS' || st.type?.state === 'in' ? 'live'",
     "stt === 'STATUS_IN_PROGRESS' ? 'live'"]]],
+  ['a football break reads as pre again', [[
+    "stt === 'STATUS_IN_PROGRESS' || stt === 'STATUS_HALFTIME' || st.type?.state === 'in' ? 'live'",
+    "stt === 'STATUS_IN_PROGRESS' ? 'live'"]]],
+  ["a football break is read by its name alone (type.state 'in' ignored)", [[
+    "stt === 'STATUS_IN_PROGRESS' || stt === 'STATUS_HALFTIME' || st.type?.state === 'in' ? 'live'",
+    "stt === 'STATUS_IN_PROGRESS' || stt === 'STATUS_HALFTIME' ? 'live'"]]],
+  ['football halftime is live but never flagged', [[
+    "const isHalftime = stt === 'STATUS_HALFTIME';",
+    "const isHalftime = false;"]]],
+  ['the football halftime flag is lost when ESPN sends no situation', [[
+    "const situation = (sit || isHalftime) ? {",
+    "const situation = sit ? {"]]],
   ['a postponed game reads as final', [[
     "stt === 'STATUS_FINAL'                              ? (sportKey === 'nba' ? 'final' : 'post')",
     "stt === 'STATUS_FINAL' || st.type?.state === 'post' ? (sportKey === 'nba' ? 'final' : 'post')"]]],

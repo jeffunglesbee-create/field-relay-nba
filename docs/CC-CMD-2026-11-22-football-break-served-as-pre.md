@@ -1,0 +1,38 @@
+# Claude Code Command — an NFL or CFB game at halftime is served `pre`
+
+**Branch:** main — commit directly, do not create a feature branch or PR
+**Repo:** field-relay-nba (owns the contract, Rule 60); consumer field-laboratory
+**Filed and built:** 2026-11-22 by a field-laboratory session, from the first real halftime body (Rule 87.4: found, fixed, not carried)
+**Confidence gate:** >= 95 before any commit
+**Status:** BUILT 2026-11-22 in the commit that adds this file. Deployed and its done condition: see "Done condition" and the field-laboratory session record `outbox/cc-session-2026-11-22-other-sports-live-scores.md`.
+
+---
+
+## What was measured (Rule 73)
+
+Method: field-laboratory's `live-shape-capture.yml` dispatched for `sport=nfl date=2026-11-22` (the relay's `/v2/games`, read from a runner), and ESPN read through the session's `get_espn_game`.
+Conditions: Sunday 2026-11-22, the 18:00Z kickoffs, in play.
+
+| capture | what it held |
+|---|---|
+| 19:10:18Z (`outbox/live-capture-nfl-2026-11-22-1910Z.json`) | 7 games `live`, all Q2 (clocks 8:27 to 0:59), 4 `pre` (later kickoffs) |
+| **19:41:15Z** (`-1941Z.json`) | Bills v Dolphins 20-6, Bears v Saints 16-10, Cowboys v Titans 27-9: `state` **`pre`**, `periodNum` 2, `periodLabel` `""`, `clock` `0:00`, scores non-null, `situation` an object with `possession` null. Three other games `live` in Q3, one `live` Q2 0:03. |
+| ESPN, same minutes | `get_espn_game` for Bears v Saints: `CHI 16 vs NO 10 | Halftime` |
+
+So a game at halftime was served as a game not started. The cause is in `adaptESPNFootball` (the only caller is the `/v2/games` ESPN branch): `STATUS_IN_PROGRESS` was the only live status, as `adaptESPNBasketball` was before CC-CMD-2026-10-22 gave it `type.state === 'in'`. **Not read:** the status NAME ESPN uses for the NFL break (the summary text said `Halftime`; the fix reads the name `STATUS_HALFTIME`, as the soccer adapter does, and every status ESPN marks `type.state` `in`).
+
+## What was built
+
+`adaptESPNFootball` (NFL and CFB): `state` is `live` for `STATUS_IN_PROGRESS`, `STATUS_HALFTIME` or any `type.state` `in`; `periodLabel` `Q<n>` as before (halftime reads `Q2`, clock `0:00`); `situation.isHalftime` is true exactly when the name is `STATUS_HALFTIME` and is carried even when ESPN sends no situation; every football situation object now has the key. Additive: no key was renamed or removed. Consumers: field-laboratory reads `situation.isHalftime` on any sport and shows `Half time`; AmbientDO's live counting reads `state` and now counts a break as live, as it does for basketball since 2026-10-24.
+
+Checks: `scripts/check-v2-games-nba-board.mjs` (run by `deploy.yml` with `--mutate`) gains the football board: 7 NFL events (in progress, halftime with and without ESPN's situation, end of quarter, final, scheduled, postponed), 7 assertions F1 to F5; self-test 23 ok; `--mutate` **14 of 14 caught** (four new: a football break read as pre again, read by name alone, never flagged, the flag lost without a situation). `check-ambient-capture-dedup`, `check-v2-games-ambient-no-briefs` and `sport-key-check` pass. Not checked: `sport=cfb` (the same adapter), the MLB adapter.
+
+## Not done, with the command that does it
+
+The MLB adapter (`adaptESPNMLB`) reads only `STATUS_IN_PROGRESS` as live, so a rain delay or a break between innings may be served `pre`; its ESPN status names are not read. Out of season on 2026-11-22. Unblocked when an MLB game is in a delay or a break. Verify: `live-shape-capture.yml` (field-laboratory) with `sport=mlb` and the ET date during a game, then print each game's `state` and `periodLabel`; any game ESPN calls delayed or in a break that reads `pre` is the defect, and the fix is the same one line.
+
+## Done condition (Rule 90 artifacts)
+
+1. `deploy.yml` green for the commit that adds this file (the board check and its `--mutate` run inside it).
+2. A relay body for an NFL game at halftime reads `state` `live`, `periodLabel` `Q2`, `situation.isHalftime` `true`: a committed field-laboratory capture `outbox/live-capture-nfl-2026-11-22-<HHMM>Z.json` taken at the halftime of the late games (kickoff about 21:05Z to 21:25Z, halftime about 22:20Z to 23:00Z). Command: `node -e 'const j=require("./outbox/<file>");console.log(j.v2.body.games.filter(g=>g.situation&&g.situation.isHalftime).map(g=>[g.espnEventId,g.state,g.periodLabel,g.clock]))'`; a non-empty list, every `state` `live`.
+3. Optionally the card: a field-laboratory `live-score-probe.yml` manifest with a card reading `Half time`.
