@@ -51,7 +51,7 @@ and touches no `src/` file. ADR-002 Rules A and F: nothing is pushed, shown or s
 |---|---|---|---|
 | P1 | the relay's token passes the next-goal gate | HTTP 403 (the docs say `unlimited_required`) or 402 on `GET /api/v2/next-goal/?limit=200` | `analysis.gate` |
 | P2 | `event.id` is the id `events/live` and the relay's `bsdEventId` use | an id absent from `events/live`, or present with different team names | `analysis.idSpace` (names must agree: an id match alone can be two integer spaces) |
-| P3 | reads cover in-play matches without `websocket_plus`, and leagues FIELD tracks | `events/live` rows at minute 10 or later with no read | `analysis.coverage`, `analysis.leagues` |
+| P3 | reads cover in-play matches without `websocket_plus`, and leagues FIELD tracks | `events/live` rows **in play, not at halftime, at minute 10 or later** with no read (`events/live` is not an in-play list: see Task 1) | `analysis.coverage`, `analysis.leagues` |
 | P4 | `league_id` and `calls_only` are honoured | a control call that still returns rows (`league_id` set above every league seen); a `calls_only` call that returns a non-call | `analysis.filterLeagueId`, `analysis.filterCallsOnly` |
 | P5 | `/calls/` is readable, the vendor's 73.6% of 1,508 reproduces from its own counts, and "graded" has one meaning | the five outcome counts not summing to the window's count; no denominator that lands near 1,508 | `analysis.ledger.reproduction` |
 
@@ -67,14 +67,36 @@ Files: `scripts/bsd-next-goal-probe.mjs`, `scripts/check-bsd-next-goal-probe.mjs
 `scripts/mutate-bsd-next-goal-probe.mjs`, `scripts/fixtures/bsd-next-goal-synthetic.mjs`, `.github/workflows/bsd-next-goal-probe.yml`,
 and one step in `.github/workflows/guards.yml`.
 
-Budget (Rule 78): at most 18 requests on an open gate (3 on a closed one), hard cap 24 (`CALL_BUDGET`), a 429 or 401 stops the run,
-no schedule, one dispatch. Against the account's roughly 926 requests a day (6,483 over the 7 days to 2026-11-22, the owner's
-dashboard), that is under 3% of one day.
+Budget (Rule 78): at most 18 requests on an open gate (3 on a closed one), hard cap 24 (`CALL_BUDGET`, an integer of 1 or more, else 24),
+a 429 or 401 stops the run before the body is read, a redirect is an error (one request, never twenty), a 400-second run deadline
+marks the rest UNKNOWN so the artifact is always written inside the workflow's 15-minute limit, no schedule, one dispatch. Against the
+account's roughly 926 requests a day (6,483 over the 7 days to 2026-11-22, the owner's dashboard), that is under 3% of one day.
+
+**Reviewed before the first run, and rebuilt.** Three independent reviewers read the first version (`79d9dfc`) adversarially. They found
+no blocker and these defects, each fixed and pinned by a case in the checks:
+
+- `events/live` is not a list of matches in play. On the committed 2026-09-19 capture (`outbox/bsd-uefa-probe-20260919T161717Z.txt`) 34 of
+  58 rows are `finished` with `FT` and a null minute and one is at halftime. The first version counted every row, labelled finished
+  matches "before minute 10" and printed no in-play denominator. Coverage is now over in-play matches at minute 10 or later, excluding
+  halftime, with the status/period vocabulary seen written into the artifact (`analysis.live.statusPeriod`) so a miss is visible.
+- An empty list while matches are in play skipped the one call that says why; the in-play no-read pick fell back to a finished match.
+  The pick is now made on an empty list and is never a finished or not-started row. `UNKNOWN` reasons now say what actually happened.
+- `is_call` was judged against `confidence >= call_threshold` with no allowance for a paused call or 2-decimal rounding; `calls_only` was
+  `HONOURED` on an empty answer; a truncated list (`next` set or `count` above the rows) was reported as complete; the ledger reproduction
+  said `ANSWERED` even when the five outcome counts did not partition the window; team names that differ only in diacritics read as an
+  id collision; a name that folds to nothing agreed with another.
+- A 429 whose body then failed did not stop the run; `CALL_BUDGET` fell open on a typo; a redirect was up to 20 requests; the token guard
+  looked only for the raw string; a token with a trailing newline was refused by `fetch`; the worst case (17 calls at 30 s) ran into the
+  10-minute limit; an analysis that threw, or a deep row, erased the whole run; and "reached the vendor" meant any 200, so an
+  events/live-only run advanced `-latest.json`. It now advances only on a definite answer (open, gated or absent) from the list or the ledger.
+- The checks themselves: the reviewers wrote 169 new mutations and 135 survived. The checks were extended until the survivors were killed
+  or shown equivalent (one was a redundant guard, removed), an early `process.exit` can no longer pass, and a mutant that does not parse
+  can no longer count as caught.
 
 **Done condition 1 (Rule 89, artifacts):**
-`node scripts/check-bsd-next-goal-probe.mjs` prints `scenarios 22, assertions 90, failed 0`;
-`node scripts/check-bsd-next-goal-probe-run.mjs` prints `scenarios 8, assertions 38, failed 0`;
-`node scripts/mutate-bsd-next-goal-probe.mjs` prints `mutations 46: caught 46, NOT CAUGHT 0, NOT APPLIED 0`;
+`node scripts/check-bsd-next-goal-probe.mjs` prints `scenarios 19, assertions 241, failed 0`;
+`node scripts/check-bsd-next-goal-probe-run.mjs` prints `scenarios 22, assertions 102, failed 0`;
+`node scripts/mutate-bsd-next-goal-probe.mjs` prints `mutations 265: caught 265 (probe mutants: 207 by the analysis check, 49 by the run check), NOT CAUGHT 0, NOT APPLIED 0`;
 `node scripts/workflow-yaml-check.mjs` prints `0 failing`.
 The fixtures are synthetic and say nothing about the vendor; the checks prove the verdict logic and the spend logic, not the vendor.
 
@@ -83,7 +105,7 @@ The fixtures are synthetic and say nothing about the vendor; the checks prove th
 `bsd-next-goal-probe.yml`, `workflow_dispatch`, during a live football slate. The run commits `outbox/bsd-next-goal-probe-<stamp>.json`
 and, when any call returned 200, `outbox/bsd-next-goal-probe-latest.json`. It stores one verbatim row per endpoint as shape evidence.
 
-**Done condition 2:** `outbox/bsd-next-goal-probe-latest.json` exists; `callsMade` is at most 24; `analysis.gate.verdict` is not `UNKNOWN`;
+**Done condition 2:** `outbox/bsd-next-goal-probe-latest.json` exists; `callsMade` is at most 24; `reachedTarget` is true and `analysisError` is null; `analysis.gate.verdict` is not `UNKNOWN`;
 and either `analysis.shape.verdict` is `ANSWERED` (reads were present) or its `why` names an empty slate, in which case Task 2 repeats
 on the next live slate (the same task, not a carry-forward). The coverage line is quoted in Result.
 
