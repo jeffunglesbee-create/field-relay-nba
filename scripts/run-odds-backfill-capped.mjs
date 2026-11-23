@@ -170,10 +170,10 @@ export async function run({ env, relay, outDir, log, fetchImpl = fetch, timeoutM
             const r = await fetchImpl(url, init);
             rec.http = r.status;
             const text = await r.text();
-            if (r.status !== 200) rec.error = `HTTP ${r.status}: ${text.slice(0, 200)}`;
+            if (r.status !== 200) rec.error = `HTTP ${r.status}: ${redact(text).slice(0, 200)}`;   // redact BEFORE the cut: a secret straddling it would be written in part
             else {
                 let j = null;
-                try { j = JSON.parse(text); } catch (_) { rec.error = `non-JSON body (${text.length} bytes): ${text.slice(0, 120)}`; }
+                try { j = JSON.parse(text); } catch (_) { rec.error = `non-JSON body (${text.length} bytes): ${redact(text).slice(0, 120)}`; }
                 if (rec.error === null) {
                     rec.result = j;
                     const why = judge(j, date, p.sport, p.snapshot);
@@ -219,8 +219,10 @@ async function selfTest() {
             pre.push({ url: req.url, auth: req.headers.authorization });
             if (mode === 'old-relay') return send(200, { ok: true, date, games_found: 0, odds_populated: 0, odds_skipped: 0 });
             if (mode === 'pre-401') return send(401, 'Unauthorized');
+            if (mode === 'sport-400-other' && sport === PREFLIGHT_LABEL) return send(400, { ok: false, error: 'something else is wrong with this request' });
             if (sport === PREFLIGHT_LABEL) return send(400, { ok: false, error: `unknown ?sport=${JSON.stringify(sport)}: not an archive sport the relay has an Odds-API key for` });
             if (snap !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(snap)) {
+                if (mode === 'snap-400-other') return send(400, { ok: false, error: 'something else is wrong with this request' });
                 if (mode === 'old-relay-snap') return send(200, { ok: true, date, sport, games_found: 0, odds_populated: 0, odds_skipped: 0 });   // ignores ?snapshot=
                 return send(400, { ok: false, error: `bad ?snapshot=${JSON.stringify(snap)}: a UTC time of day written HH:MM` });
             }
@@ -243,6 +245,8 @@ async function selfTest() {
         if (mode === 'guarded') return send(200, { ok: true, date, sport, games_found: 1, odds_populated: 0, odds_skipped: 1, guarded: 1, quota_remaining: null });
         if (mode === 'no-games') return send(200, { ok: true, date, sport, games_found: 0, odds_populated: 0, odds_skipped: 0 });
         if (mode === 'echo') return send(200, { ok: true, date, sport, games_found: 1, odds_populated: 1, note: `echoed ${SECRET}` });
+        if (mode === 'long-500') return send(500, 'a'.repeat(196) + SECRET + ' tail');      // the credential straddles the 200-character cut
+        if (mode === 'long-html') return send(200, 'b'.repeat(116) + SECRET + ' tail');     // ...and the 120-character cut
         if (mode === 'unasked-snap') return send(200, { ok: true, date, sport, snapshot: '09:30', games_found: 1, odds_populated: 1, odds_skipped: 0 });
         return send(200, { ok: true, date, sport, ...echoSnap, games_found: 1, odds_populated: 1, odds_skipped: 0, quota_remaining: 399970 });
     });
@@ -406,6 +410,27 @@ async function selfTest() {
         check('S61 an answer that carries a snapshot the run did not ask for is a failure', hits.length === 1 && /snapshot is "09:30"/.test(ua.r.stoppedBecause), `${ua.r.stoppedBecause}`);
         const snPo = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30', PREFLIGHT_ONLY: '1' });
         check('S62 PREFLIGHT_ONLY with a snapshot makes both preflight requests and NOTHING else, and says it honours ?snapshot=', snPo.r.preflightOnly === true && pre.length === 2 && hits.length === 0 && snPo.files.length === 0 && logs.some(l => /honours \?snapshot=/.test(l)));
+        // The review of 2026-11-23: redaction before the cut, the file-name anchors, the preflight body tests, the time-of-day range.
+        const lg = await go({ BACKFILL_DATES: '2026-08-22' }, 'long-500');
+        check('S63 a secret that straddles the 200-character cut of an HTTP error body is redacted BEFORE the cut: no fragment of it reaches a file or a log line', hits.length === 1 && !textOf(lg).includes('stub') && textOf(lg).includes('[red'), textOf(lg).slice(0, 160));
+        const lh = await go({ BACKFILL_DATES: '2026-08-22' }, 'long-html');
+        check('S64 ...and the same for the 120-character cut of a body that is not JSON', hits.length === 1 && !textOf(lh).includes('stub') && textOf(lh).includes('[red'), textOf(lh).slice(0, 160));
+        const fx = join(dir, 'anchors'); mkdirSync(fx, { recursive: true });
+        for (const n of ['x-odds-backfill-epl-2026-05-09-20260101T000000Z.json', 'odds-backfill-epl-2026-05-09-20260101T000000Z.json.bak', 'odds-backfill-epl-2026-05-09-20260101T000000Zjson']) writeFileSync(join(fx, n), '{}\n');
+        const an = await go({ BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'ok', { outDir: fx });
+        check('S65 a file whose name only CONTAINS or EXTENDS a result file\'s (a prefix, a .bak suffix) is not an attempt: the date still runs', an.r.refused === false && hits.length === 1, `${an.r.stoppedBecause}`);
+        const so = await go({}, 'sport-400-other');
+        check('S66 a 400 to the sport preflight that is NOT the "unknown ?sport=" refusal does not count as the filter working', so.r.refused === true && hits.length === 0 && /HTTP 400/.test(so.r.stoppedBecause), `${so.r.stoppedBecause}`);
+        const no = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'snap-400-other');
+        check('S67 a 400 to the snapshot preflight that is NOT the "bad ?snapshot=" refusal does not count as the snapshot being honoured', no.r.refused === true && hits.length === 0 && /HTTP 400/.test(no.r.stoppedBecause), `${no.r.stoppedBecause}`);
+        for (const bad of ['09:60', '24:00', '09:30x', '9:30', '0930', '29:00']) {
+            const r = await go({ BACKFILL_SNAPSHOT: bad, BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' });
+            check(`S68 BACKFILL_SNAPSHOT=${JSON.stringify(bad)} is refused before any request`, r.r.refused === true && hits.length === 0 && pre.length === 0 && /HH:MM/.test(r.r.stoppedBecause), `${r.r.stoppedBecause}`);
+        }
+        for (const good of ['00:00', '23:59']) {
+            const r = await go({ BACKFILL_SNAPSHOT: good, BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' });
+            check(`S69 BACKFILL_SNAPSHOT=${good} (the edges of the day) is accepted and sent`, r.r.refused === false && hits.length === 1 && hits[0].url.endsWith(`&snapshot=${encodeURIComponent(good)}`), `${r.r.stoppedBecause}`);
+        }
     } finally { server.closeAllConnections?.(); server.close(); rmSync(dir, { recursive: true, force: true }); }
     console.log(`\n${checked - failed}/${checked} checks passed`);
     return failed;
