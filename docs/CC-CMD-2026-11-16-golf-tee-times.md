@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (the source and the contract). One paired client change in jubilant-bassoon (Rule 70, ATOMIC-A): the relay deploys first, the client consumes.
 **Filed:** 2026-11-16 by CC, on the owner's order "file the relay CC-CMD for golf tee times", from the Deep Cuts design work (field-laboratory `docs/CC-CMD-2026-11-15-scout-daypart-picks.md`, section "Golf").
 **Confidence gate:** >= 95 before any commit
-**Status:** STAGED 2026-11-19 — Tasks 1 to 4 built: relay `140fa56` (Task 2), `20eb710` (Task 4), and `464d4f7` (Task 2 rebuilt on ESPN's leaderboard after the live read failed, below); client jubilant-bassoon `b3e2c878` (Task 3). The live done-condition reads follow `464d4f7`'s deploy; a read is scheduled for 17:30Z on 2026-11-19 (`trig_01Xgs5MBnCBxLJiUS41EPefg`).
+**Status:** DONE 2026-11-23. Every done condition read on real rows: `/v2/golf/enriched` serves `timeValid:false` beside `startDate` and a `roundStart` equal to the earliest tee time of the round (round 1 13:30Z, round 2 13:30Z, live); the archive rows for rounds 2 and 3 carry that round's first tee (2026-11-20T13:30Z; 2026-11-22T14:25Z, ESPN's tee times after the rain delay); the round-1 rows were corrected to 13:30Z on the owner's GO; no `PGA Tour` row since 2026-11-18. Builds: `140fa56`, `20eb710`, `464d4f7`, `3cbe458`, `4943d43`, client `b3e2c878`. A confirming read of round 4 is armed (`trig_011LFJx6dq5AmyZYKHusAq9U`, 2026-11-24 13:00Z). The pre-round `roundStart` gap is recorded below as the owner's decision.
 
 ---
 
@@ -171,4 +171,14 @@ Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roun
 - **Owner, 2026-11-22:** "Rain delay yesterday. Round 3 today, final round Monday." Reads armed:
   - Round 3: `trig_01JzUiSczKshFjKyjebxeCuB`, 2026-11-23 13:00Z.
   - Round 4: `trig_011LFJx6dq5AmyZYKHusAq9U`, 2026-11-24 13:00Z. It closes the CC-CMD if both rounds pass.
+
+### 2026-11-23 13:01Z: round 3 read; DONE
+
+- **D1:** `golf_2026-11-22_thersmclassic_r3`, `start_time` `2026-11-22T14:25:00.000Z`, created 2026-11-22 21:44:56, `note` "Rasmus Højgaard -13".
+- **ESPN leaderboard** (FIELD browser tool, 13:01Z), round-3 linescores: 66 of 66, `2026-11-22T14:25Z` to `16:15Z`.
+  - The whole round moved 15 minutes after the 2026-11-22 13:01Z read, which showed 14:10Z to 16:00Z (rain delay).
+  - The row carries ESPN's final first tee, and was created after the last group's round.
+  - Højgaard is still the leader at -13 as round 4 starts.
+- **No round was archived at its start this time:** the round-3 row is the only one, written once round 3 had finished (`4943d43`).
+- Round 4 is in play today: 66 tees, 2026-11-23T12:20Z to 14:10Z. Its row is read 2026-11-24 13:00Z.
 

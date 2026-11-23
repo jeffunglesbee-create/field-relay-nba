@@ -85,3 +85,10 @@
   - The archive row is unaffected: it is written when the round completes, with `round` = 3.
   - A consumer showing an upcoming round's first tee (the laboratory's Deep Cuts golf windows) would see the last round's time. The fix would choose the round with the next unplayed tee times. It needs the owner's word on what "the current round" means between rounds.
 - **Re-read:** 2026-11-23 13:00Z (round 3 finishes today, round 4 is Monday's if the schedule slips).
+
+## 2026-11-23: round 3 read, CC-CMD DONE
+
+- The round-3 row reads `start_time` 2026-11-22T14:25Z, created 21:44:56Z, leader Højgaard -13.
+- ESPN's round-3 tees read 14:25Z to 16:15Z: shifted 15 minutes by the rain delay after the previous day's 14:10Z read.
+- Status DONE. Round 4 confirming read: 2026-11-24 13:00Z.
+
