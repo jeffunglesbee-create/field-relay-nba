@@ -61,7 +61,7 @@ function balanced(from) {
 }
 const fnText = (sig) => balanced(once(sig));
 const constLine = (a) => { const i = once(a); return SRC.slice(i, SRC.indexOf('\n', i)); };
-const PRELUDE = [constLine('const ODDS_QUOTA_FLOOR = '), constLine('const ODDS_PREFERRED_BOOK = '),
+const PRELUDE = [constLine('const ODDS_QUOTA_FLOOR = '), constLine('const ODDS_PREFERRED_BOOK = '), constLine('const ODDS_HIST_SNAPSHOT_DEFAULT = '),
   fnText('function extractOddsForGame(oddsGame,')].join('\n');
 const DEPS = ['indexOddsByPair', 'findOddsForRow', 'stampKickoff', 'kickoffMark', 'drawPriceFrom', 'spreadFrom',
   'reconcile', 'archiveSportToOddsKey', 'fetchSportOddsLive', 'fetchSportOddsHistorical', '_oddsPrimaryKey',
