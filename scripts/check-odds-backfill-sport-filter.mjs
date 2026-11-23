@@ -13,6 +13,10 @@
  * on 2026-10-25 plus an EPL row on another date and an already-priced EPL row, a pinned clock, a Map KV, and a vendor stub
  * that records which sport key and date each historical fetch asked for and serves one real-shaped EPL event.
  *
+ * ?snapshot=HH:MM (B8) moves the vendor snapshot earlier for a match that kicked off before noon. The case it exists for is real: Liverpool v Chelsea,
+ * 2026-05-09, kicked off at 11:30Z (ESPN, read through the relay's /v2/games), 25 minutes before the route's 11:55Z noon snapshot, so the late-snapshot
+ * guard refused its line; the four other matches of that date started at 14:00Z or 16:30Z and were priced.
+ *
  * INDEX_SRC points the worker elsewhere; scripts/mutate-odds-backfill-sport-filter.mjs uses it.
  */
 import { register } from 'node:module';
@@ -87,9 +91,13 @@ const EPL_EVENTS = [
   ev('d3', 'Newcastle United', 'Everton', '2026-10-26T19:00:00Z', 904, 105, 805),
   ev('ps1', 'Everton', 'Liverpool', '2026-10-25T16:30:00Z', 210, 140, 300),                // the postseason EPL row's game
 ];
+const MAY_EVENTS = [
+  ev('m1', 'Liverpool', 'Chelsea', '2026-05-09T11:30:00Z', 150, 190, 270),
+  ev('m2', 'Brighton and Hove Albion', 'Wolverhampton Wanderers', '2026-05-09T14:00:00Z', -360, 900, 500),
+];
 
 /** One scenario: a fresh world, one request, then the readings. */
-async function world(path, { auth = true, method = 'GET', siteUsed = {}, servedAt = null } = {}) {
+async function world(path, { auth = true, method = 'GET', siteUsed = {}, servedAt = null, may = false } = {}) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(SCHEMA);
   sqlite.prepare('INSERT INTO odds_budget VALUES (?, ?)').run(DAY, 100);
@@ -101,6 +109,9 @@ async function world(path, { auth = true, method = 'GET', siteUsed = {}, servedA
   // A postseason row OF THE REQUESTED SPORT, with a league unlike its sport: the postseason filter must select it, by sport.
   sqlite.prepare(`INSERT INTO postseason_games (id, sport, league, home, away, start_time, date, opening_odds, finalized_at, series_key)
                   VALUES ('EPL_PS_2026-10-25_everton_liverpool', 'EPL', 'Playoff', 'Everton', 'Liverpool', '2026-10-25T16:30Z', '2026-10-25', NULL, '2026-10-26T00:00:00Z', 'ps')`).run();
+  // The 2026-05-09 rows of the June seed: no start_time, never finalized, no odds (docs/CC-CMD-2026-11-22-epl-june-seed-rows-unpriced.md).
+  if (may) for (const [id, h, a] of [['2026-05-09-epl-liverp-chelse', 'Liverpool', 'Chelsea'], ['2026-05-09-epl-bright-wolver', 'Brighton & Hove Albion', 'Wolverhampton Wanderers']])
+    sqlite.prepare(`INSERT INTO regular_season_games (id, sport, league, home, away, start_time, date, opening_odds, finalized_at) VALUES (?, 'EPL', 'Premier League – Matchweek 36', ?, ?, NULL, '2026-05-09', NULL, NULL)`).run(id, h, a);
   for (const r of ROWS) sqlite.prepare(`INSERT INTO regular_season_games (id, sport, league, home, away, start_time, date, opening_odds, finalized_at)
                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, '2026-10-26T00:00:00Z')`).run(r.id, r.sport, r.league, r.home, r.away, r.start, r.date, r.odds);
   const odds = /odds_budget|odds_reconcile/;
@@ -126,7 +137,7 @@ async function world(path, { auth = true, method = 'GET', siteUsed = {}, servedA
     if (!url.includes('api.the-odds-api.com')) return new Response('{}', { status: 200 });
     const m = /\/v4\/historical\/sports\/([a-z0-9_]+)\/odds\?.*?date=([0-9T:Z-]+)/.exec(url);
     asked.push({ key: m?.[1] ?? null, snapshot: m?.[2] ?? null });
-    const data = m?.[1] === 'soccer_epl' && m[2].startsWith('2026-10-25') ? EPL_EVENTS : [];
+    const data = m?.[1] === 'soccer_epl' && m[2].startsWith('2026-10-25') ? EPL_EVENTS : (m?.[1] === 'soccer_epl' && m[2].startsWith('2026-05-09') ? MAY_EVENTS : []);
     return new Response(JSON.stringify({ timestamp: servedAt ?? m?.[2] ?? null, data }), { status: 200, headers: { 'x-requests-last': '30', 'x-requests-remaining': '400000' } });
   };
   const env = { FIELD_JOURNALISM: KV, ARCHIVE_DB: D1, ODDS_API_KEY: 'k', RELAY_SHARED_SECRET: 's', FIELD_MCP_SECRET: MCP_SECRET };
@@ -239,12 +250,43 @@ for (const [what, path] of [['a label the relay has no key for', '/archive/odds-
   check('B6 no credential and a bad sport: still 401, not 400 (the gate is first)', p.status === 401);
 }
 
+// ── B8. ?snapshot=HH:MM: an earlier time of day for a match that kicked off before noon ──
+{
+  const MAY = '/archive/odds-backfill?date=2026-05-09&sport=EPL';
+  const L = '2026-05-09-epl-liverp-chelse', B = '2026-05-09-epl-bright-wolver';
+  const d = await world(MAY, { may: true });
+  check('B8 default snapshot (noon): one fetch at 12:00Z, Brighton v Wolves (14:00Z) priced, Liverpool v Chelsea (11:30Z) refused as taken after kickoff: games_found 2, odds_populated 1, odds_skipped 1, and NO `snapshot` key in the answer',
+    JSON.stringify(d.asked) === JSON.stringify([{ key: EPL, snapshot: '2026-05-09T12:00:00Z' }]) && d.body.games_found === 2 && d.body.odds_populated === 1 && d.body.odds_skipped === 1
+    && d.opening[B] !== null && d.opening[L] === null && !('snapshot' in d.body), JSON.stringify(d.body));
+  const e = await world(MAY + '&snapshot=09:30', { may: true });
+  const lrow = e.opening[L] === null ? null : JSON.parse(e.opening[L]);
+  check('B8 snapshot=09:30: ONE fetch asking for 09:30Z, 30 credits, both rows priced, the answer echoes `snapshot` and `sport`, and Liverpool v Chelsea carries its own event\'s three-way price (150/190/270) with captured_at 09:30Z',
+    JSON.stringify(e.asked) === JSON.stringify([{ key: EPL, snapshot: '2026-05-09T09:30:00Z' }]) && e.spent === 30 && e.body.snapshot === '09:30' && e.body.sport === 'EPL' && e.body.odds_populated === 2 && e.body.odds_skipped === 0
+    && lrow !== null && lrow.moneyline?.home === 150 && lrow.moneyline?.draw === 270 && lrow.moneyline?.away === 190 && lrow.captured_at === '2026-05-09T09:30:00Z', JSON.stringify(e.body));
+  const f = await world(MAY + '&snapshot=11:45', { may: true });
+  check('B8 snapshot=11:45 (after the 11:30Z kickoff): the guard still refuses Liverpool v Chelsea, so a time that is too late prices nothing and costs the same 30 credits',
+    f.asked.length === 1 && f.spent === 30 && f.opening[L] === null && f.opening[B] !== null && f.body.odds_populated === 1 && f.body.snapshot === '11:45', JSON.stringify(f.body));
+  const g = await world(MAY + '&snapshot=12:00', { may: true });
+  check('B8 snapshot=12:00 given explicitly is the default: the same noon fetch, and no `snapshot` key (the answer of every earlier run is unchanged)', JSON.stringify(g.asked) === JSON.stringify([{ key: EPL, snapshot: '2026-05-09T12:00:00Z' }]) && !('snapshot' in g.body));
+  for (const bad of ['25:00', '9:30', '09:30:00', '09:60', '', 'noon', '24:00']) {
+    const r = await world(MAY + '&snapshot=' + encodeURIComponent(bad), { may: true });
+    check(`B8 snapshot=${JSON.stringify(bad)}: 400, no vendor call, nothing spent, no row written`, r.status === 400 && r.asked.length === 0 && r.spent === 0 && /bad \?snapshot=/.test(r.body?.error ?? '') && r.opening[L] === null, `status ${r.status}, ${r.asked.length} calls`);
+  }
+  const u = await world(MAY + '&snapshot=25:00', { may: true, auth: false });
+  check('B8 no credential and a bad snapshot: still 401 (the gate is first)', u.status === 401);
+  const z = await world('/archive/odds-backfill?date=2026-10-25&sport=Bundesliga&snapshot=09:30');
+  check('B8 a date with no rows of the sport and a snapshot: 200, no vendor call, nothing spent, and BOTH `sport` and `snapshot` echoed', z.status === 200 && z.body.games_found === 0 && z.body.sport === 'Bundesliga' && z.body.snapshot === '09:30' && z.asked.length === 0 && z.spent === 0, JSON.stringify(z.body));
+  const o = await world('/archive/odds-backfill?date=2026-10-25&snapshot=09:30');
+  check('B8 a snapshot with no sport filter reaches every sport\'s fetch (the four sports, each at 09:30Z)', o.asked.length === 4 && o.asked.every(a => a.snapshot === '2026-10-25T09:30:00Z'), JSON.stringify(o.asked));
+}
+
 // ── B7. The cron\'s call is unchanged: it passes no sport, so it still walks every sport ──
 {
   const src = readFileSync(INDEX, 'utf8');
   check('B7 the daily catch-up call site passes no sport filter', /runOddsBackfillForDate\(env, oddsDate\)/.test(src));
   check('B7 ...and the function\'s own default is no filter (a default of one sport would narrow the cron while its call text stayed the same)',
-    /async function runOddsBackfillForDate\(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null\) \{/.test(src));
+    /async function runOddsBackfillForDate\(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT\) \{/.test(src));
+  check('B7 ...and the default snapshot is noon (the cron, /archive/game and every earlier backfill ask for T12:00:00Z; B2 proves it on the wire)', /const ODDS_HIST_SNAPSHOT_DEFAULT = '12:00';/.test(src));
 }
 
 let failed = 0;

@@ -7199,16 +7199,20 @@ async function snapshotCronOdds(env, dateKey) {
 // `site` is a selector between literals, for the reason given at fetchSportOddsLive.
 // The default is the dead-hour cron's; /archive/odds-backfill passes
 // 'archiveOddsBackfill' and /archive/game passes 'archiveGameClosing' (2026-10-28).
-async function fetchSportOddsHistorical(env, sportKey, isoDate, site) {
+// `snapshotTime` is the UTC time of day, HH:MM, asked of the vendor on isoDate. Noon is the long-standing default (the right instant for an
+// afternoon kickoff, and the URL, the credit cost and the cache key of every existing caller are unchanged by it); /archive/odds-backfill
+// passes an earlier one for a match that kicked off before noon (a 12:30 BST Saturday is 11:30Z).
+const ODDS_HIST_SNAPSHOT_DEFAULT = '12:00';
+async function fetchSportOddsHistorical(env, sportKey, isoDate, site, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT) {
   const key = _oddsPrimaryKey(env);
   if (!key) return { games: [], quotaRemaining: null, ok: false };
   // Historical = 10× live cost; 3 markets → 30 credits per call. Same reason as
   // above for deriving it: oddsCreditCost returns 30 for this URL (self-tested).
   // The URL is built below, after the snapshot anchor, so the cost is computed
   // there and the guard runs immediately before the fetch rather than here.
-  // Anchor to noon UTC on the requested date so the snapshot captures odds
-  // shortly before evening kickoff for most sports.
-  const snapshot = `${isoDate}T12:00:00Z`;
+  // Anchor to snapshotTime (noon UTC unless the caller says otherwise) on the
+  // requested date so the snapshot captures odds shortly before kickoff.
+  const snapshot = `${isoDate}T${snapshotTime}:00Z`;
   const url = `${ODDS_BASE}/v4/historical/sports/${sportKey}/odds`
             + `?apiKey=${key}&date=${snapshot}`
             + `&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
@@ -7253,13 +7257,17 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate, site) {
 // One-shot historical odds backfill for a single archive date. Per-sport
 // dispatch; cross-table (regular_season_games + postseason_games); only
 // touches rows where opening_odds IS NULL.
-// The refusal for ?sport= on /archive/odds-backfill, or null. A label the relay has no Odds-API key for, or an empty value, is
-// refused before any billed call and is not read as "no filter". Lives here, not in the route, because the /archive/ handler is
-// scanned in a fixed 1500-line window (scripts/check-brace-balance.mjs) and has five lines of headroom.
-function oddsBackfillSportRefusal(sportParam) {
-  if (sportParam === null || typeof archiveSportToOddsKey(sportParam) === 'string') return null;
-  return new Response(JSON.stringify({ ok: false, error: `unknown ?sport=${JSON.stringify(sportParam)}: not an archive sport the relay has an Odds-API key for` }),
-    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+// ?sport= and ?snapshot= on /archive/odds-backfill, parsed: { sport, snapshot } or { refusal }, a 400 Response for a label the relay has no
+// Odds-API key for, an empty value, or a snapshot that is not a UTC time of day written HH:MM. Refused before any billed call; an empty value
+// is not read as "no filter". Lives here, not in the route, because the /archive/ handler is scanned in a fixed 1500-line window
+// (scripts/check-brace-balance.mjs).
+function oddsBackfillQuery(url) {
+  const sport = url.searchParams.get('sport');
+  const snapshot = url.searchParams.get('snapshot');
+  const refuse = (error) => ({ refusal: new Response(JSON.stringify({ ok: false, error }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }) });
+  if (sport !== null && typeof archiveSportToOddsKey(sport) !== 'string') return refuse(`unknown ?sport=${JSON.stringify(sport)}: not an archive sport the relay has an Odds-API key for`);
+  if (snapshot !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(snapshot)) return refuse(`bad ?snapshot=${JSON.stringify(snapshot)}: a UTC time of day written HH:MM`);
+  return { sport, snapshot: snapshot === null ? undefined : snapshot };
 }
 
 //
@@ -7268,7 +7276,9 @@ function oddsBackfillSportRefusal(sportParam) {
 // of a few rows: the nine EPL rows the C Palace defect left unpriced sit on dates that also carry 5 to 10 other sports' NULL
 // rows (docs/CC-CMD-2026-11-22-epl-rows-left-unpriced-by-c-palace.md). Filtered BEFORE bucketing, so a sport that is not asked
 // for is never fetched and never charged. The cron's call passes nothing and is unchanged.
-async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null) {
+// `snapshotTime` (HH:MM UTC, noon by default) moves the vendor snapshot earlier for a row whose match kicked off before noon; the guard below
+// still refuses a line taken after kickoff, so a time that is too late prices nothing and costs the same 30 credits.
+async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT) {
   if (!env.ARCHIVE_DB) return { ok: false, reason: 'ARCHIVE_DB not bound', date: isoDate };
   const apiKey = _oddsPrimaryKey(env);
   if (!apiKey) return { ok: false, reason: 'ODDS_API_KEY not configured', date: isoDate };
@@ -7287,10 +7297,11 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
   const wantSport = onlySport === null ? null : onlySport.toLowerCase();   // the lookup and bucketOf below are case-insensitive too
   const rsPicked = wantSport === null ? rsRows : rsRows.filter(r => String(r.sport).toLowerCase() === wantSport);
   const psPicked = wantSport === null ? psRows : psRows.filter(r => String(r.sport).toLowerCase() === wantSport);
-  const sportEcho = onlySport === null ? {} : { sport: onlySport };   // on EVERY answer: a caller checks it before it trusts the counts
+  // sport and snapshot are echoed (when not the default) on EVERY answer: a caller checks them before it trusts the counts
+  const echo = { ...(onlySport === null ? {} : { sport: onlySport }), ...(snapshotTime === ODDS_HIST_SNAPSHOT_DEFAULT ? {} : { snapshot: snapshotTime }) };
   const gamesFound = rsPicked.length + psPicked.length;
   if (!gamesFound) {
-    return { ok: true, date: isoDate, ...sportEcho, games_found: 0, odds_populated: 0, odds_skipped: 0 };
+    return { ok: true, date: isoDate, ...echo, games_found: 0, odds_populated: 0, odds_skipped: 0 };
   }
 
   // Bucket pending rows by Odds API sport key.
@@ -7318,7 +7329,7 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
     if (typeof lastQuota === 'number' && lastQuota < ODDS_QUOTA_FLOOR) {
       stopped = true; stopReason = 'quota_low'; break;
     }
-    const { games, quotaRemaining, ok, snapshotAt, guarded } = await fetchSportOddsHistorical(env, sportKey, isoDate, site);
+    const { games, quotaRemaining, ok, snapshotAt, guarded } = await fetchSportOddsHistorical(env, sportKey, isoDate, site, snapshotTime);
     if (!ok) { oddsSkipped += group.rs.length + group.ps.length; if (guarded) oddsGuarded++; continue; }
     lastQuota = quotaRemaining;   // only after ok, same reason as snapshotCronOdds
     if (typeof quotaRemaining === 'number' && quotaRemaining < ODDS_QUOTA_FLOOR) {
@@ -7371,7 +7382,7 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
   return {
     ok: true,
     date: isoDate,
-    ...sportEcho,
+    ...echo,
     games_found: gamesFound,
     odds_populated: oddsPopulated,
     odds_skipped: oddsSkipped,
@@ -13136,11 +13147,10 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
-                const sportParam = url.searchParams.get('sport');   // ?sport=EPL: one sport only (runOddsBackfillForDate)
-                const sportRefusal = oddsBackfillSportRefusal(sportParam);
-                if (sportRefusal !== null) return sportRefusal;
+                const q = oddsBackfillQuery(url);   // ?sport=EPL: one sport only; ?snapshot=HH:MM: an earlier UTC time of day (runOddsBackfillForDate)
+                if (q.refusal) return q.refusal;
                 try {
-                    const result = await runOddsBackfillForDate(env, date, 'archiveOddsBackfill', sportParam);
+                    const result = await runOddsBackfillForDate(env, date, 'archiveOddsBackfill', q.sport, q.snapshot);
                     return new Response(JSON.stringify(result),
                         { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 } catch (e) {

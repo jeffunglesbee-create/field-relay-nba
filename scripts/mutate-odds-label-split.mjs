@@ -61,12 +61,12 @@ const MUTANTS = [
   // THE ROUTES. A route that stops passing its selector compiles, lints and passes
   // every static gate, and spends the cron's cap again.
   ['L1 the identity route stops passing its selector', "fetchSportOddsLive(env, sportKey, 'identityMismatches')", 'fetchSportOddsLive(env, sportKey)'],
-  ['L2 the odds-backfill route stops passing its selector', "runOddsBackfillForDate(env, date, 'archiveOddsBackfill', sportParam)", 'runOddsBackfillForDate(env, date, undefined, sportParam)'],
+  ['L2 the odds-backfill route stops passing its selector', "runOddsBackfillForDate(env, date, 'archiveOddsBackfill', q.sport, q.snapshot)", 'runOddsBackfillForDate(env, date, undefined, q.sport, q.snapshot)'],
   ['L3 the archive-game route stops passing its selector', "fetchSportOddsHistorical(env, oddsSportKey, date, 'archiveGameClosing')", 'fetchSportOddsHistorical(env, oddsSportKey, date)'],
-  ['L4 the backfill loop stops passing the selector through', 'await fetchSportOddsHistorical(env, sportKey, isoDate, site);', 'await fetchSportOddsHistorical(env, sportKey, isoDate);'],
+  ['L4 the backfill loop stops passing the selector through', 'await fetchSportOddsHistorical(env, sportKey, isoDate, site, snapshotTime);', 'await fetchSportOddsHistorical(env, sportKey, isoDate, undefined, snapshotTime);'],
   // A route passing the cron's own label, or a sibling's.
   ['L5 the identity route passes the cron label', "fetchSportOddsLive(env, sportKey, 'identityMismatches')", "fetchSportOddsLive(env, sportKey, 'fetchSportOddsLive')"],
-  ['L6 the odds-backfill route passes the archive-game label', "runOddsBackfillForDate(env, date, 'archiveOddsBackfill', sportParam)", "runOddsBackfillForDate(env, date, 'archiveGameClosing', sportParam)"],
+  ['L6 the odds-backfill route passes the archive-game label', "runOddsBackfillForDate(env, date, 'archiveOddsBackfill', q.sport, q.snapshot)", "runOddsBackfillForDate(env, date, 'archiveGameClosing', q.sport, q.snapshot)"],
   ['L7 the archive-game route passes the odds-backfill label', "fetchSportOddsHistorical(env, oddsSportKey, date, 'archiveGameClosing')", "fetchSportOddsHistorical(env, oddsSportKey, date, 'archiveOddsBackfill')"],
   // THE MAPPING. The guard and the reconcile must agree: a charge filed under one
   // label and a correction under another leaves two ledgers that disagree.
@@ -79,7 +79,7 @@ const MUTANTS = [
   ['L15 the live fetch defaults to the identity route\'s label', "async function fetchSportOddsLive(env, sportKey, site = 'fetchSportOddsLive') {", "async function fetchSportOddsLive(env, sportKey, site = 'identityMismatches') {"],
   // (No mutant for fetchSportOddsHistorical's own default: it has none. Both callers name the label, and a default
   // that nothing reaches is dead code that no check can tell from a mutant with the same behaviour.)
-  ['L17 the backfill defaults to the odds-backfill route\'s label', "async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null) {", "async function runOddsBackfillForDate(env, isoDate, site = 'archiveOddsBackfill', onlySport = null) {"],
+  ['L17 the backfill defaults to the odds-backfill route\'s label', "async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT) {", "async function runOddsBackfillForDate(env, isoDate, site = 'archiveOddsBackfill', onlySport = null, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT) {"],
   ['L18 the opening-odds snapshot passes the identity selector', "const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey);", "const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey, 'identityMismatches');"],
   ['L19 the dead-hour backfill is called with the odds-backfill selector', "oddsResult = await runOddsBackfillForDate(env, oddsDate);", "oddsResult = await runOddsBackfillForDate(env, oddsDate, 'archiveOddsBackfill');"],
   ['L20 our own guard\'s refusal is reported as a vendor failure', "report.sports[sport] = guarded\n", "report.sports[sport] = false\n"],
