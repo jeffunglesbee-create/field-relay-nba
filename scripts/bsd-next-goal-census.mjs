@@ -270,7 +270,9 @@ export function analyseCensus({ ledger, r2, reads, ctx = {} }) {
 // ---------------------------------------------------------------- the one place that talks to the network
 const PAGE = 200;
 
-async function main() {
+// Everything that talks to the network: the ledger from the vendor, the listing and the reads from the relay. Shared with
+// scripts/bsd-next-goal-grade.mjs, which grades the same rows and must not re-implement the paging, the budget or the stop on 429.
+export async function collect(label) {
   const BASE = process.env.BSD_BASE || 'https://sports.bzzoiro.com';
   const RELAY = process.env.RELAY_URL || 'https://field-relay-nba.jeffunglesbee.workers.dev';
   const TOKEN_RAW = process.env.BSD_API_TOKEN;
@@ -323,7 +325,7 @@ async function main() {
     return rec;
   }
 
-  console.log(`=== bsd-next-goal-census  base=${BASE}  relay=${RELAY}  utc=${TS}  bsd budget=${CALL_BUDGET}  read cap=${READ_CAP} ===`);
+  console.log(`=== ${label}  base=${BASE}  relay=${RELAY}  utc=${TS}  bsd budget=${CALL_BUDGET}  read cap=${READ_CAP} ===`);
   if (!TOKEN) console.log('!! BSD_API_TOKEN absent: the ledger cannot be read, so every count below is UNKNOWN, not zero.');
 
   // ---- the ledger: count first, pages, count last
@@ -372,6 +374,11 @@ async function main() {
   await Promise.all(Array.from({ length: 6 }, worker));
 
   const ctx = { trackedLeagueIds, capped, callsMade: bsdCalls, callBudget: CALL_BUDGET };
+  return { out, ledger, r2, reads, ctx, log, slugOf, TOKEN, TS, bsdCalls, stopped };
+}
+
+async function main() {
+  const { out, ledger, r2, reads, ctx, log, TOKEN, TS, bsdCalls, stopped } = await collect('bsd-next-goal-census');
   let analysis, analysisError = null;
   try { analysis = analyseCensus({ ledger, r2, reads, ctx }); } catch (e) {
     analysisError = String(e && e.stack ? e.stack : e).split('\n').slice(0, 4).join(' | ');
