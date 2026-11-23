@@ -27,8 +27,8 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-export const MIN_SCENARIOS = 15;
-export const MIN_ASSERTIONS = 62;
+export const MIN_SCENARIOS = 16;
+export const MIN_ASSERTIONS = 66;
 
 const argv = process.argv.slice(2);
 const srcIdx = argv.indexOf('--source');
@@ -52,12 +52,13 @@ const eq = (label, got, want) => {
 const scenario = async (name, fn) => { scenarios++; try { await fn(); } catch (e) { failed++; console.log(`FAIL  ${name} threw: ${e.stack || e.message}`); } };
 
 // ---- the stub vendor: a newest-first ledger of `total` calls, with optional growth while it is paged
-function bsdStub({ rows = worldCalls(), grow = null, fail = null, serve = null, delay = 0 } = {}) {
+function bsdStub({ rows = worldCalls(), grow = null, fail = null, serve = null, delay = 0, stallPages = false } = {}) {
   const state = { rows: rows.slice(), pagesServed: 0 };
   const route = (u) => {
     if (fail) { const f = fail(u); if (f) return f; }
     if (u.pathname !== '/api/v2/next-goal/calls/') return [404, { detail: 'nf' }];
     const limit = Number(u.searchParams.get('limit')), offset = Number(u.searchParams.get('offset'));
+    if (stallPages && limit > 1) return [200, '{"count":3,"results":[', {}, 0, 'stall'];
     if (limit > 1) { state.pagesServed++; if (grow && state.pagesServed === grow.afterPage) for (let i = 0; i < grow.add; i++) state.rows.unshift(call({ id: 100000 + i, ev: 101 })); }
     const out = [200, { count: state.rows.length, next: null, previous: null, results: state.rows.slice(offset, serve === null ? offset + limit : Math.min(offset + limit, serve)) }];
     if (delay) out.push({}, delay);
@@ -66,7 +67,7 @@ function bsdStub({ rows = worldCalls(), grow = null, fail = null, serve = null, 
   return { route, state };
 }
 // ---- the stub relay: a paged listing and incidents.json reads
-function relayStub({ keys = worldKeys(), reads = null, pageSize = 1000, failListPage = null, slowList = 0, redirectList = false } = {}) {
+function relayStub({ keys = worldKeys(), reads = null, pageSize = 1000, failListPage = null, slowList = 0, redirectList = false, stallRead = null } = {}) {
   const table = reads || new Map([...worldReads(), ['109', { status: 200, json: ftCapture([], 0, 0) }]]);
   let served = 0;
   const route = (u) => {
@@ -83,6 +84,7 @@ function relayStub({ keys = worldKeys(), reads = null, pageSize = 1000, failList
     if (u.pathname === '/bsd/r2/read') {
       const k = String(u.searchParams.get('key'));
       const m = k.match(/^bsd\/[^/]+\/(\d+)\/incidents\.json$/);
+      if (stallRead && m && m[1] === stallRead) return [200, '{"incidents":[', {}, 0, 'stall'];
       const r = m && table.get(m[1]);
       if (!r) return [404, { error: 'not found', key: k }];
       if (r.status !== 200) return [r.status, { error: 'x' }];
@@ -98,6 +100,7 @@ async function serve(route, log) {
     const u = new URL(req.url, 'http://stub');
     log.push({ key: u.pathname + u.search, auth: req.headers.authorization ?? null });
     const out = route(u);
+    if (out[4] === 'stall') { res.writeHead(out[0], { 'content-type': 'application/json' }); res.write(out[1]); return; }   // headers and a partial body, then silence
     const send = () => {
       const [status, body, headers] = out;
       res.writeHead(status, { 'content-type': 'application/json', ...(headers || {}) });
@@ -109,24 +112,28 @@ async function serve(route, log) {
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 }
 
-async function runCensus({ bsd = bsdStub(), relay = relayStub(), token = TOKEN, budget = '', readCap = '', deadline = '', src = 'x = { bsdLeagueId: 1 }; y = { bsdLeagueId: 2 };' } = {}) {
+async function runCensus({ bsd = bsdStub(), relay = relayStub(), token = TOKEN, budget = '', readCap = '', deadline = '', fetchTimeout = '', killAfterMs = 0, src = 'x = { bsdLeagueId: 1 }; y = { bsdLeagueId: 2 };' } = {}) {
   const bsdLog = [], relayLog = [];
   const b = await serve(bsd.route, bsdLog), r = await serve(relay.route, relayLog);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ngc-run-'));
   if (src !== null) { fs.mkdirSync(path.join(dir, 'src')); fs.writeFileSync(path.join(dir, 'src', 'index.js'), src); }
-  const env = { ...process.env, BSD_BASE: b.base, RELAY_URL: r.base, CALL_BUDGET: budget, READ_CAP: readCap, RUN_DEADLINE_SECONDS: deadline };
+  const env = { ...process.env, BSD_BASE: b.base, RELAY_URL: r.base, CALL_BUDGET: budget, READ_CAP: readCap, RUN_DEADLINE_SECONDS: deadline, FETCH_TIMEOUT_SECONDS: fetchTimeout };
   if (token === null) delete env.BSD_API_TOKEN; else env.BSD_API_TOKEN = token;
   const child = spawn(process.execPath, [SOURCE], { cwd: dir, env });
   let stdout = '', stderr = '';
   child.stdout.on('data', (d) => { stdout += d; });
   child.stderr.on('data', (d) => { stderr += d; });
+  let killed = false;
+  const watchdog = killAfterMs ? setTimeout(() => { killed = true; child.kill('SIGKILL'); }, killAfterMs) : null;
   const code = await new Promise((res) => child.on('close', res));
+  if (watchdog) clearTimeout(watchdog);
+  b.server.closeAllConnections(); r.server.closeAllConnections();
   await new Promise((res) => b.server.close(res)); await new Promise((res) => r.server.close(res));
   const out = path.join(dir, 'outbox');
   const files = fs.existsSync(out) ? fs.readdirSync(out) : [];
   const read = (f) => JSON.parse(fs.readFileSync(path.join(out, f), 'utf8'));
   const stamped = files.filter((f) => /^bsd-next-goal-census-2.*\.json$/.test(f));
-  const result = { code, stdout, stderr, bsdLog, relayLog, files, stamped, stampedFirst: stamped.length ? read(stamped[0]) : null,
+  const result = { code, killed, stdout, stderr, bsdLog, relayLog, files, stamped, stampedFirst: stamped.length ? read(stamped[0]) : null,
     latest: files.includes('bsd-next-goal-census-latest.json') ? read('bsd-next-goal-census-latest.json') : null,
     raw: files.map((f) => fs.readFileSync(path.join(out, f), 'utf8')).join('\n') };
   fs.rmSync(dir, { recursive: true, force: true });
@@ -247,6 +254,19 @@ await scenario('13 the BSD deadline: a slow vendor leaves a partial ledger and a
   const r = await runCensus({ deadline: '1', bsd: bsdStub({ delay: 700 }) });
   eq('exit 0 and an artifact; the closing count was blocked by the deadline', [r.code, r.stamped.length, r.stampedFirst.bsdLog.filter((c) => /deadline 1 s passed/.test(c.blocked || '')).length], [0, 1, 1]);
   eq('the ledger is PARTIAL because its closing count was not read, and latest does not advance', [r.stampedFirst.analysis.ledger.verdict, r.stampedFirst.analysis.ledger.why, r.latest], ['PARTIAL', 'the closing count was not read', null]);
+});
+
+await scenario('16 a body that stalls after its headers is cut at the fetch timeout, not at the job limit (vendor and relay)', async () => {
+  // On Node 22 with redirect: 'error' an abort that fires after about 9 s is lost once the headers have arrived, so this needs a timeout
+  // above that to mean anything: 11 s, and a watchdog that kills the run at 45 s and fails the check instead of hanging it.
+  const [v, q] = await Promise.all([
+    runCensus({ bsd: bsdStub({ stallPages: true }), fetchTimeout: '11', killAfterMs: 45000 }),
+    runCensus({ relay: relayStub({ stallRead: '101' }), fetchTimeout: '11', killAfterMs: 45000 }),
+  ]);
+  eq('the vendor stalls on its first page: the run ends by itself, with an artifact', [v.killed, v.code, v.stamped.length], [false, 0, 1]);
+  eq('and the artifact says what happened: a page that aborted, an incomplete ledger, no latest', [/aborted|timeout/i.test(JSON.stringify(v.stampedFirst.bsdLog)), v.stampedFirst.analysis.ledger.verdict, v.latest, v.stampedFirst.fetchTimeoutSeconds], [true, 'PARTIAL', null, 11]);
+  eq('the relay stalls on one read: the run ends by itself, with an artifact', [q.killed, q.code, q.stamped.length], [false, 0, 1]);
+  eq('and that read is counted as a read that failed, not a read that never ran (the world already has one read that answers 500)', [q.stampedFirst.analysis.reads.failedOrBlocked, q.stampedFirst.analysis.reads.blockedByDeadline], [2, 0]);
 });
 
 await scenario('14 a redirect is one request, never twenty, from the vendor and from the relay', async () => {

@@ -285,8 +285,12 @@ export async function collect(label) {
   const CALL_BUDGET = positiveInt(process.env.CALL_BUDGET, 16);
   const READ_CAP = positiveInt(process.env.READ_CAP, 1500);
   const DEADLINE_MS = positiveInt(process.env.RUN_DEADLINE_SECONDS, 420) * 1000;
+  // A redirect is read as a status and never followed (so the token cannot be forwarded), and every fetch carries this timeout. Both
+  // are one decision: on Node 22, with `redirect: 'error'` an abort that fires after about 9 s is lost once the response headers have
+  // arrived, so a body that stalls hangs the run to the job limit; with 'manual' the timeout cuts it (measured in review, 2026-11-23).
+  const FETCH_TIMEOUT_MS = positiveInt(process.env.FETCH_TIMEOUT_SECONDS, 30) * 1000;
   const START = Date.now();
-  const out = { ts: TS, base: BASE, relay: RELAY, tokenPresent: Boolean(TOKEN), callBudget: CALL_BUDGET, readCap: READ_CAP, deadlineSeconds: DEADLINE_MS / 1000 };
+  const out = { ts: TS, base: BASE, relay: RELAY, tokenPresent: Boolean(TOKEN), callBudget: CALL_BUDGET, readCap: READ_CAP, deadlineSeconds: DEADLINE_MS / 1000, fetchTimeoutSeconds: FETCH_TIMEOUT_MS / 1000 };
 
   let bsdCalls = 0, stopped = null;
   const log = [];
@@ -302,7 +306,7 @@ export async function collect(label) {
     bsdCalls++;
     const t0 = Date.now();
     try {
-      const r = await fetch(`${BASE}${path}`, { headers: { Authorization: `Token ${TOKEN}`, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(30000) });
+      const r = await fetch(`${BASE}${path}`, { headers: { Authorization: `Token ${TOKEN}`, Accept: 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       rec.status = r.status;
       if (r.status === 429 || r.status === 401) stopped = String(r.status);
       const text = await r.text();
@@ -317,7 +321,7 @@ export async function collect(label) {
     const rec = { path };
     if (timedOut()) { rec.blocked = `run deadline ${DEADLINE_MS / 1000} s passed`; return rec; }
     try {
-      const r = await fetch(`${RELAY}${path}`, { redirect: 'error', signal: AbortSignal.timeout(30000) });
+      const r = await fetch(`${RELAY}${path}`, { redirect: 'manual', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       rec.status = r.status;
       const text = await r.text();
       try { rec.json = JSON.parse(text); } catch (_) { rec.nonJson = text.slice(0, 120); }
