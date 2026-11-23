@@ -1,6 +1,6 @@
 # CC-CMD-2026-11-22-kali-shut-down
 
-**Status:** PARTIAL 2026-11-23: Tasks 1 to 3 pushed as `e3b526b` (the guard, its check, the deploy step); the deploy run and the outbox manifest (Task 4) follow; owner questions O1 and O2 are open and block nothing. Filed 2026-11-22 by the AFLW source read (field-laboratory `docs/CC-CMD-2026-11-11-live-scores-other-sports.md`, Task 3 item 1). Repo: field-relay-nba, `src/cache-helpers.js` and one new check script. Rule 87: self-completing. Rule 69: nothing outside the files named below.
+**Status:** DONE 2026-11-23: Tasks 0 to 4 built, deployed (`deploy.yml` run 45087842267, `workflow_dispatch` on `0a02e78`, success) and recorded in `outbox/cc-session-2026-11-22-aflw-kali-source-read.md`; the read against a real AFL slate is staged for the 2027 season (see "Staged"); owner questions O1 and O2 are open and block nothing. Filed 2026-11-22 by the AFLW source read (field-laboratory `docs/CC-CMD-2026-11-11-live-scores-other-sports.md`, Task 3 item 1). Repo: field-relay-nba, `src/cache-helpers.js` and one new check script. Rule 87: self-completing. Rule 69: nothing outside the files named below.
 
 **BUILD-ON-A, searched 2026-11-22.** `grep -rli kali docs outbox` in field-relay-nba and field-laboratory lists eleven relay CC-CMDs that mention Kali (2026-06-26 to 2026-08-08, among them `kali-relay`, `afl-kali-kv-cache`, `afl-kali-relayfetch-fix`, `afl-wp-kali-integration`) and field-laboratory session notes. `grep -rn -i -E "back in 2027|torn down|offline"` against `docs/`, `outbox/`, `CLAUDE.md` and `HANDOFF.md` of both repos finds nothing about Kali being down. No CC-CMD records the shutdown, so this is a new one. It undoes none of those CC-CMDs: the KV cache (`2026-07-08-afl-kali-kv-cache`) and the `relayFetch` extraction stay as they are.
 
@@ -44,7 +44,7 @@ Nothing calls it today: the AFL offseason has no AFL games (`buildAFLJournalismC
 
 **Task 3. Execute and record (Rule 87.3).** Run the script and its `--mutate`; commit single-concern (`fix: relayFetchKV does not store a non-JSON body`); push to `main`; wait for `deploy.yml`; record the run id.
 
-**Task 4. Outbox manifest, last.** `outbox/cc-session-2026-11-22-kali-shut-down.md` (Rule 67): commit hash, deploy run id, the script's printed `checked 4 of 4` and mutation result, the probe output from Task 0. Do not write the literal CI-skip token in any commit message.
+**Task 4. Outbox manifest, last.** The session record `outbox/cc-session-2026-11-22-aflw-kali-source-read.md` (Rule 67), section "Kali fix manifest": commit hashes, both deploy run ids (the first failed at the citation gate on the evidence file, the second succeeded), the script's printed `checked 8 of 8` and mutation result, the run against the unfixed file, the ten-call comparison, the probe output from Task 0. Do not write the literal CI-skip token in any commit message.
 
 ## Done condition (a probe output, Rule 89)
 
