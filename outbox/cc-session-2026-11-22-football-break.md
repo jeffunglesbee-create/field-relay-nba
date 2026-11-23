@@ -26,3 +26,7 @@ None in this change. The defect was shipped in the page change that read the oth
 ## Addendum, the same evening
 
 21:41:15Z, the first NBA halftime body: `live`, `Q2`, `0.1`, no flag. The basketball adapter now carries `situation.isHalftime` as the football one does (board check N9, 15 of 15 mutations caught). Verification after deploy: the next NBA halftime (about 23:55Z); the status name ESPN uses is not read.
+
+## Basketball read, 2026-11-23
+
+Done condition 2b closed: the relay flag read on three real NBA halftime bodies (capture `outbox/live-capture-nba-2026-11-22-0107Z.json`, 01:07:38Z) and the three cards read `Half time` on the deployed page (`outbox/live-score-manifest-2026-11-22-20261123-0111Z.json`, PASS). The first armed read (00:05Z) fired with no game at a break; captures at 00:48Z and 01:02Z found the Q2 games not yet there; the one at 01:07Z was timed to the break. Detail in the CC-CMD's "Done condition 2b".
