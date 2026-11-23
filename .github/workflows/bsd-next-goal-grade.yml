@@ -1,0 +1,106 @@
+name: BSD next-goal grade against FIELD timelines
+
+# field-laboratory docs/CC-CMD-2026-11-22-bsd-next-goal-grade-against-field-timelines.md, run on this repository's runner on the
+# owner's word of 2026-11-23 ("Yes, run from relays runner"): the runner holds BSD_API_TOKEN; the laboratory does not use it.
+#
+# Of the 370 ledger calls the census found gradeable, how many does FIELD's own record of the match agree with? The RULE and its
+# counting are the laboratory's (scripts/bsd-next-goal-grade-core.mjs: pure, imports nothing, returns counts); this repository's
+# scripts/bsd-next-goal-grade.mjs only collects the data (the census's collect(): about 11 BSD requests, cap 16, a 429 or 401 stops
+# the run) and writes a counts-only artifact. The laboratory is checked out at a recorded commit (lab_ref, a full SHA by default so
+# that the code that runs is the code that was reviewed) and its sha256 is written into the artifact. Nothing here is committed to
+# the laboratory, and no ledger row, team, player or event id is written anywhere.
+#
+# The token is in the environment of ONE step (the grade). The laboratory's own checks and mutation harness run without it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      lab_ref:
+        description: 'field-laboratory commit to run (a full SHA; the default is the one this was written against)'
+        required: false
+        default: 'main'
+      call_budget:
+        description: 'Max BSD requests (default 16)'
+        required: false
+      read_cap:
+        description: 'Max incidents.json reads through the relay (default 1500)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-next-goal-grade
+  cancel-in-progress: false
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The laboratory, at the commit named
+        uses: actions/checkout@v4
+        with:
+          repository: jeffunglesbee-create/field-laboratory
+          ref: ${{ inputs.lab_ref }}
+          path: lab
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Record the laboratory commit
+        run: echo "LAB_SHA=$(git -C lab rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      # About 15 seconds, no token. The mutation harnesses (about 130 and 80 mutants) run LAST, after the artifact is committed.
+      - name: The checks can still fail
+        run: |
+          (cd lab && node scripts/check-bsd-next-goal-grade-core.mjs --self-test && node scripts/check-bsd-next-goal-grade-core.mjs)
+          node scripts/check-bsd-next-goal-census.mjs
+          node scripts/check-bsd-next-goal-census-run.mjs
+          node scripts/check-bsd-next-goal-grade-run.mjs --lab lab
+
+      - name: Grade
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+          READ_CAP: ${{ inputs.read_cap }}
+          LAB_CORE: lab/scripts/bsd-next-goal-grade-core.mjs
+        run: node scripts/bsd-next-goal-grade.mjs
+
+      # The evidence is committed whatever the verdict: a grade that was throttled or partial still left a record of what was asked.
+      - name: Commit the artifact
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-next-goal-grade-*.json' \
+          bash scripts/probe-commit-retry.sh "chore: BSD next-goal grade artifact"
+
+      # A grade that left something out is evidence, not a result: -latest.json does not advance on it, and neither does this stay green.
+      - name: A grade that left something out is not a result
+        run: |
+          set -euo pipefail
+          LATEST=$(ls outbox/bsd-next-goal-grade-2*.json | sort | tail -1)
+          echo "reading $LATEST"
+          node -e '
+            const fs=require("fs");
+            const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            console.log(`bsd ${d.bsdCallsMade}/${d.callBudget}, reads ${d.readsMade}, token ${d.tokenPresent}, stopped ${d.stopped}, analysisError ${d.analysisError}, reachedTarget ${d.reachedTarget}`);
+            console.log(d.coverageLine);
+            if(!d.tokenPresent){console.error("BSD_API_TOKEN absent: the ledger was not read, so every count is UNKNOWN, not zero");process.exit(1);}
+            if(d.analysisError){console.error("the analysis threw: the request log is kept, the counts are not");process.exit(1);}
+            if(!d.reachedTarget){console.error("not graded: "+d.notReachedBecause);process.exit(1);}
+          ' "$LATEST"
+
+      - name: The laboratory's mutation harness still catches every break
+        if: always()
+        working-directory: lab
+        run: node scripts/mutate-bsd-next-goal-grade-core.mjs
+
+      - name: The runner's mutation harness still catches every break
+        if: always()
+        run: node scripts/mutate-bsd-next-goal-grade.mjs --lab lab
