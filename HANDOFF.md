@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-23 (21:10Z) — BSD next-goal grade run on the relay's runner: 372 of 372 gradeable calls agree with FIELD's own goal timelines
+
+**HEAD:** `2dc5875` -> `e1f3a64` · **Branch:** main · this close-out is the next commit. No `src/` change.
+**Session doc:** outbox/cc-session-2026-11-23-bsd-next-goal-grade.md (task: the owner's "Yes, run from relays runner"; spec and full Result in field-laboratory `docs/CC-CMD-2026-11-22-bsd-next-goal-grade-against-field-timelines.md`)
+
+- **Measured, run 45263837691 (11 BSD requests, 249 reads, artifact commit `e1f3a64`):** ledger 1,754 calls, census gradeable 372 on 238 matches; **372 agree, 0 disagree, 0 not applicable**; confusion ledger hit/FIELD hit 282 and ledger miss/FIELD miss 90; every resolving goal at the ledger's `resolved_minute`; 13 stoppage, 26 penalty and 13 own-goal resolving goals agree; 118 calls on captures with VAR rows agree; every counted premise held except one unexplained observation (1 in-play capture, 2 calls, whose live-row score differs from its last goal; those calls agree).
+- **Not an independent grade:** both sides come from BSD, so agreement is one feed read twice; it says the published ledger is internally consistent with the feed FIELD captured, on the 372 of 1,754 calls in leagues FIELD captures.
+- **Built:** `scripts/bsd-next-goal-grade.mjs` (reuses the census's `collect()`; the rule is field-laboratory's pure core, loaded from a full-SHA checkout), a three-job workflow (`verify` no secret, `grade` token and no write credential, `commit` write credential and no token), run-check 22/126, harness 162 of 162. The census now reads redirects as statuses and carries a configurable fetch timeout (a stalled body hung the run on Node 22 with `redirect: 'error'`); census harness 200 of 200.
+- **Two adversarial reviews (71 agents) ran before the run** and found the first build unsafe (a vacuous runner harness, a zero-call grade advancing latest, `__proto__` tallies, a write credential beside the imported core); all fixed before the dispatch. The owner's weekly usage ruled out a third round.
+- **Still true from the previous close-out:** Repo guards red from `check-bsd-frame-contract.mjs` (reads capped) and the odds-routes label step, neither this session's, neither touched (Rule 69). Not re-checked here.
+
 ## SESSION CLOSE-OUT — 2026-11-23 (18:20Z) — the last unpriced EPL row is priced with a new `?snapshot=` option: 20 of 20 June-seed rows have odds, whole-archive count 0
 
 **HEAD:** `de97372` → this close-out is the next commit. `src/index.js` changed (`ade0dd81`: `/archive/odds-backfill?snapshot=HH:MM`).
