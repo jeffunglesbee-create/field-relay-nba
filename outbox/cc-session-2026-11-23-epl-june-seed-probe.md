@@ -50,6 +50,8 @@ One call at the measured 30 credits per call (eight consecutive 30-credit steps 
 
 None touches spend or what the one call wrote. Confirmed and fixed in a follow-up commit: the join-shared failure (high, already fixed before the push); `fetchSportOddsHistorical`'s own `snapshotTime` default (what `/archive/game` uses) was pinned by no gate and the B7 label overclaimed it; a stale comment at the late-snapshot guard ("The snapshot is noon"); the snapshot regex's anchors and boundaries only partly tested; several runner checks that could not fail (the file-name anchors, the preflight body test, the minute range); response bodies cut to 200/120 characters BEFORE the secret is redacted, so a secret straddling the cut would be written in part (the redaction point I introduced on 2026-11-22 sat after the cut). Refuted: a non-ISO vendor `timestamp` bypassing the guard (predates this work, intended by Rule 99, logged); `snapshot` not echoed on the early `ok:false` answers (no counts there, the judge rejects them first); the ledger keyed by the requested string so 09:31 would spend again on the same row (stated design: each run needs the owner's number).
 
+**Fixed in a follow-up:** `414cff7f` (relay-side: the default pinned by B7 and mutant F28, ten more bad and three good snapshot values with mutants F29 to F32, the stale comment; check 42 -> 56, mutants 27 -> 32) and `e9ca054f` (runner: the credential redacted before the response body is cut, S63 to S69 and mutants R54 to R63; self-test 61 -> 74, mutants 49 -> 59). Before the push the full deploy.yml sweep (125 run-steps) was run again on the clean tree: all pass.
+
 ## Residual
 
 - **None for the 20 rows.** Done condition met.
