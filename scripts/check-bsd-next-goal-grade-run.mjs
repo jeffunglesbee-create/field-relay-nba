@@ -23,8 +23,8 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-export const MIN_SCENARIOS = 20;
-export const MIN_ASSERTIONS = 96;
+export const MIN_SCENARIOS = 22;
+export const MIN_ASSERTIONS = 126;
 
 const argv = process.argv.slice(2);
 const FAIL_FAST = argv.includes('--fail-fast');   // stop at the first failing assertion: the mutation harness needs red or green, not the whole list
@@ -41,8 +41,11 @@ let finished = false;
 process.on('exit', (code) => {
   if (!finished) { console.log(`FAIL  the check did not run to its end (exit ${code}, ${scenarios} scenarios, ${assertions} assertions)`); process.exitCode = 1; }
 });
-const stable = (v) => JSON.stringify(v, (k, val) => (val && typeof val === 'object' && !Array.isArray(val)
-  ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : val));
+const stable = (v) => JSON.stringify(v, (k, val) => {
+  if (val === undefined) return '<<undefined>>';
+  if (typeof val === 'number' && !Number.isFinite(val)) return `<<${String(val)}>>`;
+  return val && typeof val === 'object' && !Array.isArray(val) ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : val;
+});
 const eq = (label, got, want) => {
   assertions++;
   if (stable(got) !== stable(want)) {
@@ -56,7 +59,7 @@ if (!fs.existsSync(CORE)) { console.log(`FAIL  no laboratory checkout at ${LAB} 
 const lab = await import(pathToFileURL(path.join(LAB, 'scripts/fixtures/bsd-next-goal-grade-synthetic.mjs')).href);
 const realCore = await import(pathToFileURL(CORE).href);
 const { call, key, listPage, ftRow, liveRow } = await import(pathToFileURL(path.resolve('scripts/fixtures/bsd-next-goal-census-synthetic.mjs')).href);
-const { populationOf, validGrade, NOTE } = await import(pathToFileURL(SOURCE).href);
+const { populationOf, validGrade, sameAsCensus, NOTE } = await import(pathToFileURL(SOURCE).href);
 const { analyseCensus } = await import(pathToFileURL(path.resolve('scripts/bsd-next-goal-census.mjs')).href);
 
 // ---- the world: nine ledger calls on four matches, built so every disposition happens once
@@ -116,14 +119,14 @@ async function serve(route, log) {
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 }
 
-async function runGrade({ bsd = bsdStub(), relay = relayStub(), token = TOKEN, core = CORE, labSha = 'abc1234', readCap = '', deadline = '', actions = false, labCopy = false } = {}) {
+async function runGrade({ bsd = bsdStub(), relay = relayStub(), token = TOKEN, core = CORE, labSha = 'abc1234', readCap = '', deadline = '', actions = false, labCopy = false, emptyIdentity = false } = {}) {
   const bsdLog = [], relayLog = [];
   const b = await serve(bsd.route, bsdLog), r = await serve(relay.route, relayLog);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ngg-run-'));
   fs.mkdirSync(path.join(dir, 'src'));
   fs.writeFileSync(path.join(dir, 'src', 'index.js'), 'x = { bsdLeagueId: 1 }; y = { bsdLeagueId: 2 };');
   const env = { ...process.env, BSD_BASE: b.base, RELAY_URL: r.base, READ_CAP: readCap, CALL_BUDGET: '', RUN_DEADLINE_SECONDS: deadline, FETCH_TIMEOUT_SECONDS: '' };
-  if (actions) env.GITHUB_ACTIONS = 'true'; else delete env.GITHUB_ACTIONS;
+  if (actions) { env.GITHUB_ACTIONS = 'true'; env.GITHUB_SHA = 'f'.repeat(40); env.GITHUB_RUN_ID = '4242'; } else if (emptyIdentity) { delete env.GITHUB_ACTIONS; env.GITHUB_SHA = ''; env.GITHUB_RUN_ID = ''; } else { delete env.GITHUB_ACTIONS; delete env.GITHUB_SHA; delete env.GITHUB_RUN_ID; }
   if (labCopy) { fs.mkdirSync(path.join(dir, 'lab/scripts'), { recursive: true }); fs.copyFileSync(CORE, path.join(dir, 'lab/scripts/bsd-next-goal-grade-core.mjs')); core = 'lab/scripts/bsd-next-goal-grade-core.mjs'; }
   if (token === null) delete env.BSD_API_TOKEN; else env.BSD_API_TOKEN = token;
   if (core === null) delete env.LAB_CORE; else env.LAB_CORE = core;
@@ -168,8 +171,12 @@ await scenario('1 a whole run: the population the census calls gradeable is grad
   eq('the two not-applicable reasons by slug', g.notApplicable.byTagAndReason.slug, { epl: { [realCore.REASONS.none]: 1, [realCore.REASONS.noScore]: 1 } });
   eq('agree and disagree by distance: all three resolve on a goal at the ledger\'s minute', g.resolvedMinuteDistance, { 0: { graded: 3, agree: 2, disagree: 1 } });
   eq('three distinct goals, one with a disagreeing call', g.distinctGoals, { graded: 3, withADisagreeingCall: 1 });
-  eq('premises: three captures, one with a goal row lacking a score, one call on it; every totals sequence is 1..n; every call has a minute', [g.premises.distinctCaptures, g.premises.distinctCapturesWithAGoalRowLackingAScore, g.premises.callsOnCapturesWithAGoalRowLackingAScore, g.premises.distinctCapturesWhoseTotalsAreNotOneToN, g.premises.callsWithoutAMinute], [3, 1, 1, 0, 0]);
+  eq('premises: three captures, one with a goal row lacking a score, one call on it; every totals sequence is 1..n; every call has a call minute', [g.premises.distinctCaptures, g.premises.distinctCapturesWithAGoalRowLackingAScore, g.premises.callsOnCapturesWithAGoalRowLackingAScore, g.premises.distinctCapturesWhoseTotalsAreNotOneToN, g.premises.callsWithoutACallMinute], [3, 1, 1, 0, 0]);
   eq('the full-time score against the last goal: the full-time capture matches, the live one has no full-time row, the broken one is not evaluated', g.premises.fullTimeScoreVersusLastGoal, { calls: { matches: 3, 'no full-time score': 1, 'not evaluated': 1 }, distinctCaptures: { matches: 1, 'no full-time score': 1, 'not evaluated': 1 } });
+  eq('the live-row score against the last goal: the full-time and in-play captures carry no live score, the broken one is not evaluated; no stoppage goal', [g.premises.liveRowScoreVersusLastGoal, g.stoppageResolvingGoals], [{ calls: { 'no live row score': 4, 'not evaluated': 1 }, distinctCaptures: { 'no live row score': 2, 'not evaluated': 1 } }, { graded: 0, agree: 0, disagree: 0 }]);
+  eq('the census block carries the distinct matches and the calls per R2 directory the grade is checked against', [r.latest.census.distinctEventsGradeable, r.latest.census.gradeableBySlug], [3, { epl: 4, mls: 1 }]);
+  const fileSha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+  eq('the artifact ties the number to THIS repository\'s code: the hash of the runner, the census and the probe it ran (and no commit or run when not in Actions)', [r.latest.runner.graderSha256 === fileSha(SOURCE), r.latest.runner.censusSha256 === fileSha(path.resolve('scripts/bsd-next-goal-census.mjs')), r.latest.runner.probeSha256 === fileSha(path.resolve('scripts/bsd-next-goal-probe.mjs')), r.latest.runner.gitSha, r.latest.runner.runId], [true, true, true, null, null]);
   eq('the artifact carries the same-source caveat and the census reasons for the calls it did not grade', [r.latest.note === NOTE, /same feed|one feed/.test(r.latest.note), r.latest.census.notGradeableBecause], [true, true, { 'no resolved_minute': 1, 'no incidents.json in R2 for the event': 1, 'outcome is nogoal': 1, 'outcome is open': 1 }]);
   eq('the artifact records its own spend: three BSD requests of a cap of 16, three reads of a cap of 1500', [r.latest.bsdCallsMade, r.latest.callBudget, r.latest.readsMade, r.latest.readCap], [3, 16, 3, 1500]);
   eq('the census block agrees with the grade population', [r.latest.census.verdict, r.latest.census.gradeable, r.latest.census.uniqueCalls, r.latest.census.partialBecause], ['ANSWERED', 5, 9, []]);
@@ -187,6 +194,8 @@ await scenario('1 a whole run: the population the census calls gradeable is grad
 await scenario('2 no module named: nothing is spent', async () => {
   const r = await runGrade({ core: null });
   eq('exit 1, no request to either stub, no artifact, and it says why', [r.code, nothingSpent(r), r.files, /LAB_CORE is not set/.test(r.stderr)], [1, [0, 0], [], true]);
+  const noToken = await runGrade({ core: null, token: null });
+  eq('with no token either, the message is still printed and nothing is spent', [noToken.code, nothingSpent(noToken), /LAB_CORE is not set/.test(noToken.stderr)], [1, [0, 0], true]);
   const e = await runGrade({ core: '' });
   eq('an empty name is no name', [e.code, nothingSpent(e), /LAB_CORE is not set/.test(e.stderr)], [1, [0, 0], true]);
 });
@@ -224,6 +233,11 @@ await scenario('6 no token: no vendor request, no grade', async () => {
   const r = await runGrade({ token: null });
   eq('exit 0, no BSD request, an artifact that says the token was absent, no latest', [r.code, r.bsdLog.length, r.stampedFirst.tokenPresent, r.latest], [0, 0, false, null]);
   eq('grade null and not reached', [r.stampedFirst.grade, r.stampedFirst.reachedTarget], [null, false]);
+  eq('and it says WHY: the census is UNKNOWN because there was no token, and nothing threw', [/^the census is UNKNOWN: no BSD_API_TOKEN/.test(r.stampedFirst.notReachedBecause), r.stampedFirst.analysisError], [true, null]);
+  const empty = await runGrade({ token: '' });
+  eq('an empty token (what Actions expands an unset secret to) is no token, with the same reason', [empty.code, empty.bsdLog.length, empty.stampedFirst.tokenPresent, /^the census is UNKNOWN: no BSD_API_TOKEN/.test(empty.stampedFirst.notReachedBecause), empty.latest], [0, 0, false, true, null]);
+  const refused = await runGrade({ bsd: bsdStub({ fail: () => [401, { detail: 'bad token' }] }) });
+  eq('a vendor that answers 401: one request, stopped on 401, nothing graded, and the reason is the vendor\'s answer', [refused.bsdLog.length, refused.stampedFirst.stopped, refused.stampedFirst.grade, refused.stampedFirst.analysisError, refused.stampedFirst.notReachedBecause, refused.latest], [1, '401', null, null, 'the census is UNKNOWN: the ledger answered 401', null]);
 });
 
 await scenario('7 a module that throws: the evidence of the spend is kept, the result is not trusted', async () => {
@@ -260,6 +274,8 @@ await scenario('10 a token that reaches the artifact stops the write', async () 
   eq('a core that throws at import with the token in its message: nothing spent, nothing written, the token redacted from the log', [atImport.code, nothingSpent(atImport), atImport.files, atImport.stdout.includes(TOKEN), atImport.stderr.includes(TOKEN), atImport.stderr.includes('[redacted]')], [1, [0, 0], [], false, false, true]);
   const trimmed = await runGrade({ token: `${TOKEN}\n`, core: writeCore('throws-trimmed.mjs', "export const RULE_VERSION = 'x'\nexport const coverageLine = () => ''\nexport const gradeCalls = () => ({})\nthrow new Error('trimmed boom ' + process.env.BSD_API_TOKEN.trim() + ' end')\n") });
   eq('the same with a token that carries a trailing newline in the environment: the trimmed form is redacted too', [trimmed.code, trimmed.stderr.includes(TOKEN), trimmed.stderr.includes('[redacted]')], [1, false, true]);
+  const nullAtImport = await runGrade({ core: writeCore('throws-null.mjs', "export const RULE_VERSION = 'x'\nexport const coverageLine = () => ''\nexport const gradeCalls = () => ({})\nthrow null\n") });
+  eq('a core that throws null at import: exit 1, nothing spent, and the log still says it failed', [nullAtImport.code, nothingSpent(nullAtImport), /bsd-next-goal-grade failed: null/.test(nullAtImport.stderr)], [1, [0, 0], true]);
   const viaField = await runGrade({ core: writeCore('leaks-field.mjs', `import * as real from ${realUrl}\nexport const RULE_VERSION = real.RULE_VERSION\nexport const coverageLine = real.coverageLine\nexport const gradeCalls = (items) => { const g = real.gradeCalls(items); g.extra = process.env.BSD_API_TOKEN; return g }\n`) });
   eq('a reached run whose grade carries the token in a field: nothing written', [viaField.code, viaField.files, viaField.stdout.includes(TOKEN), viaField.stderr.includes(TOKEN)], [1, [], false, false]);
   const viaVersion = await runGrade({ core: writeCore('leaks-version.mjs', `import * as real from ${realUrl}\nexport const RULE_VERSION = 'v-' + process.env.BSD_API_TOKEN\nexport const coverageLine = real.coverageLine\nexport const gradeCalls = real.gradeCalls\n`) });
@@ -317,6 +333,11 @@ await scenario('11 populationOf selects exactly the census\'s gradeable calls, w
   eq('event_id: the capture\'s own id equals the ledger\'s, differs, is absent or null', [tagsOf(mkFt(5)).eventId, tagsOf(mkFt(6)).eventId, tagsOf(base({ event_id: undefined })).eventId, tagsOf(base({ event_id: null })).eventId], ['matches', 'differs', 'absent', 'absent']);
   eq('event_id: a text id equal to the number matches', tagsOf(base({ event_id: '5' })).eventId, 'matches');
   const withRowAdded = (r) => { const c = mkFt(5); c.incidents.push(r); return c; };
+  const front = (r) => { const c = mkFt(5); c.incidents.unshift(r); return c; };
+  const middle = (r) => { const c = mkFt(5); c.incidents.splice(2, 0, r); return c; };
+  eq('VAR at the front and in the middle of the list is still VAR; a typeless object is not', [tagsOf(front({ type: 'varDecision' })).var, tagsOf(middle({ type: 'varDecision' })).var, tagsOf(front({ minute: 3 })).var], ['var rows', 'var rows', 'no var rows']);
+  eq('extra time at the front and in the middle of the list', [tagsOf(front({ type: 'period', text: 'ET', is_live: false, home_score: 1, away_score: 0 })).extraTime, tagsOf(middle({ type: 'period', text: 'ET', is_live: false, home_score: 1, away_score: 0 })).extraTime], ['yes', 'yes']);
+  eq('a read that answered 203 or 304 with a body is not a read', [203, 304, 201].map((status) => populationOf({ rows: [row(1, 5)], reads: new Map([['5', rd(mkFt(5), status)]]), slugOf: new Map([['5', 'epl']]) }).length), [0, 0, 0]);
   eq('VAR: a varDecision row anywhere in the capture, and a row of another type, and a row that is not an object', [tagsOf(withRowAdded({ type: 'varDecision', minute: 51 })).var, tagsOf(withRowAdded({ type: 'card', minute: 51 })).var, tagsOf(withRowAdded(null)).var], ['var rows', 'no var rows', 'no var rows']);
   const withPeriod = (text) => { const c = mkFt(5); c.incidents.push({ type: 'period', text, minute: 105, is_live: text === 'Extra time', home_score: 1, away_score: 0 }); return c; };
   eq('extra time: an Extra time row or an ET row; not Second half, Penalties, or text that only contains the letters', [tagsOf(withPeriod('Extra time')).extraTime, tagsOf(withPeriod('ET')).extraTime, tagsOf(withPeriod('Second half')).extraTime, tagsOf(withPeriod('Penalties')).extraTime, tagsOf(withPeriod('Competition')).extraTime, tagsOf(withPeriod('Set')).extraTime], ['yes', 'yes', 'no', 'no', 'no', 'no']);
@@ -338,7 +359,13 @@ await scenario('13 the laboratory commit is recorded when there is one, and as n
   eq('unset and empty are both null, and neither stops the run', [none.latest.core.labSha, empty.latest.core.labSha, none.latest.reachedTarget, empty.latest.reachedTarget], [null, null, true, true]);
   const SHA = 'a'.repeat(40);
   const inActions = await runGrade({ labSha: SHA, actions: true });
-  eq('under GITHUB_ACTIONS a 40-hex commit is accepted and recorded', [inActions.code, inActions.latest.core.labSha], [0, SHA]);
+  eq('under GITHUB_ACTIONS a 40-hex commit is accepted and recorded, with the repository commit and the run', [inActions.code, inActions.latest.core.labSha, inActions.latest.runner.gitSha, inActions.latest.runner.runId], [0, SHA, 'f'.repeat(40), '4242']);
+  const blank = await runGrade({ emptyIdentity: true });
+  eq('an empty GITHUB_SHA and GITHUB_RUN_ID are no commit and no run', [blank.latest.runner.gitSha, blank.latest.runner.runId], [null, null]);
+  const allDigits = await runGrade({ labSha: '0123456789abcdef0123456789abcdef01234567', actions: true });
+  eq('every hex digit is accepted', [allDigits.code, allDigits.latest.core.labSha], [0, '0123456789abcdef0123456789abcdef01234567']);
+  const edges = await Promise.all(['/', ':', '@', 'g', '`', 'G', ' ', '-', '.'].map((c) => runGrade({ labSha: `${'a'.repeat(39)}${c}`, actions: true })));
+  eq('one character just outside each end of the class makes it refused', edges.map((x) => [x.code, nothingSpent(x)]), Array(9).fill([1, [0, 0]]));
   const refused = await Promise.all([null, '', 'abc1234', 'A'.repeat(40), 'a'.repeat(39), 'a'.repeat(41), `${'a'.repeat(39)}g`].map((labSha) => runGrade({ labSha, actions: true })));
   eq('under GITHUB_ACTIONS no commit, an empty one, a short one, upper case, 39, 41 and non-hex characters are each refused before anything is spent', refused.map((x) => [x.code, nothingSpent(x), x.files.length, /LAB_SHA must be the full 40-hex/.test(x.stderr)]), Array(7).fill([1, [0, 0], 0, true]));
 });
@@ -370,6 +397,8 @@ await scenario('17 a core that returns the wrong thing leaves the evidence of th
     ['a grade with a missing count', mk('nocount.mjs', 'export const coverageLine = real.coverageLine\nexport const gradeCalls = (items) => { const g = real.gradeCalls(items); delete g.notApplicable; return g }'), /the core returned a grade of the wrong shape/],
     ['a count that is text', mk('text.mjs', "export const coverageLine = real.coverageLine\nexport const gradeCalls = (items) => { const g = real.gradeCalls(items); g.graded = '3'; return g }"), /the core returned a grade of the wrong shape/],
     ['a coverageLine that throws', mk('lineThrows.mjs', "export const coverageLine = () => { throw new Error('line boom') }\nexport const gradeCalls = real.gradeCalls"), /line boom/],
+    ['a gradeCalls that throws text', mk('throws-text.mjs', "export const coverageLine = real.coverageLine\nexport const gradeCalls = () => { throw 'plain text' }"), /plain text/],
+    ['a gradeCalls that throws null', mk('throws-null-in.mjs', 'export const coverageLine = real.coverageLine\nexport const gradeCalls = () => { throw null }'), /null/],
     ['a coverageLine that is not text', mk('lineNumber.mjs', 'export const coverageLine = () => 7\nexport const gradeCalls = real.gradeCalls'), /the core returned a coverage line that is not text/],
   ];
   const runs = await Promise.all(cases.map(([, core]) => runGrade({ core })));
@@ -377,7 +406,7 @@ await scenario('17 a core that returns the wrong thing leaves the evidence of th
     const r = runs[i], a = r.stampedFirst;
     eq(`${cases[i][0]}: exit 0, one stamped artifact, no latest, grade null, the log kept, the reason recorded`, [r.code, r.stamped.length, r.latest, a.grade, a.bsdLog.length, a.reachedTarget, cases[i][2].test(a.analysisError), a.notReachedBecause], [0, 1, null, null, 3, false, true, 'the analysis threw']);
   }
-  eq('validGrade: a whole grade is valid, and each missing or mistyped part is not', [validGrade(realCore.gradeCalls([])), validGrade(null), validGrade([]), validGrade({}), validGrade({ ...realCore.gradeCalls([]), population: -1 }), validGrade({ ...realCore.gradeCalls([]), graded: 1.5 }), validGrade({ ...realCore.gradeCalls([]), agree: '0' }), validGrade({ ...realCore.gradeCalls([]), disagree: undefined }), validGrade({ ...realCore.gradeCalls([]), notApplicable: null }), validGrade({ ...realCore.gradeCalls([]), notApplicable: { total: 'x' } }), validGrade({ ...realCore.gradeCalls([]), ruleVersion: 2 })], [true, false, false, false, false, false, false, false, false, false, false]);
+  eq('validGrade: a whole grade is valid, and each missing or mistyped part is not', [validGrade(realCore.gradeCalls([])), validGrade(null), validGrade([]), validGrade({}), validGrade({ ...realCore.gradeCalls([]), population: -1 }), validGrade({ ...realCore.gradeCalls([]), graded: 1.5 }), validGrade({ ...realCore.gradeCalls([]), agree: '0' }), validGrade({ ...realCore.gradeCalls([]), disagree: undefined }), validGrade({ ...realCore.gradeCalls([]), notApplicable: null }), validGrade({ ...realCore.gradeCalls([]), notApplicable: { total: 'x' } }), validGrade({ ...realCore.gradeCalls([]), ruleVersion: 2 }), validGrade({ ...realCore.gradeCalls([]), premises: undefined }), validGrade({ ...realCore.gradeCalls([]), premises: {} }), validGrade({ ...realCore.gradeCalls([]), premises: { distinctCaptures: '0' } }), validGrade({ ...realCore.gradeCalls([]), byTag: undefined }), validGrade({ ...realCore.gradeCalls([]), byTag: [] })], [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]);
 });
 
 await scenario('18 the workflow\'s own invocation: a relative LAB_CORE, from a working directory that holds lab/', async () => {
@@ -398,6 +427,7 @@ await scenario('19 a census that is partial for any reason grades nothing: a fai
 await scenario('20 every way a core can fail to account for the census\'s population stops latest, with its own reason', async () => {
   const mk = (name, expr) => writeCore(name, `import * as real from ${realUrl}\nexport const RULE_VERSION = real.RULE_VERSION\nexport const coverageLine = real.coverageLine\nexport const gradeCalls = (items) => { ${expr} }\n`);
   const PLACED = 'the core did not place every call exactly once';
+  const SAME = "the core's distinct captures or its calls per R2 directory are not the census's";
   const cases = [
     ['a population doubled', mk('double.mjs', 'return real.gradeCalls([...items, ...items])'), "the core's population 10 is not the census's gradeable count 5"],
     ['a population halved', mk('half.mjs', 'return real.gradeCalls(items.slice(0, 2))'), "the core's population 2 is not the census's gradeable count 5"],
@@ -407,11 +437,35 @@ await scenario('20 every way a core can fail to account for the census\'s popula
     ['one agreeing call too few', mk('agree-1.mjs', 'const g = real.gradeCalls(items); g.agree -= 1; return g'), PLACED],
     ['one disagreeing call too few', mk('disagree-1.mjs', 'const g = real.gradeCalls(items); g.disagree -= 1; return g'), PLACED],
     ['one disagreeing call too many', mk('disagree+1.mjs', 'const g = real.gradeCalls(items); g.disagree += 1; return g'), PLACED],
+    ['every capture under one key: the right number of calls, one distinct capture', mk('onekey.mjs', "return real.gradeCalls(items.map((i) => ({ ...i, key: 'same' })))"), SAME],
+    ['no tags at all', mk('notags.mjs', 'return real.gradeCalls(items.map((i) => ({ ...i, tags: {} })))'), SAME],
+    ['every call under one directory', mk('oneslug.mjs', "return real.gradeCalls(items.map((i) => ({ ...i, tags: { ...i.tags, slug: 'x' } })))"), SAME],
+    ['one call moved to another directory', mk('moved.mjs', "let n = 0; return real.gradeCalls(items.map((i) => (i.tags.slug === 'epl' && n++ === 0 ? { ...i, tags: { ...i.tags, slug: 'mls' } } : i)))"), SAME],
   ];
   const runs = await Promise.all(cases.map(([, core]) => runGrade({ core })));
   for (let i = 0; i < cases.length; i++) {
     eq(`${cases[i][0]}: no latest, not reached, a stamped artifact that keeps the grade it was given, and the exact reason`, [runs[i].latest, runs[i].stampedFirst.reachedTarget, runs[i].stamped.length, runs[i].stampedFirst.grade !== null, runs[i].stampedFirst.notReachedBecause], [null, false, 1, true, cases[i][2]]);
   }
+});
+
+await scenario('21 sameAsCensus: the same population, the same captures, the same calls in every R2 directory', () => {
+  const census = { gradeable: 5, distinctEventsGradeable: 3, gradeableBySlug: { epl: 4, mls: 1 } };
+  const mkGrade = (o = {}) => ({ population: 5, premises: { distinctCaptures: 3 }, byTag: { slug: { epl: { graded: 3, agree: 2, disagree: 1, notApplicable: 1 }, mls: { graded: 1, agree: 1, disagree: 0, notApplicable: 0 } } }, ...o });
+  eq('the right grade is the census\'s', sameAsCensus(mkGrade(), census), true);
+  eq('another population size', sameAsCensus(mkGrade({ population: 6 }), census), false);
+  eq('another number of distinct captures', sameAsCensus(mkGrade({ premises: { distinctCaptures: 2 } }), census), false);
+  eq('a directory missing, a directory added, and a directory renamed', [sameAsCensus(mkGrade({ byTag: { slug: { epl: { graded: 3, notApplicable: 1 } } } }), census), sameAsCensus(mkGrade({ byTag: { slug: { epl: { graded: 3, notApplicable: 1 }, mls: { graded: 1, notApplicable: 0 }, x: { graded: 0, notApplicable: 0 } } } }), census), sameAsCensus(mkGrade({ byTag: { slug: { epl: { graded: 3, notApplicable: 1 }, nls: { graded: 1, notApplicable: 0 } } } }), census)], [false, false, false]);
+  eq('a directory with one call too few or too many (graded and not applicable together)', [sameAsCensus(mkGrade({ byTag: { slug: { epl: { graded: 2, notApplicable: 1 }, mls: { graded: 1, notApplicable: 0 } } } }), census), sameAsCensus(mkGrade({ byTag: { slug: { epl: { graded: 3, notApplicable: 2 }, mls: { graded: 1, notApplicable: 0 } } } }), census)], [false, false]);
+  eq('graded and not applicable are summed, not compared with each other', sameAsCensus(mkGrade({ byTag: { slug: { epl: { graded: 0, notApplicable: 4 }, mls: { graded: 0, notApplicable: 1 } } } }), census), true);
+  eq('no byTag.slug at all, and a census with no directories', [sameAsCensus(mkGrade({ byTag: {} }), census), sameAsCensus(mkGrade({ population: 0, premises: { distinctCaptures: 0 }, byTag: {} }), { gradeable: 0, distinctEventsGradeable: 0, gradeableBySlug: {} }), sameAsCensus(mkGrade({ population: 0, premises: { distinctCaptures: 0 }, byTag: {} }), { gradeable: 0, distinctEventsGradeable: 0 })], [false, true, true]);
+  eq('a census that does not say how many distinct matches is not matched', sameAsCensus(mkGrade(), { gradeable: 5, gradeableBySlug: { epl: 4, mls: 1 } }), false);
+});
+
+await scenario('22 a population of one, and a population of calls the grader cannot apply its rule to', async () => {
+  const one = await runGrade({ bsd: bsdStub({ rows: [gcall({ id: 1, ev: 201, side: 'home', outcome: 'hit', rm: 20 })] }) });
+  eq('one call: reached, graded 1 of 1', [one.latest.reachedTarget, one.latest.grade.population, one.latest.grade.graded, one.latest.census.gradeable, one.latest.census.distinctEventsGradeable], [true, 1, 1, 1, 1]);
+  const none = await runGrade({ bsd: bsdStub({ rows: [gcall({ id: 1, ev: 201, side: 'away', outcome: 'hit', rm: 70, score: { home: 1, away: 1 } }), gcall({ id: 2, ev: 203, side: 'home', outcome: 'hit', rm: 10 })] }) });
+  eq('two calls the rule cannot be applied to (no third goal; a goal row with no score): the run IS a result, graded 0 of 2, every call named', [none.latest.reachedTarget, none.latest.grade.population, none.latest.grade.graded, none.latest.grade.notApplicable.total, none.latest.coverageLine.startsWith('graded 0 of 2 gradeable calls')], [true, 2, 0, 2, true]);
 });
 
 await scenario('15 the source declares what a live run depends on', () => {

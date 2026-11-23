@@ -19,6 +19,8 @@
 //   `|| rd.json === undefined` in populationOf: captureOf(undefined) does not parse, so the capture is dropped one line later.
 //   `if (id === null) continue;`: reads.get(null) is undefined, so the read is dropped one line later.
 //   `t.length >= 8` in redact: a real token is longer; the floor only stops an empty environment value from splitting every character.
+//   `want.some((s, i) => s !== got[i])` in sameAsCensus against a bare length test: a directory the grade renamed has the same count, but
+//     the per-directory test that follows looks it up by the census's name and finds nothing, so the answer is the same.
 //   the grading RULE: its mutants are field-laboratory's (scripts/mutate-bsd-next-goal-grade-core.mjs), not this runner's.
 //
 // Usage: node scripts/mutate-bsd-next-goal-grade.mjs [--lab DIR]   (DIR: a field-laboratory checkout, default lab)
@@ -93,7 +95,31 @@ const SOURCE_MUTATIONS = [
   ['a missing disagree is a grade', '&& isCount(g.disagree)\n    && isObj(g.notApplicable)', '\n    && isObj(g.notApplicable)'],
   ['a missing notApplicable is a grade', '    && isObj(g.notApplicable) && isCount(g.notApplicable.total)', '    && isCount(g.notApplicable.total)'],
   ['a missing notApplicable total is a grade', 'isObj(g.notApplicable) && isCount(g.notApplicable.total)', 'isObj(g.notApplicable)'],
-  ['a missing rule version is a grade', " && typeof g.ruleVersion === 'string';", ';'],
+  // ---- sameAsCensus
+  ['the population size is not compared', 'if (grade.population !== census.gradeable) return false;', ''],
+  ['the distinct captures are not compared', 'if (grade.premises.distinctCaptures !== census.distinctEventsGradeable) return false;', ''],
+  ['a directory the grade added is accepted', 'if (want.length !== got.length || want.some((s, i) => s !== got[i])) return false;', 'if (want.some((s, i) => s !== got[i])) return false;'],
+  ['the directories are not compared at all', 'if (want.length !== got.length || want.some((s, i) => s !== got[i])) return false;', ''],
+  ['the calls per directory are not compared', "return want.every((s) => isObj(slugs[s]) && slugs[s].graded + slugs[s].notApplicable === bySlug[s]);", 'return true;'],
+  ['only the graded calls per directory are compared', 'slugs[s].graded + slugs[s].notApplicable === bySlug[s]', 'slugs[s].graded === bySlug[s]'],
+  ['only the not-applicable calls per directory are compared', 'slugs[s].graded + slugs[s].notApplicable === bySlug[s]', 'slugs[s].notApplicable === bySlug[s]'],
+  ['a grade with no directories is read as empty', 'const slugs = isObj(grade.byTag.slug) ? grade.byTag.slug : {};', 'const slugs = grade.byTag.slug;'],
+  ['a census with no directories is read as the grade\'s', 'const bySlug = isObj(census.gradeableBySlug) ? census.gradeableBySlug : {};', 'const bySlug = isObj(census.gradeableBySlug) ? census.gradeableBySlug : grade.byTag.slug;'],
+  // ---- what ran here
+  ['the runner hash is of the census', "graderSha256: crypto.createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex'),", "graderSha256: hash('bsd-next-goal-census.mjs'),"],
+  ['the census hash is of the probe', "censusSha256: hash('bsd-next-goal-census.mjs'),", "censusSha256: hash('bsd-next-goal-probe.mjs'),"],
+  ['the probe hash is of the census', "probeSha256: hash('bsd-next-goal-probe.mjs'),", "probeSha256: hash('bsd-next-goal-census.mjs'),"],
+  ['the repository commit is not read', "gitSha: typeof process.env.GITHUB_SHA === 'string' && process.env.GITHUB_SHA !== '' ? process.env.GITHUB_SHA : null,", 'gitSha: null,'],
+  ['the run id is not read', "runId: typeof process.env.GITHUB_RUN_ID === 'string' && process.env.GITHUB_RUN_ID !== '' ? process.env.GITHUB_RUN_ID : null,", 'runId: null,'],
+  ['an empty commit is recorded', "typeof process.env.GITHUB_SHA === 'string' && process.env.GITHUB_SHA !== '' ?", "typeof process.env.GITHUB_SHA === 'string' ?"],
+  ['an empty run id is recorded', "typeof process.env.GITHUB_RUN_ID === 'string' && process.env.GITHUB_RUN_ID !== '' ?", "typeof process.env.GITHUB_RUN_ID === 'string' ?"],
+  ['the runner identity is not recorded', '    runner: runnerIdentity(),\n', ''],
+  ['the census distinct matches are not recorded', 'distinctEventsGradeable: census.distinctEventsGradeable, ', ''],
+  ['the census directories are not recorded', 'gradeableBySlug: census.gradeableBySlug, ', ''],
+  ['a missing rule version is a grade', " && typeof g.ruleVersion === 'string'\n", "\n"],
+  ['missing premises are a grade', '    && isObj(g.premises) && isCount(g.premises.distinctCaptures) && isObj(g.byTag);', '    && isObj(g.byTag);'],
+  ['a missing distinct-capture count is a grade', '&& isObj(g.premises) && isCount(g.premises.distinctCaptures) && isObj(g.byTag);', '&& isObj(g.premises) && isObj(g.byTag);'],
+  ['a missing byTag is a grade', '&& isCount(g.premises.distinctCaptures) && isObj(g.byTag);', '&& isCount(g.premises.distinctCaptures);'],
   ['a negative count is a count', 'const isCount = (v) => Number.isInteger(v) && v >= 0;', 'const isCount = (v) => Number.isInteger(v);'],
   ['a fraction is a count', 'const isCount = (v) => Number.isInteger(v) && v >= 0;', 'const isCount = (v) => typeof v === \'number\' && v >= 0;'],
   ['text is a count', 'const isCount = (v) => Number.isInteger(v) && v >= 0;', 'const isCount = (v) => Number.isInteger(Number(v)) && v >= 0;'],
@@ -131,10 +157,11 @@ const SOURCE_MUTATIONS = [
   ['a throw is not recorded', "analysisError = String(e && e.stack ? e.stack : e).split('\\n').slice(0, 4).join(' | ');", 'analysisError = null;'],
   ['a throw leaves no analysis', "analysis = analysis || { calls: {}, coverageLine: `ANALYSIS FAILED: ${analysisError.slice(0, 160)}` };", ''],
   ['a throw is caught nowhere', '  } catch (e) {\n    analysisError', '  } catch (e) {\n    throw e;\n    analysisError'],
-  ['the population is not compared with the census', 'const reached = partitions && grade.population === census.gradeable && grade.population > 0;', 'const reached = partitions && grade.population > 0;'],
-  ['the partition is not checked', 'const reached = partitions && grade.population === census.gradeable && grade.population > 0;', 'const reached = grade !== null && grade.population === census.gradeable && grade.population > 0;'],
-  ['an empty population is reached', 'const reached = partitions && grade.population === census.gradeable && grade.population > 0;', 'const reached = partitions && grade.population === census.gradeable;'],
-  ['an empty population is not reached by a different test', 'grade.population === census.gradeable && grade.population > 0;', 'grade.population === census.gradeable && grade.population >= 0;'],
+  ['the census is not consulted', 'const same = partitions && sameAsCensus(grade, census);', 'const same = partitions;'],
+  ['the partition is not checked', 'const same = partitions && sameAsCensus(grade, census);', 'const same = grade !== null && sameAsCensus(grade, census);'],
+  ['an empty population is reached', 'const reached = same && grade.population > 0;', 'const reached = same;'],
+  ['an empty population is not reached by a different test', 'const reached = same && grade.population > 0;', 'const reached = same && grade.population >= 0;'],
+  ['reached ignores the census', 'const reached = same && grade.population > 0;', 'const reached = partitions && grade.population > 0;'],
   ['graded and not applicable need not sum to the population', 'grade.graded + grade.notApplicable.total === grade.population && grade.agree', 'grade.graded + grade.notApplicable.total >= grade.population && grade.agree'],
   ['graded and not applicable may fall short of the population', 'grade.graded + grade.notApplicable.total === grade.population && grade.agree', 'grade.graded + grade.notApplicable.total <= grade.population && grade.agree'],
   ['agree and disagree may exceed graded', 'grade.agree + grade.disagree === grade.graded;', 'grade.agree + grade.disagree <= grade.graded;'],
@@ -144,6 +171,7 @@ const SOURCE_MUTATIONS = [
   ['a partition failure has no reason', ": !partitions ? 'the core did not place every call exactly once'", ': !partitions ? null'],
   ['a drop has no reason', "grade.population !== census.gradeable ? `the core's population ${grade.population} is not the census's gradeable count ${census.gradeable}`", 'grade.population !== census.gradeable ? null'],
   ['an empty population has no reason', ": grade.population === 0 ? 'the census found no gradeable calls' : null;", ': null;'],
+  ['the census mismatch has no reason', ": !same ? \"the core's distinct captures or its calls per R2 directory are not the census's\"", ': !same ? null'],
   ['the reasons are checked in another order', ": !partitions ? 'the core did not place every call exactly once'\n        : grade.population !== census.gradeable ?", ": grade.population !== census.gradeable ? 'x'\n        : !partitions ?"],
   ['reached is always true', 'reachedTarget: reached, notReachedBecause: why,', 'reachedTarget: true, notReachedBecause: why,'],
   ['the reason is not recorded', 'reachedTarget: reached, notReachedBecause: why,', 'reachedTarget: reached,'],
@@ -160,7 +188,7 @@ const SOURCE_MUTATIONS = [
   ['the census gradeable count is lost', 'gradeable: census.gradeable, gradeableBy', 'gradeableBy'],
   ['the census call count is lost', 'uniqueCalls: census.uniqueCalls, ', ''],
   ['the census funnel is lost', 'inTrackedLeague: census.inTrackedLeague, withIncidentsKey: census.withIncidentsKey, ', ''],
-  ['the census split is lost', 'gradeableBy: census.gradeableBy, notGradeableBecause', 'notGradeableBecause'],
+  ['the census split is lost', 'gradeableBy: census.gradeableBy, distinctEventsGradeable', 'distinctEventsGradeable'],
   ['the census reasons are lost', ', notGradeableBecause: census.notGradeableBecause }', ' }'],
   ['the census partial reasons are lost', 'partialBecause: census.partialBecause, ', ''],
   ['the grade is not in the artifact', '    grade, bsdLog: log,', '    bsdLog: log,'],
@@ -174,7 +202,8 @@ const SOURCE_MUTATIONS = [
   // ---- the committed file and the log
   ['the token is not refused', 'refuseIfTokenInside(body, TOKEN);', ''],
   ['the wrong secret is refused', 'refuseIfTokenInside(body, TOKEN);', "refuseIfTokenInside(body, 'not-the-token');"],
-  ['the token is not redacted from an error', "console.error('bsd-next-goal-grade failed:', redact(e.stack || e.message));", "console.error('bsd-next-goal-grade failed:', e.stack || e.message);"],
+  ['the token is not redacted from an error', "console.error('bsd-next-goal-grade failed:', redact(e && e.stack ? e.stack : e));", "console.error('bsd-next-goal-grade failed:', e && e.stack ? e.stack : e);"],
+  ['the thrown value is assumed to have a stack', "redact(e && e.stack ? e.stack : e)", "redact(e.stack)"],
   ['only the raw token is redacted', '.reduce((s, t) => (typeof t === \'string\' && t.length >= 8 ? s.split(t).join(\'[redacted]\') : s), String(text));', '.slice(0, 1).reduce((s, t) => (typeof t === \'string\' && t.length >= 8 ? s.split(t).join(\'[redacted]\') : s), String(text));'],
   ['the token is not removed from the message', "s.split(t).join('[redacted]')", 's'],
   ['the outbox directory is not made', "fs.mkdirSync('outbox', { recursive: true });", ''],
@@ -185,7 +214,7 @@ const SOURCE_MUTATIONS = [
   ['the stamp has another prefix', 'fs.writeFileSync(`outbox/bsd-next-goal-grade-${stamp}.json`, body);', 'fs.writeFileSync(`outbox/bsd-next-goal-census-${stamp}.json`, body);'],
   // ---- running
   ['importing the runner runs it', 'if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {', 'if (true) {'],
-  ['a failure exits 0', "redact(e.stack || e.message)); process.exit(1);", "redact(e.stack || e.message)); process.exit(0);"],
+  ['a failure exits 0', "redact(e && e.stack ? e.stack : e)); process.exit(1);", "redact(e && e.stack ? e.stack : e)); process.exit(0);"],
   ['a success exits 1', 'main().then(() => process.exit(0))', 'main().then(() => process.exit(1))'],
 ]
 
@@ -196,8 +225,8 @@ const CHECK_MUTATIONS = [
   ['blind', 'eq never fails', 'if (stable(got) !== stable(want)) {', 'if (false) {', BROKEN_FOR_RUN],
   ['blind', 'the exit code ignores failures', 'finished = true;\nprocess.exit(failed === 0 ? 0 : 1);', 'finished = true;\nprocess.exit(0);', BROKEN_FOR_RUN],
   ['blind', 'an early exit is not noticed', "process.on('exit', (code) => {", "process.on('never', (code) => {", BROKEN_EXITS_AT_IMPORT],
-  ['red', 'MIN_SCENARIOS is one above the real count', 'export const MIN_SCENARIOS = 20;', 'export const MIN_SCENARIOS = 21;'],
-  ['red', 'MIN_ASSERTIONS is one above the real count', 'export const MIN_ASSERTIONS = 96;', 'export const MIN_ASSERTIONS = 97;'],
+  ['red', 'MIN_SCENARIOS is one above the real count', 'export const MIN_SCENARIOS = 22;', 'export const MIN_SCENARIOS = 23;'],
+  ['red', 'MIN_ASSERTIONS is one above the real count', 'export const MIN_ASSERTIONS = 126;', 'export const MIN_ASSERTIONS = 127;'],
 ]
 
 const applyEdits = (text, edits, label) => {

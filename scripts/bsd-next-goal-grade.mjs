@@ -28,7 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { refuseIfTokenInside } from './bsd-next-goal-probe.mjs';
 import { collect, analyseCensus, captureOf, covers } from './bsd-next-goal-census.mjs';
 
@@ -75,7 +75,23 @@ export function populationOf({ rows, reads, slugOf }) {
 /** The shape the runner relies on, checked once, so a core that returns something else cannot crash the write. */
 export function validGrade(g) {
   return isObj(g) && isCount(g.population) && isCount(g.graded) && isCount(g.agree) && isCount(g.disagree)
-    && isObj(g.notApplicable) && isCount(g.notApplicable.total) && typeof g.ruleVersion === 'string';
+    && isObj(g.notApplicable) && isCount(g.notApplicable.total) && typeof g.ruleVersion === 'string'
+    && isObj(g.premises) && isCount(g.premises.distinctCaptures) && isObj(g.byTag);
+}
+
+/**
+ * The run's own check that the core graded the census's population and not another of the same size: the same number of calls, the
+ * same number of distinct captures, and, for every R2 directory, the same number of calls in it (graded or not applicable).
+ */
+export function sameAsCensus(grade, census) {
+  if (grade.population !== census.gradeable) return false;
+  if (grade.premises.distinctCaptures !== census.distinctEventsGradeable) return false;
+  const bySlug = isObj(census.gradeableBySlug) ? census.gradeableBySlug : {};
+  const slugs = isObj(grade.byTag.slug) ? grade.byTag.slug : {};
+  const want = Object.keys(bySlug).sort();
+  const got = Object.keys(slugs).sort();
+  if (want.length !== got.length || want.some((s, i) => s !== got[i])) return false;
+  return want.every((s) => isObj(slugs[s]) && slugs[s].graded + slugs[s].notApplicable === bySlug[s]);
 }
 
 async function loadCore(corePath) {
@@ -86,6 +102,20 @@ async function loadCore(corePath) {
   for (const name of ['gradeCalls', 'coverageLine']) if (typeof core[name] !== 'function') throw new Error(`LAB_CORE does not export ${name}()`);
   if (typeof core.RULE_VERSION !== 'string') throw new Error('LAB_CORE does not export RULE_VERSION');
   return { core, sha256: crypto.createHash('sha256').update(text).digest('hex') };
+}
+
+// What ran HERE, beside what the lab's core ran: the repository commit and run, and the hash of each file that selected and carried the
+// data (this file, the census it reuses, and the probe it reuses), so a number can be tied to this repository's code as well as the lab's.
+function runnerIdentity() {
+  const dir = path.dirname(fileURLToPath(import.meta.url));
+  const hash = (f) => crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, f))).digest('hex');
+  return {
+    gitSha: typeof process.env.GITHUB_SHA === 'string' && process.env.GITHUB_SHA !== '' ? process.env.GITHUB_SHA : null,
+    runId: typeof process.env.GITHUB_RUN_ID === 'string' && process.env.GITHUB_RUN_ID !== '' ? process.env.GITHUB_RUN_ID : null,
+    graderSha256: crypto.createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex'),
+    censusSha256: hash('bsd-next-goal-census.mjs'),
+    probeSha256: hash('bsd-next-goal-probe.mjs'),
+  };
 }
 
 async function main() {
@@ -114,22 +144,25 @@ async function main() {
   }
   const census = analysis.calls || {};
   const partitions = grade !== null && grade.graded + grade.notApplicable.total === grade.population && grade.agree + grade.disagree === grade.graded;
-  const reached = partitions && grade.population === census.gradeable && grade.population > 0;
+  const same = partitions && sameAsCensus(grade, census);
+  const reached = same && grade.population > 0;
   const why = analysisError !== null ? 'the analysis threw'
     : grade === null ? notGraded
       : !partitions ? 'the core did not place every call exactly once'
         : grade.population !== census.gradeable ? `the core's population ${grade.population} is not the census's gradeable count ${census.gradeable}`
-          : grade.population === 0 ? 'the census found no gradeable calls' : null;
+          : !same ? "the core's distinct captures or its calls per R2 directory are not the census's"
+            : grade.population === 0 ? 'the census found no gradeable calls' : null;
 
   Object.assign(out, {
     bsdCallsMade: bsdCalls, stopped, analysisError, readsMade: reads.size,
     // -latest.json advances only on a grade whose population is the census's own, that is not empty, and that placed every call once
     reachedTarget: reached, notReachedBecause: why,
     core: { path: CORE_PATH, sha256, labSha: LAB_SHA, ruleVersion: core.RULE_VERSION },
+    runner: runnerIdentity(),
     note: NOTE,
     coverageLine: grade !== null ? gradeLine : `not graded: ${why}`,
     censusCoverageLine: analysis.coverageLine,
-    census: { verdict: census.verdict, partialBecause: census.partialBecause, uniqueCalls: census.uniqueCalls, inTrackedLeague: census.inTrackedLeague, withIncidentsKey: census.withIncidentsKey, gradeable: census.gradeable, gradeableBy: census.gradeableBy, notGradeableBecause: census.notGradeableBecause },
+    census: { verdict: census.verdict, partialBecause: census.partialBecause, uniqueCalls: census.uniqueCalls, inTrackedLeague: census.inTrackedLeague, withIncidentsKey: census.withIncidentsKey, gradeable: census.gradeable, gradeableBy: census.gradeableBy, distinctEventsGradeable: census.distinctEventsGradeable, gradeableBySlug: census.gradeableBySlug, notGradeableBecause: census.notGradeableBecause },
     grade, bsdLog: log,
   });
   const body = JSON.stringify(out, null, 2);
@@ -149,5 +182,5 @@ const redact = (text) => [process.env.BSD_API_TOKEN, typeof process.env.BSD_API_
   .reduce((s, t) => (typeof t === 'string' && t.length >= 8 ? s.split(t).join('[redacted]') : s), String(text));
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().then(() => process.exit(0)).catch((e) => { console.error('bsd-next-goal-grade failed:', redact(e.stack || e.message)); process.exit(1); });
+  main().then(() => process.exit(0)).catch((e) => { console.error('bsd-next-goal-grade failed:', redact(e && e.stack ? e.stack : e)); process.exit(1); });
 }

@@ -3,22 +3,25 @@ name: BSD next-goal grade against FIELD timelines
 # field-laboratory docs/CC-CMD-2026-11-22-bsd-next-goal-grade-against-field-timelines.md, run on this repository's runner on the
 # owner's word of 2026-11-23 ("Yes, run from relays runner"): the runner holds BSD_API_TOKEN; the laboratory does not use it.
 #
-# Of the 370 ledger calls the census found gradeable, how many does FIELD's own record of the match agree with? The RULE and its
-# counting are the laboratory's (scripts/bsd-next-goal-grade-core.mjs: pure, imports nothing, returns counts); this repository's
-# scripts/bsd-next-goal-grade.mjs only collects the data (the census's collect(): about 11 BSD requests, cap 16, a 429 or 401 stops
-# the run) and writes a counts-only artifact. Nothing here is committed to the laboratory, and no ledger row, team, player or event id
-# is written anywhere.
+# Of the 370 ledger calls the census found gradeable (the count at run time is what is graded), how many does FIELD's own record of the
+# match agree with? The RULE and its counting are the laboratory's (scripts/bsd-next-goal-grade-core.mjs: pure, imports nothing, returns
+# counts); this repository's scripts/bsd-next-goal-grade.mjs only collects the data (the census's collect(): about 11 BSD requests, cap
+# 16, a 429 or 401 stops the run) and writes a counts-only artifact. No ledger row, team, player or event id is written anywhere.
 #
-# TWO JOBS, because of what review found (2026-11-23):
-#   verify  has NO secret. It checks out the laboratory at a FULL SHA, runs the laboratory's check and mutation harness, the census
-#           checks, and this repository's run check and mutation harness. A blind check stops the run here, before any request.
-#   grade   has the token, needs verify, and runs the grade.
-# THE TRUST BOUNDARY, stated plainly: the laboratory's core is import()ed into the grade step's process, which holds the token. Nothing
-# in this file can prevent that code reaching the token. What limits it: lab_ref is REQUIRED and must be a full 40-hex SHA (a branch
-# name is refused, because a branch moves), the commit that runs is the one that was reviewed, the laboratory's check asserts the
-# core's source text reaches for nothing (a tripwire against an accident, not a sandbox), the artifact is refused if the token appears
-# in it, and the core's sha256 and the laboratory commit are written into the artifact (a record, not a prevention).
-# The job runs only on main: the commit step pushes to main, so a dispatch from another ref must not reach it.
+# THREE JOBS, because of what two reviews found (2026-11-23):
+#   verify  NO secret, read-only. Checks out the laboratory at a FULL SHA and runs the laboratory's check and mutation harness, the
+#           census checks, and this repository's run check and mutation harness. A blind check stops the run here, before any request.
+#   grade   HAS the token and NO write credential: read-only, and its checkout keeps no credential. It imports the laboratory's core, runs
+#           the grade, and hands the artifact files to the next job as a build artifact. It pushes nothing.
+#   commit  HAS the write credential and NO token, and imports no laboratory code. It accepts only files named like the grade's
+#           artifacts, parses each as JSON, commits them to main, and fails the workflow if the grade did not reach its target.
+# THE TRUST BOUNDARY, stated plainly: the laboratory's core is import()ed into the grade step's process, which holds the token. Nothing in
+# this file can prevent that code reaching the token. What limits it: lab_ref is REQUIRED and must be a full 40-hex SHA (a branch name is
+# refused, because a branch moves), so the commit that runs is the one that was reviewed; the laboratory's check asserts the core's source
+# text reaches for nothing (a tripwire against an accident, not a sandbox); the artifact is refused if the token appears in it; and the
+# core's sha256, the laboratory commit and this repository's own file hashes are written into the artifact (a record, not a prevention).
+# The grade job holds no write credential, so a core cannot push to this repository; what it can do with the token is the residual risk.
+# The workflow runs only on main: the commit job pushes to main, so a dispatch from another ref must not reach it.
 
 on:
   workflow_dispatch:
@@ -27,14 +30,14 @@ on:
         description: 'field-laboratory commit to run: a full 40-hex SHA (required; a branch name is refused)'
         required: true
       call_budget:
-        description: 'Max BSD requests (default 16)'
+        description: 'Max BSD requests, 1 to 50 (default 16)'
         required: false
       read_cap:
-        description: 'Max incidents.json reads through the relay (default 1500)'
+        description: 'Max incidents.json reads through the relay, 1 to 5000 (default 1500)'
         required: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: bsd-next-goal-grade
@@ -44,15 +47,17 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    permissions:
-      contents: read
     steps:
-      - name: Only on main, and only a full commit SHA
+      - name: Only on main, a full commit SHA, and sane budgets
         env:
           LAB_REF: ${{ inputs.lab_ref }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+          READ_CAP: ${{ inputs.read_cap }}
         run: |
-          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "dispatch this workflow on main only (the grade step pushes to main); got $GITHUB_REF"; exit 1; }
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "dispatch this workflow on main only (the commit job pushes to main); got $GITHUB_REF"; exit 1; }
           [[ "$LAB_REF" =~ ^[0-9a-f]{40}$ ]] || { echo "lab_ref must be a full 40-hex commit SHA, not a branch or a short SHA"; exit 1; }
+          if [ -n "$CALL_BUDGET" ]; then [[ "$CALL_BUDGET" =~ ^[1-9][0-9]?$ ]] && [ "$CALL_BUDGET" -le 50 ] || { echo "call_budget must be a whole number from 1 to 50"; exit 1; }; fi
+          if [ -n "$READ_CAP" ]; then [[ "$READ_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$READ_CAP" -le 5000 ] || { echo "read_cap must be a whole number from 1 to 5000"; exit 1; }; fi
 
       - uses: actions/checkout@v4
         with:
@@ -97,8 +102,12 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: The laboratory, at the commit named
         uses: actions/checkout@v4
@@ -112,11 +121,14 @@ jobs:
         with:
           node-version: '22'
 
-      # Assigned first so that a failing rev-parse stops the step, and checked, so that the artifact is always tied to a commit.
+      # Assigned first so that a failing rev-parse stops the step; checked against what verify checked, so the artifact is always tied to it.
       - name: Record the laboratory commit
+        env:
+          LAB_REF: ${{ inputs.lab_ref }}
         run: |
           SHA=$(git -C lab rev-parse HEAD)
           [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "the laboratory commit is not a 40-hex SHA: '$SHA'"; exit 1; }
+          [ "$SHA" = "$LAB_REF" ] || { echo "the checkout is $SHA, not $LAB_REF"; exit 1; }
           echo "LAB_SHA=$SHA" >> "$GITHUB_ENV"
 
       # The token is in the environment of this ONE step. The step has its own limit, so that a hang cannot use the job's.
@@ -129,9 +141,51 @@ jobs:
           LAB_CORE: lab/scripts/bsd-next-goal-grade-core.mjs
         run: node scripts/bsd-next-goal-grade.mjs
 
-      # The evidence is committed whatever the verdict: a grade that was throttled or partial still left a record of what was asked.
-      - name: Commit the artifact
+      # The evidence goes to the commit job whatever the verdict: a grade that was throttled or partial still left a record of what was asked.
+      - name: Hand the artifact to the commit job
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsd-next-goal-grade
+          path: outbox/bsd-next-goal-grade-*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  commit:
+    needs: grade
+    if: ${{ always() && needs.grade.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Take the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bsd-next-goal-grade
+          path: outbox
+        continue-on-error: true
+
+      # Only files named like the grade's own are committed, and each must be JSON. Nothing else that came back is kept.
+      - name: Accept only the grade's own files
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          N=0
+          for f in outbox/bsd-next-goal-grade-*.json; do
+            b=$(basename "$f")
+            [[ "$b" =~ ^bsd-next-goal-grade-(latest|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}Z)\.json$ ]] || { echo "unexpected file name: $b"; exit 1; }
+            [ "$(stat -c %s "$f")" -lt 2000000 ] || { echo "$b is larger than 2 MB"; exit 1; }
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$f" || { echo "$b is not JSON"; exit 1; }
+            N=$((N+1))
+          done
+          echo "accepted $N file(s)"
+          [ "$N" -ge 1 ] || { echo "the grade job left no artifact"; exit 1; }
+
+      # The evidence is committed whatever the verdict.
+      - name: Commit the artifact
         run: |
           PROBE_AUTHOR_NAME="FIELD CI" \
           PROBE_AUTHOR_EMAIL="claude@field.dev" \
