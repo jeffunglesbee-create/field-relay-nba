@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (data repair, billed; the decision is the owner's)
-**Status:** FILED 2026-11-22, not started. Blocked on the owner: pricing them spends historical Odds credits (Task 1), and the owner chooses whether it runs at all.
+**Status:** IN PROGRESS 2026-11-23. Task 0 done and the owner's "Probe" run once (30 credits, 2026-05-09): 4 of the 5 rows priced, 16 rows on 5 dates remain unpriced. Blocked on the owner for any further spend (Task 1): the recommendation is the other four dates, 120 credits. Nothing more is bought on the word "Probe". Session doc: `outbox/cc-session-2026-11-23-epl-june-seed-probe.md`.
 **Filed from:** `docs/CC-CMD-2026-11-22-epl-rows-left-unpriced-by-c-palace.md` (DONE 2026-11-22), which recorded these rows as "a different state, out of scope". Searched by content before filing (BUILD-ON-A): no other CC-CMD names these rows; the CFL experiment's VOID window (to 2026-11-23) lists functions this work does not touch.
 
 ## What was measured, 2026-11-22 (read-only SELECTs of `field-archive`; no credit spent)
@@ -52,3 +52,20 @@ Through the existing runner and nothing else: dispatch `odds-backfill-capped.yml
 ## Task 3 — outbox manifest (last task)
 
 `outbox/cc-session-<date>-epl-june-seed-rows.md`: the Task 0 numbers with sources, the owner's decision verbatim, the calls made and the provider's `quota_remaining` after each, the done-condition query output, and the 12 no-draw rows' list.
+
+## Results, 2026-11-23
+
+**Task 0 (no spend):**
+1. The 20 rows re-read: 5 on 05-09, 4 on 05-10, 1 on 05-13, 2 on 05-17, 8 on 05-24. Expected 20, found 20.
+2. `resolveTeamKey` on all 20 spellings: every one resolves; `Sunderland AFC` and `Sunderland` give one key, `Brighton & Hove Albion` and `Brighton and Hove Albion` one key, `AFC Bournemouth` and `Bournemouth` one key. These are the archive's spellings against spellings written from memory in the style the vendor uses, NOT recorded vendor names.
+3. No recorded vendor payload for any of the five May dates exists in `outbox/` (the one file that names a date, `odds-reachability-by-league-2026-09-14T12-58-45-023Z.json`, lists the archive's own last row date, not a payload).
+4. Cost: 30 credits per sport-date; five dates 150.
+5. The 12 priced EPL rows with no draw price are two cohorts: **4 rows of 2026-05-17** (this seed batch; `captured_at` 2026-06-16T03:01:03Z, a wall-clock stamp a month after the match) and **8 rows of 2026-08-22, 08-23 and 08-24** (`captured_at` about 10:00Z on the match date, two-way moneylines, written by the live snapshot, not the backfill). The second cohort is not part of this CC-CMD and is not explained; it needs its own look.
+
+**The probe (Task 2, the owner's word "Probe", 30 credits):** the first dispatch (run `45219835408`) was **refused before any request**: the runner's cap counted the nine result files of the earlier EPL run against a lifetime limit of nine ("9 sport-date(s) already attempted and 1 asked for: more than the cap of 9"). Nothing was spent and no file was written. That was a defect in the runner, not in the plan: the premise "reuse the runner" in this document had not been run. Fixed in `e56d8a5b` (the ceiling is per run; the once-per-date ledger and the owner's number per run stay). The second dispatch, run `45220297965`, answered: HTTP 200, `ok true`, `sport EPL`, `games_found 5`, `odds_populated 4`, `odds_skipped 1`, no `guarded`, no `stopped`; result file `outbox/odds-backfill-epl-2026-05-09-20261123T164645Z.json`.
+
+**What it wrote (D1, read-only after the run):** Brighton v Wolves -360/500/900, Fulham v Bournemouth 165/265/155, Man City v Brentford -275/475/650, Sunderland v Man United 275/265/-105: all draftkings, **three-way**, `captured_at` 2026-05-09T11:55:37Z (the snapshot the vendor served; the row has no kickoff time, so the route compared the snapshot with the vendor's own `commence_time` and priced only rows whose match was still to come). **Liverpool v Chelsea stays NULL**; the route reports one skip without saying why. Not established: a 12:30 BST Saturday kickoff is 11:30Z, before the 11:55Z snapshot, which would make the late-snapshot guard the reason, but the vendor's `commence_time` for that event was not read, so this is a candidate and not a finding. If it is the reason, no noon-snapshot call can ever price that row and it needs another source or an accepted NULL.
+
+**Cost:** one call at the measured 30 credits per call. The provider's `quota_remaining` read 90084 after it; the previous run ended at 90264 the day before and other consumers have spent since, so no difference can be taken from it. The ledger estimate is 30.
+
+**Remaining:** 16 unpriced EPL rows: 05-09 (1), 05-10 (4), 05-13 (1), 05-17 (2), 05-24 (8). **Recommendation for Task 1: the other four dates, 120 credits, 15 rows**; the probe shows the vendor history carries May 2026 and that the join works for these rows. Liverpool v Chelsea is a separate question (above). The owner may approve 120, a different set of dates, or stop here (the 16 are then listed as accepted).

@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-23 (16:55Z) — one-date probe of the 2026-06-15 EPL seed rows: 4 of 5 priced; 16 rows remain; the runner's lifetime cap was a defect and is fixed
+
+**HEAD:** `e56d8a5` → this close-out is the next commit. No `src/` change.
+**Session doc:** outbox/cc-session-2026-11-23-epl-june-seed-probe.md (task: the owner's "Probe", after "20 May rows: probe / all five / decline")
+
+- **The probe (30 credits, run `45220297965`, `2026-05-09`):** `games_found 5, odds_populated 4, odds_skipped 1`. Four three-way draftkings openers at 11:55:37Z on 2026-05-09 written to rows that have no `start_time`; **Liverpool v Chelsea still NULL, reason not established** (candidate: a 12:30 BST kickoff is before the snapshot). Unpriced EPL rows: 20 → **16**. The vendor's history carries May 2026 and the join works for these rows. The owner has approved nothing further; the recommendation is the other four dates, 120 credits (`docs/CC-CMD-2026-11-22-epl-june-seed-rows-unpriced.md`, Results).
+- **The first dispatch (run `45219835408`) was refused before any request, nothing spent:** the runner counted all committed EPL result files against a lifetime cap of nine, so the nine from 2026-11-22 refused every later EPL date. A design defect of mine (and "reuse the runner" had been written into a CC-CMD without running a second dispatch). Fixed in `e56d8a5`: the ceiling is per run; the once-per-date ledger and the owner's number per run are unchanged.
+- **Also recorded:** 12 priced EPL rows have no draw price: 4 of the June seed batch (wall-clock `captured_at` 2026-06-16) and 8 of 2026-08-22/23/24 written by the live snapshot. Not explained; not part of that CC-CMD.
+- `Repo guards` is still red from the BSD frame-contract step only.
+
 ## SESSION CLOSE-OUT — 2026-11-22 (21:50Z) — nine EPL rows left unpriced by the `C Palace` defect are priced; the deploy was red twice from this session's own commits and is fixed
 
 **HEAD:** `83c1e6c` (CI result files) → this close-out is the next commit. `src/index.js` changed (`/archive/odds-backfill` takes `?sport=`); none of the CFL experiment's functions (VOID window to 2026-11-23).
