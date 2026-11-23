@@ -1,6 +1,6 @@
 # CC-CMD-2026-11-22-aflw-live-source
 
-**Status: OPEN, HOLD on one owner ruling (G0 below) before Task 2. Task 1 is armed and runs without it.** Filed 2026-11-22. Owner direction of 2026-11-22: "aflw should be included", and to move forward on AFL and AFLW. Repos: field-relay-nba (Part A) then field-laboratory (Part B, relay first: ATOMIC-A / Rule 70). Rule 87: self-completing.
+**Status:** BLOCKED on one owner ruling (G0 below) before Task 2; Task 1, the Grand Final read, is armed and needs no ruling. Filed 2026-11-22. Owner direction of 2026-11-22: "aflw should be included", and to move forward on AFL and AFLW. Repos: field-relay-nba (Part A) then field-laboratory (Part B, relay first: ATOMIC-A / Rule 70). Rule 87: self-completing.
 
 **BUILD-ON-A, searched 2026-11-22.** `ls docs | grep -i -E "afl|kali|squiggle"` in both repos lists the relay's twelve AFL / Kali CC-CMDs of 2026-06-26 to 2026-07-08 (migration, Kali relay and cache, backfills, normalisation). None mentions AFLW (`grep -rn -i -l aflw` over `src/` and `docs/` of both repos, `CONTRACTS.md`, field-laboratory `scripts/`, and jubilant-bassoon `src/` and `index.html`, 2026-11-22: one file, field-laboratory `docs/CC-CMD-2026-11-11-live-scores-other-sports.md` Task 3 item 1, which this CC-CMD carries forward and is cross-referenced from). `CC-CMD-2026-08-08-espn-secondary-source-failover` rules out adding AFL failovers ("do not add FD/MLS/AFL failovers", its Task 2) and is not touched: this adds a competition ESPN does not serve, not a failover for one it does.
 
