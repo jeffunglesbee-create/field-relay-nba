@@ -1,0 +1,515 @@
+{
+  "probed_at": "2026-11-23T17:22:31.494Z",
+  "query_ok": true,
+  "checks": [
+    {
+      "id": "closing_after_opening",
+      "what": "closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate",
+      "qualifying_rows": 40,
+      "status": "PASS",
+      "sequenced": 40,
+      "sample": [
+        {
+          "id": "NFL_2026-11-22_e401873077",
+          "sport": "NFL",
+          "open": "2026-11-22T10:01:29.008Z",
+          "close": "2026-11-22T11:55:36Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "NFL_2026-11-22_e401873069",
+          "sport": "NFL",
+          "open": "2026-11-22T10:01:29.008Z",
+          "close": "2026-11-22T11:55:36Z",
+          "sequenced": true,
+          "identical_moneyline": true
+        },
+        {
+          "id": "NFL_2026-11-22_e401873075",
+          "sport": "NFL",
+          "open": "2026-11-22T10:01:29.008Z",
+          "close": "2026-11-22T11:55:36Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "NFL_2026-11-22_e401873074",
+          "sport": "NFL",
+          "open": "2026-11-22T10:01:29.008Z",
+          "close": "2026-11-22T11:55:36Z",
+          "sequenced": true,
+          "identical_moneyline": true
+        },
+        {
+          "id": "NFL_2026-11-22_e401873068",
+          "sport": "NFL",
+          "open": "2026-11-22T10:01:29.008Z",
+          "close": "2026-11-22T11:55:36Z",
+          "sequenced": true,
+          "identical_moneyline": true
+        },
+        {
+          "id": "NFL_2026-11-22_e401873076",
+          "sport": "NFL",
+          "open": "2026-11-22T10:01:29.008Z",
+          "close": "2026-11-22T11:55:36Z",
+          "sequenced": true,
+          "identical_moneyline": true
+        }
+      ]
+    },
+    {
+      "id": "soccer_opening_coverage",
+      "what": "EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)",
+      "qualifying_rows": 545,
+      "min_games_for_rate": 4,
+      "below_floor": [],
+      "status": "PASS — improved for EPL, La Liga",
+      "per_sport": [
+        {
+          "sport": "EPL",
+          "games": 108,
+          "with_open": 108,
+          "pct": 100,
+          "baseline_pct": 23.1
+        },
+        {
+          "sport": "La Liga",
+          "games": 120,
+          "with_open": 78,
+          "pct": 65,
+          "baseline_pct": 11.8
+        },
+        {
+          "sport": "Ligue 1",
+          "games": 98,
+          "with_open": 70,
+          "pct": 71.4,
+          "baseline_pct": null
+        },
+        {
+          "sport": "MLS",
+          "games": 219,
+          "with_open": 204,
+          "pct": 93.2,
+          "baseline_pct": null
+        }
+      ]
+    },
+    {
+      "id": "epl_brief_event_grounded",
+      "what": "EPL briefs since fpl_match_events deployed: not a season-stat template (all types) AND free of prompt-example literals (game_recap only — see asserted_on)",
+      "qualifying_rows": 10,
+      "status": "PASS — 10/10 not the season template, and no prompt-example literal in any of the 7 recap(s) written since the 2f fix | live: 0/3 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+      "literals_checked": 17,
+      "recaps_since_leak_fix": 7,
+      "live_briefs_sampled": 3,
+      "live_briefs_leaking_now": [],
+      "asserted_on": "game_recap only — live briefs are rewritten every cycle, so a snapshot cannot prove leak-freedom for them",
+      "historical_leaks_before_fix": [],
+      "note": "Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f's \"absent from context\" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.",
+      "sample": [
+        {
+          "id": "game_live_epl_401879237",
+          "created_at": "2026-11-23 10:01:40",
+          "written_at": "2026-11-23 16:47:09",
+          "len": 307,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Thierno Barry leads Everton with 6 goals this season, while Kevin Schade provides Brentford’s primary threat with 3 goals this season. These sides meet at Gtech Community Stadium for a scheduled Premier League fixture. U"
+        },
+        {
+          "id": "night_owl_2026-11-23_espn:401879234",
+          "created_at": "2026-11-23 01:27:40",
+          "written_at": "2026-11-23 03:30:03",
+          "len": 554,
+          "brief_type": "night_owl",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Hull City secured a 2-0 win over Brighton and Hove Albion tonight, establishing a 2-goal margin that dictates the current series record. Hull City maintained a clean sheet through 90 minutes of regulation, limiting Brigh"
+        },
+        {
+          "id": "night_owl_2026-11-23_espn:401878755",
+          "created_at": "2026-11-23 01:27:40",
+          "written_at": "2026-11-23 03:29:30",
+          "len": 602,
+          "brief_type": "night_owl",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Liverpool secured a 4-0 win against Manchester United, a 4-point margin that reshapes the current Premier League table. The 0-4 result highlights a tactical mismatch where Liverpool controlled the midfield, forcing Manch"
+        },
+        {
+          "id": "game_live_epl_401879234",
+          "created_at": "2026-11-22 10:02:19",
+          "written_at": "2026-11-23 02:50:46",
+          "len": 289,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Hull City upset Brighton 2-0 at The MKM Stadium, defying pre-game odds that closed at +550 for the home side. This result drops Brighton to a 7-1-3 record this season while improving Hull to 3-5-3 this season. USA Net br"
+        },
+        {
+          "id": "game_recap_epl_401879234",
+          "created_at": "2026-11-22 16:00:25",
+          "written_at": "2026-11-23 02:46:54",
+          "len": 289,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Hull City upset Brighton 2-0 at The MKM Stadium, defying pre-game odds that closed at +550 for the home side. This result drops Brighton to a 7-1-3 record this season while improving Hull to 3-5-3 this season. USA Net br"
+        },
+        {
+          "id": "game_live_epl_401878755",
+          "created_at": "2026-11-22 10:02:23",
+          "written_at": "2026-11-23 02:05:55",
+          "len": 318,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Liverpool dismantled Manchester United 4-0 at Anfield, moving their record to 6-3-2 this season. Manchester United struggled to find rhythm, falling to 1-5-5 this season while failing to score against the home side. Bett"
+        },
+        {
+          "id": "game_recap_epl_401878755",
+          "created_at": "2026-11-22 18:30:25",
+          "written_at": "2026-11-23 02:01:43",
+          "len": 318,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Liverpool dismantled Manchester United 4-0 at Anfield, moving their record to 6-3-2 this season. Manchester United struggled to find rhythm, falling to 1-5-5 this season while failing to score against the home side. Bett"
+        },
+        {
+          "id": "epl_match_2026-11-22_all",
+          "created_at": "2026-11-22 02:39:46",
+          "written_at": "2026-11-22 21:45:49",
+          "len": 287,
+          "brief_type": "epl_match",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Athletic Club enters this La Liga fixture at San Mames sitting 6th in the table, aiming to improve upon their 1.45 xG per match this season. Espanyol arrives 18th in the standings, needing to tighten a defensive structur"
+        },
+        {
+          "id": "night_owl_2026-11-22_espn:401879234",
+          "created_at": "2026-11-22 18:58:21",
+          "written_at": "2026-11-22 21:44:57",
+          "len": 549,
+          "brief_type": "night_owl",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Hull City secured a 2-0 win over Brighton and Hove Albion, a result that creates a 2-point margin in the final score. Brighton and Hove Albion struggled to break down a disciplined defensive block, failing to convert on "
+        },
+        {
+          "id": "night_owl_2026-11-22_espn:401878755",
+          "created_at": "2026-11-22 18:58:23",
+          "written_at": "2026-11-22 21:44:57",
+          "len": 574,
+          "brief_type": "night_owl",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Liverpool dismantled Manchester United 4-0 in a tactical masterclass that left the visitors without a single answer to the high press. A 4-point margin in the standings now separates these clubs after this result. Manche"
+        }
+      ]
+    },
+    {
+      "id": "recap_names_a_scoring_play",
+      "what": "game_recap briefs GENERATED since the recap path began assembling context (cd9b2e3, 2026-08-23 18:25:56) name a player who appears in that game's ESPN scoring plays",
+      "qualifying_rows": 12,
+      "generated_rows": 12,
+      "touched_rows": 0,
+      "touched_ids": [],
+      "testable_rows": 0,
+      "status": "PENDING — 12 generated recap(s), none testable (no ESPN scoring plays or no usable event id)",
+      "method": "per-row join: ESPN scoring plays for the brief's own game_id -> capitalised name tokens minus team words -> substring test against brief_text. A brief passes only by naming a real scorer in the game it is about; scoring VERBS are deliberately not accepted, since a season-stat template contains them too.",
+      "note": "Scored over GENERATED rows only. A row whose created_at predates the deploy carries pre-deploy prose and is listed in touched_ids rather than counted — the 2026-08-24 run read 9/12 while windowing on COALESCE(updated_at, created_at) against the match_events deploy, twelve hours before the recap path assembled anything, so an unknown number of those 12 were being scored for a build that had not shipped when their text was written. PARTIAL over generated rows is still expected on some slates: a recap can legitimately lead on something other than a scorer. 0/N over generated rows is the real signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.",
+      "evidence": [
+        {
+          "id": "game_recap_nhl_nhl:2026020372",
+          "sport": "NHL",
+          "game_id": "nhl:2026020372",
+          "written_at": "2026-11-23 13:42:42",
+          "created_at": "2026-11-22 12:01:13",
+          "updated_at": "2026-11-23 13:42:42",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020371",
+          "sport": "NHL",
+          "game_id": "nhl:2026020371",
+          "written_at": "2026-11-23 13:42:34",
+          "created_at": "2026-11-22 12:01:08",
+          "updated_at": "2026-11-23 13:42:34",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020368",
+          "sport": "NHL",
+          "game_id": "nhl:2026020368",
+          "written_at": "2026-11-23 13:42:28",
+          "created_at": "2026-11-22 03:02:38",
+          "updated_at": "2026-11-23 13:42:28",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020370",
+          "sport": "NHL",
+          "game_id": "nhl:2026020370",
+          "written_at": "2026-11-23 13:42:26",
+          "created_at": "2026-11-22 12:01:02",
+          "updated_at": "2026-11-23 13:42:26",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020369",
+          "sport": "NHL",
+          "game_id": "nhl:2026020369",
+          "written_at": "2026-11-23 13:42:18",
+          "created_at": "2026-11-22 12:01:10",
+          "updated_at": "2026-11-23 13:42:18",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020367",
+          "sport": "NHL",
+          "game_id": "nhl:2026020367",
+          "written_at": "2026-11-23 13:42:17",
+          "created_at": "2026-11-22 02:41:08",
+          "updated_at": "2026-11-23 13:42:17",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020363",
+          "sport": "NHL",
+          "game_id": "nhl:2026020363",
+          "written_at": "2026-11-23 13:42:12",
+          "created_at": "2026-11-22 03:02:36",
+          "updated_at": "2026-11-23 13:42:12",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020366",
+          "sport": "NHL",
+          "game_id": "nhl:2026020366",
+          "written_at": "2026-11-23 13:42:11",
+          "created_at": "2026-11-22 03:02:31",
+          "updated_at": "2026-11-23 13:42:11",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020362",
+          "sport": "NHL",
+          "game_id": "nhl:2026020362",
+          "written_at": "2026-11-23 13:42:07",
+          "created_at": "2026-11-22 02:41:20",
+          "updated_at": "2026-11-23 13:42:07",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020365",
+          "sport": "NHL",
+          "game_id": "nhl:2026020365",
+          "written_at": "2026-11-23 13:42:04",
+          "created_at": "2026-11-22 02:41:25",
+          "updated_at": "2026-11-23 13:42:04",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020361",
+          "sport": "NHL",
+          "game_id": "nhl:2026020361",
+          "written_at": "2026-11-23 13:42:00",
+          "created_at": "2026-11-22 02:41:16",
+          "updated_at": "2026-11-23 13:42:00",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        },
+        {
+          "id": "game_recap_nhl_nhl:2026020364",
+          "sport": "NHL",
+          "game_id": "nhl:2026020364",
+          "written_at": "2026-11-23 13:41:57",
+          "created_at": "2026-11-22 03:02:25",
+          "updated_at": "2026-11-23 13:41:57",
+          "generated": true,
+          "espn_ok": false,
+          "testable": false,
+          "scoring_items": 0,
+          "names_in_plays": [],
+          "team_words": [],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "no usable ESPN event id"
+        }
+      ]
+    },
+    {
+      "id": "thread_notes_cleanup",
+      "what": "the 30 * * * * cron deletes game_thread_notes rows past expires_at",
+      "qualifying_rows": 0,
+      "status": "PENDING — no thread notes in the table, so the sweep has nothing to prove",
+      "grace_window": "1 hour — the sweep fires at :30, so a just-expired row proves nothing",
+      "expired_beyond_grace": 0,
+      "note": "STAGED in cc-session-2026-07-20-game-thread-relay.md since 2026-07-20 with no executor. The cron has fired ~816 times since; this is the first thing that asks whether any of them worked."
+    },
+    {
+      "id": "d1_write_provenance",
+      "what": "the provenance call names the second writer of dash-scheme rows",
+      "window_hours": 48,
+      "ever_entries": 27516,
+      "control_entries": 0,
+      "dash_entries": 0,
+      "game_days_in_window": 3,
+      "control_attempted": false,
+      "status": "PENDING — no control was written in this 48h window, so the instrument's liveness was not tested. Dispatch d1-write-provenance-verify to test it",
+      "note": "blob1 carries the id scheme observed: control | dash. The dataset held zero d1-write entries when this check was written, so PENDING is the expected reading until the instrumentation deploys."
+    },
+    {
+      "id": "odds_budget_charging",
+      "what": "the odds budget guard charges today through D1 odds_budget, not only KV odds:daily:*",
+      "qualifying_rows": 1,
+      "tables_exist": true,
+      "d1_used_today": 261,
+      "kv_used_today": 261,
+      "status": "PASS"
+    },
+    {
+      "id": "vendor_watch_window_aligned",
+      "what": "the first scheduled odds-daily-vs-vendor run after Task 1 that judges the window prints the window-aligned verdict, the labelled UTC-day diagnostic and the known CI spend, and stores a numeric D1 ledger reading (the judged window's BASELINE row predates ledger_source when it is the 2026-11-01 row, and the watch accepts it on its number alone: PASS does not show where that baseline came from)",
+      "qualifying_rows": 22,
+      "logs_since": 22,
+      "decided_by": "odds-daily-vs-vendor-2026-11-02T0554.log",
+      "series_row": "found",
+      "status": "PASS"
+    },
+    {
+      "id": "cfl_abort_repeat_loses_nothing",
+      "what": "a repeat of the CFL abort experiment, after the waitUntil registration fix, returns abort-loses-nothing with at least 3 abandoned calls cut (the busy-day read of 2026-11-07 is read by hand and is not part of this verdict)",
+      "qualifying_rows": 1,
+      "artifacts_on_file": 2,
+      "decided_by": "cfl-abort-experiment-20261102T083943Z.json",
+      "status": "PASS"
+    },
+    {
+      "id": "deploy_commit_results",
+      "what": "deploy.yml's verify job Commit results step, as fixed on 2026-11-19, pushes its note on a real deploy",
+      "qualifying_rows": 1,
+      "status": "PASS",
+      "run": {
+        "id": 45105732040,
+        "created_at": "2026-11-23T03:23:50Z",
+        "head_sha": "d002716448519b474b1d1c6e953fa46a9f11d924"
+      },
+      "evidence": {
+        "found": true,
+        "deployConclusion": "success",
+        "stepConclusion": "success",
+        "pushed": true,
+        "errorLines": 0
+      },
+      "coverage": "checked 14 Deploy run(s) created after 2026-11-19T02:52:39Z; the newest whose verify job ran"
+    }
+  ],
+  "error": null,
+  "summary": [
+    "closing_after_opening: PASS",
+    "soccer_opening_coverage: PASS — improved for EPL, La Liga",
+    "epl_brief_event_grounded: PASS — 10/10 not the season template, and no prompt-example literal in any of the 7 recap(s) written since the 2f fix | live: 0/3 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+    "recap_names_a_scoring_play: PENDING — 12 generated recap(s), none testable (no ESPN scoring plays or no usable event id)",
+    "thread_notes_cleanup: PENDING — no thread notes in the table, so the sweep has nothing to prove",
+    "d1_write_provenance: PENDING — no control was written in this 48h window, so the instrument's liveness was not tested. Dispatch d1-write-provenance-verify to test it",
+    "odds_budget_charging: PASS",
+    "vendor_watch_window_aligned: PASS",
+    "cfl_abort_repeat_loses_nothing: PASS",
+    "deploy_commit_results: PASS"
+  ],
+  "all_passed": false,
+  "any_failed": false
+}
