@@ -1,0 +1,330 @@
+{
+  "ts": "2026-11-23T20:56:23.290Z",
+  "base": "https://sports.bzzoiro.com",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "tokenPresent": true,
+  "callBudget": 16,
+  "readCap": 1500,
+  "deadlineSeconds": 420,
+  "fetchTimeoutSeconds": 30,
+  "bsdCallsMade": 11,
+  "stopped": null,
+  "analysisError": null,
+  "readsMade": 249,
+  "reachedTarget": true,
+  "notReachedBecause": null,
+  "core": {
+    "path": "lab/scripts/bsd-next-goal-grade-core.mjs",
+    "sha256": "3d428dc26b57f516a90a50bc7e455e7c90dae7411a694f562a75fa4dc8fc145b",
+    "labSha": "59af6e89b53d422cdcf720205ffcb13f96a1853a",
+    "ruleVersion": "2026-11-23.3"
+  },
+  "runner": {
+    "gitSha": "377f434ffda71bb38c613d4675f7f86f078eb323",
+    "runId": "45263837691",
+    "graderSha256": "e54c384633ad304839d16e9b8b6ee7e5b461404c38d9e67404d7633bc5531c21",
+    "censusSha256": "466cf30f43e7f004a533805a04ba1139e16a80cb137d1f3e8b639cca91855f4f",
+    "probeSha256": "6c2fb8e2343258d0f13db5115f3d573f5f64480e8a615681dec10c13dcd2f4db"
+  },
+  "note": "agree means FIELD's own record of the match and the vendor's ledger name the same side for the goal that followed a call. FIELD's captures and the vendor's ledger both come from BSD (the census found the ledger's resolved_minute equal to a goal minute in the capture for every call it could test), so agreement is a consistency check of one feed against itself, not an independent grade of the vendor; a disagreement is the finding, and resolvedMinuteDistance, distinctGoals, byTag and premises say what kind. Counts are per call: several calls can sit on one goal (distinctGoals).",
+  "coverageLine": "graded 372 of 372 gradeable calls (census: 372 gradeable of 1754) | agree 372, disagree 0, not applicable 0 | resolving goal at the ledger's resolved_minute for 372 of 372 graded | rule 2026-11-23.3",
+  "censusCoverageLine": "ledger: 1754 unique calls (COMPLETE, reported 1754 then 1754, 9 pages, 0 duplicates) | R2: 2869 keys, 1361 events with incidents.json (COMPLETE) | reads: 249 parsed of 249 attempted | calls: 372 gradeable of 1754 (393 in a tracked league, 393 with an incidents.json, 17 with a full-time capture) | BSD calls 11/16",
+  "census": {
+    "verdict": "ANSWERED",
+    "partialBecause": [],
+    "uniqueCalls": 1754,
+    "inTrackedLeague": 393,
+    "withIncidentsKey": 393,
+    "gradeable": 372,
+    "gradeableBy": {
+      "full time": 17,
+      "a goal within 1 minute": 355
+    },
+    "distinctEventsGradeable": 238,
+    "gradeableBySlug": {
+      "mls": 59,
+      "seriea": 50,
+      "epl": 31,
+      "ligue1": 27,
+      "laliga": 59,
+      "eflchamp": 22,
+      "bundesliga": 42,
+      "europa": 30,
+      "ucl": 52
+    },
+    "notGradeableBecause": {
+      "no incidents.json in R2 for the event": 1265,
+      "no resolved_minute": 98,
+      "outcome is nogoal": 19
+    }
+  },
+  "grade": {
+    "ruleVersion": "2026-11-23.3",
+    "population": 372,
+    "graded": 372,
+    "agree": 372,
+    "disagree": 0,
+    "notApplicable": {
+      "total": 0,
+      "byReason": {},
+      "byTagAndReason": {}
+    },
+    "confusion": {
+      "ledger hit, FIELD hit": 282,
+      "ledger miss, FIELD miss": 90
+    },
+    "byLedgerOutcome": {
+      "hit": {
+        "graded": 282,
+        "agree": 282,
+        "disagree": 0
+      },
+      "miss": {
+        "graded": 90,
+        "agree": 90,
+        "disagree": 0
+      }
+    },
+    "resolvingGoalType": {
+      "regular": {
+        "graded": 333,
+        "agree": 333,
+        "disagree": 0
+      },
+      "penalty": {
+        "graded": 26,
+        "agree": 26,
+        "disagree": 0
+      },
+      "ownGoal": {
+        "graded": 13,
+        "agree": 13,
+        "disagree": 0
+      }
+    },
+    "isHomeVersusScoreRise": {
+      "agrees": 372,
+      "disagrees": 0,
+      "absent": 0
+    },
+    "resolvedMinuteDistance": {
+      "0": {
+        "graded": 372,
+        "agree": 372,
+        "disagree": 0
+      }
+    },
+    "distinctGoals": {
+      "graded": 367,
+      "withADisagreeingCall": 0
+    },
+    "stoppageResolvingGoals": {
+      "graded": 13,
+      "agree": 13,
+      "disagree": 0
+    },
+    "byTag": {
+      "slug": {
+        "mls": {
+          "graded": 59,
+          "agree": 59,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "seriea": {
+          "graded": 50,
+          "agree": 50,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "epl": {
+          "graded": 31,
+          "agree": 31,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "ligue1": {
+          "graded": 27,
+          "agree": 27,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "laliga": {
+          "graded": 59,
+          "agree": 59,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "eflchamp": {
+          "graded": 22,
+          "agree": 22,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "bundesliga": {
+          "graded": 42,
+          "agree": 42,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "europa": {
+          "graded": 30,
+          "agree": 30,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "ucl": {
+          "graded": 52,
+          "agree": 52,
+          "disagree": 0,
+          "notApplicable": 0
+        }
+      },
+      "state": {
+        "full-time": {
+          "graded": 17,
+          "agree": 17,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "in-play": {
+          "graded": 355,
+          "agree": 355,
+          "disagree": 0,
+          "notApplicable": 0
+        }
+      },
+      "var": {
+        "no var rows": {
+          "graded": 254,
+          "agree": 254,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "var rows": {
+          "graded": 118,
+          "agree": 118,
+          "disagree": 0,
+          "notApplicable": 0
+        }
+      },
+      "eventId": {
+        "matches": {
+          "graded": 372,
+          "agree": 372,
+          "disagree": 0,
+          "notApplicable": 0
+        }
+      },
+      "extraTime": {
+        "no": {
+          "graded": 371,
+          "agree": 371,
+          "disagree": 0,
+          "notApplicable": 0
+        },
+        "yes": {
+          "graded": 1,
+          "agree": 1,
+          "disagree": 0,
+          "notApplicable": 0
+        }
+      }
+    },
+    "premises": {
+      "callsWithoutSideOrScore": 0,
+      "callsWithoutACallMinute": 0,
+      "callsOnCapturesWithAGoalRowLackingAScore": 0,
+      "callsOnCapturesWhoseTotalsAreNotOneToN": 0,
+      "callsWhoseScoreAtCallDisagreesWithTheCapture": 0,
+      "distinctCaptures": 238,
+      "distinctCapturesWithAGoalRowLackingAScore": 0,
+      "distinctCapturesWhoseTotalsAreNotOneToN": 0,
+      "distinctCapturesWithTwoGoalsInOneMinute": 0,
+      "distinctCapturesWhoseMinuteOrderIsNotTotalOrder": 0,
+      "fullTimeScoreVersusLastGoal": {
+        "calls": {
+          "matches": 16,
+          "no full-time score": 355,
+          "not evaluated (extra time)": 1
+        },
+        "distinctCaptures": {
+          "matches": 12,
+          "no full-time score": 225,
+          "not evaluated (extra time)": 1
+        }
+      },
+      "liveRowScoreVersusLastGoal": {
+        "calls": {
+          "no live row score": 16,
+          "matches": 353,
+          "differs": 2,
+          "not evaluated (extra time)": 1
+        },
+        "distinctCaptures": {
+          "no live row score": 12,
+          "matches": 224,
+          "differs": 1,
+          "not evaluated (extra time)": 1
+        }
+      }
+    }
+  },
+  "bsdLog": [
+    {
+      "key": "count_first",
+      "status": 200,
+      "ms": 344
+    },
+    {
+      "key": "page_0",
+      "status": 200,
+      "ms": 703
+    },
+    {
+      "key": "page_1",
+      "status": 200,
+      "ms": 739
+    },
+    {
+      "key": "page_2",
+      "status": 200,
+      "ms": 853
+    },
+    {
+      "key": "page_3",
+      "status": 200,
+      "ms": 613
+    },
+    {
+      "key": "page_4",
+      "status": 200,
+      "ms": 614
+    },
+    {
+      "key": "page_5",
+      "status": 200,
+      "ms": 613
+    },
+    {
+      "key": "page_6",
+      "status": 200,
+      "ms": 496
+    },
+    {
+      "key": "page_7",
+      "status": 200,
+      "ms": 726
+    },
+    {
+      "key": "page_8",
+      "status": 200,
+      "ms": 698
+    },
+    {
+      "key": "count_last",
+      "status": 200,
+      "ms": 201
+    }
+  ]
+}
