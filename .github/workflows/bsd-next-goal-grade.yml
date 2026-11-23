@@ -6,19 +6,26 @@ name: BSD next-goal grade against FIELD timelines
 # Of the 370 ledger calls the census found gradeable, how many does FIELD's own record of the match agree with? The RULE and its
 # counting are the laboratory's (scripts/bsd-next-goal-grade-core.mjs: pure, imports nothing, returns counts); this repository's
 # scripts/bsd-next-goal-grade.mjs only collects the data (the census's collect(): about 11 BSD requests, cap 16, a 429 or 401 stops
-# the run) and writes a counts-only artifact. The laboratory is checked out at a recorded commit (lab_ref, a full SHA by default so
-# that the code that runs is the code that was reviewed) and its sha256 is written into the artifact. Nothing here is committed to
-# the laboratory, and no ledger row, team, player or event id is written anywhere.
+# the run) and writes a counts-only artifact. Nothing here is committed to the laboratory, and no ledger row, team, player or event id
+# is written anywhere.
 #
-# The token is in the environment of ONE step (the grade). The laboratory's own checks and mutation harness run without it.
+# TWO JOBS, because of what review found (2026-11-23):
+#   verify  has NO secret. It checks out the laboratory at a FULL SHA, runs the laboratory's check and mutation harness, the census
+#           checks, and this repository's run check and mutation harness. A blind check stops the run here, before any request.
+#   grade   has the token, needs verify, and runs the grade.
+# THE TRUST BOUNDARY, stated plainly: the laboratory's core is import()ed into the grade step's process, which holds the token. Nothing
+# in this file can prevent that code reaching the token. What limits it: lab_ref is REQUIRED and must be a full 40-hex SHA (a branch
+# name is refused, because a branch moves), the commit that runs is the one that was reviewed, the laboratory's check asserts the
+# core's source text reaches for nothing (a tripwire against an accident, not a sandbox), the artifact is refused if the token appears
+# in it, and the core's sha256 and the laboratory commit are written into the artifact (a record, not a prevention).
+# The job runs only on main: the commit step pushes to main, so a dispatch from another ref must not reach it.
 
 on:
   workflow_dispatch:
     inputs:
       lab_ref:
-        description: 'field-laboratory commit to run (a full SHA; the default is the one this was written against)'
-        required: false
-        default: 'main'
+        description: 'field-laboratory commit to run: a full 40-hex SHA (required; a branch name is refused)'
+        required: true
       call_budget:
         description: 'Max BSD requests (default 16)'
         required: false
@@ -34,9 +41,62 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  grade:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Only on main, and only a full commit SHA
+        env:
+          LAB_REF: ${{ inputs.lab_ref }}
+        run: |
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "dispatch this workflow on main only (the grade step pushes to main); got $GITHUB_REF"; exit 1; }
+          [[ "$LAB_REF" =~ ^[0-9a-f]{40}$ ]] || { echo "lab_ref must be a full 40-hex commit SHA, not a branch or a short SHA"; exit 1; }
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: The laboratory, at the commit named
+        uses: actions/checkout@v4
+        with:
+          repository: jeffunglesbee-create/field-laboratory
+          ref: ${{ inputs.lab_ref }}
+          path: lab
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The laboratory commit is the one named
+        env:
+          LAB_REF: ${{ inputs.lab_ref }}
+        run: |
+          SHA=$(git -C lab rev-parse HEAD)
+          [ "$SHA" = "$LAB_REF" ] || { echo "the checkout is $SHA, not $LAB_REF"; exit 1; }
+          echo "laboratory at $SHA"
+
+      # No token in this job. If any of these is blind, nothing below runs.
+      - name: The checks can still fail
+        run: |
+          (cd lab && node scripts/check-bsd-next-goal-grade-core.mjs --self-test && node scripts/check-bsd-next-goal-grade-core.mjs)
+          node scripts/check-bsd-next-goal-census.mjs
+          node scripts/check-bsd-next-goal-census-run.mjs
+          node scripts/check-bsd-next-goal-grade-run.mjs --lab lab
+
+      - name: The laboratory's mutation harness still catches every break
+        working-directory: lab
+        run: node scripts/mutate-bsd-next-goal-grade-core.mjs
+
+      - name: The runner's mutation harness still catches every break
+        run: node scripts/mutate-bsd-next-goal-grade.mjs --lab lab
+
+  grade:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -52,18 +112,16 @@ jobs:
         with:
           node-version: '22'
 
+      # Assigned first so that a failing rev-parse stops the step, and checked, so that the artifact is always tied to a commit.
       - name: Record the laboratory commit
-        run: echo "LAB_SHA=$(git -C lab rev-parse HEAD)" >> "$GITHUB_ENV"
-
-      # About 15 seconds, no token. The mutation harnesses (about 130 and 80 mutants) run LAST, after the artifact is committed.
-      - name: The checks can still fail
         run: |
-          (cd lab && node scripts/check-bsd-next-goal-grade-core.mjs --self-test && node scripts/check-bsd-next-goal-grade-core.mjs)
-          node scripts/check-bsd-next-goal-census.mjs
-          node scripts/check-bsd-next-goal-census-run.mjs
-          node scripts/check-bsd-next-goal-grade-run.mjs --lab lab
+          SHA=$(git -C lab rev-parse HEAD)
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "the laboratory commit is not a 40-hex SHA: '$SHA'"; exit 1; }
+          echo "LAB_SHA=$SHA" >> "$GITHUB_ENV"
 
+      # The token is in the environment of this ONE step. The step has its own limit, so that a hang cannot use the job's.
       - name: Grade
+        timeout-minutes: 12
         env:
           BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
           CALL_BUDGET: ${{ inputs.call_budget }}
@@ -95,12 +153,3 @@ jobs:
             if(d.analysisError){console.error("the analysis threw: the request log is kept, the counts are not");process.exit(1);}
             if(!d.reachedTarget){console.error("not graded: "+d.notReachedBecause);process.exit(1);}
           ' "$LATEST"
-
-      - name: The laboratory's mutation harness still catches every break
-        if: always()
-        working-directory: lab
-        run: node scripts/mutate-bsd-next-goal-grade-core.mjs
-
-      - name: The runner's mutation harness still catches every break
-        if: always()
-        run: node scripts/mutate-bsd-next-goal-grade.mjs --lab lab
