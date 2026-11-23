@@ -4,7 +4,7 @@ name: Odds backfill (spend-capped, one sport)
 # GET /archive/odds-backfill is gated (FIELD_MCP_SECRET), WRITES opening_odds where it is NULL, and every call is a billed
 # historical vendor fetch at 30 credits per sport-date. Dispatch-only, and the cap is in scripts/run-odds-backfill-capped.mjs, not in
 # this file: the owner's credit number is a required input and the run refuses to cost more; a date is attempted once (a result
-# file in outbox/ makes a repeat refuse, and it is written BEFORE the request); at most nine sport-dates; one sport; one attempt per
+# file in outbox/ makes a repeat refuse, and it is written BEFORE the request); at most nine sport-dates per run; one sport; one attempt per
 # date; the first failure ends the run; a call that spends credits and writes nothing ends it too. A PREFLIGHT runs first: a relay
 # that has not deployed ?sport= would fetch every sport on the date, so the run is refused unless the relay answers 400 to an
 # unknown label (the preflight names a date with no rows and costs nothing on either relay).

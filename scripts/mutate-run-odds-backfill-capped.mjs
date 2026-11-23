@@ -32,7 +32,6 @@ const MUTATIONS = [
   ['R7 no secret is allowed', "if (secret === '')", 'if (false)', 'S8'],
   ['R8 a date that is not on the calendar is allowed', 'if (Number.isNaN(t.getTime()) || t.toISOString().slice(0, 10) !== d)', 'if (false)', 'S9'],
   ['R9 a date already attempted is attempted again', 'if (repeats.length > 0) {', 'if (false) {', 'S14'],
-  ['R10 the cap does not count the dates already attempted', 'if (done.length + p.dates.length > CALL_CAP) {', 'if (false) {', 'S15'],
   ['R11 a failure does not end the run', 'stoppedBecause = `${date}: ${rec.error}`; break; }', 'stoppedBecause = `${date}: ${rec.error}`; }', 'S17'],
   ['R12 the final redaction pass over the record is removed', FINAL, FINAL_OFF, 'S31'],
   ['R13 neither the one place that redacts an error nor the final pass', [[ONE_PLACE, ''], [FINAL, FINAL_OFF]], null, 'S19'],
@@ -62,7 +61,6 @@ const MUTATIONS = [
   ['R37 a sport label may carry a slash, dots or a comma (a list of sports)', "if (!/^[A-Za-z][A-Za-z0-9 ]{0,31}$/.test(sport))", 'if (false)', 'S7'],
   ['R38 the ledger is per spelling of the label, not per sport', ".toLowerCase().replace(/ /g, '-');", ';', 'S14'],
   ['R39 a space in the label is not dashed in the file name', ".replace(/ /g, '-');", ';', 'S44'],
-  ['R40 a file of another sport that starts like this one counts as an attempt', ".filter(d => /^\\d{4}-\\d{2}-\\d{2}$/.test(d));", ';', 'S48'],
   ['R43 PREFLIGHT_ONLY is ignored: the "free check" goes on to spend', "if (envText(env, 'PREFLIGHT_ONLY') === '1') {", 'if (false) {', 'S49'],
   ['R41 the JSON-escaped form of the secret is not redacted', 'JSON.stringify(p.secret).slice(1, -1)])', ']) ', 'S41'],
 ];

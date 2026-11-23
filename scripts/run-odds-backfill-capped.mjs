@@ -9,7 +9,10 @@
 // THE CAP IS IN THE CODE, not in the reader's care (the lessons of scripts/probe-identity-mismatches.mjs, which an independent
 // review of 18 agents found each of, and of a second review of this file):
 //   - APPROVED_CREDITS is required, and dates x 30 above it is refused BEFORE the first request;
-//   - at most CALL_CAP dates; a date named twice is refused; exactly one sport, written as the archive writes a label;
+//   - at most CALL_CAP dates PER RUN (the owner's number is per run too); a date named twice is refused; exactly one sport, written as the
+//     archive writes a label. There is no lifetime cap per sport: a first version counted every committed result file against CALL_CAP, so
+//     the nine EPL files of the first run refused every later EPL date, nothing spent (2026-11-23, run 45219835408). What bounds spend across
+//     runs is the once-per-date ledger below and the number the owner states for each run;
 //   - A PREFLIGHT, before the first billed call: an unknown ?sport= label must be answered 400. A relay that has not deployed
 //     the filter ignores ?sport= and would fetch EVERY sport with rows on the date (30 credits each); it answers 200 to the
 //     preflight instead and the run is refused. The preflight names a date with no rows, so it costs nothing on either relay;
@@ -78,7 +81,7 @@ export function attemptedDates(outDir, sport) {
     if (!existsSync(outDir)) return [];
     const prefix = `odds-backfill-${fileSport(sport)}-`;
     return readdirSync(outDir).filter(n => n.startsWith(prefix) && n.endsWith('.json'))
-        .map(n => n.slice(prefix.length, prefix.length + 10)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+        .map(n => n.slice(prefix.length, prefix.length + 10));
 }
 
 /** Why an answer is not a clean result, or null. */
@@ -120,11 +123,6 @@ export async function run({ env, relay, outDir, log, fetchImpl = fetch, timeoutM
     const repeats = p.dates.filter(d => done.includes(d));
     if (repeats.length > 0) {
         const why = `${repeats.join(', ')} already attempted for ${p.sport} (a result file is in ${outDir}): a date is attempted once`;
-        log(`RUN REFUSED: ${why}`);
-        return { attempted: 0, wrote: [], stoppedBecause: why, refused: true };
-    }
-    if (done.length + p.dates.length > CALL_CAP) {
-        const why = `${done.length} sport-date(s) already attempted and ${p.dates.length} asked for: more than the cap of ${CALL_CAP}`;
         log(`RUN REFUSED: ${why}`);
         return { attempted: 0, wrote: [], stoppedBecause: why, refused: true };
     }
@@ -273,9 +271,9 @@ async function selfTest() {
         const k = await go({}, 'ok', { preFiles: ['2026-08-28'] });
         check('S14 a date that already has a result file is refused before any request (a re-run cannot spend it twice)', k.r.refused === true && hits.length === 0 && /2026-08-28 already attempted/.test(k.r.stoppedBecause));
         const l = await go({ BACKFILL_DATES: '2026-09-12' }, 'ok', { preFiles: ['2026-08-22', '2026-08-28', '2026-09-05', '2026-09-20', '2026-10-11', '2026-10-18', '2026-10-25', '2026-08-21', '2026-11-01'] });
-        check('S15 nine sport-dates already attempted and one more asked: refused by the cap', l.r.refused === true && hits.length === 0);
+        check('S15 nine sport-dates already attempted and ONE NEW date asked: it goes (the cap is per run, not for all time): one request, one more file', l.r.refused === false && hits.length === 1 && l.files.length === 10, `${hits.length} requests, ${l.files.length} files, ${l.r.stoppedBecause}`);
         const l2 = await go({ BACKFILL_DATES: '2026-09-12' }, 'ok', { preFiles: ['2026-08-22'] });
-        check('S16 one already attempted and a different date asked is within the cap: one request', hits.length === 1 && l2.r.refused === false);
+        check('S16 one already attempted and a different date asked: one request', hits.length === 1 && l2.r.refused === false);
         // Failures end the run.
         const m = await go({}, 'fail-second');
         check('S17 the first failure ends the run: two requests, not three', hits.length === 2 && m.r.attempted === 2 && m.r.stoppedBecause !== null, `${hits.length} requests`);
@@ -354,11 +352,6 @@ async function selfTest() {
         check('S49 PREFLIGHT_ONLY makes the preflight request and NOTHING else: no billed request, no file, a line saying nothing was spent', po.r.preflightOnly === true && pre.length === 1 && hits.length === 0 && po.files.length === 0 && logs.some(l => /^PREFLIGHT OK, nothing spent/.test(l)));
         const poOld = await go({ PREFLIGHT_ONLY: '1' }, 'old-relay');
         check('S50 PREFLIGHT_ONLY against a relay that ignores ?sport= is refused, so the free check can fail', poOld.r.refused === true && poOld.r.preflightOnly === undefined && hits.length === 0);
-        // A foreign file whose name merely starts like this sport's is not an attempt.
-        const fo = join(dir, 'foreign'); mkdirSync(fo, { recursive: true });
-        writeFileSync(join(fo, 'odds-backfill-epl-cup-2026-10-18-20260101T000000Z.json'), '{}\n');
-        const fx = await go({ BACKFILL_DATES: NINE, APPROVED_CREDITS: '270' }, 'ok', { outDir: fo });
-        check('S48 a file of ANOTHER sport whose name starts with this one ("epl-cup") is not counted as an attempt: the nine-date run still goes', fx.r.refused === false && hits.length === 9, `${hits.length} requests; ${fx.r.stoppedBecause}`);
     } finally { server.closeAllConnections?.(); server.close(); rmSync(dir, { recursive: true, force: true }); }
     console.log(`\n${checked - failed}/${checked} checks passed`);
     return failed;
