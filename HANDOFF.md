@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-23 (18:20Z) — the last unpriced EPL row is priced with a new `?snapshot=` option: 20 of 20 June-seed rows have odds, whole-archive count 0
+
+**HEAD:** `de97372` → this close-out is the next commit. `src/index.js` changed (`ade0dd81`: `/archive/odds-backfill?snapshot=HH:MM`).
+**Session doc:** outbox/cc-session-2026-11-23-epl-june-seed-probe.md (task: the owner's "Alternative")
+
+- **Done condition met:** `SELECT COUNT(*) FROM regular_season_games WHERE sport = 'EPL' AND opening_odds IS NULL` is **0**. Liverpool v Chelsea (2026-05-09, kicked off 11:30Z per ESPN) was refused by the noon snapshot's late-line guard (vendor served 11:55Z); `snapshot=09:30` priced it: draftkings -110 / 280 / 290, `captured_at` 09:25:37Z. Run `45233566069` (free preflight) then the billed run (18:08Z, 30 credits approved); six billed calls, 180 credits in all for that CC-CMD.
+- **New relay option:** `GET|POST /archive/odds-backfill?date=...&sport=EPL&snapshot=09:30`: a UTC time of day asked of the vendor instead of noon; default unchanged (noon, same URL and cache key, no `snapshot` key in the answer); a value that is not HH:MM is 400 before any billed call; `snapshot` echoed when not the default; the late-snapshot guard still applies. The runner's workflow has an optional `snapshot` input, keys its once-per-date ledger by date and snapshot (file named `-s0930-`), and runs a second free preflight (`?snapshot=99:99` must be 400).
+- **A process change that worked:** before pushing, every run-step of `deploy.yml` (128) and `guards.yml` (62) was run locally from a YAML parse on a clean tree. It found one failure, `check-odds-join-shared.mjs` (the check extracts the worker's functions with a constant prelude; mine was missing), fixed before the push; deploy `45230778732` green. The two red deploys of 2026-11-22 came from skipping exactly this.
+- **Stop-hook false alarms, twice:** "uncommitted changes" while a gate's in-place mutator had a file temporarily mutated (`src/odds-name-match.js`, `scripts/check-bsd-frame-contract.mjs`). Not committed; check `ps` for a `mutate-*` process before committing a file you did not edit.
+- **Open, not this CC-CMD's:** eight priced EPL rows of 2026-08-22/23/24 have no draw price. `Repo guards` red from the BSD frame-contract step only.
+
 ## SESSION CLOSE-OUT — 2026-11-23 (17:05Z) — the other four May EPL dates priced (120 credits): 19 of the 20 June-seed rows now have odds; one row left
 
 **HEAD:** `7f5c397` → this close-out is the next commit. No `src/` change.

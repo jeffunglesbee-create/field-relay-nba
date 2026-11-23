@@ -1,11 +1,11 @@
 # Session doc — one-date probe of the 2026-06-15 EPL seed rows
 
 **Date:** 2026-11-23 · **Repo:** field-relay-nba · **Branch:** main · **CC-CMD:** `docs/CC-CMD-2026-11-22-epl-june-seed-rows-unpriced.md` (IN PROGRESS, blocked on the owner for further spend)
-**Owner decisions, verbatim:** "Probe" (the 30-credit one-date probe the CC-CMD's Task 1 offered: 2026-05-09, five rows), then "Approve 120" (the other four dates, as recommended). Nothing beyond those is approved.
+**Owner decisions, verbatim:** "Probe" (the 30-credit one-date probe the CC-CMD's Task 1 offered: 2026-05-09, five rows), then "Approve 120" (the other four dates, as recommended), then "Alternative" (for the last row: a snapshot-time option on the route plus 30 credits, instead of accepting it as NULL). Nothing beyond those is approved.
 
 ## Done condition so far
 
-`SELECT COUNT(*) FROM regular_season_games WHERE sport = 'EPL' AND opening_odds IS NULL` was 20 before the probe, 16 after it (run `45220297965`), and **1 after the four-date run** (run `45220681119`, read 2026-11-23): the row `2026-05-09-epl-liverp-chelse`. Not 0: the CC-CMD stays open until the owner says whether that row is accepted as NULL.
+`SELECT COUNT(*) FROM regular_season_games WHERE sport = 'EPL' AND opening_odds IS NULL` was 20 before the probe, 16 after it (run `45220297965`), **1 after the four-date run** (run `45220681119`), and **0 after the last row** (run below, read 2026-11-23): met.
 
 ## What happened, in order
 
@@ -36,3 +36,22 @@ One call at the measured 30 credits per call (eight consecutive 30-credit steps 
 - **Written:** 15 rows, draftkings, all with a draw price, `captured_at` 11:55:37Z on each date. `change_log`: 4 rows at 16:46 (probe) and 15 at 16:48 (this run), all `old_value` NULL (an earlier query of mine used a space-separated timestamp against ISO strings and counted 19 by accident; it was redone by the minute).
 - **Remaining:** one row, Liverpool v Chelsea 2026-05-09. Reason not established (candidate: kickoff 11:30Z before the 11:55Z snapshot; the vendor's `commence_time` not read). The route has no snapshot-time parameter and the runner refuses a second attempt at a date, so nothing in place can price it. **Recommendation: accept it as NULL.**
 - **Total for this CC-CMD:** 150 credits, five calls, 19 of 20 rows priced.
+
+## The last row ("Alternative")
+
+- **Premise first:** ESPN (through the relay's `/v2/games?sport=epl&date=2026-05-09`) puts Liverpool v Chelsea at 11:30Z and the other four matches at 14:00Z / 16:30Z; the vendor's noon snapshot was served at 11:55Z, so the guard's refusal was correct. A snapshot before 11:30Z can price it; 09:30Z is a 2-hour lead, like the other rows'.
+- **Built and gated:** `?snapshot=HH:MM` (relay, `ade0dd81`) and `BACKFILL_SNAPSHOT` with a ledger keyed by date and snapshot and a second free preflight (runner, `b2880b98`). Check 42 of 42, mutants 27 of 27, runner self-test 61, mutants 49. Before pushing, **every run-step of `deploy.yml` (128) and `guards.yml` (62) was run locally from a YAML parse**: it found one real failure, `check-odds-join-shared.mjs` throwing `ReferenceError: ODDS_HIST_SNAPSHOT_DEFAULT is not defined` (step 89, the check extracts the worker's functions with a prelude of constants and mine was missing); fixed in `5951b136` (on `main` as `f00738c9`) before any push. The `guards.yml` sweep's only failures are environmental here (the BSD census needs the network, `check-archive-date-keying` needs `RELAY_SHARED_SECRET`). Push `f00738c9` at 17:43Z (a plain push was rejected, `origin/main` had moved; the three commits were cherry-picked onto it in a temporary worktree so the running gate sweep's tree was not disturbed). Deploy `45230778732` green at 17:57:45Z.
+- **A stop-hook false alarm worth recording:** twice the hook reported "uncommitted changes" while the sweep's in-place mutators (`mutate-odds-matcher.mjs`, `mutate-bsd-frame-contract.mjs`) had a file temporarily mutated (`if (false) throw ...`). They were not committed; the tree read clean once each mutator restored its file.
+- **Preflight run `45233566069`** (17:59Z), `preflight_only=true` with `snapshot=09:30`: `PREFLIGHT OK, nothing spent: ... answered 400 to an unknown ?sport= label, so it applies the filter and answered 400 to a snapshot that is not a time, so it honours ?snapshot=. 1 date(s) planned at 09:30, none requested.`
+- **The billed run** (18:08Z, `dates=2026-05-09 sport=EPL snapshot=09:30 approved_credits=30`): HTTP 200, `ok true`, sport and snapshot echoed, `games_found 1`, `odds_populated 1`, `odds_skipped 0`. D1: Liverpool v Chelsea draftkings **-110 / 280 / 290**, `captured_at` 2026-05-09T09:25:37Z; `change_log` one `opening_odds` row, `old_value` NULL, 18:08:35Z. The whole-archive count of unpriced EPL rows is **0**.
+- **Cost:** one call at the price measured twelve times (30). `quota_remaining` 89922 after it vs 89964 after the previous run: 42, so other consumers spent in between and this call's debit is not isolated. Ledger estimate 30. Total for the CC-CMD: six billed calls, 180 credits.
+
+## The independent review of the snapshot change (13 agents, three lenses, a skeptic per finding): 10 findings, 6 confirmed, 4 refuted or already fixed
+
+None touches spend or what the one call wrote. Confirmed and fixed in a follow-up commit: the join-shared failure (high, already fixed before the push); `fetchSportOddsHistorical`'s own `snapshotTime` default (what `/archive/game` uses) was pinned by no gate and the B7 label overclaimed it; a stale comment at the late-snapshot guard ("The snapshot is noon"); the snapshot regex's anchors and boundaries only partly tested; several runner checks that could not fail (the file-name anchors, the preflight body test, the minute range); response bodies cut to 200/120 characters BEFORE the secret is redacted, so a secret straddling the cut would be written in part (the redaction point I introduced on 2026-11-22 sat after the cut). Refuted: a non-ISO vendor `timestamp` bypassing the guard (predates this work, intended by Rule 99, logged); `snapshot` not echoed on the early `ok:false` answers (no counts there, the judge rejects them first); the ledger keyed by the requested string so 09:31 would spend again on the same row (stated design: each run needs the owner's number).
+
+## Residual
+
+- **None for the 20 rows.** Done condition met.
+- Eight priced EPL rows of 2026-08-22/23/24 have no draw price (two-way lines written by the live snapshot, not the backfill); not explained and not part of this CC-CMD.
+- `Repo guards` red from the BSD frame-contract step only.
