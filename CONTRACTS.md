@@ -1115,7 +1115,13 @@ Observed (Rule 73): `html_probe` from a Cloudflare Worker IP, 2026-11-22 and 202
 `score.totalScore`), the season list (11 seasons, `2026 NAB AFLW Season` is id 96); real bodies in `outbox/aflapi-aflw-fixtures-20261123.json`. NOT observed: any live aflapi match, so no live status string, period or clock;
 a match with a postponed or abandoned status; a finals match that went to extra time.
 
-**The laboratory's copy must be synced** (ATOMIC-A), relay first: the lab adds `Sport.AFLW` and the live key `aflw` after this board is deployed and read (CC-CMD Part B).
+Archive rows (from 2026-11-23, `seedAflwArchive`, Task 3 of the CC-CMD): the journalism cycle writes each AFLW match through `/archive/game` for today's FIELD slate and the next three ET days, so
+`/context/date/<ET day>` lists it in `games.regular` (or the route's equivalent): `sport` and `league` `AFLW`, `id` `AFLW_<date>_<home>_<away>` (the route's name scheme), `espn_event_id` `aflapi:<aflapi match id>`
+(NOT an ESPN id; golf's `golf_<event>` is the precedent for a synthetic there), `home` and `away` the aflapi team names, `start_time` `YYYY-MM-DDTHH:MMZ`, scores null until the match is `CONCLUDED`, then its points.
+The laboratory joins such a card to the feed above by the two club names, as it joins NHL. Not yet read on the deployed relay: that is the CC-CMD's done condition D2b.
+
+**The laboratory's copy must be synced** (ATOMIC-A), relay first: the lab adds `Sport.AFLW` and the live key `aflw` after this board is deployed and read (CC-CMD Part B). **And jubilant-bassoon's copy of this file**
+must be replaced by this one in the same session (`contracts-identity-check.yml` fails the relay's push otherwise).
 
 
 ---

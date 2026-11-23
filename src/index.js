@@ -1636,6 +1636,97 @@ function adaptAflapi(m) {
     };
 }
 
+// readAflapiBoard(cfg, date, base) -> { games } | { games: [], note } ; THROWS on a refusal (the caller says 502). `base` is passed
+// by the caller (AFLAPI_BASE) so that the route's own body names the host it reads: scripts/build-route-provenance.mjs reads a route's
+// own body, not its helpers' (a shared helper would drag in every host every other caller contacts), so a host reached only inside
+// this function would be missing from the route's provenance.
+// Two cached reads of the AFL's own API: the season id of the date's year, then that season's matches (117 in 2026, one page at
+// pageSize=200). Neither URL carries the date, so every date shares the same two edge entries (Rule 78: 30 s as the NHL
+// scoreboard, 3600 s for the season list). The slate is the ET calendar day of each kickoff (fieldDayOfInstant, the archive's own
+// date key): an AFLW game starting 12:35pm AEST is the previous ET day. Each read is bounded (8 s) so a stalled aflapi cannot hold
+// the route or the journalism cycle that calls seedAflwArchive.
+async function aflapiGet(base, path, ttl) {
+    const u = `${base}${path}`;
+    let r;
+    try { r = await fetch(u, { headers: AFLAPI_HEADERS, signal: AbortSignal.timeout(8000), cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: u } }); }
+    catch (e) { throw new Error(`aflapi network error: ${e.message}`); }
+    if (!r.ok) throw new Error(`aflapi upstream ${r.status} for ${path}`);
+    try { return await r.json(); }
+    catch { throw new Error(`aflapi upstream: ${path} did not answer JSON`); }
+}
+async function readAflapiBoard(cfg, date, base) {
+    const year = date.slice(0, 4);
+    const seasons = await aflapiGet(base, `/afl/v2/competitions/${cfg.aflapiCompetitionId}/compseasons?pageSize=100`, 3600);
+    const season = (seasons.compSeasons || []).find(cs => String(cs.name || '').startsWith(`${year} `));
+    if (!season) return { games: [], note: `no ${year} season on aflapi` };
+    const page = await aflapiGet(base, `/afl/v2/matches?competitionId=${cfg.aflapiCompetitionId}&compSeasonId=${season.id}&pageSize=200`, 30);
+    if ((page.meta?.pagination?.numPages ?? 1) > 1)
+        throw new Error(`aflapi matches for season ${season.id} are paginated (${page.meta.pagination.numPages} pages): not read`);
+    const games = (page.matches || [])
+        .filter(m => fieldDayOfInstant(m.utcStartTime) === date)
+        .map(adaptAflapi)
+        .sort((x, y) => x.start.localeCompare(y.start) || x.aflapiMatchId - y.aflapiMatchId);
+    return { games };
+}
+
+// seedAflwArchive(env, dates) -- docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 3. The laboratory's cards come only from
+// /context/date, which reads only the archive, and the cron's LEAGUES table is an ESPN scoreboard walk that cannot see AFLW. So the
+// journalism cycle calls this once per tick (try/catch at the call site, Rule 5): for each ET day in `dates`, the day's AFLW matches
+// are read from aflapi and POSTed to this relay's own /archive/game, the route the ESPN catch-up already uses, so id scheme, upsert
+// and provenance are the route's. A match with no row gets a pre-game skeleton (teams, venue, start time, no score); a CONCLUDED
+// match whose row has no score gets its points. One D1 read per match decides (as the ESPN catch-up's dedup check does), so a
+// settled match costs one read per tick and no write. A failed read skips that match rather than reading as "no row" (a duplicate
+// write is worse than a late one). Never throws: every failure is logged and counted, because an archive failure must never break
+// the cycle that called it.
+//
+// source_id is `aflapi:<match id>`, never a bare number: the route keys its id on a bare numeric source_id as an ESPN event id
+// (isEspnEventId), and this is not one. The column it lands in (espn_event_id) is the route's single id column; golf already
+// stores a synthetic there (`golf_<event>`). The row's sport and league are 'AFLW', so the id prefix cannot meet the men's 'AFL'.
+export async function seedAflwArchive(env, dates) {
+    const out = { dates: dates.length, games: 0, seeded: 0, finalised: 0, settled: 0, errors: 0 };
+    const cfg = V2_LEAGUES.aflw;
+    const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
+    for (const date of dates) {
+        let board;
+        try { board = await readAflapiBoard(cfg, date, AFLAPI_BASE); }
+        catch (e) { out.errors++; console.error(`[AFLW-ARCHIVE] ${date}: board not read, nothing written:`, e.message); continue; }
+        for (const g of board.games) {
+            out.games++;
+            const sourceId = `aflapi:${g.aflapiMatchId}`;
+            let existing;
+            try {
+                existing = await env.ARCHIVE_DB.prepare(
+                    `SELECT home_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
+                ).bind(sourceId).first();
+            } catch (e) { out.errors++; console.error(`[AFLW-ARCHIVE] ${sourceId}: dedup read failed, skipping this game to avoid a duplicate write:`, e.message); continue; }
+            const hasRow = existing !== null && existing !== undefined;
+            const scored = hasRow && existing.home_score !== null && existing.home_score !== undefined;
+            if (g.state === 'pre' && hasRow) { out.settled++; continue; }
+            if (g.state === 'final' && scored) { out.settled++; continue; }
+            try {
+                const r = await fetch(relayBase + '/archive/game', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(8000),
+                    body: JSON.stringify({
+                        sport: 'AFLW', league: 'AFLW', date,
+                        home: g.home.name, away: g.away.name,
+                        home_score: g.state === 'final' ? g.home.score : null,
+                        away_score: g.state === 'final' ? g.away.score : null,
+                        venue: g.venue,
+                        start_time: g.start.replace(/:\d{2}\.\d{3}Z$/, 'Z'),
+                        source_id: sourceId,
+                        went_to_ot: null,
+                    }),
+                });
+                if (!r.ok) { out.errors++; console.error(`[AFLW-ARCHIVE] ${sourceId}: /archive/game answered ${r.status}, will retry next cycle`); continue; }
+                if (g.state === 'final') out.finalised++; else out.seeded++;
+            } catch (e) { out.errors++; console.error(`[AFLW-ARCHIVE] ${sourceId}: archive write failed, will retry next cycle:`, e.message); }
+        }
+    }
+    return out;
+}
+
 // adaptApiNba / adaptHockey / adaptBaseball / adaptAFL / parseFootballStats /
 // deriveManAdvantage / adaptFootball — REMOVED 2026-06-30 (api-sports.io
 // subscription lapsed; these adapters had zero remaining callers after the
@@ -5230,48 +5321,25 @@ async function handleV2Games(url, env, ctx, request = null) {
     // ── end NHL NHLE early-return ──────────────────────────────────────────────
 
     // ── AFLW aflapi early-return (docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 2) ──────────
-    // Two cached reads of the AFL's own API: the season id of the request's year, then that season's matches (117 in 2026, one
-    // page at pageSize=200). Neither URL carries the request date, so every date shares the same two edge entries (Rule 78: 30 s
-    // as the NHL scoreboard, 3600 s for the season list). The slate is the ET calendar day of each kickoff (fieldDayOfInstant,
-    // the archive's own date key): an AFLW game starting 12:35pm AEST is the previous ET day.
-    //
-    // A refusal is NOT an empty slate (the NBA board's lesson, CC-CMD-2026-10-22-nba-cdn-403-in-season): an upstream non-2xx, a
-    // body that is not JSON, a paginated answer and a status the adapter has not been shown are each a 502 that names the cause.
+    // The read itself is readAflapiBoard (above adaptAflapi's callers, shared with seedAflwArchive): a refusal is NOT an empty
+    // slate (the NBA board's lesson, CC-CMD-2026-10-22-nba-cdn-403-in-season), so an upstream non-2xx, a thrown fetch, a body
+    // that is not JSON, a paginated answer and a status the adapter has not been shown are each a 502 that names the cause.
     // No season for the request's year is the one honest empty answer: aflapi lists the seasons that exist.
     if (cfg.aflapiSource) {
-        const fail = (error, status = 502) => new Response(
-            JSON.stringify({ error, sport, date }),
-            { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
-        const aflapiGet = async (path, ttl) => {
-            const u = `${AFLAPI_BASE}${path}`;
-            let r;
-            try { r = await fetch(u, { headers: AFLAPI_HEADERS, cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: u } }); }
-            catch (e) { throw new Error(`aflapi network error: ${e.message}`); }
-            if (!r.ok) throw new Error(`aflapi upstream ${r.status} for ${path}`);
-            try { return await r.json(); }
-            catch { throw new Error(`aflapi upstream: ${path} did not answer JSON`); }
-        };
         try {
-            const year = date.slice(0, 4);
-            const seasons = await aflapiGet(`/afl/v2/competitions/${cfg.aflapiCompetitionId}/compseasons?pageSize=100`, 3600);
-            const season = (seasons.compSeasons || []).find(cs => String(cs.name || '').startsWith(`${year} `));
-            if (!season) {
+            const { games, note } = await readAflapiBoard(cfg, date, AFLAPI_BASE);
+            if (note) {
                 return new Response(
-                    JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note: `no ${year} season on aflapi`, ts: Date.now() }),
+                    JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note, ts: Date.now() }),
                     { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
             }
-            const page = await aflapiGet(`/afl/v2/matches?competitionId=${cfg.aflapiCompetitionId}&compSeasonId=${season.id}&pageSize=200`, 30);
-            if ((page.meta?.pagination?.numPages ?? 1) > 1)
-                return fail(`aflapi matches for season ${season.id} are paginated (${page.meta.pagination.numPages} pages): not read`);
-            const games = (page.matches || [])
-                .filter(m => fieldDayOfInstant(m.utcStartTime) === date)
-                .map(adaptAflapi)
-                .sort((x, y) => x.start.localeCompare(y.start) || x.aflapiMatchId - y.aflapiMatchId);
             return new Response(
                 JSON.stringify({ sport, date, games, count: games.length, source: 'aflapi', ts: Date.now() }),
                 { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } });
         } catch (e) {
-            return fail(e.message);
+            return new Response(
+                JSON.stringify({ error: e.message, sport, date }),
+                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
     }
     // ── end AFLW aflapi early-return ───────────────────────────────────────────
@@ -8924,6 +8992,18 @@ async function handleJournalismCycle(env, opts = {}) {
       console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
     }
   } catch (e) { console.error("[ARCHIVE-CATCHUP] league fetch / catch-up setup failed:", e.message); /* league fetch / catch-up setup failure must never block WC morning-brief or slate-brief paths below */ }
+
+  // ── AFLW archive seed (docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 3) ─────────────────────
+  // AFLW is not on ESPN, so the walk above cannot see it; seedAflwArchive reads aflapi and writes the matches of today's FIELD slate and
+  // the next three ET days through /archive/game, so a match has its pre-game row for days before it starts (a card the laboratory can
+  // show, and a row the done condition can read well ahead of a Grand Final). Its two aflapi reads are cached at the edge and shared by
+  // every date, and bounded (8 s each); a settled match costs one D1 read and no write; it never throws; the try/catch is for the day it
+  // does anyway (Rule 5).
+  try {
+    const aflwDays = [0, 1, 2, 3].map(n => new Date(Date.parse(`${dateKey}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10));
+    const aflw = await seedAflwArchive(env, aflwDays);
+    if (aflw.seeded > 0 || aflw.finalised > 0 || aflw.errors > 0) console.log(`[AFLW-ARCHIVE] ${JSON.stringify(aflw)}`);
+  } catch (e) { console.error("[AFLW-ARCHIVE] step failed:", e.message); /* an AFLW archive failure must never block the journalism cycle */ }
 
   // ── Morning WC Catch-Up Brief (UTC 11-13 / 7-9am ET) ─────────────────────
   // Logic lives in runWCMorningBrief() (module scope, above) so its result

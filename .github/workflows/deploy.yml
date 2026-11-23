@@ -474,6 +474,14 @@ jobs:
           node scripts/check-v2-games-aflw.mjs
           node scripts/check-v2-games-aflw.mjs --mutate
 
+      # docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 3. The laboratory's cards come only from the archive and the cron's
+      # LEAGUES table cannot see AFLW, so the journalism cycle writes the day's AFLW matches through /archive/game. The step
+      # must not duplicate or re-write, must skip on a failed read, and must never throw into the cycle.
+      - name: AFLW matches reach the archive once, and the step never breaks the cycle
+        run: |
+          node scripts/check-aflw-archive-seed.mjs
+          node scripts/check-aflw-archive-seed.mjs --mutate
+
       # docs/CC-CMD-2026-11-07-wc-results-club-contamination.md. writeWCResult ran
       # for every soccer final and the live loop read the World Cup group table for
       # every live soccer game, so production wc_results held club cup rows (58

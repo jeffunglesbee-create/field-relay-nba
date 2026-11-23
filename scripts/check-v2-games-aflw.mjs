@@ -202,7 +202,7 @@ const MUTATIONS = [
   ['the season is hard-coded to 2026', [["startsWith(`${year} `)", "startsWith('2026 ')"]]],
   ['home and away are swapped', [["        home:         side(m.home),\n        away:         side(m.away),\n", "        home:         side(m.away),\n        away:         side(m.home),\n"]]],
   ['a finished game has no final word', [["periodLabel:  state === 'final' ? 'F' : 'NS',", "periodLabel:  'NS',"]]],
-  ['a day with no season is a refusal', [["JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note: `no ${year} season on aflapi`, ts: Date.now() }),", "JSON.stringify({ error: 'no season', sport, date }),"]]],
+  ['a day with no season is a refusal', [["if (!season) return { games: [], note: `no ${year} season on aflapi` };", "if (!season) throw new Error('no season');"]]],
 ];
 
 function mutate() {

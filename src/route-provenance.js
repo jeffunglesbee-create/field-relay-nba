@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-11-23T02:50:23.632Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-11-23T03:10:10.538Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/bsd-game-join": { k: "trigger", s: "d1:ARCHIVE_DB" },
