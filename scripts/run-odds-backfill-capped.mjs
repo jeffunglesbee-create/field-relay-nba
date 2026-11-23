@@ -33,6 +33,8 @@
 //
 // Usage:  BACKFILL_DATES=2026-08-22,2026-08-28 BACKFILL_SPORT=EPL APPROVED_CREDITS=270 FIELD_MCP_SECRET=... node scripts/run-odds-backfill-capped.mjs
 //         PREFLIGHT_ONLY=1 (with the same inputs) stops after the preflight: no billed request, no file; the free check of the deployed relay
+//         BACKFILL_SNAPSHOT=09:30 asks the vendor for that UTC time of day instead of noon (a match that kicked off before noon: its line at noon
+//         is "taken in play" and refused). A date is attempted once PER SNAPSHOT: noon and 09:30 on one date are two calls and two ledger keys.
 //         node scripts/run-odds-backfill-capped.mjs --self-test      (a local stub server; no network, no secret)
 import { writeFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -43,6 +45,8 @@ import { fileURLToPath } from 'node:url';
 export const CALL_CAP = 9;
 export const CREDITS_PER_CALL = 30;
 export const REQUEST_TIMEOUT_MS = 120000;
+export const DEFAULT_SNAPSHOT = '12:00';          // the route's own default: not sent, not echoed
+export const PREFLIGHT_SNAPSHOT = '99:99';        // not a time: a relay that honours ?snapshot= answers 400 to it
 export const PREFLIGHT_DATE = '2099-01-01';      // a date no row can carry: the preflight spends nothing on any relay
 export const PREFLIGHT_LABEL = '__filter_preflight__';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -51,7 +55,7 @@ const envText = (env, name) => (typeof env[name] === 'string' ? env[name].trim()
 /** The label as it appears in a result file's name: one ledger per sport whatever the case or spacing it was typed in. */
 const fileSport = (sport) => sport.toLowerCase().replace(/ /g, '-');
 
-/** Everything that can be refused WITHOUT spending anything. Returns { dates, sport, secret, approved } or { refused }. */
+/** Everything that can be refused WITHOUT spending anything. Returns { dates, sport, secret, approved, snapshot } or { refused }. snapshot is null for the default. */
 export function plan(env) {
     const secret = envText(env, 'FIELD_MCP_SECRET');
     if (secret === '') return { refused: 'FIELD_MCP_SECRET is not set: /archive/odds-backfill is gated and a run without it does nothing' };
@@ -73,23 +77,27 @@ export function plan(env) {
     if (dates.length > CALL_CAP) return { refused: `${dates.length} dates is more than the cap of ${CALL_CAP} sport-dates` };
     const cost = dates.length * CREDITS_PER_CALL;
     if (cost > approved) return { refused: `${dates.length} sport-date(s) cost ${cost} credits at ${CREDITS_PER_CALL} each and ${approved} were approved` };
-    return { dates, sport, secret, approved };
+    const snapText = envText(env, 'BACKFILL_SNAPSHOT');
+    if (snapText !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(snapText)) return { refused: `BACKFILL_SNAPSHOT must be a UTC time of day written HH:MM (00:00 to 23:59), got ${JSON.stringify(snapText)}` };
+    const snapshot = snapText === '' || snapText === DEFAULT_SNAPSHOT ? null : snapText;
+    return { dates, sport, secret, approved, snapshot };
 }
 
-/** The dates of this sport already attempted: the result files in the output directory, error answers and unfinished attempts included. */
-export function attemptedDates(outDir, sport) {
+/** The date+snapshot keys of this sport already attempted ('2026-05-09@1200' for a noon call): the result files in the output directory, error answers and unfinished attempts included. */
+export function attemptedKeys(outDir, sport) {
     if (!existsSync(outDir)) return [];
-    const prefix = `odds-backfill-${fileSport(sport)}-`;
-    return readdirSync(outDir).filter(n => n.startsWith(prefix) && n.endsWith('.json'))
-        .map(n => n.slice(prefix.length, prefix.length + 10));
+    const re = new RegExp(`^odds-backfill-${fileSport(sport)}-(\\d{4}-\\d{2}-\\d{2})(?:-s(\\d{4}))?-\\d{8}T\\d{6}Z\\.json$`);
+    return readdirSync(outDir).map(n => re.exec(n)).filter(m => m !== null).map(m => `${m[1]}@${m[2] === undefined ? '1200' : m[2]}`);
 }
+const keyOf = (date, snapshot) => `${date}@${(snapshot === null ? DEFAULT_SNAPSHOT : snapshot).replace(':', '')}`;
 
 /** Why an answer is not a clean result, or null. */
-export function judge(j, date, sport) {
+export function judge(j, date, sport, snapshot = null) {
     if (j === null || typeof j !== 'object') return 'the body is not a JSON object';
     if (j.ok !== true) return `the relay answered 200 with ok ${JSON.stringify(j.ok)}${j.error === undefined ? '' : `: ${String(j.error)}`}${j.reason === undefined ? '' : ` (${String(j.reason)})`}`;
     if (j.date !== date) return `the answer did not echo the requested date (got ${JSON.stringify(j.date)}): not a relay answer`;
     if (j.sport !== sport) return `the answer covers ${JSON.stringify(j.sport)}, not ${JSON.stringify(sport)}: the filter was not applied`;
+    if (snapshot === null ? j.snapshot !== undefined : j.snapshot !== snapshot) return `the answer's snapshot is ${JSON.stringify(j.snapshot)}, the run asked for ${JSON.stringify(snapshot === null ? 'the default' : snapshot)}: the parameter was not applied as asked`;
     if (typeof j.games_found !== 'number' || typeof j.odds_populated !== 'number') return 'the answer carries no games_found / odds_populated counts';
     if (j.stopped !== undefined) return `the route stopped itself (${String(j.reason)}) after a billed call`;
     if (typeof j.guarded === 'number' && j.guarded > 0) return `the relay's credit guard declined ${j.guarded} fetch(es): no vendor call was made and nothing was spent (a day, month or label cap is reached)`;
@@ -98,19 +106,25 @@ export function judge(j, date, sport) {
 }
 
 /** The request the run is about to make, as the preflight and the loop both build it. */
-const request = (relay, date, sport, secret, timeoutMs) => ({
-    url: `${relay}/archive/odds-backfill?date=${date}&sport=${encodeURIComponent(sport)}`,
+const request = (relay, date, sport, secret, timeoutMs, snapshot = null) => ({
+    url: `${relay}/archive/odds-backfill?date=${date}&sport=${encodeURIComponent(sport)}${snapshot === null ? '' : `&snapshot=${encodeURIComponent(snapshot)}`}`,
     init: { redirect: 'manual', signal: AbortSignal.timeout(timeoutMs), headers: { 'User-Agent': UA, Authorization: `Bearer ${secret}` } },
 });
 
 /** Null when the relay refuses an unknown label (it honours ?sport=), else why the run must not start. */
-async function preflight({ relay, secret, fetchImpl, redact, timeoutMs }) {
-    const { url, init } = request(relay, PREFLIGHT_DATE, PREFLIGHT_LABEL, secret, timeoutMs);
+async function preflight({ relay, secret, fetchImpl, redact, timeoutMs, snapshot = null }) {
+    const sportRefusal = await preflightOne({ relay, secret, fetchImpl, redact, timeoutMs, label: PREFLIGHT_LABEL, snap: null, want: /unknown \?sport=/, ignored: 'the relay answered 200 to an unknown ?sport= label: it does not honour ?sport= (its deploy has not landed), so a real call would fetch EVERY sport that has rows on its date at 30 credits each' });
+    if (sportRefusal !== null || snapshot === null) return sportRefusal;
+    // The same for ?snapshot=: a relay that ignores it would ask the vendor for NOON and pay 30 credits for the answer the run exists to avoid.
+    return preflightOne({ relay, secret, fetchImpl, redact, timeoutMs, label: 'EPL', snap: PREFLIGHT_SNAPSHOT, want: /bad \?snapshot=/, ignored: 'the relay answered 200 to a snapshot that is not a time: it does not honour ?snapshot= (its deploy has not landed), so a real call would ask the vendor for noon and pay 30 credits for it' });
+}
+async function preflightOne({ relay, secret, fetchImpl, redact, timeoutMs, label, snap, want, ignored }) {
+    const { url, init } = request(relay, PREFLIGHT_DATE, label, secret, timeoutMs, snap);
     try {
         const r = await fetchImpl(url, init);
         const text = await r.text();
-        if (r.status === 400 && /unknown \?sport=/.test(text)) return null;
-        if (r.status === 200) return 'the relay answered 200 to an unknown ?sport= label: it does not honour ?sport= (its deploy has not landed), so a real call would fetch EVERY sport that has rows on its date at 30 credits each';
+        if (r.status === 400 && want.test(text)) return null;
+        if (r.status === 200) return ignored;
         return `the preflight answered HTTP ${r.status}: ${redact(text).slice(0, 160)}`;
     } catch (e) { return `the preflight got no answer: ${redact(e.message === undefined ? e : e.message)}`; }
 }
@@ -119,10 +133,10 @@ async function preflight({ relay, secret, fetchImpl, redact, timeoutMs }) {
 export async function run({ env, relay, outDir, log, fetchImpl = fetch, timeoutMs = REQUEST_TIMEOUT_MS }) {
     const p = plan(env);
     if (p.refused !== undefined) { log(`RUN REFUSED: ${p.refused}`); return { attempted: 0, wrote: [], stoppedBecause: p.refused, refused: true }; }
-    const done = attemptedDates(outDir, p.sport);
-    const repeats = p.dates.filter(d => done.includes(d));
+    const done = attemptedKeys(outDir, p.sport);
+    const repeats = p.dates.filter(d => done.includes(keyOf(d, p.snapshot)));
     if (repeats.length > 0) {
-        const why = `${repeats.join(', ')} already attempted for ${p.sport} (a result file is in ${outDir}): a date is attempted once`;
+        const why = `${repeats.join(', ')} already attempted for ${p.sport}${p.snapshot === null ? '' : ` at ${p.snapshot}`} (a result file is in ${outDir}): a date is attempted once per snapshot`;
         log(`RUN REFUSED: ${why}`);
         return { attempted: 0, wrote: [], stoppedBecause: why, refused: true };
     }
@@ -130,14 +144,14 @@ export async function run({ env, relay, outDir, log, fetchImpl = fetch, timeoutM
     // JSON string (a quote or a backslash in it is written \" or \\ there). Longest first.
     const forms = [...new Set([p.secret, JSON.stringify(p.secret).slice(1, -1)])].filter(f => f !== '').sort((a, b) => b.length - a.length);
     const redact = (text) => forms.reduce((acc, f) => acc.split(f).join('[redacted]'), String(text));
-    const refusedByPreflight = await preflight({ relay, secret: p.secret, fetchImpl, redact, timeoutMs });
+    const refusedByPreflight = await preflight({ relay, secret: p.secret, fetchImpl, redact, timeoutMs, snapshot: p.snapshot });
     if (refusedByPreflight !== null) {
         log(`RUN REFUSED (preflight, nothing spent): ${refusedByPreflight}`);
         return { attempted: 0, wrote: [], stoppedBecause: refusedByPreflight, refused: true };
     }
     if (envText(env, 'PREFLIGHT_ONLY') === '1') {
         // The free proof that the deployed relay honours ?sport=, run before the owner's number is spent: no billed request, no file.
-        log(`PREFLIGHT OK, nothing spent: ${relay} answered 400 to an unknown ?sport= label, so it applies the filter. ${p.dates.length} date(s) planned, none requested.`);
+        log(`PREFLIGHT OK, nothing spent: ${relay} answered 400 to an unknown ?sport= label, so it applies the filter${p.snapshot === null ? '' : ` and answered 400 to a snapshot that is not a time, so it honours ?snapshot=`}. ${p.dates.length} date(s) planned${p.snapshot === null ? '' : ` at ${p.snapshot}`}, none requested.`);
         return { attempted: 0, wrote: [], stoppedBecause: null, refused: false, preflightOnly: true };
     }
     mkdirSync(outDir, { recursive: true });
@@ -146,10 +160,10 @@ export async function run({ env, relay, outDir, log, fetchImpl = fetch, timeoutM
     let stoppedBecause = null;
     for (const date of p.dates) {
         attempted++;
-        const { url, init } = request(relay, date, p.sport, p.secret, timeoutMs);
-        const rec = { probed_at: new Date().toISOString(), date, sport: p.sport, url, http: null, result: null, error: null };
+        const { url, init } = request(relay, date, p.sport, p.secret, timeoutMs, p.snapshot);
+        const rec = { probed_at: new Date().toISOString(), date, sport: p.sport, ...(p.snapshot === null ? {} : { snapshot: p.snapshot }), url, http: null, result: null, error: null };
         const stamp = rec.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-        const file = join(outDir, `odds-backfill-${fileSport(p.sport)}-${date}-${stamp}.json`);
+        const file = join(outDir, `odds-backfill-${fileSport(p.sport)}-${date}${p.snapshot === null ? '' : `-s${p.snapshot.replace(':', '')}`}-${stamp}.json`);
         // WRITE-AHEAD: the attempt is on disk before the request leaves, so a runner that dies in flight still counts this date.
         writeFileSync(file, JSON.stringify({ ...rec, pending: true }, null, 2) + '\n');
         try {
@@ -162,7 +176,7 @@ export async function run({ env, relay, outDir, log, fetchImpl = fetch, timeoutM
                 try { j = JSON.parse(text); } catch (_) { rec.error = `non-JSON body (${text.length} bytes): ${text.slice(0, 120)}`; }
                 if (rec.error === null) {
                     rec.result = j;
-                    const why = judge(j, date, p.sport);
+                    const why = judge(j, date, p.sport, p.snapshot);
                     if (why !== null) rec.error = why;
                     else { found += j.games_found; populated += j.odds_populated; }
                 }
@@ -181,7 +195,7 @@ export async function run({ env, relay, outDir, log, fetchImpl = fetch, timeoutM
         if (rec.error !== null) { stoppedBecause = `${date}: ${rec.error}`; break; }
     }
     // Rule 91: counts of what happened, not the length of the request list.
-    log(`called ${attempted} of ${p.dates.length} requested date(s) for ${p.sport}; ${wrote.length} file(s) written; ${populated} of ${found} game(s) populated; ledger estimate ${charged} credits (${CREDITS_PER_CALL} per sport-date that found games; the provider's bill is unmeasured); ${noAnswer} call(s) with no clean answer, each possibly billed up to ${CREDITS_PER_CALL}; approved ${p.approved}`);
+    log(`called ${attempted} of ${p.dates.length} requested date(s) for ${p.sport}${p.snapshot === null ? '' : ` at ${p.snapshot}Z`}; ${wrote.length} file(s) written; ${populated} of ${found} game(s) populated; ledger estimate ${charged} credits (${CREDITS_PER_CALL} per sport-date that found games; the provider's bill is unmeasured); ${noAnswer} call(s) with no clean answer, each possibly billed up to ${CREDITS_PER_CALL}; approved ${p.approved}`);
     if (stoppedBecause !== null) log(`STOPPED after the first failure, no retry: ${stoppedBecause}`);
     return { attempted, wrote, stoppedBecause, refused: false, populated, found, charged, noAnswer };
 }
@@ -197,12 +211,20 @@ async function selfTest() {
     const server = createServer((req, res) => {
         const date = /date=([\d-]+)/.exec(req.url)?.[1];
         const sport = decodeURIComponent(/sport=([^&]*)/.exec(req.url)?.[1] ?? '');
+        const snapRaw = /snapshot=([^&]*)/.exec(req.url)?.[1];
+        const snap = snapRaw === undefined ? undefined : decodeURIComponent(snapRaw);
+        const echoSnap = snap === undefined || mode === 'no-snap-echo' ? {} : { snapshot: snap };
         const send = (code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(typeof body === 'string' ? body : JSON.stringify(body)); };
         if (date === PREFLIGHT_DATE) {
             pre.push({ url: req.url, auth: req.headers.authorization });
             if (mode === 'old-relay') return send(200, { ok: true, date, games_found: 0, odds_populated: 0, odds_skipped: 0 });
             if (mode === 'pre-401') return send(401, 'Unauthorized');
-            return send(400, { ok: false, error: `unknown ?sport=${JSON.stringify(sport)}: not an archive sport the relay has an Odds-API key for` });
+            if (sport === PREFLIGHT_LABEL) return send(400, { ok: false, error: `unknown ?sport=${JSON.stringify(sport)}: not an archive sport the relay has an Odds-API key for` });
+            if (snap !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(snap)) {
+                if (mode === 'old-relay-snap') return send(200, { ok: true, date, sport, games_found: 0, odds_populated: 0, odds_skipped: 0 });   // ignores ?snapshot=
+                return send(400, { ok: false, error: `bad ?snapshot=${JSON.stringify(snap)}: a UTC time of day written HH:MM` });
+            }
+            return send(200, { ok: true, date, sport, ...echoSnap, games_found: 0, odds_populated: 0, odds_skipped: 0 });
         }
         hits.push({ url: req.url, auth: req.headers.authorization });
         if (mode === 'hang') { setTimeout(() => { try { send(500, 'late'); } catch (_) { /* the runner has gone */ } }, 2500); return; }   // answers only long after any timeout under test
@@ -221,7 +243,8 @@ async function selfTest() {
         if (mode === 'guarded') return send(200, { ok: true, date, sport, games_found: 1, odds_populated: 0, odds_skipped: 1, guarded: 1, quota_remaining: null });
         if (mode === 'no-games') return send(200, { ok: true, date, sport, games_found: 0, odds_populated: 0, odds_skipped: 0 });
         if (mode === 'echo') return send(200, { ok: true, date, sport, games_found: 1, odds_populated: 1, note: `echoed ${SECRET}` });
-        return send(200, { ok: true, date, sport, games_found: 1, odds_populated: 1, odds_skipped: 0, quota_remaining: 399970 });
+        if (mode === 'unasked-snap') return send(200, { ok: true, date, sport, snapshot: '09:30', games_found: 1, odds_populated: 1, odds_skipped: 0 });
+        return send(200, { ok: true, date, sport, ...echoSnap, games_found: 1, odds_populated: 1, odds_skipped: 0, quota_remaining: 399970 });
     });
     await new Promise(r => server.listen(0, r));
     const relay = `http://127.0.0.1:${server.address().port}`;
@@ -245,7 +268,7 @@ async function selfTest() {
     try {
         const a = await go({});
         check('S1 three dates make exactly three requests and write three files', hits.length === 3 && a.files.length === 3 && a.r.stoppedBecause === null, `${hits.length} requests, ${a.files.length} files`);
-        check('S2 each request carries date, ONE sport and the bearer credential', hits.every(h => /sport=EPL$/.test(h.url) && h.auth === `Bearer ${SECRET}`), JSON.stringify(hits.map(h => h.url)));
+        check('S2 each of the three billed requests carries date, ONE sport and the bearer credential', hits.length === 3 && hits.every(h => /sport=EPL$/.test(h.url) && h.auth === `Bearer ${SECRET}`), JSON.stringify(hits.map(h => h.url)));
         check('S3 the denominator line: called 3 of 3, 3 of 3 games populated, 90 credits, none unanswered, approved 90', /^called 3 of 3 requested date\(s\) for EPL; 3 file\(s\) written; 3 of 3 game\(s\) populated; ledger estimate 90 credits/.test(denom()) && /0 call\(s\) with no clean answer/.test(denom()) && /approved 90$/.test(denom()), denom());
         check('S4 each answer is also in the run log, verbatim', logs.filter(l => l.startsWith('--- ') && l.includes('"odds_populated": 1')).length === 3);
         const b = await go({ BACKFILL_DATES: `${D3},2026-09-12,2026-09-20,2026-10-11,2026-10-18,2026-10-25,2026-08-21,2026-11-01`, APPROVED_CREDITS: '9999' });
@@ -352,6 +375,37 @@ async function selfTest() {
         check('S49 PREFLIGHT_ONLY makes the preflight request and NOTHING else: no billed request, no file, a line saying nothing was spent', po.r.preflightOnly === true && pre.length === 1 && hits.length === 0 && po.files.length === 0 && logs.some(l => /^PREFLIGHT OK, nothing spent/.test(l)));
         const poOld = await go({ PREFLIGHT_ONLY: '1' }, 'old-relay');
         check('S50 PREFLIGHT_ONLY against a relay that ignores ?sport= is refused, so the free check can fail', poOld.r.refused === true && poOld.r.preflightOnly === undefined && hits.length === 0);
+        // ?snapshot=: an earlier time of day, a ledger keyed by date AND snapshot, and a second free preflight.
+        const sn = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' });
+        check('S51 BACKFILL_SNAPSHOT=09:30: two free preflights (the sport label, then a snapshot that is not a time), ONE billed request carrying &snapshot=09:30, the file named with -s0930-, the line naming the snapshot',
+            pre.length === 2 && /sport=__filter_preflight__$/.test(pre[0].url) && /snapshot=99%3A99$/.test(pre[1].url) && hits.length === 1 && /&snapshot=09%3A30$/.test(hits[0].url)
+            && sn.r.stoppedBecause === null && sn.files.length === 1 && /^odds-backfill-epl-2026-05-09-s0930-\d{8}T\d{6}Z\.json$/.test(sn.files[0]) && /for EPL at 09:30Z;/.test(denom()), `${pre.length} pre, ${hits.length} billed, ${sn.files}`);
+        const snRec = JSON.parse(readFileSync(join(sn.out, sn.files[0]), 'utf8'));
+        check('S52 the result file records the snapshot and the answer that echoed it', snRec.snapshot === '09:30' && snRec.result.snapshot === '09:30' && snRec.pending === undefined);
+        const snOld = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'old-relay-snap');
+        check('S53 a relay that honours ?sport= but IGNORES ?snapshot= (answers 200 to 99:99) is refused with NO billed request and NO file: it would have asked the vendor for noon', snOld.r.refused === true && hits.length === 0 && snOld.files.length === 0 && /does not honour \?snapshot=/.test(snOld.r.stoppedBecause), `${hits.length} billed, ${snOld.files.length} files`);
+        const snBad = await go({ BACKFILL_SNAPSHOT: '25:00', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' });
+        check('S54 a BACKFILL_SNAPSHOT that is not a time of day is refused before any request', snBad.r.refused === true && hits.length === 0 && pre.length === 0 && /HH:MM/.test(snBad.r.stoppedBecause));
+        const snDef = await go({ BACKFILL_SNAPSHOT: '12:00', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' });
+        check('S55 BACKFILL_SNAPSHOT=12:00 is the default: no &snapshot sent, one preflight, the file named without a token', pre.length === 1 && hits.length === 1 && !/snapshot/.test(hits[0].url) && /^odds-backfill-epl-2026-05-09-\d{8}T/.test(snDef.files[0]));
+        // The ledger is per date AND snapshot.
+        const lg1 = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'ok', { preFiles: ['2026-05-09'] });
+        check('S56 a date already attempted at NOON does not block the same date at 09:30 (a different call): one billed request', lg1.r.refused === false && hits.length === 1, `${hits.length}; ${lg1.r.stoppedBecause}`);
+        const sd = join(dir, 'snapledger'); mkdirSync(sd, { recursive: true });
+        writeFileSync(join(sd, 'odds-backfill-epl-2026-05-09-s0930-20260101T000000Z.json'), '{}\n');
+        const lg2 = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'ok', { outDir: sd });
+        check('S57 a date already attempted at 09:30 is refused at 09:30 again, before any request', lg2.r.refused === true && hits.length === 0 && /already attempted for EPL at 09:30/.test(lg2.r.stoppedBecause));
+        const lg3 = await go({ BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'ok', { outDir: sd });
+        check('S58 ...and does not block the same date at noon', lg3.r.refused === false && hits.length === 1);
+        const lg4 = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'ok', { outDir: sd });
+        check('S59 a noon-attempt file and a 09:30 file for one date are two different keys: 09:30 is still refused (its own file) after a noon file was added', lg4.r.refused === true && hits.length === 0);
+        // The answer must say what was asked.
+        const ne = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'no-snap-echo');
+        check('S60 an answer that does not echo the snapshot is a failure: the parameter was not applied as asked (one billed request, then stop)', hits.length === 1 && /snapshot is undefined/.test(ne.r.stoppedBecause), `${ne.r.stoppedBecause}`);
+        const ua = await go({ BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30' }, 'unasked-snap');
+        check('S61 an answer that carries a snapshot the run did not ask for is a failure', hits.length === 1 && /snapshot is "09:30"/.test(ua.r.stoppedBecause), `${ua.r.stoppedBecause}`);
+        const snPo = await go({ BACKFILL_SNAPSHOT: '09:30', BACKFILL_DATES: '2026-05-09', APPROVED_CREDITS: '30', PREFLIGHT_ONLY: '1' });
+        check('S62 PREFLIGHT_ONLY with a snapshot makes both preflight requests and NOTHING else, and says it honours ?snapshot=', snPo.r.preflightOnly === true && pre.length === 2 && hits.length === 0 && snPo.files.length === 0 && logs.some(l => /honours \?snapshot=/.test(l)));
     } finally { server.closeAllConnections?.(); server.close(); rmSync(dir, { recursive: true, force: true }); }
     console.log(`\n${checked - failed}/${checked} checks passed`);
     return failed;

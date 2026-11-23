@@ -7,7 +7,8 @@ name: Odds backfill (spend-capped, one sport)
 # file in outbox/ makes a repeat refuse, and it is written BEFORE the request); at most nine sport-dates per run; one sport; one attempt per
 # date; the first failure ends the run; a call that spends credits and writes nothing ends it too. A PREFLIGHT runs first: a relay
 # that has not deployed ?sport= would fetch every sport on the date, so the run is refused unless the relay answers 400 to an
-# unknown label (the preflight names a date with no rows and costs nothing on either relay).
+# unknown label (the preflight names a date with no rows and costs nothing on either relay). With a snapshot a second free preflight asks for
+# a snapshot that is not a time and requires the 400, because a relay that ignores ?snapshot= would ask the vendor for noon.
 on:
   workflow_dispatch:
     inputs:
@@ -21,6 +22,10 @@ on:
       approved_credits:
         description: 'The number of credits the owner approved, a whole number. The run refuses if dates x 30 is more.'
         required: true
+      snapshot:
+        description: 'Optional UTC time of day HH:MM asked of the vendor instead of noon, for a match that kicked off before noon (its noon line is "taken in play" and refused). Blank = noon. A date is attempted once per snapshot.'
+        required: false
+        default: ''
       preflight_only:
         description: 'Check ONLY that the deployed relay honours ?sport= (no billed request, no file). Needs the same inputs.'
         type: boolean
@@ -53,6 +58,7 @@ jobs:
           BACKFILL_DATES: ${{ inputs.dates }}
           BACKFILL_SPORT: ${{ inputs.sport }}
           APPROVED_CREDITS: ${{ inputs.approved_credits }}
+          BACKFILL_SNAPSHOT: ${{ inputs.snapshot }}
           PREFLIGHT_ONLY: ${{ inputs.preflight_only && '1' || '' }}
           FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
         run: node scripts/run-odds-backfill-capped.mjs
