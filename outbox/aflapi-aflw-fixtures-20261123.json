@@ -1,0 +1,348 @@
+{
+ "capturedAt": "2026-11-23 (session clock about 02:55Z)",
+ "tool": "mcp__FIELD_Handoff__html_probe (GET from a Cloudflare Worker IP, not cached)",
+ "note": "Real aflapi.afl.com.au/afl/v2 bodies, kept as the fixtures of scripts/check-v2-games-aflw.mjs (docs/CC-CMD-2026-11-22-aflw-live-source.md Task 4). Each body is the tool's visibleText with the JSON string escapes removed and nothing else changed; the match list is pageSize=2 of 117, so its pagination says numPages 59 (the check overrides it where it needs one page). `scheduled` is the Grand Final item from outbox/aflapi-aflw-gf-9081-baseline-20261122.json.",
+ "urls": {
+  "matches": "https://aflapi.afl.com.au/afl/v2/matches?competitionId=3&compSeasonId=96&pageSize=2",
+  "compseasons": "https://aflapi.afl.com.au/afl/v2/competitions/3/compseasons?pageSize=100"
+ },
+ "matches": {
+  "meta": {
+   "code": 200,
+   "pagination": {
+    "page": 0,
+    "numPages": 59,
+    "pageSize": 2,
+    "numEntries": 117
+   }
+  },
+  "matches": [
+   {
+    "id": 8988,
+    "providerId": "CD_M20262640101",
+    "compSeason": {
+     "id": 96,
+     "providerId": "CD_S2026264",
+     "name": "2026 NAB AFLW Season",
+     "shortName": "2026 AFL Womens",
+     "currentRoundNumber": 16
+    },
+    "round": {
+     "id": 1503,
+     "providerId": "CD_R202626401",
+     "abbreviation": "Rd 1",
+     "name": "Round 1",
+     "roundNumber": 1,
+     "byes": [],
+     "utcStartTime": "2026-08-09T06:35:00.000+0000",
+     "utcEndTime": "2026-08-16T06:45:00.000+0000"
+    },
+    "home": {
+     "team": {
+      "id": 36,
+      "providerId": "CD_T8796",
+      "name": "St Kilda",
+      "abbreviation": "STK",
+      "nickname": "St Kilda",
+      "club": {
+       "id": 21,
+       "providerId": "CD_O27",
+       "name": "St Kilda",
+       "abbreviation": "Saints",
+       "nickname": "Saints"
+      },
+      "teamType": "WOMEN"
+     },
+     "score": {
+      "goals": 6,
+      "behinds": 4,
+      "totalScore": 40,
+      "superGoals": 0
+     }
+    },
+    "away": {
+     "team": {
+      "id": 22,
+      "providerId": "CD_T8096",
+      "name": "Carlton",
+      "abbreviation": "CARL",
+      "nickname": "Blues",
+      "club": {
+       "id": 1,
+       "providerId": "CD_O5",
+       "name": "Carlton",
+       "abbreviation": "Blues",
+       "nickname": "Blues"
+      },
+      "teamType": "WOMEN"
+     },
+     "score": {
+      "goals": 9,
+      "behinds": 12,
+      "totalScore": 66,
+      "superGoals": 0
+     }
+    },
+    "venue": {
+     "id": 3,
+     "providerId": "CD_V190",
+     "name": "Marvel Stadium",
+     "abbreviation": "MRVL",
+     "location": "Melbourne",
+     "state": "VIC",
+     "timezone": "Australia/Melbourne",
+     "landOwner": "Wurundjeri"
+    },
+    "utcStartTime": "2026-08-09T06:35:00.000+0000",
+    "status": "CONCLUDED",
+    "metadata": {
+     "prematch_label": "DOUBLE HEADER",
+     "ticket_link": "https://www.ticketmaster.com.au/event/2500643CC1E6EEED"
+    }
+   },
+   {
+    "id": 8884,
+    "providerId": "CD_M20262640102",
+    "compSeason": {
+     "id": 96,
+     "providerId": "CD_S2026264",
+     "name": "2026 NAB AFLW Season",
+     "shortName": "2026 AFL Womens",
+     "currentRoundNumber": 16
+    },
+    "round": {
+     "id": 1503,
+     "providerId": "CD_R202626401",
+     "abbreviation": "Rd 1",
+     "name": "Round 1",
+     "roundNumber": 1,
+     "byes": [],
+     "utcStartTime": "2026-08-09T06:35:00.000+0000",
+     "utcEndTime": "2026-08-16T06:45:00.000+0000"
+    },
+    "home": {
+     "team": {
+      "id": 119,
+      "providerId": "CD_T9407",
+      "name": "Hawthorn",
+      "abbreviation": "HAW",
+      "nickname": "Hawks",
+      "club": {
+       "id": 16,
+       "providerId": "CD_O17",
+       "name": "Hawthorn",
+       "abbreviation": "Hawks",
+       "nickname": "Hawks"
+      },
+      "teamType": "WOMEN"
+     },
+     "score": {
+      "goals": 6,
+      "behinds": 5,
+      "totalScore": 41,
+      "superGoals": 0
+     }
+    },
+    "away": {
+     "team": {
+      "id": 29,
+      "providerId": "CD_T7386",
+      "name": "Melbourne",
+      "abbreviation": "MELB",
+      "nickname": "Demons",
+      "club": {
+       "id": 14,
+       "providerId": "CD_O18",
+       "name": "Melbourne",
+       "abbreviation": "Demons",
+       "nickname": "Demons"
+      },
+      "teamType": "WOMEN"
+     },
+     "score": {
+      "goals": 9,
+      "behinds": 6,
+      "totalScore": 60,
+      "superGoals": 0
+     }
+    },
+    "venue": {
+     "id": 37,
+     "providerId": "CD_V50",
+     "name": "IKON Park",
+     "abbreviation": "IKP",
+     "location": "Melbourne",
+     "state": "VIC",
+     "timezone": "Australia/Melbourne",
+     "landOwner": "Wurundjeri"
+    },
+    "utcStartTime": "2026-08-13T09:15:00.000+0000",
+    "status": "CONCLUDED",
+    "metadata": {
+     "ticket_link": "https://www.ticketmaster.com.au/event/130064E2AF193BB7"
+    }
+   }
+  ]
+ },
+ "compseasons": {
+  "meta": {
+   "code": 200,
+   "pagination": {
+    "page": 0,
+    "numPages": 1,
+    "pageSize": 11,
+    "numEntries": 11
+   }
+  },
+  "compSeasons": [
+   {
+    "id": 96,
+    "providerId": "CD_S2026264",
+    "name": "2026 NAB AFLW Season",
+    "shortName": "2026 AFL Womens",
+    "currentRoundNumber": 16
+   },
+   {
+    "id": 84,
+    "providerId": "CD_S2025264",
+    "name": "2025 NAB AFLW Season",
+    "shortName": "2025 AFL Womens",
+    "currentRoundNumber": 16
+   },
+   {
+    "id": 72,
+    "providerId": "CD_S2024264",
+    "name": "2024 NAB AFLW Season",
+    "shortName": "2024 NAB AFLW Season",
+    "currentRoundNumber": 14
+   },
+   {
+    "id": 61,
+    "providerId": "CD_S2023264",
+    "name": "2023 NAB AFLW Season",
+    "shortName": "2023 NAB AFLW Season",
+    "currentRoundNumber": 14
+   },
+   {
+    "id": 41,
+    "providerId": "CD_S2022264",
+    "name": "2022 NAB AFLW Season 6",
+    "shortName": "2022 NAB AFLW Season 6",
+    "currentRoundNumber": 15
+   },
+   {
+    "id": 51,
+    "providerId": "CD_S2101264",
+    "name": "2022 NAB AFLW Season 7",
+    "shortName": "2022 NAB AFLW Season 7",
+    "currentRoundNumber": 14
+   },
+   {
+    "id": 32,
+    "providerId": "CD_S2021264",
+    "name": "2021 NAB AFLW Season",
+    "shortName": "2021 NAB AFLW Season",
+    "currentRoundNumber": 12
+   },
+   {
+    "id": 22,
+    "providerId": "CD_S2020264",
+    "name": "2020 NAB AFLW Season",
+    "shortName": "2020 NAB AFLW Season",
+    "currentRoundNumber": 7
+   },
+   {
+    "id": 19,
+    "providerId": "CD_S2019264",
+    "name": "2019 NAB AFLW Season",
+    "shortName": "2019 NAB AFLW Season",
+    "currentRoundNumber": 9
+   },
+   {
+    "id": 16,
+    "providerId": "CD_S2018264",
+    "name": "2018 NAB AFLW Season",
+    "shortName": "2018 NAB AFLW Season",
+    "currentRoundNumber": 8
+   },
+   {
+    "id": 13,
+    "providerId": "CD_S2017264",
+    "name": "2017 NAB AFLW Season",
+    "shortName": "2017 NAB AFLW Season",
+    "currentRoundNumber": 8
+   }
+  ]
+ },
+ "scheduled": {
+  "id": 9081,
+  "providerId": "CD_M20262641601",
+  "compSeason": {
+   "id": 96,
+   "providerId": "CD_S2026264",
+   "name": "2026 NAB AFLW Season",
+   "shortName": "2026 AFL Womens",
+   "currentRoundNumber": 16
+  },
+  "round": {
+   "id": 1546,
+   "providerId": "CD_R202626416",
+   "abbreviation": "GF",
+   "name": "Grand Final",
+   "roundNumber": 16,
+   "byes": [],
+   "utcStartTime": "2026-11-27T08:45:00.000+0000",
+   "utcEndTime": "2026-11-27T08:45:00.000+0000"
+  },
+  "home": {
+   "team": {
+    "id": 30,
+    "providerId": "CD_T8466",
+    "name": "North Melbourne",
+    "abbreviation": "NMFC",
+    "nickname": "Kangaroos",
+    "club": {
+     "id": 20,
+     "providerId": "CD_O20",
+     "name": "North Melbourne",
+     "abbreviation": "Kangaroos",
+     "nickname": "Kangaroos"
+    },
+    "teamType": "WOMEN"
+   }
+  },
+  "away": {
+   "team": {
+    "id": 29,
+    "providerId": "CD_T7386",
+    "name": "Melbourne",
+    "abbreviation": "MELB",
+    "nickname": "Demons",
+    "club": {
+     "id": 14,
+     "providerId": "CD_O18",
+     "name": "Melbourne",
+     "abbreviation": "Demons",
+     "nickname": "Demons"
+    },
+    "teamType": "WOMEN"
+   }
+  },
+  "venue": {
+   "id": 37,
+   "providerId": "CD_V50",
+   "name": "IKON Park",
+   "abbreviation": "IKP",
+   "location": "Melbourne",
+   "state": "VIC",
+   "timezone": "Australia/Melbourne",
+   "landOwner": "Wurundjeri"
+  },
+  "utcStartTime": "2026-11-27T08:45:00.000+0000",
+  "status": "SCHEDULED",
+  "metadata": {
+   "finals_match_label": "NAB AFLW Grand Final",
+   "ticket_link": "https://www.ticketmaster.com.au/event/130065568F9D36B6"
+  }
+ }
+}

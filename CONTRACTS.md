@@ -1090,6 +1090,33 @@ only `STATUS_IN_PROGRESS` as live; its status names for them are not read); a bo
 
 **The laboratory's copy must be synced** (ATOMIC-A), relay first, as for the soccer board: a change to any key above, to the state words, or to which sports carry an `espnEventId`.
 
+## GET /v2/games?sport=aflw — the AFLW board (aflapi.afl.com.au, written 2026-11-23)
+
+AFLW is not on ESPN (core `australian-football/leagues` lists `afl` only, runner probe 2026-11-22), so this board is the AFL's own API: `https://aflapi.afl.com.au/afl/v2`, competition 3 ("NAB AFLW"), read
+with two edge-cached GETs (the season list, 3600 s, then the season's matches at `pageSize=200`, 30 s), pull only. Producer: `adaptAflapi` and the `aflapiSource` branch of `handleV2Games` (`src/index.js`).
+The decision to use this source is `docs/CC-CMD-2026-11-22-aflw-live-source.md` (G0, ruled 2026-11-23); `scripts/check-v2-games-aflw.mjs` holds the shape.
+
+```
+200 { sport: 'aflw', date, games: FieldGame[], count, source: 'aflapi', ts }     date is the ET calendar day of each game's kickoff (fieldDayOfInstant, the archive's date key)
+200 { sport, date, games: [], count: 0, source: 'aflapi', note: 'no <year> season on aflapi', ts }     aflapi lists no season for the request's year (the one honest empty answer outside a day with no match)
+502 { error, sport, date }     an aflapi non-2xx, a thrown fetch, a 200 that is not JSON, a paginated answer, or a status the adapter has not been shown. NEVER an empty slate.
+
+FieldGame: { id: 'aflw:<aflapi match id>', aflapiMatchId, sport: 'aflw', league: 'AFLW', state, start (ISO, Z), home: { name, abbr, score }, away: { name, abbr, score },
+             periodNum: 0, periodLabel: 'NS' | 'F', clock: '', venue }
+  espnEventId   ABSENT. The game is not on ESPN. As NHL's, the laboratory joins an id-less feed game to a card by the card's two club names.
+  state         STAGE 1 (2026-11-23): 'pre' for aflapi status SCHEDULED, 'final' for CONCLUDED. Any other status string is a 502 naming it and the match id. Stage 2 adds the live spelling from
+                the 2026-11-27 Grand Final capture (field-relay-nba `outbox/aflapi-aflw-gf-9081-*.json`); until then 'live' is never served for AFLW.
+  home.score, away.score   aflapi `score.totalScore` (points: goals x 6 + behinds), a number once the match has a score object, else null. A SCHEDULED item has no score object.
+  periodNum / periodLabel / clock   the contract's empty values ('NS' before, 'F' after, ''), because no period or clock key exists on a SCHEDULED or CONCLUDED aflapi item (read on 8988 and 9081, detail path included).
+                Whether a live item carries one is the unread question of the CC-CMD's Task 1.
+```
+
+Observed (Rule 73): `html_probe` from a Cloudflare Worker IP, 2026-11-22 and 2026-11-23: match 9081 (the 2026 Grand Final, `SCHEDULED`, `utcStartTime` `2026-11-27T08:45:00.000+0000`), matches 8988 and 8884 (`CONCLUDED`, with
+`score.totalScore`), the season list (11 seasons, `2026 NAB AFLW Season` is id 96); real bodies in `outbox/aflapi-aflw-fixtures-20261123.json`. NOT observed: any live aflapi match, so no live status string, period or clock;
+a match with a postponed or abandoned status; a finals match that went to extra time.
+
+**The laboratory's copy must be synced** (ATOMIC-A), relay first: the lab adds `Sport.AFLW` and the live key `aflw` after this board is deployed and read (CC-CMD Part B).
+
 
 ---
 

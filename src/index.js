@@ -1519,6 +1519,9 @@ const V2_LEAGUES = {
     // Squiggle /squiggle route stays active for power rankings + projected ladder.
     // KALI_AFL_TOKEN already deployed. bsdLeagueId: null (AFL not in BSD).
     'afl':          { sport: 'afl', espnLeague: 'afl', espnSport: 'australian-football', season: 2026 },
+    // AFLW -- not on ESPN (core australian-football/leagues lists `afl` only, read 2026-11-22). Served from the AFL's own
+    // aflapi.afl.com.au/afl/v2, competition 3 ("NAB AFLW"), pull-only. docs/CC-CMD-2026-11-22-aflw-live-source.md, G0 = A, Task 2.
+    'aflw':         { sport: 'aflw', aflapiSource: true, aflapiCompetitionId: 3 },
     'atp':          { sport: 'tennis',     espnSource: true, espnLeague: 'atp',
                       description: 'ATP Tour — BSD Sports Pack active' },
     'wta':          { sport: 'tennis',     espnSource: true, espnLeague: 'wta',
@@ -1580,6 +1583,56 @@ function adaptNhle(g) {
         periodLabel,
         clock:  g?.clock?.timeRemaining || '',
         venue:  g?.venue?.default || '',
+    };
+}
+
+// ── adaptAflapi ───────────────────────────────────────────────────────────────
+// Maps one aflapi.afl.com.au/afl/v2/matches entry (competition 3, "NAB AFLW") to the standard V2 game shape.
+// docs/CC-CMD-2026-11-22-aflw-live-source.md Task 2. Shapes read 2026-11-22 (`html_probe` from a Worker IP): match 8988
+// CONCLUDED `{ home: { team: { name, abbreviation }, score: { goals, behinds, totalScore, superGoals } }, away, venue: { name },
+// utcStartTime: "2026-08-09T06:35:00.000+0000", status: "CONCLUDED" }` and match 9081 SCHEDULED (no `score` object on either side).
+//
+// STAGE 1: only the two status strings that have been READ are mapped. aflapi has no documented status list, the filter letters
+// are U (SCHEDULED), L, C (CONCLUDED), and no match has been in play to read the live spelling (the Grand Final of 2026-11-27 is
+// the first chance; outbox/aflapi-aflw-gf-9081-*.json). Any other string is an AflapiStatusError: a named 502 for the whole board,
+// never `pre`, never `live` and never dropped -- a guessed state is a wrong card, and a dropped game is a card that never moves.
+// Stage 2 adds the live spelling from that capture and nothing else.
+//
+// There is no espnEventId (the game is not on ESPN): `id` is `aflw:<aflapi match id>` as NHL's is `nhl:<nhleGameId>`, and the
+// laboratory joins id-less feed games by the two club names. periodNum / periodLabel / clock carry only what aflapi gave: nothing
+// on a SCHEDULED or CONCLUDED item names a period or a clock (checked on 8988 and 9081, detail path included), so they are the
+// contract's empty values ('NS' before, 'F' after, clock ''), not a guess at a quarter.
+const AFLAPI_BASE    = 'https://aflapi.afl.com.au';
+const AFLAPI_HEADERS = { 'Accept': 'application/json', 'User-Agent': 'FIELD/1.0' };
+const AFLAPI_STATE   = { SCHEDULED: 'pre', CONCLUDED: 'final' };
+class AflapiStatusError extends Error {
+    constructor(status, matchId) {
+        super(`aflapi status ${JSON.stringify(status)} is not mapped (match ${matchId}); only ${Object.keys(AFLAPI_STATE).join(' and ')} have been read`);
+        this.name = 'AflapiStatusError';
+    }
+}
+function adaptAflapi(m) {
+    const state = AFLAPI_STATE[m?.status];
+    if (!state) throw new AflapiStatusError(m?.status, m?.id);
+    const t = Date.parse(m.utcStartTime);
+    const side = s => ({
+        name:  s?.team?.name || '',
+        abbr:  s?.team?.abbreviation || '',
+        score: typeof s?.score?.totalScore === 'number' ? s.score.totalScore : null,
+    });
+    return {
+        id:           `aflw:${m.id}`,
+        aflapiMatchId: m.id,
+        sport:        'aflw',
+        league:       'AFLW',
+        state,
+        start:        Number.isNaN(t) ? '' : new Date(t).toISOString(),
+        home:         side(m.home),
+        away:         side(m.away),
+        periodNum:    0,
+        periodLabel:  state === 'final' ? 'F' : 'NS',
+        clock:        '',
+        venue:        m.venue?.name || '',
     };
 }
 
@@ -5175,6 +5228,53 @@ async function handleV2Games(url, env, ctx, request = null) {
         }
     }
     // ── end NHL NHLE early-return ──────────────────────────────────────────────
+
+    // ── AFLW aflapi early-return (docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 2) ──────────
+    // Two cached reads of the AFL's own API: the season id of the request's year, then that season's matches (117 in 2026, one
+    // page at pageSize=200). Neither URL carries the request date, so every date shares the same two edge entries (Rule 78: 30 s
+    // as the NHL scoreboard, 3600 s for the season list). The slate is the ET calendar day of each kickoff (fieldDayOfInstant,
+    // the archive's own date key): an AFLW game starting 12:35pm AEST is the previous ET day.
+    //
+    // A refusal is NOT an empty slate (the NBA board's lesson, CC-CMD-2026-10-22-nba-cdn-403-in-season): an upstream non-2xx, a
+    // body that is not JSON, a paginated answer and a status the adapter has not been shown are each a 502 that names the cause.
+    // No season for the request's year is the one honest empty answer: aflapi lists the seasons that exist.
+    if (cfg.aflapiSource) {
+        const fail = (error, status = 502) => new Response(
+            JSON.stringify({ error, sport, date }),
+            { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        const aflapiGet = async (path, ttl) => {
+            const u = `${AFLAPI_BASE}${path}`;
+            let r;
+            try { r = await fetch(u, { headers: AFLAPI_HEADERS, cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: u } }); }
+            catch (e) { throw new Error(`aflapi network error: ${e.message}`); }
+            if (!r.ok) throw new Error(`aflapi upstream ${r.status} for ${path}`);
+            try { return await r.json(); }
+            catch { throw new Error(`aflapi upstream: ${path} did not answer JSON`); }
+        };
+        try {
+            const year = date.slice(0, 4);
+            const seasons = await aflapiGet(`/afl/v2/competitions/${cfg.aflapiCompetitionId}/compseasons?pageSize=100`, 3600);
+            const season = (seasons.compSeasons || []).find(cs => String(cs.name || '').startsWith(`${year} `));
+            if (!season) {
+                return new Response(
+                    JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note: `no ${year} season on aflapi`, ts: Date.now() }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+            }
+            const page = await aflapiGet(`/afl/v2/matches?competitionId=${cfg.aflapiCompetitionId}&compSeasonId=${season.id}&pageSize=200`, 30);
+            if ((page.meta?.pagination?.numPages ?? 1) > 1)
+                return fail(`aflapi matches for season ${season.id} are paginated (${page.meta.pagination.numPages} pages): not read`);
+            const games = (page.matches || [])
+                .filter(m => fieldDayOfInstant(m.utcStartTime) === date)
+                .map(adaptAflapi)
+                .sort((x, y) => x.start.localeCompare(y.start) || x.aflapiMatchId - y.aflapiMatchId);
+            return new Response(
+                JSON.stringify({ sport, date, games, count: games.length, source: 'aflapi', ts: Date.now() }),
+                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } });
+        } catch (e) {
+            return fail(e.message);
+        }
+    }
+    // ── end AFLW aflapi early-return ───────────────────────────────────────────
 
     // API-Sports.io removed 2026-06-30 — subscription lapsed to free tier
     // (no current-season access). Every V2_LEAGUES entry now resolves via an

@@ -466,6 +466,14 @@ jobs:
           node scripts/check-kali-nonjson-not-cached.mjs
           node scripts/check-kali-nonjson-not-cached.mjs --mutate
 
+      # docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 2 and Task 4. ESPN serves no AFLW, so the board is the AFL's own
+      # API: a refusal, a page that is not JSON and a status nobody has read are each a named 502, never an empty slate,
+      # and the slate is the ET day of the kickoff.
+      - name: The AFLW board is aflapi's, and an unreadable answer is not an empty slate
+        run: |
+          node scripts/check-v2-games-aflw.mjs
+          node scripts/check-v2-games-aflw.mjs --mutate
+
       # docs/CC-CMD-2026-11-07-wc-results-club-contamination.md. writeWCResult ran
       # for every soccer final and the live loop read the World Cup group table for
       # every live soccer game, so production wc_results held club cup rows (58
