@@ -7353,7 +7353,7 @@ async function runOddsBackfillForDate(env, isoDate, site = 'fetchSportOddsHistor
         // this backfill happened to run.
         const odds = extractOddsForGame(og, ODDS_PREFERRED_BOOK, snapshotAt);
         if (!odds) { oddsSkipped++; continue; }
-        // The snapshot is noon; a game that tipped before it was in play.
+        // The snapshot is snapshotTime (noon unless the caller asked for an earlier one); a game that tipped before it was in play.
         // Skipped like a miss, so a date of only such rows is still marked
         // tried: they never become pre-kickoff.
         if (kickoffMark(odds.captured_at, row.start_time).late_minutes !== null

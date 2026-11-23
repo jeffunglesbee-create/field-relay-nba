@@ -268,9 +268,13 @@ for (const [what, path] of [['a label the relay has no key for', '/archive/odds-
     f.asked.length === 1 && f.spent === 30 && f.opening[L] === null && f.opening[B] !== null && f.body.odds_populated === 1 && f.body.snapshot === '11:45', JSON.stringify(f.body));
   const g = await world(MAY + '&snapshot=12:00', { may: true });
   check('B8 snapshot=12:00 given explicitly is the default: the same noon fetch, and no `snapshot` key (the answer of every earlier run is unchanged)', JSON.stringify(g.asked) === JSON.stringify([{ key: EPL, snapshot: '2026-05-09T12:00:00Z' }]) && !('snapshot' in g.body));
-  for (const bad of ['25:00', '9:30', '09:30:00', '09:60', '', 'noon', '24:00']) {
+  for (const bad of ['25:00', '9:30', '09:30:00', '09:60', '', 'noon', '24:00', '09:30x', 'x09:30', '09:30\n', ' 09:30', '+09:30', '-1:30', '0930', '09-30', '9:5', '30:00']) {
     const r = await world(MAY + '&snapshot=' + encodeURIComponent(bad), { may: true });
     check(`B8 snapshot=${JSON.stringify(bad)}: 400, no vendor call, nothing spent, no row written`, r.status === 400 && r.asked.length === 0 && r.spent === 0 && /bad \?snapshot=/.test(r.body?.error ?? '') && r.opening[L] === null, `status ${r.status}, ${r.asked.length} calls`);
+  }
+  for (const good of ['00:00', '23:59', '09:05']) {
+    const r = await world(MAY + '&snapshot=' + encodeURIComponent(good), { may: true });
+    check(`B8 snapshot=${good} (a valid time of day, the edges included): one fetch asking for ${good}Z and the answer echoes it`, r.status === 200 && r.asked.length === 1 && r.asked[0].snapshot === `2026-05-09T${good}:00Z` && r.body.snapshot === good, JSON.stringify(r.asked));
   }
   const u = await world(MAY + '&snapshot=25:00', { may: true, auth: false });
   check('B8 no credential and a bad snapshot: still 401 (the gate is first)', u.status === 401);
@@ -286,7 +290,9 @@ for (const [what, path] of [['a label the relay has no key for', '/archive/odds-
   check('B7 the daily catch-up call site passes no sport filter', /runOddsBackfillForDate\(env, oddsDate\)/.test(src));
   check('B7 ...and the function\'s own default is no filter (a default of one sport would narrow the cron while its call text stayed the same)',
     /async function runOddsBackfillForDate\(env, isoDate, site = 'fetchSportOddsHistorical', onlySport = null, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT\) \{/.test(src));
-  check('B7 ...and the default snapshot is noon (the cron, /archive/game and every earlier backfill ask for T12:00:00Z; B2 proves it on the wire)', /const ODDS_HIST_SNAPSHOT_DEFAULT = '12:00';/.test(src));
+  check('B7 ...and the default snapshot is noon (B2 proves the BACKFILL route\'s request on the wire; it always hands snapshotTime down, so it cannot prove the next two)', /const ODDS_HIST_SNAPSHOT_DEFAULT = '12:00';/.test(src));
+  check('B7 ...and fetchSportOddsHistorical\'s OWN default is that constant: /archive/game calls it with four arguments and relies on it, and no behavioural scenario here reaches that path (a mutant moving it to 09:30 stayed green until this assertion, review 2026-11-23)',
+    /async function fetchSportOddsHistorical\(env, sportKey, isoDate, site, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT\) \{/.test(src) && /fetchSportOddsHistorical\(env, oddsSportKey, date, 'archiveGameClosing'\)/.test(src));
 }
 
 let failed = 0;

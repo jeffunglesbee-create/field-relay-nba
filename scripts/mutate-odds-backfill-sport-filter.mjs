@@ -80,6 +80,11 @@ const MUTANTS = [
   ['F24 the backfill loop does not pass the snapshot to the fetch', FETCH_CALL, FETCH_CALL.replace(', snapshotTime', '')],
   ['F25 the answer does not say which snapshot it asked for', SNAP_ECHO, "...{}"],
   ['F26 the default snapshot moves off noon (every existing caller moves with it)', "const ODDS_HIST_SNAPSHOT_DEFAULT = '12:00';", "const ODDS_HIST_SNAPSHOT_DEFAULT = '10:00';"],
+  ['F28 fetchSportOddsHistorical\'s own default moves off the constant (the path /archive/game uses)', "async function fetchSportOddsHistorical(env, sportKey, isoDate, site, snapshotTime = ODDS_HIST_SNAPSHOT_DEFAULT) {", "async function fetchSportOddsHistorical(env, sportKey, isoDate, site, snapshotTime = '09:30') {"],
+  ['F29 the snapshot check has no end anchor (09:30x passes)', "/^([01]\\d|2[0-3]):[0-5]\\d$/", "/^([01]\\d|2[0-3]):[0-5]\\d/"],
+  ['F30 the snapshot check has no start anchor (x09:30 passes)', "/^([01]\\d|2[0-3]):[0-5]\\d$/", "/([01]\\d|2[0-3]):[0-5]\\d$/"],
+  ['F31 the snapshot check allows hour 24 to 29', "/^([01]\\d|2[0-3]):[0-5]\\d$/", "/^([01]\\d|2\\d):[0-5]\\d$/"],
+  ['F32 the snapshot check allows minute 60 to 99', "/^([01]\\d|2[0-3]):[0-5]\\d$/", "/^([01]\\d|2[0-3]):\\d\\d$/"],
   ['F27 the query helper drops the snapshot it parsed', "return { sport, snapshot: snapshot === null ? undefined : snapshot };", "return { sport, snapshot: undefined };"],
 ];
 
