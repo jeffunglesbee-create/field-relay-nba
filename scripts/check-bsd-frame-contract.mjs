@@ -33,7 +33,30 @@ export const RELAY = process.env.RELAY_URL || 'https://field-relay-nba.jeffungle
 export const MIN_PER_SIDE = 3      // fewer records on a side than this cannot discriminate
 export const SIDE_AGREE = 0.95     // share of a side's records that must sit in one half
 export const SHELL_BYTES = 1000    // a stats.json this small carries an empty shotmap
-const READ_CAP = 2500
+// The census needs at most three reads per usable event (stats, incidents,
+// average positions), and which ones is fixed by the list alone, so the number
+// it needs is known before the first read (plannedReads). READ_CEILING is not
+// that number: it is the most this step will read in one run, and a census that
+// needs more is INSUFFICIENT, printing both numbers.
+//
+// It was a fixed 2500. That bound on 2026-11-22, with no change to the check:
+// the last census under it read 2497 reads (2835 keys, 1245 usable events) and
+// passed; the next one, in Repo guards run 45043402749 at 16:21Z, hit 2500 (2845
+// keys, 1250 events) was INSUFFICIENT, exit 3, as was the one on 2026-11-23 (2869
+// keys, 1262 events), each time with every declared frame AGREEING. The bucket
+// grows with the capture, not with the code. 10000 is a larger number, not a different design: the bucket grew about
+// 24 keys a day (up to about 60 on a weekend slate) between 2026-10-16 and
+// 2026-11-22, and at about 0.88 reads a key the census reaches 10000 reads
+// between about 4 and 11 months after 2026-11-23. The COVERAGE line prints the
+// reads planned on every run, so the distance is visible before the step turns
+// red again.
+//
+// Cost, measured once: the list plus 2500 reads took 38.9 s on a runner (about
+// 64 reads a second), so 10000 reads is about 156 s IF the rate holds, which has
+// not been measured above 2500. The ceiling bounds the number of reads, not the
+// time: getJson retries a 5xx or 429 three times (1 + 2 + 4 s) and the retries
+// are not counted as reads.
+export const READ_CEILING = 10000
 const CONCURRENCY = 8
 
 const EXIT = { agree: 0, disagree: 1, insufficient: 3 }
@@ -283,13 +306,28 @@ export async function listAll(get, prefix = 'bsd/') {
   }
 }
 
-async function live(contractSource) {
-  const frames = contractSource === 'live'
-    ? (await getJson(`${RELAY}/bsd/contract`)).json?.frames
-    : framesFromSource(readFileSync('src/index.js', 'utf8'))
-  if (!frames) { console.log('FAIL: could not read the contract frames'); return EXIT.disagree }
+/** Which files of one event the census reads. A stats.json under SHELL_BYTES is
+ *  an empty shotmap and is not read; incidents are read only behind a stats read
+ *  that returned something (the pairing the goal-mouth measure needs). */
+export const wantedFiles = (e) => ({
+  stats: (e.files['stats.json'] ?? 0) >= SHELL_BYTES,
+  incidents: Boolean(e.files['incidents.json']),
+  avg: (e.files['average-positions.json'] ?? 0) > 2,
+})
 
-  const { keys, pages } = await listAll(getJson)
+/** The reads the census needs, from the list alone. An upper bound: a failed
+ *  stats read skips that event's incidents read, and a failure is its own
+ *  INSUFFICIENT. */
+export const plannedReads = (usable) => usable.reduce((n, e) => {
+  const w = wantedFiles(e)
+  return n + (w.stats ? 1 : 0) + (w.stats && w.incidents ? 1 : 0) + (w.avg ? 1 : 0)
+}, 0)
+
+/** List every key, group the keys into events, read what each usable event
+ *  needs, up to `ceiling` reads. `get` is injected so the self-test can serve a
+ *  bucket from memory; the run passes getJson. */
+export async function readCensus(get, ceiling = READ_CEILING) {
+  const { keys, pages } = await listAll(get)
   const events = new Map()
   for (const k of keys) {
     const m = /^bsd\/([^/]+)\/(\d+)\/([a-z-]+\.json)$/.exec(k.key)
@@ -297,26 +335,41 @@ async function live(contractSource) {
     const e = events.get(`${m[1]}/${m[2]}`) ?? { comp: m[1], id: m[2], files: {} }
     e.files[m[3]] = k.size; events.set(`${m[1]}/${m[2]}`, e)
   }
-  const usable = [...events.values()].filter(e => (e.files['stats.json'] ?? 0) >= SHELL_BYTES || (e.files['average-positions.json'] ?? 0) > 2)
+  const usable = [...events.values()].filter(e => { const w = wantedFiles(e); return w.stats || w.avg })
+  const planned = plannedReads(usable)
   let reads = 0, failed = 0, capped = false
   const read = async (key) => {
-    if (reads >= READ_CAP) { capped = true; return null }
+    if (reads >= ceiling) { capped = true; return null }
     reads++
-    const r = await getJson(`${RELAY}/bsd/r2/read?key=${encodeURIComponent(key)}`)
+    const r = await get(`${RELAY}/bsd/r2/read?key=${encodeURIComponent(key)}`)
     if (!r.json) failed++
     return r.json
   }
   const parts = await pool(usable, CONCURRENCY, async (e) => {
     const base = `bsd/${e.comp}/${e.id}/`
-    const stats = (e.files['stats.json'] ?? 0) >= SHELL_BYTES ? await read(base + 'stats.json') : null
-    const incidents = e.files['incidents.json'] && stats ? await read(base + 'incidents.json') : null
-    const avg = (e.files['average-positions.json'] ?? 0) > 2 ? await read(base + 'average-positions.json') : null
+    const w = wantedFiles(e)
+    const stats = w.stats ? await read(base + 'stats.json') : null
+    const incidents = w.incidents && stats ? await read(base + 'incidents.json') : null
+    const avg = w.avg ? await read(base + 'average-positions.json') : null
     return extract({ stats, incidents, avg })
   })
+  return { keys, pages, events, usable, planned, reads, failed, capped, parts }
+}
+
+/** The run. `get` and `ceiling` are injected so the self-test can drive the
+ *  whole path, exit code and printed lines included, over a bucket in memory;
+ *  the CLI passes neither. */
+async function live(contractSource, get = getJson, ceiling = READ_CEILING) {
+  const frames = contractSource === 'live'
+    ? (await get(`${RELAY}/bsd/contract`)).json?.frames
+    : framesFromSource(readFileSync('src/index.js', 'utf8'))
+  if (!frames) { console.log('FAIL: could not read the contract frames'); return EXIT.disagree }
+
+  const { keys, pages, events, usable, planned, reads, failed, capped, parts } = await readCensus(get, ceiling)
   const m = merge(parts)
 
   console.log(`=== BSD frame contract  declaration=${contractSource === 'live' ? `${RELAY}/bsd/contract` : 'src/index.js'}  captures=${RELAY}/bsd/r2/*`)
-  console.log(`COVERAGE: ${keys.length} keys in ${pages} list page(s); ${events.size} events, ${usable.length} non-shell read; ${reads} reads, ${failed} failed${capped ? `, CAPPED at ${READ_CAP}` : ''}; ${m.ownGoalsExcluded} own goals excluded`)
+  console.log(`COVERAGE: ${keys.length} keys in ${pages} list page(s); ${events.size} events, ${usable.length} non-shell read; ${reads} of ${planned} planned reads, ${failed} failed${capped ? `, CAPPED at ${ceiling}` : ''}; ${m.ownGoalsExcluded} own goals excluded`)
   const verdict = judge(frames, m)
   for (const r of verdict.rows) {
     const d = r.declared ? `${r.declared.frame} perTeam ${r.declared.perTeam}` : '(not declared)'
@@ -333,7 +386,7 @@ async function live(contractSource) {
     console.log(`mutation ${r.path}: ${r.from} -> ${r.to}  applied ${r.applied}  caught ${r.caught} (${r.outcome})`)
   }
   console.log(`mutations: ${mutRun} run over the agreeing declarations, ${mutFail} not applied or not caught`)
-  if (failed || capped) { console.log(`INSUFFICIENT: ${failed} read(s) failed${capped ? ', reads capped' : ''}; the sample is not the census it claims`); return EXIT.insufficient }
+  if (failed || capped) { console.log(`INSUFFICIENT: ${failed} read(s) failed${capped ? `, reads capped at ${ceiling} of ${planned} planned` : ''}; the sample is not the census it claims`); return EXIT.insufficient }
   if (mutFail) { console.log(`FAIL: ${mutFail} mutation(s) not applied or not caught; these assertions prove nothing`); return EXIT.disagree }
   console.log(verdict.outcome === 'agree' ? 'PASS: every declared frame agrees with the captures'
     : verdict.outcome === 'insufficient' ? 'INSUFFICIENT EVIDENCE: a side cannot discriminate. This is not agreement.'
@@ -426,6 +479,90 @@ function selfTest() {
     .then(threw => ok('a truncated page with no cursor stops the census', threw))
     .then(() => listAll(pager([{ prefix: 'bsd/wc26/', keys: [{ key: 'a' }], truncated: false }])).then(() => false, () => true))
     .then(threw => ok('a page answered from another prefix stops the census', threw))
+    // The read budget. A bucket served from memory: every event has all three
+    // files, so each costs three reads. `badKey` answers HTTP 500 for one key.
+    .then(async () => {
+      const bucket = (n, badKey) => {
+        const keys = [], served = []
+        for (let i = 0; i < n; i++) for (const [f, size] of [['stats.json', 5000], ['incidents.json', 300], ['average-positions.json', 50]]) keys.push({ key: `bsd/epl/${1000 + i}/${f}`, size })
+        const get = async (url) => {
+          if (url.includes('/bsd/r2/list')) return { status: 200, json: { prefix: 'bsd/', keys, truncated: false, cursor: null } }
+          const key = decodeURIComponent(url.split('key=')[1]); served.push(key)
+          if (key === badKey) return { status: 500, json: null }
+          return { status: 200, json: key.endsWith('stats.json') ? { shotmap: [] } : key.endsWith('incidents.json') ? { incidents: [] } : { home: [], away: [] } }
+        }
+        return { get, served }
+      }
+      // plannedReads: a full event is 3, a shell stats.json with average
+      // positions is 1 (its incidents are not read behind a stats read that was
+      // not made), a stats-only event is 1, an empty shell is not usable.
+      const ev = (files) => ({ comp: 'epl', id: '1', files })
+      const plan = plannedReads([
+        ev({ 'stats.json': 5000, 'incidents.json': 300, 'average-positions.json': 50 }),
+        ev({ 'stats.json': 400, 'incidents.json': 300, 'average-positions.json': 50 }),
+        ev({ 'stats.json': 2000 }),
+      ])
+      ok('plannedReads counts the reads each event needs: 3 + 1 + 1', plan === 5)
+
+      const exact = bucket(4), a = await readCensus(exact.get, 12)
+      ok('a census that needs exactly the ceiling is not capped', a.planned === 12 && a.reads === 12 && a.capped === false && a.failed === 0)
+
+      const over = bucket(5), b = await readCensus(over.get, 12)
+      ok('a census that needs more than the ceiling is capped, and knows how many it needed', b.planned === 15 && b.capped === true)
+      ok('...and never reads past the ceiling', b.reads === 12 && over.served.length === 12)
+
+      const bad = bucket(2, 'bsd/epl/1000/stats.json'), c = await readCensus(bad.get, 100)
+      ok('a failed read is counted, and skips only its own event\'s incidents read', c.failed === 1 && c.reads === 5 && c.planned === 6 && c.capped === false)
+
+      // The 2026-11-23 bucket: 1262 usable events, at most three reads each, and
+      // the 2500 that stopped it. The ceiling must clear what that bucket needed.
+      ok('the ceiling clears the census the bucket already needed (1262 events x 3 reads)', READ_CEILING >= 1262 * 3)
+
+      // A bucket from memory with a body per file, and a way to read what a run
+      // printed. console.log is put back whatever the run does.
+      const memory = (evs, badKey) => {
+        const keys = [], bodies = new Map(), served = []
+        for (const e of evs) for (const [f, { size, body }] of Object.entries(e.files)) { const key = `bsd/epl/${e.id}/${f}`; keys.push({ key, size }); bodies.set(key, body) }
+        const get = async (url) => {
+          if (url.includes('/bsd/r2/list')) return { status: 200, json: { prefix: 'bsd/', keys, truncated: false, cursor: null } }
+          const key = decodeURIComponent(url.split('key=')[1]); served.push(key)
+          if (key === badKey) return { status: 500, json: null }
+          return { status: 200, json: bodies.get(key) ?? null }
+        }
+        return { get, served }
+      }
+      const quiet = async (fn) => { const log = console.log, lines = []; console.log = (...a) => lines.push(a.join(' ')); try { return { code: await fn(), lines } } finally { console.log = log } }
+      const full = (id, c) => ({ id, files: { 'stats.json': { size: 5000, body: c.stats }, 'incidents.json': { size: 300, body: c.incidents }, 'average-positions.json': { size: 50, body: c.avg } } })
+
+      // Every event shape the census can meet, at the boundaries: a stats.json
+      // of 999 bytes is a shell and of exactly 1000 is not; average positions of
+      // 2 bytes are empty and of 3 are not. The plan must equal what is read.
+      const shape = (stats, incidents, avg) => ({ ...(stats != null && { 'stats.json': { size: stats, body: { shotmap: [] } } }), ...(incidents != null && { 'incidents.json': { size: incidents, body: { incidents: [] } } }), ...(avg != null && { 'average-positions.json': { size: avg, body: { home: [], away: [] } } }) })
+      const mixed = memory([
+        { id: 3000, files: shape(5000, 300, 50) },   // 3 reads
+        { id: 3001, files: shape(999, 300, 50) },    // a shell stats.json: its average positions only, 1
+        { id: 3002, files: shape(1000, null, null) },// exactly SHELL_BYTES is not a shell, 1
+        { id: 3003, files: shape(5000, 300, null) }, // 2
+        { id: 3004, files: shape(999, null, 2) },    // a shell and 2-byte average positions: not usable, 0
+        { id: 3005, files: shape(null, null, 3) },   // 1
+      ])
+      const mc = await readCensus(mixed.get, 100)
+      const want = ['3000/stats.json', '3000/incidents.json', '3000/average-positions.json', '3001/average-positions.json', '3002/stats.json', '3003/stats.json', '3003/incidents.json', '3005/average-positions.json'].map(k => `bsd/epl/${k}`).sort()
+      ok('readCensus reads exactly the files each event shape needs', JSON.stringify([...mixed.served].sort()) === JSON.stringify(want) && mc.usable.length === 5)
+      ok('...and the plan is that count, with nothing capped or failed', mc.planned === 8 && mc.reads === 8 && !mc.capped && mc.failed === 0)
+
+      // The whole run, over three captures that agree with the declaration in
+      // the source: the exit code and the lines a reader sees.
+      const agreeing = [capture([88, 92, 79], [7, 12, 4]), capture([96], [9]), capture([85], [3])].map((c, i) => full(2000 + i, c))
+      const t1 = await quiet(() => live('source', memory(agreeing).get, 100))
+      ok('a complete census over agreeing captures exits 0', t1.code === 0)
+      ok('...its COVERAGE line gives the reads against the plan, uncapped', t1.lines.some(l => /^COVERAGE: .*; 9 of 9 planned reads, 0 failed; /.test(l)) && !t1.lines.some(l => /CAPPED/.test(l)))
+      const t2 = await quiet(() => live('source', memory(agreeing).get, 5))
+      ok('a census capped below its plan is INSUFFICIENT (exit 3), not a pass', t2.code === 3)
+      ok('...and says so, with the ceiling in force and the plan', t2.lines.some(l => /^COVERAGE: .*; 5 of 9 planned reads, 0 failed, CAPPED at 5; /.test(l)) && t2.lines.some(l => /^INSUFFICIENT: 0 read\(s\) failed, reads capped at 5 of 9 planned; /.test(l)))
+      const t3 = await quiet(() => live('source', memory(agreeing, 'bsd/epl/2001/stats.json').get, 100))
+      ok('a failed read is INSUFFICIENT (exit 3), and says so', t3.code === 3 && t3.lines.some(l => /^INSUFFICIENT: 1 read\(s\) failed; /.test(l)))
+    })
     .then(() => { console.log(failed ? `self-test: ${failed} FAILED` : 'self-test: all passed'); return failed ? 1 : 0 })
 }
 

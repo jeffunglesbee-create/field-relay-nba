@@ -29,6 +29,29 @@ const MUTATIONS = [
   ['perTeam is not compared', 'const ok = r.frame === decl?.frame && r.perTeam === decl?.perTeam', 'const ok = r.frame === decl?.frame'],
   ['the live mutation flips a declaration that disagrees', "if (base.find(r => r.path === path)?.outcome !== 'agree') return { path, skipped: true }", '0'],
   ['a measured path the contract drops is tolerated', "rows.push({ path, outcome: 'disagree', why: 'measured path is no longer declared by the contract' })", '0'],
+  // The read budget (2026-11-23). The first two are the ceiling itself; the
+  // third is the 2500 that turned every relay push red, put back.
+  ['the read ceiling is ignored', 'if (reads >= ceiling) { capped = true; return null }', 'if (false) { capped = true; return null }'],
+  ['the read ceiling is off by one', 'if (reads >= ceiling)', 'if (reads > ceiling)'],
+  ['the ceiling falls back below the census the bucket already needed', 'export const READ_CEILING = 10000', 'export const READ_CEILING = 2500'],
+  ['the plan is never computed', 'const planned = plannedReads(usable)', 'const planned = 0'],
+  ['the plan counts incidents behind a stats read that was not made', '(w.stats && w.incidents ? 1 : 0)', '(w.incidents ? 1 : 0)'],
+  ['a failed read is not counted', 'if (!r.json) failed++', 'if (false) failed++'],
+  ['incidents are read behind a stats read that failed', 'w.incidents && stats ? await read', 'w.incidents ? await read'],
+  // Added after a review of the batch above ran 14 more mutants against it and
+  // 9 survived: the exit branch that turned the step red, the lines a reader
+  // sees, and every event shape the loop meets. Each now has a case that fails.
+  ['a capped census exits through the verdict', 'if (failed || capped) {', 'if (failed) {'],
+  ['a failed read exits through the verdict', 'if (failed || capped) {', 'if (capped) {'],
+  ['the COVERAGE line prints the reads where the plan belongs', '${reads} of ${planned} planned reads', '${reads} of ${reads} planned reads'],
+  ['the capped message prints the module ceiling, not the one in force', 'reads capped at ${ceiling} of ${planned} planned', 'reads capped at ${READ_CEILING} of ${planned} planned'],
+  ['live() reads with a ceiling of its own', 'await readCensus(get, ceiling)', 'await readCensus(get, 5)'],
+  ['the loop reads stats whatever the list says', "const stats = w.stats ? await read(base + 'stats.json') : null", "const stats = await read(base + 'stats.json')"],
+  ['the loop reads average positions whatever the list says', "const avg = w.avg ? await read(base + 'average-positions.json') : null", "const avg = await read(base + 'average-positions.json')"],
+  ['an event is usable only with both stats and average positions', 'return w.stats || w.avg }', 'return w.stats && w.avg }'],
+  ['an event is usable only with stats', 'return w.stats || w.avg }', 'return w.stats }'],
+  ['a stats.json of exactly SHELL_BYTES is a shell', "stats: (e.files['stats.json'] ?? 0) >= SHELL_BYTES,", "stats: (e.files['stats.json'] ?? 0) > SHELL_BYTES,"],
+  ['two bytes of average positions are read', "avg: (e.files['average-positions.json'] ?? 0) > 2,", "avg: (e.files['average-positions.json'] ?? 0) > 0,"],
 ]
 
 const original = readFileSync(GUARD, 'utf8')
