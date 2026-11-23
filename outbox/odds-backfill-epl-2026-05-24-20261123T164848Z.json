@@ -1,0 +1,17 @@
+{
+  "probed_at": "2026-11-23T16:48:48.343Z",
+  "date": "2026-05-24",
+  "sport": "EPL",
+  "url": "https://field-relay-nba.jeffunglesbee.workers.dev/archive/odds-backfill?date=2026-05-24&sport=EPL",
+  "http": 200,
+  "result": {
+    "ok": true,
+    "date": "2026-05-24",
+    "sport": "EPL",
+    "games_found": 8,
+    "odds_populated": 8,
+    "odds_skipped": 0,
+    "quota_remaining": 89964
+  },
+  "error": null
+}
