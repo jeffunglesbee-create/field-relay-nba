@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-23 (17:05Z) — the other four May EPL dates priced (120 credits): 19 of the 20 June-seed rows now have odds; one row left
+
+**HEAD:** `7f5c397` → this close-out is the next commit. No `src/` change.
+**Session doc:** outbox/cc-session-2026-11-23-epl-june-seed-probe.md (task: the owner's "Approve 120")
+
+- **Run `45220681119`, 120 credits approved and spent:** 05-10 4 of 4, 05-13 1 of 1, 05-17 2 of 2, 05-24 8 of 8, all clean; the provider's `quota_remaining` fell by exactly 30 per call (four differences, the first from the probe's reading). 15 rows written, all three-way, `captured_at` 11:55:37Z on their own dates. Unpriced EPL rows: 16 → **1**.
+- **The one row left is Liverpool v Chelsea, 2026-05-09**, which the probe's route skipped without a reason (candidate: it kicked off before the noon snapshot; not verified). Nothing built can price it. The recommendation is to accept it as NULL; the CC-CMD (`docs/CC-CMD-2026-11-22-epl-june-seed-rows-unpriced.md`) stays IN PROGRESS until the owner says so.
+- Total for that CC-CMD: five calls, 150 credits. Still open and unexplained (not that CC-CMD's): 8 priced EPL rows of 2026-08-22/23/24 with no draw price.
+
 ## SESSION CLOSE-OUT — 2026-11-23 (16:55Z) — one-date probe of the 2026-06-15 EPL seed rows: 4 of 5 priced; 16 rows remain; the runner's lifetime cap was a defect and is fixed
 
 **HEAD:** `e56d8a5` → this close-out is the next commit. No `src/` change.

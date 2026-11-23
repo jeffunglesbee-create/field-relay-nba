@@ -1,11 +1,11 @@
 # Session doc — one-date probe of the 2026-06-15 EPL seed rows
 
 **Date:** 2026-11-23 · **Repo:** field-relay-nba · **Branch:** main · **CC-CMD:** `docs/CC-CMD-2026-11-22-epl-june-seed-rows-unpriced.md` (IN PROGRESS, blocked on the owner for further spend)
-**Owner decision, verbatim:** "Probe" (the 30-credit one-date probe the CC-CMD's Task 1 offered: 2026-05-09, five rows). Nothing beyond it is approved.
+**Owner decisions, verbatim:** "Probe" (the 30-credit one-date probe the CC-CMD's Task 1 offered: 2026-05-09, five rows), then "Approve 120" (the other four dates, as recommended). Nothing beyond those is approved.
 
 ## Done condition so far
 
-`SELECT COUNT(*) FROM regular_season_games WHERE sport = 'EPL' AND opening_odds IS NULL` was 20 before the probe and is **16** after it (read 2026-11-23 after run `45220297965`). Not 0: the CC-CMD stays open and says what remains and what the owner decides.
+`SELECT COUNT(*) FROM regular_season_games WHERE sport = 'EPL' AND opening_odds IS NULL` was 20 before the probe, 16 after it (run `45220297965`), and **1 after the four-date run** (run `45220681119`, read 2026-11-23): the row `2026-05-09-epl-liverp-chelse`. Not 0: the CC-CMD stays open until the owner says whether that row is accepted as NULL.
 
 ## What happened, in order
 
@@ -27,3 +27,12 @@ One call at the measured 30 credits per call (eight consecutive 30-credit steps 
 - Eight priced EPL rows of 2026-08-22/23/24 have no draw price and were written by the live snapshot, not the backfill. Not explained, not part of this CC-CMD.
 - A nit seen in the run: `Keep the results` uploads every tracked result file matching the glob (the nine of the earlier run too), so a refused run still shows "9 files uploaded". Harmless; not changed (Rule 69).
 - `Repo guards` red from the BSD frame-contract step only (unchanged).
+
+## The four-date run ("Approve 120")
+
+- **Run `45220681119`** (dispatched 16:48:39Z), `dates=2026-05-10,2026-05-13,2026-05-17,2026-05-24`, `sport=EPL`, `approved_credits=120`. Pre-dispatch D1 read: 16 unpriced (05-09: 1, 05-10: 4, 05-13: 1, 05-17: 2, 05-24: 8).
+- **Answers:** each HTTP 200, `ok true`, sport echoed, no `guarded`, no `stopped`: 05-10 found 4 / populated 4; 05-13 1 / 1; 05-17 2 / 2; 05-24 8 / 8. Four result files, committed by the run (`7f5c397a`).
+- **Cost, measured:** `quota_remaining` 90084 (the probe's reading) then 90054, 90024, 89994, 89964: four consecutive differences, each exactly 30; 120 credits. The five May calls in all: 150.
+- **Written:** 15 rows, draftkings, all with a draw price, `captured_at` 11:55:37Z on each date. `change_log`: 4 rows at 16:46 (probe) and 15 at 16:48 (this run), all `old_value` NULL (an earlier query of mine used a space-separated timestamp against ISO strings and counted 19 by accident; it was redone by the minute).
+- **Remaining:** one row, Liverpool v Chelsea 2026-05-09. Reason not established (candidate: kickoff 11:30Z before the 11:55Z snapshot; the vendor's `commence_time` not read). The route has no snapshot-time parameter and the runner refuses a second attempt at a date, so nothing in place can price it. **Recommendation: accept it as NULL.**
+- **Total for this CC-CMD:** 150 credits, five calls, 19 of 20 rows priced.
