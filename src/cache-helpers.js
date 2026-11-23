@@ -114,6 +114,11 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
     return response;
 }
 
+// True when the text parses as JSON. relayFetchKV serves every body as application/json, so it stores only these.
+function isJsonBody(text) {
+    try { JSON.parse(text); return true; } catch { return false; }
+}
+
 // relayFetchKV: KV-backed alternative to relayFetch/relayFetchAwaited, for
 // Workers with no custom domain. The Cache API (caches.default) is
 // documented by Cloudflare as functional only on Workers attached to a
@@ -142,12 +147,20 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
 // AbortSignal.timeout via relayFetchAwaited before this) pass it explicitly.
 export async function relayFetchKV(targetUrl, headers, ttl, source, kv, timeoutMs = null) {
     const cacheKey = targetUrl;
+    const notJsonKey = `not-json:${targetUrl}`;
     const cached   = await kv.get(cacheKey);
     if (cached !== null) {
         return new Response(cached, {
             status: 200,
             headers: { 'Content-Type': 'application/json', ...CORS, 'X-FIELD-Proxy': `relay-${source}-kv` }
         });
+    }
+    // A host that answered 200 with something that is not JSON is not asked again for `ttl` seconds: the
+    // refusal below stores a marker (not the body) under notJsonKey. Without it every request made one more
+    // Bearer-carrying call to a host that is not going to answer; before the guard the stored page did this by
+    // accident, for exactly `ttl`. The marker expires with the same ttl, so a host that comes back is asked again.
+    if (await kv.get(notJsonKey) !== null) {
+        return new Response(`${source} returned a non-JSON body`, { status: 502, headers: { 'X-RELAY-Error': `${source}-not-json`, ...CORS } });
     }
     let upstream;
     try {
@@ -162,6 +175,18 @@ export async function relayFetchKV(targetUrl, headers, ttl, source, kv, timeoutM
         return new Response(`${source} returned ${upstream.status}`, { status: upstream.status, headers: { 'X-RELAY-Error': `${source}-${upstream.status}`, ...CORS } });
     }
     const bodyText = await upstream.text();
+    // A 2xx is not a promise of JSON, and every hit above is served as application/json.
+    // Kali's author shut the API down on 2026-09-23; its host now answers these URLs with
+    // a 5818-byte HTML holding page, HTTP 200 (runner probe 2026-11-22). Storing that would
+    // replay it as JSON for `ttl` seconds. The body is not stored, a marker is (see notJsonKey),
+    // and the caller sees a non-ok answer: the same outcome as its caught parse failure today,
+    // and the same one upstream call per ttl the stored page gave by accident.
+    // docs/CC-CMD-2026-11-22-kali-shut-down.md.
+    if (!isJsonBody(bodyText)) {
+        console.warn(`[relayFetchKV] ${source} answered ${upstream.status} with a body that is not JSON (${bodyText.length} chars); not stored, marked for ${ttl}s`);
+        await kv.put(notJsonKey, '1', { expirationTtl: ttl });
+        return new Response(`${source} returned a non-JSON body`, { status: 502, headers: { 'X-RELAY-Error': `${source}-not-json`, ...CORS } });
+    }
     await kv.put(cacheKey, bodyText, { expirationTtl: ttl });
     return new Response(bodyText, {
         status: 200,
