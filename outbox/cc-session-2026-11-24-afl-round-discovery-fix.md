@@ -16,7 +16,7 @@ INFO  a date RANGE (dates=20260705-20260714) is answered HTTP 400: {"code":400,"
 8 of 8 passed.
 ```
 
-The control in the same run (`outbox/afl-round-live-check-control-2026-11-24T2119.log`, pre-fix source `7ec2d03f`, same real ESPN): four range reads, all HTTP 400, four nulls, `0 of 8 passed`, "control failed by assertion, as it must". **Met**, for past dates under a pinned clock. **Not met, STAGED:** an in-season round read live (AFL has no fixtures until 2027; unblocked when it does; verify by dispatching the same workflow with the clock unpinned or `html_probe` of the ten days).
+The control in the same run (`outbox/afl-round-live-check-control-2026-11-24T2119.log`, pre-fix source `7ec2d03f`, same real ESPN): four range reads, all HTTP 400, four nulls, `0 of 8 passed`, "control failed by assertion, as it must". **Met**, for past dates under a pinned clock. **Not met, STAGED** (verifier: `afl_round_in_season`, `relay/staged-verification.yml`, daily 06:00 UTC): an in-season round read live. AFL has no fixtures until 2027; the verifier reads the ten days through the relay's `/v2/games` adapter (an independent path), calls `_discoverAFLRound` for the earliest game's home club and says PASS only if the rounds agree; PENDING off-season. Dry-run of that executor against a real slate with the clock pinned: PASS working, FAIL with ESPN refusing, PENDING with no games; `staged-verdicts-check` 106 passed, `staged-verifier-check` resolves the tag.
 
 ## HEAD progression and what each commit was
 
@@ -28,6 +28,7 @@ The control in the same run (`outbox/afl-round-live-check-control-2026-11-24T211
 | `11670e9d` | `afl-round-live-check.yml` + `scripts/afl-round-live-check.mjs`, dispatch only, with the pre-fix control |
 | `b3dbdf81` | the second review's findings: check 57 → 69 assertions, harness 33 → 49 mutants, one real ESPN body recorded and replayed, wording |
 | `ac52af50` | CI: the live run's two logs (the workflow's own commit) |
+| `630ea6aa` | `afl_round_in_season`: check 11 of `verify-staged-items.mjs` (the daily `staged-verification.yml`), the executor for the one STAGED item; `_discoverAFLRound` and the two window constants are exported for it. The deploy gate "a staged claim names a verifier that exists and runs" refused the CC-CMD's STAGED line without it |
 
 The five were rebased twice onto `origin/main` (other sessions pushed 25 files, then one bot commit) and the message of `2da46894` was reworded once, before any push, to remove two statements the review showed were inaccurate. **Deploy:** run **45489859700** (head `b3dbdf81`), **Repo guards** run **45489859672**; results below.
 
