@@ -73,7 +73,7 @@ const MUTANTS = [
   ['A11 every day refused is not warned as "none answered"', [[NONE, "if (false) console.warn("]]],
   ['A12 one failed day ends the search', [[SKIP, "if (d === null) return null;"]]],
   ['A13 the LAST matching game wins, not the earliest', [[SCAN, "for (let i = slates.length - 1; i >= 0; i--) {"]]],
-  ['A14 an event with no week number is taken', [[WEEK + "\n                if (!round) continue;", WEEK]]],
+  ['A14 an event with no week number is taken', [[WEEK + "\n                if (round === null) continue;", WEEK]]],
   ['A15 a missing week number defaults to round 1', [[WEEK, "const round = ev?.week?.number ?? 1;"]]],
   ['A16 only the home side is matched', [[SIDES, "if (teamNameMatch(predictedWinner, homeN)) {"]]],
   ['A17 the year is last year', [[RET, "return { round, year: now.getUTCFullYear() - 1 };"]]],
@@ -87,6 +87,7 @@ const MUTANTS = [
   ['A25 "none answered" fires when half or fewer answered', [[NONE, "if (answered <= 5) console.warn("]]],
   ['A26 a body with no events array is not warned', [[NO_EVENTS, "return null;"]]],
   ['A27 an unreadable day body is not caught: the exception ends the search', [[TRY_OPEN, "        {\n            for (const ev of d.events) {"], [TRY_CLOSE, "        }\n"]]],
+  ['A29 round 0 is read as no round again (!round)', [["if (round === null) continue;", "if (!round) continue;"]]],
   ['A28 an unreadable day body is caught but not warned', [["console.warn(`[AFL-ROUND] ESPN body for ${days[i]} could not be read: ${e && e.message}`);\n", ""]]],
 ];
 

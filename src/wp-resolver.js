@@ -390,8 +390,11 @@ async function _discoverAFLRound(predictedWinner) {
         if (d === null) continue;
         try {
             for (const ev of d.events) {
+                // Round 0 is a round: ESPN's Opening Round events carry week.number 0 (relay /v2/games 2026-03-05 and 2026-03-06) and
+                // Squiggle serves round=0 tips with an Aggregate source (?q=tips;year=2026;round=0, measured 2026-11-24). Only an
+                // event with NO week number is skipped. (Kali's round=0 is unmeasured; a Kali miss falls through to Squiggle.)
                 const round = ev?.week?.number ?? null;
-                if (!round) continue;
+                if (round === null) continue;
                 const teams = ev.competitions?.[0]?.competitors || [];
                 const home = teams.find(t => t.homeAway === 'home');
                 const away = teams.find(t => t.homeAway === 'away');

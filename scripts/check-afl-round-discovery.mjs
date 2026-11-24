@@ -47,6 +47,7 @@ const DAYS = {
   '20260704': [mk('o1', 16, 'Richmond Tigers', 'Gold Coast Suns')],              // day -4: outside the window
   '20260705': [mk('e1', 17, 'Collingwood Magpies', 'Carlton Blues')],           // day -3: the first day of the window
   '20260706': [mk('e2', 17, 'Geelong Cats', 'Brisbane Lions')],                 // day -2: Geelong's FIRST game in the window
+  '20260710': [mk('e7', 0, 'West Coast Eagles', 'Gold Coast Suns')],           // day +2: an Opening-Round-style event, week.number 0
   '20260709': [mk('e3', 18, 'Fremantle Dockers', 'Sydney Swans'),               // day +1: the measured 2026-07-08 fixture
                mk('e4', null, 'Port Adelaide Power', 'Adelaide Crows')],        //   an event with no week number
   '20260712': [mk('e5', 18, 'Geelong Cats', 'Western Bulldogs')],              // day +4: Geelong's SECOND game in the window
@@ -66,6 +67,7 @@ const TIPS = {
        { source: 'Other',     hteam: 'Fremantle', ateam: 'Sydney', hconfidence: '99' },
        { source: 'Aggregate', hteam: 'Geelong', ateam: 'Western Bulldogs', hconfidence: '65' }],
   19: [{ source: 'Aggregate', hteam: 'Essendon', ateam: 'Hawthorn', hconfidence: '40' }],
+  0:  [{ source: 'Aggregate', hteam: 'West Coast', ateam: 'Gold Coast', hconfidence: '35' }],
 };
 
 // ── the fetch stub ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -158,6 +160,13 @@ eq('S17 a team in no game resolves to null', await pick('Melbourne Demons'), nul
 fresh();
 eq('S18 an event with no week number is skipped (Port Adelaide is only in one)', await pick('Port Adelaide Power'), null);
 eq('S18b ... and Squiggle is not asked for a round that was never there', log.squiggle, []);
+
+// round 0 is a round (ESPN's Opening Round carries week.number 0)
+fresh();
+eq('S18c a game whose week.number is 0 resolves through Squiggle round 0 (home side, 0.35)', await pick('West Coast Eagles'), WP(0.35));
+eq('S18d ... and asked Squiggle for round 0, not "no round"', log.squiggle.map(s => s.round), [0]);
+fresh();
+eq('S18e ... and its away side resolves to 1 - 0.35 = 0.65', await pick('Gold Coast Suns'), WP(0.65));
 
 // the earliest game in day order wins, as it did when the range was one list
 fresh();
