@@ -35,13 +35,15 @@ import { writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { PROMPT_EXAMPLE_LITERALS } from '../src/journalism-quality.js';
 import { selectScoringPlays } from '../src/context-assembler.js';
 import { _discoverAFLRound, AFL_ROUND_DAYS_BACK, AFL_ROUND_DAYS_FORWARD } from '../src/wp-resolver.js';
+import { sameAFLClub } from '../src/identity-resolver.js';
+import { squiggleConfidenceFor } from '../src/afl-squiggle.js';
 // The four verdicts moved to their own module so they can be exercised against
 // known-bad payloads without a network round trip. Imported rather than copied:
 // two copies of a decision are free to disagree, and this file IS the decision
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason,
+         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip,
          oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
          cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles, deployCommitResults } from './staged-verdicts.mjs';
 
@@ -135,7 +137,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 11;
+const EXPECTED_CHECKS = 12;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -810,6 +812,61 @@ try {
     add({
         id: 'afl_round_in_season',
         what: 'the AFL resolver finds the round of a game on the slate in front of it, the one the relay adapter reports',
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
+
+// ── Check 12: AFL finals, the relay serves a final's own Squiggle tip (docs/CC-CMD-2026-11-24-afl-finals-round-and-journalism-club-match.md, Part C) ──
+// ESPN is read directly (a runner reaches it): an event whose own season.type is 3 is a final. The reference joins it to Squiggle by Squiggle's is_final games, the EXACT
+// kickoff instant and the clubs, then reads that game's tip by game id: not the relay's join (clubs and Melbourne kickoff day), so the two cannot share a defect.
+try {
+    const now = new Date();
+    const days = [];
+    for (let k = -AFL_ROUND_DAYS_BACK; k <= AFL_ROUND_DAYS_FORWARD; k++) days.push(new Date(now.getTime() + k * 86400000).toISOString().slice(0, 10));
+    const finals = [];
+    for (const d of days) {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard?dates=${d.replace(/-/g, '')}`, { headers: { 'User-Agent': UA } });
+        if (!r.ok) throw new Error(`ESPN HTTP ${r.status} for ${d}`);
+        const j = await r.json();
+        for (const ev of (j.events || [])) if (ev && ev.season && ev.season.type === 3) finals.push({ ev, day: d });
+    }
+    let reference = 'none', expectedHome = null, served = 'absent', first = null, squiggleGame = null;
+    if (finals.length) {
+        first = finals[0];
+        const comp = first.ev.competitions && first.ev.competitions[0];
+        const cs = (comp && comp.competitors) || [];
+        const homeName = (cs.find(c => c.homeAway === 'home') || {}).team?.displayName || '';
+        const awayName = (cs.find(c => c.homeAway === 'away') || {}).team?.displayName || '';
+        const year = Number.isInteger(first.ev.season.year) ? first.ev.season.year : now.getUTCFullYear();
+        const sq = async (q) => { const r = await fetch(`https://api.squiggle.com.au/?${q}`, { headers: { 'User-Agent': UA } }); if (!r.ok) throw new Error(`Squiggle HTTP ${r.status} for ${q}`); return r.json(); };
+        const games = (await sq(`q=games;year=${year}`)).games || [];
+        const instant = Date.parse(first.ev.date);
+        squiggleGame = games.find(g => g.is_final > 0 && g.unixtime * 1000 === instant
+            && ((sameAFLClub(g.hteam, homeName) && sameAFLClub(g.ateam, awayName)) || (sameAFLClub(g.hteam, awayName) && sameAFLClub(g.ateam, homeName)))) || null;
+        if (squiggleGame) {
+            const tip = ((await sq(`q=tips;year=${year};game=${squiggleGame.id};source=8`)).tips || []).find(t => t.source === 'Aggregate') || null;
+            if (tip) { reference = 'found'; expectedHome = squiggleConfidenceFor(tip, homeName); }
+        }
+        const rel = await get(`/v2/games?sport=afl&date=${first.ev.date.slice(0, 10)}`);
+        const g = (rel.games || []).find(x => String(x.espnEventId) === String(first.ev.id));
+        served = !g || !g.journalism ? 'absent' : (g.journalism.squiggle ? g.journalism.squiggle.homeConfidence : null);
+    }
+    add({
+        id: 'afl_finals_tip_in_season',
+        what: 'the relay serves an AFL final its own Squiggle tip, the one Squiggle gives that game, not the tip of ESPN\'s week read as a Squiggle round',
+        qualifying_rows: finals.length,
+        espn_event: first ? { id: first.ev.id, name: first.ev.name, date: first.ev.date } : null,
+        squiggle_game: squiggleGame ? { id: squiggleGame.id, round: squiggleGame.round, roundname: squiggleGame.roundname } : null,
+        expected_home_confidence: expectedHome,
+        served_home_confidence: served,
+        coverage: `read ${days.length} day(s) of ESPN's AFL scoreboard, ${finals.length} event(s) with season.type 3; the first one checked`,
+        status: aflFinalsTip({ finalsInWindow: finals.length, reference, expectedHome, served }),
+    });
+} catch (e) {
+    add({
+        id: 'afl_finals_tip_in_season',
+        what: 'the relay serves an AFL final its own Squiggle tip, the one Squiggle gives that game, not the tip of ESPN\'s week read as a Squiggle round',
         qualifying_rows: 0,
         status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
     });
