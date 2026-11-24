@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-24T20:33:42.372Z",
+  "ts": "2026-11-24T20:42:59.069Z",
   "dryRun": true,
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "from": "2026-08-01",
@@ -13,29 +13,38 @@
     "statuses": {
       "200": 84
     },
-    "daysToAttempt": 64,
-    "rowsToAttempt": 607,
+    "daysToAttempt": 34,
+    "rowsToAttempt": 197,
     "attemptedStillPending": 0,
-    "pendingRowsAllDays": 607
+    "pendingRowsAllDays": 607,
+    "scopeSports": [
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "outOfScopeDays": 30,
+    "outOfScopeRows": 212
   },
   "chosen": [
-    "2026-08-01",
-    "2026-08-02",
-    "2026-08-04",
-    "2026-08-05",
-    "2026-08-06"
+    "2026-08-15",
+    "2026-08-16",
+    "2026-08-17",
+    "2026-08-19",
+    "2026-08-20"
   ],
   "dates": [],
   "pagesUsed": 0,
   "written": 0,
   "stoppedBecause": null,
-  "remainingToAttempt": 64,
+  "remainingToAttempt": 34,
   "complete": false,
   "runner": {
-    "gitSha": "103c9ac2498292fbe7c7702b1096102621f59869",
-    "runId": "45481921896",
-    "scriptSha256": "0644deb825fc4290fd6b967fd2409bb3fc7bdb75a8989ce40152f79176b85d18",
+    "gitSha": "7613e85e308b12ff6c277a1c6b9bbcdbd3a8fdba",
+    "runId": "45483481366",
+    "scriptSha256": "bb2da7da54430f6f8a9e599b9cdbfd01529e90d64e7cd1c89d25a5ae6ff64f0b",
     "libSha256": "072656ce0d125a0b54e87dc536f90a9c3332bbc36bb54a42f584d55cb31cee1c"
   },
-  "coverageLine": "DRY RUN: 84 of 84 days read (0 unread) | to attempt 64 days / 607 rows, 0 days attempted before and still pending | this run: 0 dates posted, 0 rows written, 0 upstream pages (cap 40), 0 verified | no stop | remaining to attempt 64"
+  "coverageLine": "DRY RUN: 84 of 84 days read (0 unread) | scope 5 sports (MLS not included): to attempt 34 days / 197 rows, 0 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 30 days / 212 rows | this run: 0 dates posted, 0 rows written, 0 upstream pages (cap 40), 0 verified | no stop | remaining to attempt 34"
 }
