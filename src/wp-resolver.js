@@ -8,6 +8,7 @@
 // If a constant changes in index.js, update it here too.
 
 import { resolveTeamKey, sameAFLClub } from './identity-resolver.js';
+import { squiggleTipForGame, squiggleConfidenceFor } from './afl-squiggle.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 import { chargeOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
@@ -402,7 +403,10 @@ export async function _discoverAFLRound(predictedWinner) {
                 const homeN = home?.team?.displayName || home?.team?.shortDisplayName || '';
                 const awayN = away?.team?.displayName || away?.team?.shortDisplayName || '';
                 if (sameAFLClub(predictedWinner, homeN) || sameAFLClub(predictedWinner, awayN)) {
-                    return { round, year: now.getUTCFullYear() };
+                    // `round` is ESPN's own week for the event. `postseason` says it is a FINAL, whose ESPN week (1-5) is not Squiggle's round (25-29 in 2026):
+                    // the caller must not hand it to Squiggle. The year is the event's own season (the clock's when the event carries none).
+                    return { round, year: Number.isInteger(ev.season?.year) ? ev.season.year : now.getUTCFullYear(),
+                             postseason: ev.season?.type === 3, start: ev.date || null, home: homeN, away: awayN };
                 }
             }
         } catch (e) {
@@ -449,6 +453,14 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
             const discovered = await _discoverAFLRound(predictedWinner);
             if (!discovered) return null;
             const { round, year } = discovered;
+            // A final: Squiggle's round for it is found from the game's clubs and kickoff day (src/afl-squiggle.js), and that row's tip is the answer.
+            // Kali is not asked: it is offline until 2027 and its finals numbering is unmeasured, so a round handed to it would be a guess.
+            if (discovered.postseason) {
+                const tip = await squiggleTipForGame({ year, kickoff: discovered.start, home: discovered.home, away: discovered.away },
+                    { headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });
+                const pct = tip ? squiggleConfidenceFor(tip, predictedWinner) : null;
+                return pct === null ? null : { probability: Math.round(pct / 100 * 1000) / 1000, source: 'squiggle', label: 'Statistical probability' };
+            }
             const kaliKey = env.KALI_AFL_TOKEN;
             const isMatch = name => sameAFLClub(predictedWinner, name);
 
