@@ -5,6 +5,10 @@ name: BSD game join backfill
 # deployed POST /admin/bsd-game-join (the same function the scheduled tick runs: NULL rows only, never an overwrite, reconcile() and one
 # change_log row per write). scripts/bsd-game-join-backfill.mjs has the rules; scripts/check-bsd-game-join-backfill.mjs and its mutation harness prove them.
 #
+# PACE (the owner, 2026-11-24: "we do need things faster, with a range that starts earlier"): the schedule runs every 4 hours, 10 dates a run, a 50-page cap a run
+# (measured: 1 to 9 BSD pages a date, 2.7 to 3.4 on average, no throttle or failed page so far; the tick's own use is 50 to 200 pages a day). The range now starts at
+# 2026-02-01, the earliest date with an unjoined soccer row in either table. Tournament rows (`postseason`, sport 'MLS') do not choose a date: see the script.
+#
 # SCOPE: all six soccer sports of the join since the owner's "include MLS" (2026-11-24). The 2026-11-15 addendum had left MLS out, so the first runs chose only dates
 # with a European-league row pending (34 dates, 197 rows); the first dry run counted the MLS-only dates (30 days, 212 rows: why the survey found 64 days, not 34).
 # A SCHEDULED run now includes MLS; a dispatch takes include_mls (default false: a dispatch asks for what it wants).
@@ -20,7 +24,7 @@ name: BSD game join backfill
 
 on:
   schedule:
-    - cron: '23 7 * * *'
+    - cron: '23 */4 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -39,14 +43,22 @@ on:
         options:
           - 'false'
           - 'true'
+      include_postseason:
+        description: 'true: tournament and playoff rows (postseason table) also choose a date. Measured: 0 of 24 matched in tests, 0 of ~297 ever joined. Default false.'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
       max_dates:
-        description: 'Max dates to post, 1 to 10 (default 5)'
+        description: 'Max dates to post, 1 to 10 (default 5; a scheduled run uses 10)'
         required: false
       page_cap:
-        description: 'Stop once this many upstream BSD pages are used, 1 to 200 (default 40)'
+        description: 'Stop once this many upstream BSD pages are used, 1 to 200 (default 40; a scheduled run uses 50)'
         required: false
       from:
-        description: 'First day to survey, YYYY-MM-DD (default 2026-08-01)'
+        description: 'First day to survey, YYYY-MM-DD (default 2026-02-01)'
         required: false
       to:
         description: 'Last day to survey, YYYY-MM-DD (default 2026-10-23; must be at least two days ago)'
@@ -131,8 +143,9 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
           DRY_RUN: ${{ inputs.dry_run }}
           INCLUDE_MLS: ${{ github.event_name == 'schedule' && 'true' || inputs.include_mls }}
-          MAX_DATES: ${{ inputs.max_dates }}
-          PAGE_CAP: ${{ inputs.page_cap }}
+          INCLUDE_POSTSEASON: ${{ inputs.include_postseason }}
+          MAX_DATES: ${{ github.event_name == 'schedule' && '10' || inputs.max_dates }}
+          PAGE_CAP: ${{ github.event_name == 'schedule' && '50' || inputs.page_cap }}
           FROM: ${{ inputs.from }}
           TO: ${{ inputs.to }}
         run: node scripts/bsd-game-join-backfill.mjs
