@@ -36,6 +36,8 @@ export function cflSample(s, site = SITE) {
   const kept = sumBy(rec, (r) => r.credits_kept);
   // An `error` row is a reconcile that threw AFTER its refund landed (measured for CFL on 2026-11-01: by_site rose by exactly the billed calls while an error call added kept +6), so its
   // `kept` is an intent with no standing charge behind it. by_site - kept therefore UNDER-reads the charges that stayed by exactly that amount; `stranded` takes it back out.
+  // That is the reading of rows written before item 3 of docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md landed (2026-11-24). After it an `error` row means the correction did NOT
+  // land and its charge stands, which `stranded` counts too; the tally key has no version, so 2026-11-24 mixes both readings and 2026-11-25 is the first clean UTC day.
   const kept_error = sumBy(rec.filter((r) => r.state === 'error'), (r) => r.credits_kept);
   const n = sumBy(rec, (r) => r.n);
   const hit = sumBy(rec.filter((r) => r.cache === 'HIT'), (r) => r.n);
@@ -150,6 +152,7 @@ if (process.argv.includes('--self-test')) {
   one('a by_site object without the site key is a day with no spend, and says so', (({ by_site, by_site_absent }) => [by_site, by_site_absent])(cflSample({ at: 't', date: 'd', by_site: { other: 9 }, reconcile: [] })), [0, true]);
   one('a window whose ledger reading is null is unmeasured (null), not a coerced zero', [windowResidual({ vendor_month_used: 100, ledger_month_used: null }, { vendor_month_used: 200, ledger_month_used: 150 }, 0), windowResidual({ vendor_month_used: 100, ledger_month_used: 90 }, { vendor_month_used: 200, ledger_month_used: undefined }, 0)], [null, null]);
   // `stranded`: an error row's kept is an intent with no standing charge, so by_site - kept under-reads the charges that stayed by exactly that amount.
+  // (The reading of rows before 2026-11-24; after item 3 landed an error row is a correction that did NOT land. This fixture models the old reading, which is why its numbers do not change.)
   const recErr = [{ site: SITE, state: 'reconciled', cache: 'EXPIRED', n: 3, credits_kept: 18 }, { site: SITE, state: 'error', cache: 'EXPIRED', n: 1, credits_kept: 6 }, { site: SITE, state: 'cache-hit', cache: 'HIT', n: 10, credits_kept: 0 }];
   const ce = cflSample(S('2026-11-01T21:00:00Z', 42, recErr));
   one('stranded adds back the kept of state=error rows only (gap 18, stranded 24)', [ce.kept, ce.kept_error, ce.gap, ce.stranded], [24, 6, 18, 24]);

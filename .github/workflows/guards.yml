@@ -190,6 +190,15 @@ jobs:
           node scripts/check-reconcile-tally.mjs --self-test
           node scripts/check-reconcile-tally.mjs
 
+      # Blocking. docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md item 3. A refund that LANDED in D1 is never recorded as `error` because the KV mirror behind it threw
+      # (live 2026-11-07: handleCFLOddsProbs credits_kept 648 against used 528): after one charge and one reconcile credits_kept equals the ledger (`used`) in those cases.
+      # NOT claimed: every branch. The check's header names the cases it pins as known and unchanged (a correction rejected before it committed with the mirror fine,
+      # a batch that commits and then rejects, a charge that degraded open, the 00:00Z straddle). Executed against node:sqlite; the mutation run proves it can fail.
+      - name: the reconcile tally equals the ledger, so a landed refund is never `error`
+        run: |
+          node scripts/check-reconcile-refund-landed.mjs
+          node scripts/mutate-reconcile-refund-landed.mjs
+
       # route 403s anything else, and a 403 reads identically to a D1 failure
       # from outside — which is precisely how Task 0b was blocked.
       - name: the odds budget schema is on ARCHIVE_DB and readable from CI

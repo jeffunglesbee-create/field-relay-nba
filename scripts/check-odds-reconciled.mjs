@@ -51,7 +51,10 @@ const check = (n, ok, d = '') => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${
 // consumeOddsCredit) to the source of handleCFLOddsProbs, to assert when the call is registered with waitUntil and in
 // what order its steps run; mutate-cfl-pipeline-registered.mjs quotes those lines as anchors. Neither makes a charged
 // call or reaches a vendor.
-// SCOPE-EXCLUDES: scripts/check-odds-site-caps.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs scripts/check-odds-label-split.mjs scripts/check-cfl-pipeline-registered.mjs scripts/mutate-cfl-pipeline-registered.mjs
+// check-reconcile-refund-landed.mjs and mutate-reconcile-refund-landed.mjs (2026-11-08): the first runs the REAL reconcileOddsCredit and chargeOdds against a fake D1 over node:sqlite and a fake KV, to assert that
+// credits_kept equals the ledger after one charge and one reconcile (docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md item 3). It calls neither consumeOddsCredit nor
+// _consumeAmbientOddsCredit and reaches no vendor, so it is no charged call site; the second runs it against copies of the source, with anchors that quote the reconciler.
+// SCOPE-EXCLUDES: scripts/check-odds-site-caps.mjs scripts/mutate-deploy-odds-wrappers.mjs scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs scripts/check-odds-label-split.mjs scripts/check-cfl-pipeline-registered.mjs scripts/mutate-cfl-pipeline-registered.mjs scripts/check-reconcile-refund-landed.mjs scripts/mutate-reconcile-refund-landed.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 function fnBounds(lines, i) {
   let start = 0;
@@ -120,7 +123,10 @@ check('a counter is clamped at zero', store.get(key) === '0', `counter is ${stor
 // Never break the caller.
 const hostile = { FIELD_JOURNALISM: { get: () => { throw new Error('kv down'); }, put: () => {} } };
 r = await reconcileOddsCredit(hostile, 4, R({ 'x-requests-last': '0' }), 't');
-check('a KV failure is reported, not thrown', r.state === 'error');
+// NO D1 store here, so no refund landed and the KV mirror IS the ledger: `error` is right. A refund that LANDED in D1 before the mirror threw is NOT
+// `error` (credits_kept would be the full estimate against a ledger that handed it back); scripts/check-reconcile-refund-landed.mjs executes those cases
+// (docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md item 3).
+check('a KV failure with no D1 refund behind it is reported, not thrown, as error', r.state === 'error');
 r = await reconcileOddsCredit(null, 4, R({ 'x-requests-last': '0' }), 't');
 check('a missing binding is reported, not thrown', r.state === 'no-kv');
 

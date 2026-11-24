@@ -333,3 +333,5 @@ and changes no test.
 the VOID check, the call volume of both windows and the scorer's self-test are in
 `outbox/odds-cfl-season-end-judgment-2026-11-24.md` (scorer and rows:
 `outbox/odds-cfl-judgment-score-2026-11-24.mjs`). Nothing above this paragraph was edited.
+
+**Declared 2026-11-24, after the verdict above: item 3 of `docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md` landed.** From the deploy of the item-3 landing commit (2026-11-24; the deploy run's id and exact UTC creation time are in the HANDOFF.md entry "item 3 landed") an `error` row of the CFL tally means the D1 correction did NOT land; before it an `error` row could also mean that the refund landed and only the KV mirror threw (the CFL rows measured on 2026-11-01 and 2026-11-07 were the first). The tally key `(day, site, state, cache)` carries no version, so 2026-11-24 mixes both readings in one `error` cell; **2026-11-25 is the first clean UTC day.** The judgment above is not re-scored: both judged windows end on or before 2026-11-23, before the landing, and a re-judge after the landing must pass `--until=2026-11-23T23:59:59Z`. Nothing above this paragraph was edited.

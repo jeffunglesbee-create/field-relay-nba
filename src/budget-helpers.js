@@ -1591,6 +1591,12 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
         // wear the name of a gap.
         //
         // One batch, so the day and the site cannot take a correction singly.
+        //
+        // `landed` is true only once that batch has RESOLVED. `used` is read from D1, so it is what tells the KV mirror below whether
+        // its failure is the reconcile's failure (docs/CC-CMD-2026-10-23-odds-guard-accounting-edges.md, item 3). A rejected batch is
+        // NOT read as "nothing committed": D1 can reject a write whose commit it could not confirm, so `landed` stays false and the
+        // outcome is exactly what it was before this flag existed.
+        let landed = false;
         try {
             if (await ensureOddsBudgetTables(env)) {
                 const db = env.ARCHIVE_DB;
@@ -1603,6 +1609,7 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
                     // reads and the ledger would sit permanently above the bill.
                     db.prepare(ODDS_BUDGET_SQL.fixMonth).bind(out.delta, month.slice('odds:credits:'.length)),
                 ]);
+                landed = true;
             }
         } catch (e) {
             // A failed correction must not fail the fetch that already happened.
@@ -1611,11 +1618,24 @@ async function _reconcileOddsCredit(env, estimated, resp, site = '') {
             console.warn(`[odds-reconcile] D1 correction failed for ${site} delta=${out.delta}: ${String(e.message || e).slice(0, 120)}`);
         }
         await _bumpSite(env, site, out.delta);
-        for (const key of [day, month]) {
-            const raw = await env.FIELD_JOURNALISM.get(key);
-            const cur = raw ? parseInt(raw, 10) || 0 : 0;
-            const next = Math.max(0, cur + out.delta);
-            await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
+        try {
+            for (const key of [day, month]) {
+                const raw = await env.FIELD_JOURNALISM.get(key);
+                const cur = raw ? parseInt(raw, 10) || 0 : 0;
+                const next = Math.max(0, cur + out.delta);
+                await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
+            }
+        } catch (e) {
+            // The KV mirror (the day and month counters, which nothing reads) is the only step after the D1 batch that can throw
+            // out of here: _bumpSite, which also runs after it, swallows its own errors. Without a landed correction a mirror
+            // failure is still the reconcile's failure: the outer catch records `error`, as before. WITH one, `used` already holds the correction, and
+            // a throw here must not turn a landed refund into `error`: credits_kept would then be the FULL estimate against a ledger
+            // that handed it back (2026-11-07: handleCFLOddsProbs, credits_kept 648 against used 528). The failure stays visible in
+            // the log, and in `note` as a fixed string (this report is served in the body of /cfl/odds-probs and /wc/odds-probs, so
+            // it carries no KV error text).
+            if (!landed) throw e;
+            out.note = 'KV mirror failed after the D1 correction landed';
+            console.warn(`[odds-reconcile] KV mirror failed for ${site} after the D1 correction landed: ${String(e && e.message || e).slice(0, 120)}`);
         }
         return out;
     } catch (e) {
