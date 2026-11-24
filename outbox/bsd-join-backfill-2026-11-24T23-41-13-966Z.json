@@ -1,0 +1,366 @@
+{
+  "ts": "2026-11-24T23:41:13.966Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-02-01",
+  "to": "2026-10-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 265,
+    "daysRead": 265,
+    "unreadDays": [],
+    "statuses": {
+      "200": 265
+    },
+    "daysToAttempt": 62,
+    "rowsToAttempt": 606,
+    "attemptedStillPending": 1,
+    "pendingRowsAllDays": 853,
+    "scopeSports": [
+      "MLS",
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 47,
+    "outOfScopeRows": 215
+  },
+  "chosen": [
+    "2026-03-07",
+    "2026-04-11",
+    "2026-05-09",
+    "2026-05-10",
+    "2026-05-13",
+    "2026-05-17",
+    "2026-05-23",
+    "2026-05-24",
+    "2026-07-16",
+    "2026-07-17"
+  ],
+  "dates": [
+    {
+      "date": "2026-03-07",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "MLS": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 1,
+        "eventsRead": 359,
+        "upstreamPages": 8,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-04-11",
+      "outcome": "none-matched",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "MLS": 1
+      },
+      "pendingAfter": 1,
+      "verify": {
+        "verified": true,
+        "expected": 1
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 396,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Seattle Sounders FC v Real Salt Lake"
+        ]
+      }
+    },
+    {
+      "date": "2026-05-09",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingBeforeBySport": {
+        "EPL": 5,
+        "MLS": 4
+      },
+      "pendingAfter": 4,
+      "verify": {
+        "verified": true,
+        "expected": 4
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 9,
+        "written": 5,
+        "joined": 5,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 5,
+        "eventsRead": 328,
+        "upstreamPages": 8,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Forge FC v HFX Wanderers FC",
+          "MLS: Pacific FC v Cavalry FC",
+          "MLS: Forge FC v HFX Wanderers FC",
+          "MLS: Pacific FC v Cavalry FC"
+        ]
+      }
+    },
+    {
+      "date": "2026-05-10",
+      "outcome": "joined",
+      "pendingBefore": 8,
+      "pendingBeforeBySport": {
+        "EPL": 4,
+        "MLS": 4
+      },
+      "pendingAfter": 4,
+      "verify": {
+        "verified": true,
+        "expected": 4
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 8,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 4,
+        "eventsRead": 205,
+        "upstreamPages": 1,
+        "cacheHits": 4,
+        "unmatched": [
+          "MLS: Inter Toronto FC v CS Saint-Laurent",
+          "MLS: Vancouver FC v Langley United",
+          "MLS: Inter Toronto FC v CS Saint-Laurent",
+          "MLS: Vancouver FC v Langley United"
+        ]
+      }
+    },
+    {
+      "date": "2026-05-13",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingBeforeBySport": {
+        "EPL": 1,
+        "Ligue 1": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 3,
+        "written": 3,
+        "joined": 3,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 3,
+        "eventsRead": 104,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-05-17",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "EPL": 6
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 6,
+        "joined": 6,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 6,
+        "eventsRead": 174,
+        "upstreamPages": 5,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-05-23",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "MLS": 4
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 2,
+        "eventsRead": 216,
+        "upstreamPages": 5,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-05-24",
+      "outcome": "joined",
+      "pendingBefore": 26,
+      "pendingBeforeBySport": {
+        "MLS": 6,
+        "EPL": 10,
+        "La Liga": 10
+      },
+      "pendingAfter": 9,
+      "verify": {
+        "verified": true,
+        "expected": 9
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 26,
+        "written": 17,
+        "joined": 17,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 15,
+        "eventsRead": 146,
+        "upstreamPages": 1,
+        "cacheHits": 3,
+        "unmatched": [
+          "La Liga: Girona v Elche",
+          "La Liga: Mallorca v Real Oviedo",
+          "La Liga: Valencia v Barcelona",
+          "La Liga: Real Madrid v Athletic Club",
+          "La Liga: Real Sociedad v Getafe",
+          "La Liga: Rayo Vallecano v Español",
+          "La Liga: Sevilla v Alavés",
+          "La Liga: Osasuna v Celta Vigo",
+          "La Liga: Real Betis v Levante"
+        ]
+      }
+    },
+    {
+      "date": "2026-07-16",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "MLS": 4
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 4,
+        "eventsRead": 195,
+        "upstreamPages": 5,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-07-17",
+      "outcome": "joined",
+      "pendingBefore": 2,
+      "pendingBeforeBySport": {
+        "MLS": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 2,
+        "written": 2,
+        "joined": 2,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 2,
+        "eventsRead": 501,
+        "upstreamPages": 8,
+        "cacheHits": 3,
+        "unmatched": []
+      }
+    }
+  ],
+  "pagesUsed": 53,
+  "written": 46,
+  "stoppedBecause": "upstream pages used 53 reached the cap 50",
+  "remainingToAttempt": 52,
+  "complete": false,
+  "runner": {
+    "gitSha": "eee533ba1d7b8cc92eccd941ee9ff3bf00932e1f",
+    "runId": "45511835745",
+    "scriptSha256": "6e46887a107ccc6254fab546a59159ad5d70991e7b2a9dd7dacc00554cb29045",
+    "libSha256": "405fd1223cbede728a81bd7474b7f9bb59ae3f345164da8d7831bcbc1a91b8c1"
+  },
+  "rangeComplete": false,
+  "coverageLine": "265 of 265 days read (0 unread) | scope 6 sports (MLS included), regular-season rows choose a date: to attempt 62 days / 606 rows, 1 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 47 days / 215 rows | this run: 10 dates posted, 46 rows written, 53 upstream pages (cap 50), 10 verified | STOPPED: upstream pages used 53 reached the cap 50 | remaining to attempt 52"
+}

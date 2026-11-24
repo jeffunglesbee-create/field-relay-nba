@@ -120,6 +120,108 @@
         "MLS: Nashville SC v Club León",
         "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City"
       ]
+    },
+    "2026-03-07": {
+      "at": "2026-11-24T23:41:21.489Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": []
+    },
+    "2026-04-11": {
+      "at": "2026-11-24T23:41:24.463Z",
+      "outcome": "none-matched",
+      "pendingBefore": 1,
+      "pendingAfter": 1,
+      "written": 0,
+      "unmatched": [
+        "MLS: Seattle Sounders FC v Real Salt Lake"
+      ]
+    },
+    "2026-05-09": {
+      "at": "2026-11-24T23:41:27.262Z",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingAfter": 4,
+      "written": 5,
+      "unmatched": [
+        "MLS: Forge FC v HFX Wanderers FC",
+        "MLS: Pacific FC v Cavalry FC",
+        "MLS: Forge FC v HFX Wanderers FC",
+        "MLS: Pacific FC v Cavalry FC"
+      ]
+    },
+    "2026-05-10": {
+      "at": "2026-11-24T23:41:27.705Z",
+      "outcome": "joined",
+      "pendingBefore": 8,
+      "pendingAfter": 4,
+      "written": 4,
+      "unmatched": [
+        "MLS: Inter Toronto FC v CS Saint-Laurent",
+        "MLS: Vancouver FC v Langley United",
+        "MLS: Inter Toronto FC v CS Saint-Laurent",
+        "MLS: Vancouver FC v Langley United"
+      ]
+    },
+    "2026-05-13": {
+      "at": "2026-11-24T23:41:28.691Z",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingAfter": 0,
+      "written": 3,
+      "unmatched": []
+    },
+    "2026-05-17": {
+      "at": "2026-11-24T23:41:30.308Z",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingAfter": 0,
+      "written": 6,
+      "unmatched": []
+    },
+    "2026-05-23": {
+      "at": "2026-11-24T23:41:32.365Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 0,
+      "written": 4,
+      "unmatched": []
+    },
+    "2026-05-24": {
+      "at": "2026-11-24T23:41:32.811Z",
+      "outcome": "joined",
+      "pendingBefore": 26,
+      "pendingAfter": 9,
+      "written": 17,
+      "unmatched": [
+        "La Liga: Girona v Elche",
+        "La Liga: Mallorca v Real Oviedo",
+        "La Liga: Valencia v Barcelona",
+        "La Liga: Real Madrid v Athletic Club",
+        "La Liga: Real Sociedad v Getafe",
+        "La Liga: Rayo Vallecano v Español",
+        "La Liga: Sevilla v Alavés",
+        "La Liga: Osasuna v Celta Vigo",
+        "La Liga: Real Betis v Levante"
+      ]
+    },
+    "2026-07-16": {
+      "at": "2026-11-24T23:41:34.296Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 0,
+      "written": 4,
+      "unmatched": []
+    },
+    "2026-07-17": {
+      "at": "2026-11-24T23:41:36.656Z",
+      "outcome": "joined",
+      "pendingBefore": 2,
+      "pendingAfter": 0,
+      "written": 2,
+      "unmatched": []
     }
   }
 }
