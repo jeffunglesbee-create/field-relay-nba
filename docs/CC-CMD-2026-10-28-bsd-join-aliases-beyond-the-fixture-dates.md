@@ -177,3 +177,25 @@ Read-only, 2026-11-15 about 01:30Z, from D1 `field-archive` (cc49101c), table `r
 
 
 **Measured 2026-11-24, for the owner's call above (no new CC-CMD):** the laboratory's Task 0 (`docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, `outbox/bsd-e2-reach-latest.json`) counted 56 of the 238 matches its next-goal grade covers as dated before 2026-10-24 with no joined archive row, all in the six joined leagues (epl 7, seriea 10, ligue1 5, laliga 12, bundesliga 8, mls 14; `other unjoined` is 0). Option (a) above would reach them; option (b) leaves them out of that grade.
+
+## Addendum 2026-11-24: option (a) APPROVED by the owner ("Backfill approved") and running, 5 dates a day
+
+**Status.** The owner chose (a) of the 2026-11-15 addendum on 2026-11-24. Built, checked and run on a runner; no `src/` change, no deploy. `scripts/bsd-game-join-backfill.mjs` (rules in `scripts/bsd-backfill-lib.mjs`) through `.github/workflows/bsd-game-join-backfill.yml`: survey by `/context/date`, one `POST /admin/bsd-game-join` per chosen date (the same function the tick runs), each verified by a cache-busted re-read. It stops on a refusal, a 429, a verification mismatch, two failed passes in a row or 40 upstream pages. A date whose pass answered but left rows pending is recorded in `outbox/bsd-join-backfill-state.json` and not asked again; a failed one is retried. When no un-attempted date is left and none is unread it writes `outbox/bsd-join-backfill-complete.json` and the schedule skips. Daily at 07:23Z; a dispatch defaults to a dry run. Check 13 scenarios / 39 assertions, 27 of 27 mutants caught; lib 43 assertions, 36 of 36.
+
+**Scope, decided from a measurement.** The first dry run (run 45481921896) found 64 days with 607 pending rows, not the 34 dates and 197 rows above: 30 days have only MLS rows pending (212 rows), and the 2026-11-15 addendum explicitly left MLS out. A date is therefore chosen only when a row of the five European leagues on it is pending. The second dry run (run 45483481366, artifact `outbox/bsd-join-backfill-2026-11-24T20-42-59-069Z.json`) reproduced the addendum's figures exactly, nine days later: **34 dates, 197 rows**; MLS-only days, **30 days / 212 rows**, are counted and not chosen. The route joins every soccer row of a date, so an MLS row on a chosen date IS joined as a side effect (198 such rows on the 34 dates). Widening to the 30 MLS-only days is `include_mls` = `true`, a separate go-ahead (BSD pages).
+
+**First real run** (run 45483895799, artifact `outbox/bsd-join-backfill-2026-11-24T20-45-29-063Z.json`): 5 dates, oldest first, **69 rows written, 17 upstream pages**, every date verified, no stop:
+
+| date | pending | after | written | events | pages | unmatched |
+|---|---|---|---|---|---|---|
+| 2026-08-15 | 22 | 2 | 20 | 404 | 9 | 2 (both MLS: Seattle v Vancouver, Austin v Dallas) |
+| 2026-08-16 | 14 | 0 | 14 | 217 | 1 | 0 |
+| 2026-08-17 | 3 | 0 | 3 | 63 | 1 | 0 |
+| 2026-08-19 | 23 | 0 | 23 | 155 | 4 | 0 |
+| 2026-08-20 | 9 | 0 | 9 | 147 | 2 | 0 |
+
+**Independent check** (read-only SELECT on D1 `field-archive`, not through the route or the runner): the addendum's own done-condition query, `... bsd_event_id IS NULL AND date BETWEEN '2026-08-15' AND '2026-10-23'` over the five leagues, returns **190 rows over 29 dates** (it was 197 over 34): five dates and 7 European rows closed. Most of the 69 written rows are MLS riding on those dates.
+
+**What a date costs, measured:** 1 to 9 upstream pages, 3.4 on average over these five (the first date, with 404 events, took 9; later ones hit the cache). The 29 dates left are about 100 pages by that average, which is under a day of the scheduled tick's own 50 to 200. BSD answered every page; no 429, no failed pass. Not measured: BSD's actual budget. At 5 dates a day the rest finishes in six runs (about 2026-11-30); a larger tranche is a dispatch with `max_dates` up to 10.
+
+**Not verified:** the `change_log` revert recipe (every write is logged with source `bsd_game_join`, per the 2026-10-27 CC-CMD; a query for its `created_at` column failed, so its columns were not read here); whether the MLS rows left unmatched on 2026-08-15 are absent from BSD or only spelled differently; the 38 May rows (outside the surveyed range, BSD's reach back to May untested).

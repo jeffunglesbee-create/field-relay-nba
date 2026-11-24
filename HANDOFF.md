@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-24 (21:00Z) — the BSD join backfill is approved and running: 5 of 34 dates written and verified, 29 left on a daily schedule
+
+**HEAD:** `103c9ac` → `7613e85` (tool and workflow), this close-out is the next commit · **Branch:** main · no `src/` change, no deploy. **Session doc:** outbox/cc-session-2026-11-24-bsd-join-backfill.md (full record: the 2026-11-24 addendum of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`)
+
+- **Approved by the owner** ("Backfill approved"): option (a) of the 2026-11-15 addendum. `.github/workflows/bsd-game-join-backfill.yml` posts to the existing `/admin/bsd-game-join`, 5 dates a day at 07:23Z, each date verified; it stops on a refusal, a 429, a mismatch, two failed passes or 40 pages, and writes `outbox/bsd-join-backfill-complete.json` when done. A dispatch defaults to a dry run.
+- **Scope came from a dry run:** 64 days / 607 rows surveyed, 34 days / 197 rows are the five European leagues (reproducing the addendum's figures exactly), 30 days / 212 rows are MLS-only and were left out as the addendum left them. `include_mls` widens it: the owner's separate call.
+- **First real run (run 45483895799):** 5 dates, 69 rows written (most are MLS rows on those dates), 17 upstream pages, all verified. **D1, read-only:** the addendum's query went 197 rows / 34 dates → **190 / 29**. A date costs 1 to 9 pages (3.4 average).
+- **Not verified:** BSD's real request budget; the `change_log` revert recipe (its columns were not read); why 2 MLS rows on 2026-08-15 stay unmatched; BSD's reach back to the 38 May rows (outside the range).
+- **Follow-up wired:** a session reminder for 2026-12-01 to confirm the marker, rerun the laboratory's reach probe (`espn-task0.yml`, `parts` = `reach`) and update the "Task 0 result" population there.
+
 ## SESSION CLOSE-OUT — 2026-11-24 (18:00Z) — "Check on espn 400s": ESPN refuses a date RANGE, not the relay's requests; one production request sends a range and fails silently (AFL, off-season)
 
 **HEAD:** `e899dff` → this close-out is the next commit. No `src/` change, no deploy, no credits.
