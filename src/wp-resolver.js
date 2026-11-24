@@ -341,39 +341,70 @@ async function fetchESPNNativeWP(espnPath, espnId, predictedWinner) {
 // a backward-only window, confirmed via a direct today+yesterday query
 // returning zero events both days.
 //
-// Single date-RANGE request (-3d/+6d, comfortably spans a round's Thu-Mon
-// scheduling variance) instead of looping individual dates. Reads round from
-// each EVENT's own `week.number`, not the top-level `d.week.number` --
-// confirmed live these disagree for a multi-day range (top-level reflects a
-// single ambient "current week" concept; a range spanning two rounds' worth
-// of games returned top-level week=17 while the round-18 games inside that
-// same response each correctly carried their own week.number=18).
+// Ten ONE-DAY reads in parallel (UTC dates -3d..+6d), NOT a date range. ESPN's scoreboard answers a range with HTTP 400
+// ({"code":400,"message":"Failed to get events endpoint."}): measured 2026-11-24 for AFL and eng.1, and on both ESPN hosts on
+// 2026-11-06 (outbox/probe-fa-cup-season-2026-11-06T23-18-47-844Z.json). A range was still accepted on 2026-07-08 (the live
+// Kali test in outbox/cc-afl-wp-kali-integration-2026-07-08.md went through the range code) and in the 2026-07-19 session
+// (outbox/cc-session-2026-07-19-mls-sub-impact-metric.md, dates=20260601-20260720), so it changed after that. The version that sent a range
+// read the 400 as "no round" and returned null with no log line, so while ESPN refuses ranges an AFL pick cannot resolve to a
+// win probability and nothing says why. That is read from the code and the measured refusal; no AFL pick has been resolved
+// since (the season is over), so it was never observed on a real pick.
+// docs/CC-CMD-2026-11-24-afl-round-discovery-sends-a-date-range.md.
+//
+// A one-day read still carries each EVENT's own `week.number` (the relay's /v2/games for 2026-07-09 serves round 18 for
+// Fremantle v Sydney Swans from one). Keep reading the round from the EVENT, never from a top-level `week`: the old comment
+// recorded that for a multi-day range the top-level value disagreed with the events inside it (top-level 17 while round-18
+// games carried 18). Whether a ONE-day body has a top-level `week` at all is not measured here; the rule holds either way.
+//
+// The reads are deliberately NOT edge-cached. /v2/games reads the same URL with a 15 s TTL (handleV2Games) and the client polls
+// it during a round; an entry this function wrote with a longer TTL would serve that poll a stale live scoreboard. Workers
+// queue a seventh simultaneous connection until one of six gets headers, so the last four reads wait for a slot with their
+// 5 s timer already running; at the 100-300 ms ESPN answers measured on 2026-11-24 that costs one extra round trip.
+// A read that is refused, fails, or answers a body with no `events` array is SAID (status and day) and skipped: the days that
+// did answer are still searched. Days are scanned in order, so the earliest matching game in the window wins, as it did when
+// the range was one list.
+const AFL_ROUND_DAYS_BACK = 3;
+const AFL_ROUND_DAYS_FORWARD = 6;
 async function _discoverAFLRound(predictedWinner) {
     const now = new Date();
     const toDateStr = d => d.toISOString().slice(0, 10).replace(/-/g, '');
-    const rangeStart = new Date(now.getTime() - 3 * 86400000);
-    const rangeEnd   = new Date(now.getTime() + 6 * 86400000);
-    try {
-        const r = await fetch(
-            `${ESPN_SCOREBOARD_BASE}/sports/australian-football/afl/scoreboard?dates=${toDateStr(rangeStart)}-${toDateStr(rangeEnd)}`,
-            { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
-        );
-        if (!r.ok) return null;
-        const d = await r.json();
-        for (const ev of (d.events || [])) {
-            const round = ev.week?.number ?? null;
-            if (!round) continue;
-            const comp = ev.competitions?.[0] || {};
-            const teams = comp.competitors || [];
-            const home = teams.find(t => t.homeAway === 'home');
-            const away = teams.find(t => t.homeAway === 'away');
-            const homeN = home?.team?.displayName || home?.team?.shortDisplayName || '';
-            const awayN = away?.team?.displayName || away?.team?.shortDisplayName || '';
-            if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {
-                return { round, year: now.getUTCFullYear() };
-            }
+    const days = [];
+    for (let k = -AFL_ROUND_DAYS_BACK; k <= AFL_ROUND_DAYS_FORWARD; k++) days.push(toDateStr(new Date(now.getTime() + k * 86400000)));
+    const slates = await Promise.all(days.map(async (day) => {
+        const url = `${ESPN_SCOREBOARD_BASE}/sports/australian-football/afl/scoreboard?dates=${day}`;
+        try {
+            const r = await fetch(url, { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) });
+            if (!r.ok) { console.warn(`[AFL-ROUND] ESPN answered ${r.status} for ${day}`); return null; }
+            const d = await r.json();
+            if (!d || !Array.isArray(d.events)) { console.warn(`[AFL-ROUND] ESPN body for ${day} has no events array`); return null; }
+            return d;
+        } catch (e) {
+            console.warn(`[AFL-ROUND] ESPN read failed for ${day}: ${e && e.message}`);
+            return null;
         }
-    } catch (_) { /* return null below */ }
+    }));
+    const answered = slates.filter(d => d !== null).length;
+    if (answered === 0) console.warn(`[AFL-ROUND] none of the ${days.length} one-day reads answered: the round cannot be found, so no AFL win probability is served`);
+    for (let i = 0; i < slates.length; i++) {
+        const d = slates[i];
+        if (d === null) continue;
+        try {
+            for (const ev of d.events) {
+                const round = ev?.week?.number ?? null;
+                if (!round) continue;
+                const teams = ev.competitions?.[0]?.competitors || [];
+                const home = teams.find(t => t.homeAway === 'home');
+                const away = teams.find(t => t.homeAway === 'away');
+                const homeN = home?.team?.displayName || home?.team?.shortDisplayName || '';
+                const awayN = away?.team?.displayName || away?.team?.shortDisplayName || '';
+                if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {
+                    return { round, year: now.getUTCFullYear() };
+                }
+            }
+        } catch (e) {
+            console.warn(`[AFL-ROUND] ESPN body for ${days[i]} could not be read: ${e && e.message}`);
+        }
+    }
     return null;
 }
 

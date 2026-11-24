@@ -240,6 +240,15 @@ jobs:
           node scripts/check-odds-backfill-sport-filter.mjs
           node scripts/mutate-odds-backfill-sport-filter.mjs
 
+      # AFL's round is found from ESPN's scoreboard. It was sent as one date RANGE, which ESPN answers 400; the resolver
+      # read that as "no round" and returned null without a log line, so every AFL pick resolved to no win probability
+      # (2026-11-24, docs/CC-CMD-2026-11-24-afl-round-discovery-sends-a-date-range.md). The real resolver runs here over a
+      # stub that refuses a range, with mutants; the live shape is proven by afl-round-live-check.yml.
+      - name: AFL round discovery reads ESPN one day at a time
+        run: |
+          node scripts/check-afl-round-discovery.mjs
+          node scripts/mutate-afl-round-discovery.mjs
+
       # /identity/mismatches is the diagnostic the Saturday probe reads. It joined on resolved pair keys
       # alone and reported 0 of 80 on a slate the relay's own join solves 73 of and the backfill's
       # matcher 80 of (2026-10-29, docs/CC-CMD-2026-10-19-cfb-saturday-coverage-and-join-probe.md,
