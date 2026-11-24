@@ -3,7 +3,7 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Repo:** field-relay-nba (`src/index.js`, `.github/workflows/r2-init.yml`)
 **Filed:** 2026-11-08, by CC, from option B of `docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md` (Rule 87.4)
-**Status:** BLOCKED until the CFL experiment's verdict commit exists, and not before 2026-11-24.
+**Status:** IN PROGRESS 2026-11-24. Unblocked: it is 2026-11-24 and the judge's verdict commit is on `main` (`0f35c968`). The Wednesday call is removed; the deploy is not yet confirmed.
 
 ---
 
@@ -53,3 +53,13 @@ Both hold:
   read (`worker-cpu-read.yml`) shows 0 buckets between 12:00 and 16:00 UTC. That
   already holds from 2026-11-11 because of the stub, so it is a regression check,
   not new evidence.
+
+## Results, 2026-11-24
+
+**Task 0 (read-only, 16:45Z):**
+1. *The block is lifted.* `git log --oneline --since=2026-11-23 -- outbox/ | grep -i cfl` finds `0f35c968` ("CFL post-window judged exactly as committed (no VOID; M (a) and M (c) fail; H-whole, H-none and M (b) hold on zeros)"), and the 2026-11-24 15:00Z close-out in `HANDOFF.md` records the same verdict.
+2. *The stub is what runs.* `git show HEAD:src/nfl-r2.js` holds `retired: true` (line 30); the latest Deploy RELAY Worker run on `main` before this change, `45238580586` (head `e9ca054f`), concluded `success`, later than the stub's commit. Not POSTed to `/nfl-r2-update` (the CC-CMD forbids it).
+3. *Nothing else imports `src/nfl-r2.js`.* `grep -rn nfl-r2 src scripts .github`: the one import (`src/index.js:155`, `import { runNFLR2Update } from './nfl-r2.js';`), the two callers (the Wednesday block and the admin route at `:21009`), the scripts that only quote the file's history (`nfl-r2-memory-repro.mjs`, `build-nfl-player-stats.mjs`). No gate or script quotes the Wednesday block.
+4. *The runner has written every Wednesday since 2026-11-11.* `outbox/nfl-player-stats-2026-11-11T1951.log` and `...-11-18T2053.log` both end `WRITTEN AND SERVED: nfl/2026/player-stats.json` (11-08 and 11-12 also).
+
+**Task 1:** `src/index.js`: the Wednesday block (`_utcDay === 3 && _utcHour >= 12 && _utcHour <= 15`) and its comment are replaced by a two-line pointer comment; `POST /nfl-r2-update` and the `import` stay (removing them is the owner's call: not done, not asked of the runner). `.github/workflows/r2-init.yml`: `nfl-r2-update` dropped from the description. `node scripts/build-route-provenance.mjs` changed nothing (the route stays), `check-route-provenance.mjs` PASS. **`grep -a -c "runNFLR2Update(env)" src/index.js` is 1** (was 2; `grep` needs `-a`, `src/index.js` reads as binary).

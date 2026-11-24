@@ -1,7 +1,7 @@
 # Claude Code Command — the Wednesday NFL R2 job runs out of memory on most ticks, and publishes misparsed 2024 data when it doesn't
 
 **Branch:** main — commit directly, do not create a feature branch or PR
-**Repo:** field-relay-nba (`src/nfl-r2.js`, its call at `src/index.js:9825`, `_utcDay === 3 && _utcHour >= 12`); jubilant-bassoon reads the output (`src/legacy/field.js:4575`, `NFL_QB_STATS`)
+**Repo:** field-relay-nba (`src/nfl-r2.js`, its Wednesday call in the scheduled handler (`_utcDay === 3 && _utcHour >= 12`, removed on 2026-11-24 by `docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md`)); jubilant-bassoon reads the output (`src/legacy/field.js:4575`, `NFL_QB_STATS`)
 **Filed:** 2026-11-03, by CC, from `docs/CC-CMD-2026-11-03-relay-exceeded-memory.md`
 **Status:** DONE 2026-11-08 for option B (owner's choice, 2026-11-08): the runner job is built and live, the Worker job is retired. Removing the Worker's cron call waits on `docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md`. Record at the end.
 

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       endpoint:
-        description: 'Admin endpoint to trigger (nba-clutch-update, nhl-gsax, mlb-savant-update, nfl-r2-update)'
+        description: 'Admin endpoint to trigger (nba-clutch-update, nhl-gsax, mlb-savant-update)'
         required: true
         default: 'nba-clutch-update'
 

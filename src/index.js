@@ -10189,10 +10189,8 @@ export default {
         if (_r2ShouldFire && _utcDay === 1 && _utcHour >= 10 && _utcHour <= 13 && env.FIELD_DATA) {
             ctx.waitUntil(runMLBSavantUpdate(env).catch(e => console.error('[MLB-R2]', e.message)));
         }
-        // nflverse → R2: Wednesday 8AM ET (UTC 12-15) — nflverse releases after Tuesday games
-        if (_r2ShouldFire && _utcDay === 3 && _utcHour >= 12 && _utcHour <= 15 && env.FIELD_DATA) {
-            ctx.waitUntil(runNFLR2Update(env).catch(e => console.error('[NFL-R2]', e.message)));
-        }
+        // nflverse → R2 (Wednesday): NOT here. nfl/{year}/player-stats.json is built by .github/workflows/nfl-player-stats.yml; src/nfl-r2.js is a stub
+        // (docs/CC-CMD-2026-11-03-nfl-r2-player-stats-oom.md, docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md). POST /nfl-r2-update stays and answers "retired".
         // NHL SCF series-adjusted PP/PK, April-July. Genuinely playoffs-only
         // by nature (CC-CMD-2026-07-11-nhl-nba-regular-season-continuation
         // TASK 1) -- hardcoded to a single specific best-of-7 series
