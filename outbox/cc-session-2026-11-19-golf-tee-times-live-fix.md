@@ -97,3 +97,10 @@
 - The final round was archived as "R5": the playoff counted as a round. Rows `..._r5` on 11-23 and 11-24, start 19:09Z, "Marco Penge -17" (official -16). Round 4 has no row.
 - Detail and cause are in the CC-CMD's 2026-11-24 section. The fix waits on the owner's two choices.
 
+## 2026-11-24: playoff fix
+
+- Relay `bc8f7f5` (deploy 45442657183) and client `5a5a42fb` (deploy 45445370538) are live.
+- Rows corrected: R4 and PO written, R5 deleted (run 45442775760).
+- Live read: round 4, 12:20Z, Penge -16, playoff object complete.
+- Status PARTIAL until the first live PO row (the next PGA playoff). Detail is in the CC-CMD.
+

@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (the source and the contract). One paired client change in jubilant-bassoon (Rule 70, ATOMIC-A): the relay deploys first, the client consumes.
 **Filed:** 2026-11-16 by CC, on the owner's order "file the relay CC-CMD for golf tee times", from the Deep Cuts design work (field-laboratory `docs/CC-CMD-2026-11-15-scout-daypart-picks.md`, section "Golf").
 **Confidence gate:** >= 95 before any commit
-**Status:** OPEN 2026-11-24, reopened by the round-4 read: the final round was archived as `R5` (the playoff counted as a round), with the playoff's start and a score that includes the playoff hole; round 4 has no row. Rounds 1 to 3 and the live route stand as read on 2026-11-23 (below).
+**Status:** PARTIAL 2026-11-24. Tee times and archive start times are done and read on real rows for every RSM round. Rounds 1 to 3 as recorded; the final round's R5 rows were replaced with R4 and PO rows on the owner's GO. The playoff fix is built and live: the relay half was read live, and the client half (`_saveGolfPlayoff`) was verified on the real final by simulation. Its first live PO row can only appear at the next PGA Tour playoff, read by the check below. The pre-round `roundStart` gap is recorded as the owner's decision.
 
 ---
 
@@ -202,4 +202,27 @@ Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roun
   - where the number of regular rounds comes from (the leaderboard endpoint the relay already reads);
   - whether a playoff is archived inside round 4's row or as its own.
   - Correcting the two R5 rows into one R4 row is a production write and the owner's call.
+
+### 2026-11-24: the playoff fix, built, deployed and read; the final round's rows corrected
+
+- **Owner's choices (2026-11-24):** "Separate playoff row", and the R5 rows replaced. Under the first choice the replacement is an R4 row plus a PO row, not R4 alone.
+- **Relay `bc8f7f5`** (deploy run 45442657183, `deploy` and `verify` green):
+  - `golfRoundLine` counts only the tournament's regular rounds, and "-" is not a begun round.
+  - `regularToPar` gives the official total after a playoff.
+  - `golfPlayoffFrom` builds `playoff`; the scoreboard reads `numberOfRounds` via `getGolfRegularRounds`, edge-cached 3600 s.
+  - `/v2/golf/enriched` excludes `isPlayoff` tee times and serves `playoff`.
+  - Checks: `check-golf-round-line` 19/19 (10 mutants), `check-golf-tee-times` 19/19 (11 mutants), on `outbox/golf-scoreboard-rsm-final-2026-11-23.json` and `outbox/golf-leaderboard-rsm-final-2026-11-24.json`.
+- **Live read** of `/v2/golf/enriched?date=2026-11-23` after the deploy:
+  - `round` 4; `roundStart` 2026-11-23T12:20Z, `roundLastTee` 14:10Z, 66 of 66.
+  - Penge `toPar` -16 (was -17), position 1; Thorbjornsen, Li and Greyserman -16, T2.
+  - `playoff` start 19:09Z, 4 players, winner Penge "-1", `complete` true.
+- **Client jubilant-bassoon `5a5a42fb`** (SW_VERSION 2026-11-24a; deploy run 45445370538 green, including its live-serve assertion; Smoke Test + Live Verify 45445370536 green):
+  - `_saveGolfPlayoff` posts an `away: 'PO'` row once `playoff.complete`. It runs before the round's dedup return.
+  - Simulated on the real final: R4 saved once (12:20Z, -16), PO saved once (19:09Z, -1), a repeat deduped.
+- **Rows corrected** (run 45442775760, `scripts/fix-rsm-final-rows.mjs`; every other column copied from the 11-23 R5 row; each write changed one row):
+  - Written: `golf_2026-11-23_thersmclassic_r4` (R4, start 2026-11-23T12:20Z, -16, "Marco Penge -16") and `golf_2026-11-23_thersmclassic_po` (PO, start 19:09Z, -1, "Marco Penge won the playoff over Max Greyserman, Michael Thorbjornsen, Haotong Li").
+  - Deleted: both R5 rows.
+- **Open:**
+  - The first live PO row, at the next PGA Tour playoff. Read with `SELECT id, away, start_time, home_score, note FROM regular_season_games WHERE sport='golf' AND away='PO'` after that event's final round: one row per playoff, its start equal to the playoff's first tee.
+  - Recorded, not changed: the duplicate-date rows (a round saved on two viewer dates), and `_attachDerived`'s hole count.
 

@@ -1,5 +1,17 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-24 — a golf playoff is never a round; the RSM final's rows corrected
+
+**HEAD:** `4943d43` → `bc8f7f5` · **Branch:** main · this close-out is the next commit. One `src/` commit (`bc8f7f5`); none of the CFL experiment's functions (VOID window ended 2026-11-23).
+**Session doc:** outbox/cc-session-2026-11-19-golf-tee-times-live-fix.md (task: the scheduled round-3 and round-4 reads, and the owner's 2026-11-24 choices)
+
+- **Found:** the RSM four-man playoff was archived as "R5", with the playoff's start and -17 (the official total is -16), and round 4 had no row. The scoreboard shows a playoff as one more linescore, with no flag.
+- **Built:**
+  - Relay `bc8f7f5`: only regular rounds count (`numberOfRounds` from the leaderboard); official `toPar`; `playoff` served by `/v2/golf/enriched`. Live read on the final: round 4, 12:20Z, -16, playoff complete.
+  - Client jubilant-bassoon `5a5a42fb`: a separate PO row (the owner's choice). The rows were corrected to R4 and PO (run 45442775760).
+- **Unrecorded commits since `4943d43`:** the scheduled watches and probes, another session's independent-reference Task 0 instruments (`2effeb3`), and the one-shot correction and its log (`09a7f81`).
+- **Open:** the first live PO row at the next PGA playoff; the tee-times CC-CMD is PARTIAL until then. The pre-round `roundStart` gap is the owner's decision.
+
 ## SESSION CLOSE-OUT — 2026-11-24 (16:40Z) — WC Defect B and the admin-seed ReferenceError fixed with checks; the production cleanup (10 misfiled knockout rows, 56 duplicates, 61 club rows, the `wc_group` rebuild) is staged for the owner
 
 **HEAD:** `8234c85` → `23cddc5` · **Branch:** main · this close-out is the next commit. `src/index.js` changed (the CFL judge's verdict was recorded first, 14:42Z); no credits, no odds route.
