@@ -21,7 +21,12 @@
 // BSD's request budget is unknown (no RateLimit header; its own pages say both 7,500 and 100 a day). MAX_DATES (default 5, about 25 pages) and
 // PAGE_CAP (default 40) are how that is respected; the first real run's upstreamPages is the first measurement of what a date costs.
 //
-// Usage: RELAY_SHARED_SECRET=... [FROM=2026-08-01 TO=2026-10-23 MAX_DATES=5 PAGE_CAP=40 DRY_RUN=true] node scripts/bsd-game-join-backfill.mjs
+// SCOPE. The approved scope is the addendum's: the five European leagues (197 rows over 34 dates on 2026-11-15; MLS was explicitly left out as "a
+// different list of clubs"). A date is CHOSEN when one of those five leagues' rows on it is pending. The route joins every soccer row of a date,
+// MLS included, so an MLS row on a chosen date is joined too; an MLS-only date is not chosen, and is counted in the artifact as out of scope.
+// INCLUDE_MLS=true widens the choice to MLS-only dates: that is a separate go-ahead from the owner (BSD pages), never a default.
+//
+// Usage: RELAY_SHARED_SECRET=... [FROM=2026-08-01 TO=2026-10-23 MAX_DATES=5 PAGE_CAP=40 DRY_RUN=true INCLUDE_MLS=false] node scripts/bsd-game-join-backfill.mjs
 // DRY_RUN=true reads and plans and writes nothing to the relay; it needs no secret.
 
 import fs from 'node:fs';
@@ -99,12 +104,14 @@ async function main() {
   if (TO > latestAllowed) fail(`TO ${TO} is later than ${latestAllowed}: yesterday and later belong to the scheduled join`);
   const days = daysBetween(FROM, TO, 200);
   if (days === null) fail(`FROM ${FROM} to TO ${TO} is not a range of 1 to 200 days`);
+  const INCLUDE_MLS = process.env.INCLUDE_MLS === undefined || process.env.INCLUDE_MLS === '' ? false : process.env.INCLUDE_MLS === 'true' ? true : process.env.INCLUDE_MLS === 'false' ? false : fail('INCLUDE_MLS must be true or false');
+  const SCOPE_SPORTS = INCLUDE_MLS ? BSD_SOCCER_SPORTS : BSD_SOCCER_SPORTS.filter((s) => s !== 'MLS');
   const secret = process.env.RELAY_SHARED_SECRET;
   if (!DRY && (typeof secret !== 'string' || secret === '')) fail('RELAY_SHARED_SECRET is not set (no default: an unset secret fails loudly, not as a quiet 401)', 2);
 
   const TS = new Date().toISOString();
   const state = loadState();
-  console.log(`=== bsd-game-join-backfill  utc=${TS}  ${DRY ? 'DRY RUN (nothing is written)' : 'WRITES'}  ${FROM}..${TO} (${days.length} days)  max dates ${MAX_DATES}  page cap ${PAGE_CAP}  relay=${RELAY} ===`);
+  console.log(`=== bsd-game-join-backfill  utc=${TS}  ${DRY ? 'DRY RUN (nothing is written)' : 'WRITES'}  ${FROM}..${TO} (${days.length} days)  max dates ${MAX_DATES}  page cap ${PAGE_CAP}  scope ${SCOPE_SPORTS.join(', ')}  relay=${RELAY} ===`);
 
   // ---- survey: reads only
   const survey = new Map();
@@ -116,24 +123,25 @@ async function main() {
       const rd = await readDay(day, false);
       const k = String(rd.status);
       surveyStatuses[k] = (surveyStatuses[k] === undefined ? 0 : surveyStatuses[k]) + 1;
-      survey.set(day, rd.rows === null ? null : pendingOf(rd.rows, BSD_SOCCER_SPORTS));
+      survey.set(day, rd.rows === null ? null : { ...pendingOf(rd.rows, BSD_SOCCER_SPORTS), scope: pendingOf(rd.rows, SCOPE_SPORTS).pending });
     }
   }));
   // a day already attempted whose pass answered is not asked again: it is reported as stuck, not re-planned
   const eligible = new Map();
   const stuck = [];
   for (const [d, v] of survey) {
-    if (v !== null && v.pending > 0 && state.attempted[d] !== undefined) { stuck.push(d); eligible.set(d, { pending: 0 }); } else eligible.set(d, v);
+    if (v !== null && v.scope > 0 && state.attempted[d] !== undefined) { stuck.push(d); eligible.set(d, { pending: 0 }); } else eligible.set(d, v === null ? null : { pending: v.scope });
   }
   stuck.sort();
   const plan = planDates({ survey: eligible, maxDates: MAX_DATES });
   const totalPendingRows = [...survey.values()].reduce((a, v) => a + (v === null ? 0 : v.pending), 0);
+  const outOfScope = [...survey.values()].filter((v) => v !== null && v.scope === 0 && v.pending > 0);   // pending rows only in sports this run is not asked to chase
   console.log(`survey: ${plan.readDays} of ${days.length} days read, ${plan.pendingDays} days still to attempt (${plan.pendingRows} rows), ${stuck.length} days attempted and still pending, ${plan.unread.length} unread`);
   console.log(`chosen (oldest first): ${plan.chosen.join(', ') || '(none)'}`);
 
   const out = {
     ts: TS, dryRun: DRY, relay: RELAY, from: FROM, to: TO, maxDates: MAX_DATES, pageCap: PAGE_CAP,
-    survey: { daysInRange: days.length, daysRead: plan.readDays, unreadDays: plan.unread, statuses: surveyStatuses, daysToAttempt: plan.pendingDays, rowsToAttempt: plan.pendingRows, attemptedStillPending: stuck.length, pendingRowsAllDays: totalPendingRows },
+    survey: { daysInRange: days.length, daysRead: plan.readDays, unreadDays: plan.unread, statuses: surveyStatuses, daysToAttempt: plan.pendingDays, rowsToAttempt: plan.pendingRows, attemptedStillPending: stuck.length, pendingRowsAllDays: totalPendingRows, scopeSports: SCOPE_SPORTS, outOfScopeDays: outOfScope.length, outOfScopeRows: outOfScope.reduce((a, v) => a + v.pending, 0) },
     chosen: plan.chosen, dates: [], pagesUsed: 0, written: 0, stoppedBecause: null, remainingToAttempt: DRY ? plan.pendingDays : plan.remainingAfter, complete: false,
     runner: { gitSha: typeof process.env.GITHUB_SHA === 'string' && process.env.GITHUB_SHA !== '' ? process.env.GITHUB_SHA : null, runId: typeof process.env.GITHUB_RUN_ID === 'string' && process.env.GITHUB_RUN_ID !== '' ? process.env.GITHUB_RUN_ID : null,
       scriptSha256: crypto.createHash('sha256').update(fs.readFileSync(fileURLToPath(import.meta.url))).digest('hex'), libSha256: crypto.createHash('sha256').update(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'bsd-backfill-lib.mjs'))).digest('hex') },
@@ -182,7 +190,7 @@ async function main() {
       console.log('COMPLETE: no un-attempted pending day is left and none is unread; wrote the marker');
     }
   }
-  out.coverageLine = `${DRY ? 'DRY RUN: ' : ''}${plan.readDays} of ${days.length} days read (${plan.unread.length} unread) | to attempt ${plan.pendingDays} days / ${plan.pendingRows} rows, ${stuck.length} days attempted before and still pending | this run: ${out.dates.length} dates posted, ${out.written} rows written, ${out.pagesUsed} upstream pages (cap ${PAGE_CAP}), ${out.dates.filter((d) => d.verify.verified === true).length} verified | ${out.stoppedBecause === null ? 'no stop' : `STOPPED: ${out.stoppedBecause}`} | remaining to attempt ${out.remainingToAttempt}${out.complete ? ' | COMPLETE' : ''}`;
+  out.coverageLine = `${DRY ? 'DRY RUN: ' : ''}${plan.readDays} of ${days.length} days read (${plan.unread.length} unread) | scope ${SCOPE_SPORTS.length} sports${INCLUDE_MLS ? ' (MLS included)' : ' (MLS not included)'}: to attempt ${plan.pendingDays} days / ${plan.pendingRows} rows, ${stuck.length} days attempted before and still pending | out of scope (pending rows in sports outside the scope only) ${outOfScope.length} days / ${outOfScope.reduce((a, v) => a + v.pending, 0)} rows | this run: ${out.dates.length} dates posted, ${out.written} rows written, ${out.pagesUsed} upstream pages (cap ${PAGE_CAP}), ${out.dates.filter((d) => d.verify.verified === true).length} verified | ${out.stoppedBecause === null ? 'no stop' : `STOPPED: ${out.stoppedBecause}`} | remaining to attempt ${out.remainingToAttempt}${out.complete ? ' | COMPLETE' : ''}`;
   save();
   console.log('\n=== COVERAGE ===\n' + out.coverageLine);
 }

@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 35;
+const MIN_ASSERTIONS = 39;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'bsd-game-join-backfill.mjs');
 const MUT = path.join(dir, '.mutant-bsd-game-join-backfill.mjs');
@@ -29,7 +29,7 @@ const MUTANTS = [
   M('the wrong header', "'X-FIELD-Relay': secret", "'X-FIELD-Relay': 'x'"),
   M('the wrong body', 'body: JSON.stringify({ date })', 'body: JSON.stringify({ day: date })'),
   M('the re-read is not cache-busted', '${bust ? `?v=${Date.now()}` : \'\'}', '${false ? `?v=${Date.now()}` : \'\'}'),
-  M('an unread day is read as clean', 'survey.set(day, rd.rows === null ? null : pendingOf(rd.rows, BSD_SOCCER_SPORTS));', 'survey.set(day, rd.rows === null ? { soccer: 0, pending: 0, bySport: {} } : pendingOf(rd.rows, BSD_SOCCER_SPORTS));'),
+  M('an unread day is read as clean', 'survey.set(day, rd.rows === null ? null :', 'survey.set(day, rd.rows === null ? { soccer: 0, pending: 0, bySport: {}, scope: 0 } :'),
   M('verification ignores what was written', 'written: written === null ? 0 : written })', 'written: 0 })'),
   M('a join is not counted as written', "const written = outcome === 'joined' ? num(resp.written) : 0;", 'const written = 0;'),
   M('pages are not added up', 'out.pagesUsed += pages === null ? 0 : pages;', 'out.pagesUsed += 0;'),
@@ -42,6 +42,10 @@ const MUTANTS = [
   M('the marker is not written', "fs.writeFileSync('outbox/bsd-join-backfill-complete.json'", "void ('outbox/bsd-join-backfill-complete.json'"),
   M('remaining ignores the failed days', 'out.remainingToAttempt = plan.pendingDays - attemptedNow;', 'out.remainingToAttempt = plan.remainingAfter;'),
   M('the secret guard is gone', "if (typeof secret === 'string' && secret !== '' && body.includes(secret)) fail('the artifact would contain the relay secret: refusing to write it');", ''),
+  M('the scope is all six sports', 'pendingOf(rd.rows, SCOPE_SPORTS).pending', 'pendingOf(rd.rows, BSD_SOCCER_SPORTS).pending'),
+  M('MLS is always in scope', "BSD_SOCCER_SPORTS.filter((s) => s !== 'MLS')", 'BSD_SOCCER_SPORTS'),
+  M('out-of-scope days are not counted', 'v !== null && v.scope === 0 && v.pending > 0', 'false'),
+  M('INCLUDE_MLS accepts anything', ": process.env.INCLUDE_MLS === 'false' ? false : fail('INCLUDE_MLS must be true or false')", ': false'),
   M('MAX_DATES has no real limit', "intEnv('MAX_DATES', 5, 1, 10)", "intEnv('MAX_DATES', 5, 1, 99)"),
   M('DRY_RUN accepts anything', ": process.env.DRY_RUN === 'false' ? false : fail('DRY_RUN must be true or false')", ': false'),
   M('a backwards range is accepted', 'if (days === null) fail(', 'if (false) fail('),

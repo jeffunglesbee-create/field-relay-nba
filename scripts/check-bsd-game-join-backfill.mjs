@@ -99,9 +99,17 @@ await scenario('a dry run', async () => {
   const r = await run({ secret: null, env: { DRY_RUN: 'true' } });
   eq('exit 0, no POST at all, only the artifact files', [r.code, r.posts.length, r.names.length], [0, 0, 2]);
   eq('the plan: the two OLDEST days with work, the clean day, the all-joined day and the unread day skipped', r.art.chosen, [D.a, D.b]);
-  eq('the survey: 6 days, 5 read, 1 unread; 3 days with 6 rows to attempt', [r.art.survey.daysInRange, r.art.survey.daysRead, r.art.survey.unreadDays, r.art.survey.daysToAttempt, r.art.survey.rowsToAttempt], [6, 5, [D.unread], 3, 6]);
+  eq('the survey: 6 days, 5 read, 1 unread; 3 days with 4 in-scope rows to attempt (an MLS row on those days is joined as a side effect but is not what chooses a day), no out-of-scope day', [r.art.survey.daysInRange, r.art.survey.daysRead, r.art.survey.unreadDays, r.art.survey.daysToAttempt, r.art.survey.rowsToAttempt, r.art.survey.outOfScopeDays, r.art.survey.outOfScopeRows], [6, 5, [D.unread], 3, 4, 0, 0]);
   eq('a dry run says so, writes no state and no marker, and nothing is remaining-to-attempt-minus-chosen', [r.art.dryRun, r.state, r.complete, r.art.remainingToAttempt, r.art.complete], [true, null, null, 3, false]);
   eq('every survey read was a plain GET, never cache-busted', r.calls.every((c) => c.method === 'GET' && c.query === ''), true);
+});
+
+await scenario('MLS-only days are out of scope unless the owner widens it', async () => {
+  const w = () => world({ days: { [D.fine]: [{ id: 'm1', sport: 'MLS', bsd_event_id: null }, { id: 'm2', sport: 'MLS', bsd_event_id: null }] } });
+  const r = await run({ world: w(), secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5' } });
+  eq('the day with only MLS rows pending is not chosen, and is counted as out of scope with its rows', [r.art.chosen, r.art.survey.outOfScopeDays, r.art.survey.outOfScopeRows, r.art.survey.scopeSports], [[D.a, D.b, D.c], 1, 2, ['EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1']]);
+  const wide = await run({ world: w(), secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5', INCLUDE_MLS: 'true' } });
+  eq('with INCLUDE_MLS it is chosen, in date order, and nothing is out of scope', [wide.art.chosen, wide.art.survey.outOfScopeDays, wide.art.survey.scopeSports.includes('MLS')], [[D.a, D.fine, D.b, D.c], 0, true]);
 });
 
 await scenario('a real run: two dates, each verified', async () => {
@@ -116,22 +124,23 @@ await scenario('a real run: two dates, each verified', async () => {
   eq('totals: 4 written, 10 pages, no stop, one day left to attempt, not complete', [a.written, a.pagesUsed, a.stoppedBecause, a.remainingToAttempt, a.complete], [4, 10, null, 1, false]);
   eq('the state holds both answered days, with what was left pending', [Object.keys(r.state.attempted).sort(), r.state.attempted[D.b].pendingAfter, r.state.attempted[D.a].pendingAfter], [[D.a, D.b], 1, 0]);
   eq('the artifact names, no marker, and the secret is in none of them', [r.names, r.complete, r.raw.includes(SECRET)], [['bsd-join-backfill-2' + a.ts.slice(1).replace(/[:.]/g, '-') + '.json', 'bsd-join-backfill-latest.json', 'bsd-join-backfill-state.json'].sort(), null, false]);
-  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), /to attempt 3 days \/ 6 rows/.test(a.coverageLine), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
+  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), /scope 5 sports \(MLS not included\): to attempt 3 days \/ 4 rows/.test(a.coverageLine), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
 });
 
 await scenario('a second run does not ask again about a day it already answered', async () => {
-  const w = world({ behave: { [D.b]: { kind: 'ok', join: 1 } } });
+  const w = world({ behave: { [D.b]: { kind: 'ok', join: 0 } } });          // BSD events were read, none matched: day b keeps its rows pending
   const first = await run({ world: w });
   const second = await run({ world: w, state: first.state });
-  eq('day b still has a pending row but is reported as attempted, not chosen; the next run takes day c', [posted(second), second.art.survey.attemptedStillPending, second.art.chosen], [[D.c], 1, [D.c]]);
+  eq('the first run recorded day b as answered with nothing written (none matched)', [first.art.dates[1].outcome, first.art.dates[1].verify.verified], ['none-matched', true]);
+  eq('day b still has in-scope rows pending but is reported as attempted, not chosen; the next run takes day c', [posted(second), second.art.survey.attemptedStillPending, second.art.chosen], [[D.c], 1, [D.c]]);
   eq('day c is the last one to attempt, but day six is unread, so the run is NOT complete and writes no marker', [second.art.complete, second.complete, second.art.remainingToAttempt], [false, null, 0]);
 });
 
 await scenario('complete when nothing is left and nothing is unread', async () => {
-  const w = world({ days: { [D.unread]: soccer(D.unread, 0, true) }, behave: { [D.b]: { kind: 'ok', join: 1 } } });
+  const w = world({ days: { [D.unread]: soccer(D.unread, 0, true) }, behave: { [D.b]: { kind: 'ok', join: 0 } } });
   const r = await run({ world: w, env: { MAX_DATES: '5' } });
   eq('three days posted, all verified, nothing remaining, complete', [posted(r), r.art.remainingToAttempt, r.art.complete], [[D.a, D.b, D.c], 0, true]);
-  eq('the marker says what is still pending: day b, one row, with the unmatched name', [r.complete.attempted, r.complete.stillPending.map((x) => [x.date, x.rows, x.unmatched.length])], [3, [[D.b, 1, 1]]]);
+  eq('the marker says what is still pending: day b, its two rows, with both unmatched names', [r.complete.attempted, r.complete.stillPending.map((x) => [x.date, x.rows, x.unmatched.length])], [3, [[D.b, 2, 2]]]);
   const again = await run({ world: w, state: r.state, env: { MAX_DATES: '5' } });
   eq('a later run has nothing to post and says complete again', [again.posts.length, again.art.complete], [0, true]);
 });
@@ -184,6 +193,8 @@ await scenario('refusals before any request', async () => {
   eq('a TO that reaches yesterday or later exits 1, no request', [late.code, late.calls.length, /scheduled join/.test(late.stderr)], [1, 0, true]);
   const many = await run({ env: { MAX_DATES: '11' } });
   eq('MAX_DATES over 10 exits 1, no request', [many.code, many.calls.length], [1, 0]);
+  const mls = await run({ env: { INCLUDE_MLS: 'sometimes' } });
+  eq('INCLUDE_MLS that is not true or false exits 1, no request', [mls.code, mls.calls.length], [1, 0]);
   const dry = await run({ env: { DRY_RUN: 'maybe' } });
   eq('DRY_RUN that is not true or false exits 1, no request', [dry.code, dry.calls.length], [1, 0]);
   const back = await run({ env: { FROM: D.unread, TO: D.clean } });
