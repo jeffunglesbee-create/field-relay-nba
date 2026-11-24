@@ -1,6 +1,6 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-11-24 (21:00Z) — the BSD join backfill is approved and running: 5 of 34 dates written and verified, 29 left on a daily schedule
+## SESSION CLOSE-OUT — 2026-11-24 (21:00Z) — the BSD join backfill is approved and running: 5 dates written and verified; MLS included on the owner's word, about 59 dates left on a daily schedule
 
 **HEAD:** `103c9ac` → `7613e85` (tool and workflow), this close-out is the next commit · **Branch:** main · no `src/` change, no deploy. **Session doc:** outbox/cc-session-2026-11-24-bsd-join-backfill.md (full record: the 2026-11-24 addendum of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`)
 
@@ -8,7 +8,8 @@
 - **Scope came from a dry run:** 64 days / 607 rows surveyed, 34 days / 197 rows are the five European leagues (reproducing the addendum's figures exactly), 30 days / 212 rows are MLS-only and were left out as the addendum left them. `include_mls` widens it: the owner's separate call.
 - **First real run (run 45483895799):** 5 dates, 69 rows written (most are MLS rows on those dates), 17 upstream pages, all verified. **D1, read-only:** the addendum's query went 197 rows / 34 dates → **190 / 29**. A date costs 1 to 9 pages (3.4 average).
 - **Not verified:** BSD's real request budget; the `change_log` revert recipe (its columns were not read); why 2 MLS rows on 2026-08-15 stay unmatched; BSD's reach back to the 38 May rows (outside the range).
-- **Follow-up wired:** a session reminder for 2026-12-01 to confirm the marker, rerun the laboratory's reach probe (`espn-task0.yml`, `parts` = `reach`) and update the "Task 0 result" population there.
+- **MLS included (the owner: "include MLS", same day):** the scheduled run now sets `INCLUDE_MLS` (workflow only; the script's default stays false). Remaining, D1 read-only: 190 European + 267 MLS rows in `regular_season_games` and 81 MLS rows in `postseason_games`, 538 in all (= the survey's 607 less the 69 written), about 59 dates, finishing about 2026-12-06. MLS rows before 2026-08-01 (113 rows, 12 dates) are NOT in scope; BSD's reach back that far is untested.
+- **Follow-ups wired:** 2026-11-25 08:30Z checks the first scheduled run (the schedule has never fired; `MLS` must be in `survey.scopeSports`); 2026-12-07 09:00Z confirms the marker, reruns the laboratory's reach probe (`espn-task0.yml`, `parts` = `reach`) and updates the "Task 0 result" population there.
 
 ## SESSION CLOSE-OUT — 2026-11-24 (18:00Z) — "Check on espn 400s": ESPN refuses a date RANGE, not the relay's requests; one production request sends a range and fails silently (AFL, off-season)
 
