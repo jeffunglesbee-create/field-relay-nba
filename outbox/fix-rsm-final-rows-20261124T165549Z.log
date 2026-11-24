@@ -1,0 +1,10 @@
+[before] golf_2026-11-23_thersmclassic_r5 R5 start=2026-11-23T19:09:00.000Z score=-17 note=Marco Penge -17
+[before] golf_2026-11-24_thersmclassic_r5 R5 start=2026-11-23T19:09:00.000Z score=-17 note=Marco Penge -17
+[insert] golf_2026-11-23_thersmclassic_r4 changes=1
+[insert] golf_2026-11-23_thersmclassic_po changes=1
+[delete] golf_2026-11-23_thersmclassic_r5 changes=1
+[delete] golf_2026-11-24_thersmclassic_r5 changes=1
+[after]  golf_2026-11-23_thersmclassic_po PO start=2026-11-23T19:09:00.000Z score=-1 note=Marco Penge won the playoff over Max Greyserman, Michael Thorbjornsen, Haotong Li
+[after]  golf_2026-11-23_thersmclassic_r4 R4 start=2026-11-23T12:20:00.000Z score=-16 note=Marco Penge -16
+
+Done: the RSM final is one R4 row and one PO row; no R5 row.
