@@ -1,0 +1,198 @@
+name: ESPN independent-reference Task 0
+
+# field-laboratory docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md, Task 0 (the probe block), run on this repository's runner on
+# the owner's word of 2026-11-24 ("Run task 0"). Dispatch only, main only.
+#
+#   espn  NO secret. E1 (does ESPN publish a goal list with a scoring team, a clock and an own-goal flag, in each of the nine R2 leagues)
+#         and E2a (one /context/date read: do archive rows that carry a BSD id also carry an ESPN id). Nine scoreboard reads and up to nine
+#         summary reads on site.web.api.espn.com, one second apart, a 403 or 429 stops it. scripts/espn-task0-probe.mjs.
+#   reach HAS the BSD token, NO write credential. E2b and E2c: of the matches the grade covers, how many does the existing BSD-to-archive join
+#         reach (one /context/date read per distinct day, capped), with every zero given one named reason. The census's collect() makes the
+#         BSD requests (about 11, cap 16, a 429 or 401 stops). It imports only this repository's own scripts: no laboratory code runs in the
+#         process that holds the token. scripts/bsd-e2-reach-probe.mjs.
+#   commit HAS the write credential, NO token. Accepts only files named like the two probes' artifacts, each parsed as JSON, commits them,
+#         and fails the workflow if either probe did not reach its target.
+# verify runs first with no secret: the checks and the mutation harnesses of everything above. A blind check stops the run before any request.
+
+on:
+  workflow_dispatch:
+    inputs:
+      call_budget:
+        description: 'Max BSD requests, 1 to 50 (default 16)'
+        required: false
+      read_cap:
+        description: 'Max incidents.json reads through the relay, 1 to 5000 (default 1500)'
+        required: false
+      day_cap:
+        description: 'Max distinct /context/date days to read, 1 to 2000 (default 300); more than this and no read is made'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: espn-task0
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Only on main, and sane budgets
+        env:
+          CALL_BUDGET: ${{ inputs.call_budget }}
+          READ_CAP: ${{ inputs.read_cap }}
+          DAY_CAP: ${{ inputs.day_cap }}
+        run: |
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "dispatch this workflow on main only (the commit job pushes to main); got $GITHUB_REF"; exit 1; }
+          if [ -n "$CALL_BUDGET" ]; then [[ "$CALL_BUDGET" =~ ^[1-9][0-9]?$ ]] && [ "$CALL_BUDGET" -le 50 ] || { echo "call_budget must be a whole number from 1 to 50"; exit 1; }; fi
+          if [ -n "$READ_CAP" ]; then [[ "$READ_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$READ_CAP" -le 5000 ] || { echo "read_cap must be a whole number from 1 to 5000"; exit 1; }; fi
+          if [ -n "$DAY_CAP" ]; then [[ "$DAY_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$DAY_CAP" -le 2000 ] || { echo "day_cap must be a whole number from 1 to 2000"; exit 1; }; fi
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # No token in this job. If any of these is blind, nothing below runs.
+      - name: The checks can still fail
+        run: |
+          node scripts/check-espn-task0-lib.mjs
+          node scripts/check-bsd-next-goal-census.mjs
+          node scripts/check-bsd-next-goal-census-run.mjs
+          node scripts/check-bsd-e2-reach-probe.mjs
+          node scripts/check-espn-task0-probe.mjs
+
+      - name: The mutation harnesses still catch every break
+        run: |
+          node scripts/mutate-espn-task0-lib.mjs
+          node scripts/mutate-bsd-e2-reach-probe.mjs
+          node scripts/mutate-espn-task0-probe.mjs
+
+  espn:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: ESPN shapes and the archive's two ids (no token anywhere in this job)
+        timeout-minutes: 10
+        run: node scripts/espn-task0-probe.mjs
+      - name: Hand the artifact to the commit job
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: espn-task0
+          path: outbox/espn-task0-*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  reach:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # The token is in the environment of this ONE step, which has its own limit so that a hang cannot use the job's.
+      - name: Where the existing join reaches the graded matches
+        timeout-minutes: 12
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+          READ_CAP: ${{ inputs.read_cap }}
+          DAY_CAP: ${{ inputs.day_cap }}
+        run: node scripts/bsd-e2-reach-probe.mjs
+      - name: Hand the artifact to the commit job
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsd-e2-reach
+          path: outbox/bsd-e2-reach-*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  commit:
+    needs: [espn, reach]
+    if: ${{ always() && (needs.espn.result != 'skipped' || needs.reach.result != 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Take the ESPN artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: espn-task0
+          path: outbox
+        continue-on-error: true
+
+      - name: Take the reach artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bsd-e2-reach
+          path: outbox
+        continue-on-error: true
+
+      # Only files named like the probes' own are committed, and each must be JSON. Nothing else that came back is kept.
+      - name: Accept only the probes' own files
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          N=0
+          for f in outbox/espn-task0-*.json outbox/bsd-e2-reach-*.json; do
+            b=$(basename "$f")
+            [[ "$b" =~ ^(espn-task0|bsd-e2-reach)-(latest|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}Z)\.json$ ]] || { echo "unexpected file name: $b"; exit 1; }
+            [ "$(stat -c %s "$f")" -lt 3000000 ] || { echo "$b is larger than 3 MB"; exit 1; }
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$f" || { echo "$b is not JSON"; exit 1; }
+            N=$((N+1))
+          done
+          echo "accepted $N file(s)"
+          [ "$N" -ge 1 ] || { echo "neither probe left an artifact"; exit 1; }
+
+      # The evidence is committed whatever the verdict.
+      - name: Commit the artifacts
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/espn-task0-*.json outbox/bsd-e2-reach-*.json' \
+          bash scripts/probe-commit-retry.sh "chore: ESPN independent-reference Task 0 artifacts"
+
+      # A probe that left something out is evidence, not a result: -latest.json does not advance on it, and neither does this stay green.
+      - name: A probe that did not reach its target is not a result
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          FAIL=0
+          for PREFIX in espn-task0 bsd-e2-reach; do
+            FILES=(outbox/${PREFIX}-2*.json)
+            if [ "${#FILES[@]}" -eq 0 ]; then echo "$PREFIX: no artifact"; FAIL=1; continue; fi
+            LATEST=$(printf '%s\n' "${FILES[@]}" | sort | tail -1)
+            echo "reading $LATEST"
+            node -e '
+              const fs=require("fs");
+              const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+              console.log(d.coverageLine);
+              if(d.reachedTarget!==true){console.error("not reached: "+d.notReachedBecause);process.exit(1);}
+            ' "$LATEST" || FAIL=1
+          done
+          [ "$FAIL" -eq 0 ]
