@@ -1,0 +1,86 @@
+{
+  "probed_at": "2026-11-24T19:49:32.669Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 11,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Anderson (MNC), Muniz (FUL)\nAssists: Bobb (FUL)\nYellow cards: Donnarumma (MNC), Bassey (FUL), Iwobi (FUL), Charles (FUL)\nSaves: Donnarumma (MNC) 3, Leno (FUL) 2\nFPL bonus: Anderson (MNC) +3, Muniz (FUL) +2, Bobb (FUL) +1\nTop BPS: Anderson (MNC) 44, Muniz (FUL) 36, Bobb (FUL) 20\nLeague table: Man City 3rd on 0 points from 0 | Fulham 15th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879237",
+      "game_recap_epl_401878755",
+      "game_recap_epl_401879234",
+      "game_recap_epl_401879232",
+      "game_recap_epl_401878754",
+      "game_recap_epl_401879235",
+      "game_recap_epl_401878756",
+      "game_recap_epl_401879236",
+      "game_recap_epl_401879238",
+      "game_recap_epl_401879233",
+      "game_recap_epl_401879239",
+      "game_recap_epl_401878759",
+      "game_recap_epl_401879243",
+      "game_recap_epl_401879244",
+      "game_recap_epl_401878760",
+      "game_recap_epl_401879241",
+      "game_recap_epl_401878758",
+      "game_recap_epl_401879242"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401878757: overcome the",
+      "game_recap_epl_401878757: to overcome",
+      "game_recap_epl_401878760: extended their",
+      "game_recap_epl_401879242: overcome the",
+      "game_recap_epl_401879242: to overcome"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879237, game_recap_epl_401878755, game_recap_epl_401879234 | archived briefs use a banned phrase: game_recap_epl_401878757: overcome the, game_recap_epl_401878757: to overcome, game_recap_epl_401878760: extended their"
+}
