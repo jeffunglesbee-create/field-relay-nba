@@ -43,16 +43,22 @@ const mk = (id, round, home, away) => ({
     { homeAway: 'away', team: { displayName: away } },
   ] }],
 });
+// Team names are the ones ESPN serves (displayName, read through the relay's /v2/games for 2026-07-05..07-12: 'Fremantle', 'Sydney Swans',
+// 'GWS GIANTS', 'Gold Coast SUNS', 'Adelaide Crows', ...), NOT the nicknamed labels a client might send; the Squiggle stub below uses
+// Squiggle's own names ('Sydney', 'Greater Western Sydney', 'Gold Coast', 'Adelaide'). Picks are sent as either.
 const DAYS = {
-  '20260704': [mk('o1', 16, 'Richmond Tigers', 'Gold Coast Suns')],              // day -4: outside the window
-  '20260705': [mk('e1', 17, 'Collingwood Magpies', 'Carlton Blues')],           // day -3: the first day of the window
-  '20260706': [mk('e2', 17, 'Geelong Cats', 'Brisbane Lions')],                 // day -2: Geelong's FIRST game in the window
-  '20260710': [mk('e7', 0, 'West Coast Eagles', 'Gold Coast Suns')],           // day +2: an Opening-Round-style event, week.number 0
-  '20260709': [mk('e3', 18, 'Fremantle Dockers', 'Sydney Swans'),               // day +1: the measured 2026-07-08 fixture
-               mk('e4', null, 'Port Adelaide Power', 'Adelaide Crows')],        //   an event with no week number
-  '20260712': [mk('e5', 18, 'Geelong Cats', 'Western Bulldogs')],              // day +4: Geelong's SECOND game in the window
-  '20260714': [mk('e6', 19, 'Essendon Bombers', 'Hawthorn Hawks')],             // day +6: the last day of the window
-  '20260715': [mk('o2', 19, 'North Melbourne Kangaroos', 'St Kilda Saints')],   // day +7: outside the window
+  '20260704': [mk('o1', 16, 'Richmond', 'Gold Coast SUNS')],                     // day -4: outside the window
+  '20260705': [mk('e1', 17, 'Collingwood', 'Carlton')],                          // day -3: the first day of the window
+  '20260706': [mk('e2', 17, 'Geelong Cats', 'Brisbane Lions')],                  // day -2: Geelong's FIRST game in the window
+  '20260707': [mk('e8', 17, 'North Melbourne', 'Essendon')],                     // day -1: North Melbourne, the club a 'Melbourne' pick must not land on
+  '20260709': [mk('e3', 18, 'Fremantle', 'Sydney Swans'),                        // day +1: the measured 2026-07-08 fixture
+               mk('e4', null, 'Adelaide Crows', 'Hawthorn')],                    //   an event with no week number
+  '20260710': [mk('e7', 0, 'West Coast Eagles', 'Gold Coast SUNS')],            // day +2: an Opening-Round-style event, week.number 0
+  '20260711': [mk('e9', 18, 'Melbourne', 'GWS GIANTS')],                         // day +3: Melbourne (not North Melbourne) and GWS (a different spelling in Squiggle)
+  '20260712': [mk('e5', 18, 'Geelong Cats', 'Western Bulldogs')],                // day +4: Geelong's SECOND game; Western Bulldogs (not Greater Western Sydney)
+  '20260713': [mk('e10', 18, 'St Kilda', 'Port Adelaide')],                      // day +5: Port Adelaide (not Adelaide)
+  '20260714': [mk('e6', 19, 'Hawthorn', 'Essendon')],                            // day +6: the last day of the window
+  '20260715': [mk('o2', 19, 'Richmond', 'GWS GIANTS')],                          // day +7: outside the window
 };
 const ALL_DAYS = ['20260705','20260706','20260707','20260708','20260709','20260710','20260711','20260712','20260713','20260714'];
 // ESPN's top-level `week` (the "current week"), which the old comment recorded as disagreeing with the events inside a response:
@@ -62,11 +68,15 @@ const TOP_LEVEL_WEEK = { number: 17 };
 // Squiggle: one Aggregate tip per round, with a DIFFERENT home confidence per round, plus a non-Aggregate decoy source.
 const TIPS = {
   17: [{ source: 'Aggregate', hteam: 'Collingwood', ateam: 'Carlton', hconfidence: '70' },
-       { source: 'Aggregate', hteam: 'Geelong', ateam: 'Brisbane Lions', hconfidence: '55' }],
+       { source: 'Aggregate', hteam: 'Geelong', ateam: 'Brisbane Lions', hconfidence: '55' },
+       { source: 'Aggregate', hteam: 'North Melbourne', ateam: 'Essendon', hconfidence: '58' }],
   18: [{ source: 'Aggregate', hteam: 'Fremantle', ateam: 'Sydney', hconfidence: '60' },
        { source: 'Other',     hteam: 'Fremantle', ateam: 'Sydney', hconfidence: '99' },
-       { source: 'Aggregate', hteam: 'Geelong', ateam: 'Western Bulldogs', hconfidence: '65' }],
-  19: [{ source: 'Aggregate', hteam: 'Essendon', ateam: 'Hawthorn', hconfidence: '40' }],
+       { source: 'Aggregate', hteam: 'Adelaide', ateam: 'Hawthorn', hconfidence: '72' },                 // listed before Port Adelaide's: 'Adelaide' must not stand in for it
+       { source: 'Aggregate', hteam: 'Melbourne', ateam: 'Greater Western Sydney', hconfidence: '87' },   // listed before the Bulldogs': 'Greater Western Sydney' must not stand in for 'Western Bulldogs'
+       { source: 'Aggregate', hteam: 'Geelong', ateam: 'Western Bulldogs', hconfidence: '65' },
+       { source: 'Aggregate', hteam: 'St Kilda', ateam: 'Port Adelaide', hconfidence: '62' }],
+  19: [{ source: 'Aggregate', hteam: 'Hawthorn', ateam: 'Essendon', hconfidence: '40' }],
   0:  [{ source: 'Aggregate', hteam: 'West Coast', ateam: 'Gold Coast', hconfidence: '35' }],
 };
 
@@ -146,27 +156,41 @@ fresh();
 eq('S10 a game on the FIRST day of the window (-3d) is found, round 17', await pick('Collingwood Magpies'), WP(0.7));
 eq('S11 ... and asked Squiggle for round 17', log.squiggle.map(s => s.round), [17]);
 fresh();
-eq('S12 a game on the LAST day of the window (+6d) is found, round 19', await pick('Hawthorn Hawks'), WP(0.6));
+eq('S12 a game on the LAST day of the window (+6d) is found, round 19 (Hawthorn at home, 0.4)', await pick('Hawthorn Hawks'), WP(0.4));
 eq('S13 ... and asked Squiggle for round 19', log.squiggle.map(s => s.round), [19]);
 
 // outside the window and the unknown
 fresh();
-eq('S14 a game on day -4 (outside the window) resolves to null', await pick('Richmond Tigers'), null);
+eq('S14 a club whose only games are on day -4 and day +7 (both outside the window) resolves to null', await pick('Richmond Tigers'), null);
 eq('S15 ... and asks Squiggle nothing', log.squiggle, []);
 fresh();
-eq('S16 a game on day +7 (outside the window) resolves to null', await pick('St Kilda Saints'), null);
+eq('S17 a club that plays in no game, and a name no club has, resolve to null', [await pick('Tasmania Devils'), await pick('Hobart')], [null, null]);
 fresh();
-eq('S17 a team in no game resolves to null', await pick('Melbourne Demons'), null);
-fresh();
-eq('S18 an event with no week number is skipped (Port Adelaide is only in one)', await pick('Port Adelaide Power'), null);
+eq('S18 an event with no week number is skipped (Adelaide Crows is only in one)', await pick('Adelaide Crows'), null);
 eq('S18b ... and Squiggle is not asked for a round that was never there', log.squiggle, []);
+
+// clubs whose names contain another club's name: each resolves through its OWN game and its OWN tip
+fresh();
+eq('S18f Melbourne resolves through Melbourne v GWS (round 18, 0.87), not through North Melbourne\'s game two days earlier (round 17)', await pick('Melbourne Demons'), WP(0.87));
+eq('S18g ... and asked Squiggle for round 18 only', log.squiggle.map(s => s.round), [18]);
+fresh();
+eq('S18h North Melbourne resolves through its own round-17 game (0.58), not Melbourne\'s', await pick('North Melbourne Kangaroos'), WP(0.58));
+fresh();
+eq('S18i GWS GIANTS (ESPN) finds Squiggle\'s "Greater Western Sydney" tip: away side of Melbourne v GWS, 1 - 0.87 = 0.13', await pick('GWS GIANTS'), WP(0.13));
+eq('S18j ... and so does the label form "GWS Giants"', (await pick('GWS Giants'))?.probability, 0.13);
+fresh();
+eq('S18k Western Bulldogs takes Geelong v Western Bulldogs\' tip (away, 1 - 0.65 = 0.35), not Greater Western Sydney\'s (0.13) that comes first in the list', await pick('Western Bulldogs'), WP(0.35));
+fresh();
+eq('S18l Port Adelaide takes St Kilda v Port Adelaide (away, 1 - 0.62 = 0.38), not Adelaide\'s tip (0.72) that comes first in the list', await pick('Port Adelaide Power'), WP(0.38));
+fresh();
+eq('S18m Adelaide Crows is not Port Adelaide: its only in-window event has no week, so it resolves to null although Port Adelaide plays on day +5', await pick('Adelaide Crows'), null);
 
 // round 0 is a round (ESPN's Opening Round carries week.number 0)
 fresh();
 eq('S18c a game whose week.number is 0 resolves through Squiggle round 0 (home side, 0.35)', await pick('West Coast Eagles'), WP(0.35));
 eq('S18d ... and asked Squiggle for round 0, not "no round"', log.squiggle.map(s => s.round), [0]);
 fresh();
-eq('S18e ... and its away side resolves to 1 - 0.35 = 0.65', await pick('Gold Coast Suns'), WP(0.65));
+eq('S18e ... and its away side (ESPN "Gold Coast SUNS", label "Gold Coast Suns", Squiggle "Gold Coast") resolves to 1 - 0.35 = 0.65', await pick('Gold Coast Suns'), WP(0.65));
 
 // the earliest game in day order wins, as it did when the range was one list
 fresh();
@@ -181,7 +205,7 @@ ok('S23 ... but not as "none answered"', !log.warns.some(w => /none of the/.test
 fresh({ status: { '20260709': 500 } });
 eq('S24 the team whose only game was on the failed day resolves to null', await pick('Fremantle Dockers'), null);
 fresh({ throwOn: ['20260705'] });
-eq('S25 a network error on one day does not stop the others: Hawthorn (+6d) still resolves', (await pick('Hawthorn Hawks'))?.probability, 0.6);
+eq('S25 a network error on one day does not stop the others: Hawthorn (+6d) still resolves', (await pick('Hawthorn Hawks'))?.probability, 0.4);
 ok('S26 ... and the error is warned with the day and the reason', log.warns.some(w => /\[AFL-ROUND\]/.test(w) && /20260705/.test(w) && /network down/.test(w)), 'warns: ' + JSON.stringify(log.warns));
 fresh({ espnDown: 400 });
 eq('S27 every read refused: the answer is null', await pick('Fremantle Dockers'), null);
@@ -214,6 +238,6 @@ for (const [label, body, mustWarn] of [
 
 console.warn = realWarn;
 globalThis.fetch = realFetch;
-console.log(`COVERAGE: ${total} assertions through the real resolveWinProbability('AFL', ...) over ONE pinned instant (2026-07-08 10:00Z; day-boundary behaviour is not exercised), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number, and a conflicting top-level week) and one Squiggle stub (round-keyed). The stub's team names are NOT ESPN's measured names and every pick equals its event name or its nickname-stripped form. Not covered here: the real ESPN payload shape (afl-round-live-check.yml), Kali (no token in this check), and the live season.`);
+console.log(`COVERAGE: ${total} assertions through the real resolveWinProbability('AFL', ...) over ONE pinned instant (2026-07-08 10:00Z; day-boundary behaviour is not exercised), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number, and a conflicting top-level week) and one Squiggle stub (round-keyed). ESPN team names are the ones the relay served for 2026-07-05..12, Squiggle's are its own; Kali's names are not measured. Not covered here: the real ESPN payload shape (afl-round-live-check.yml), Kali (no token in this check), and the live season.`);
 console.log(`${passed} of ${total} passed.`);
 process.exit(passed === total ? 0 : 1);

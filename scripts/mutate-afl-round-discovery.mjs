@@ -50,7 +50,9 @@ const CATCH = "console.warn(`[AFL-ROUND] ESPN read failed for ${day}: ${e && e.m
 const NONE = "if (answered === 0) console.warn(";
 const SKIP = "if (d === null) continue;";
 const SCAN = "for (let i = 0; i < slates.length; i++) {";
-const SIDES = "if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {";
+const SIDES = "if (sameAFLClub(predictedWinner, homeN) || sameAFLClub(predictedWinner, awayN)) {";
+const ISMATCH = "const isMatch = name => sameAFLClub(predictedWinner, name);";
+const CLUB_KEY = "const ka = resolveAFLTeamKey(a);\n    return !!ka && ka === resolveAFLTeamKey(b);";
 const WEEK = "const round = ev?.week?.number ?? null;";
 const RET = "return { round, year: now.getUTCFullYear() };";
 const PAR_OPEN = "const slates = await Promise.all(days.map(async (day) => {";
@@ -75,7 +77,7 @@ const MUTANTS = [
   ['A13 the LAST matching game wins, not the earliest', [[SCAN, "for (let i = slates.length - 1; i >= 0; i--) {"]]],
   ['A14 an event with no week number is taken', [[WEEK + "\n                if (round === null) continue;", WEEK]]],
   ['A15 a missing week number defaults to round 1', [[WEEK, "const round = ev?.week?.number ?? 1;"]]],
-  ['A16 only the home side is matched', [[SIDES, "if (teamNameMatch(predictedWinner, homeN)) {"]]],
+  ['A16 only the home side is matched', [[SIDES, "if (sameAFLClub(predictedWinner, homeN)) {"]]],
   ['A17 the year is last year', [[RET, "return { round, year: now.getUTCFullYear() - 1 };"]]],
   ['A18 the round is off by one', [[RET, "return { round: round + 1, year: now.getUTCFullYear() };"]]],
   ['A19 the days are hours apart, not days', [["new Date(now.getTime() + k * 86400000)", "new Date(now.getTime() + k * 3600000)"]]],
@@ -88,6 +90,10 @@ const MUTANTS = [
   ['A26 a body with no events array is not warned', [[NO_EVENTS, "return null;"]]],
   ['A27 an unreadable day body is not caught: the exception ends the search', [[TRY_OPEN, "        {\n            for (const ev of d.events) {"], [TRY_CLOSE, "        }\n"]]],
   ['A29 round 0 is read as no round again (!round)', [["if (round === null) continue;", "if (!round) continue;"]]],
+  ['A30 the round search matches clubs by 5-character prefix again (Melbourne lands on North Melbourne\'s game)', [[SIDES, "if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {"]]],
+  ['A31 the tip search matches clubs by 5-character prefix again (Port Adelaide takes Adelaide\'s tip)', [[ISMATCH, "const isMatch = name => teamNameMatch(predictedWinner, name);"]]],
+  ['A32 clubs are keyed by the generic team key, not the AFL one (ESPN \'GWS GIANTS\' and Squiggle \'Greater Western Sydney\' part ways)', [[CLUB_KEY, "const ka = resolveTeamKey(a);\n    return !!ka && ka === resolveTeamKey(b);"]]],
+  ['A33 the tip search matches a club by the nickname-stripped 6 characters of its name only when the prefix rule also agrees (the old fallback restored)', [[ISMATCH, "const isMatch = name => sameAFLClub(predictedWinner, name) || teamNameMatch(predictedWinner, name);"]]],
   ['A28 an unreadable day body is caught but not warned', [["console.warn(`[AFL-ROUND] ESPN body for ${days[i]} could not be read: ${e && e.message}`);\n", ""]]],
 ];
 
@@ -109,6 +115,6 @@ for (const [name, edits] of MUTANTS) {
 }
 const caughtN = MUTANTS.length - missed - nothing - errored;
 console.log(`\nmutations: ${caughtN} of ${MUTANTS.length} caught${missed ? `, ${missed} SURVIVED` : ''}${errored ? `, ${errored} harness error(s)` : ''}${nothing ? `, ${nothing} not applied` : ''}`);
-console.log('COVERAGE: the request shape (range vs day, an extra parameter, the headers), both ends of the window and a day beyond each, parallel vs sequential reads, an edge-cache option, the timeout and its value, each of the warnings, failed-day handling and an unreadable body, how many days must answer before "none answered" is said, scan order, the week-number test, its default and the top-level week, which sides of a game are matched, the year and the round returned, and a 400 read as a slate, mutated in a copy of src/wp-resolver.js.');
-console.log('NOT mutated here: the Squiggle/Kali half of the AFL branch, teamNameMatch, and the real ESPN payload (.github/workflows/afl-round-live-check.yml).');
+console.log('COVERAGE: the request shape (range vs day, an extra parameter, the headers), both ends of the window and a day beyond each, parallel vs sequential reads, an edge-cache option, the timeout and its value, each of the warnings, failed-day handling and an unreadable body, how many days must answer before "none answered" is said, scan order, the week-number test, its default and the top-level week, which sides of a game are matched and how a club is identified (identity key, the 5-character prefix rule, the generic key, the prefix rule as a fallback), the year and the round returned, and a 400 read as a slate, mutated in a copy of src/wp-resolver.js.');
+console.log('NOT mutated here: the Kali branch (no token in the check; its team names are unmeasured), the Squiggle tip reading beyond the club match, teamNameMatch itself (other sports use it), and the real ESPN payload (.github/workflows/afl-round-live-check.yml).');
 process.exit(missed || nothing || errored ? 1 : 0);
