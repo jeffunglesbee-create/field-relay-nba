@@ -303,6 +303,26 @@ export const deployCommitResults = ({ found, deployConclusion, stepConclusion, p
 // The defect it exists to catch: the step ran and failed, or claimed nothing and errored.
 deployCommitResults.mustFailOn = { found: true, deployConclusion: 'failure', stepConclusion: 'failure', pushed: false, errorLines: 1 }
 
+/// Check 11 — AFL round discovery finds the round on a real in-season slate.
+///
+/// docs/CC-CMD-2026-11-24-afl-round-discovery-sends-a-date-range.md. The fix was proven from a runner against real ESPN on PAST
+/// dates under a pinned clock (afl-round-live-check.yml, run 45489913728); AFL has no fixtures until 2027, so the one thing
+/// that proof cannot say is that discovery works on the slate in front of it. This says it, on the first day it can.
+///
+/// THE REFERENCE IS NOT THE CODE UNDER TEST. `expectedRound` comes from the relay's /v2/games adapter, which reads each ESPN
+/// event's own week.number by a different code path than _discoverAFLRound does; deriving it with the resolver's own reads would
+/// verify the copy. PENDING is the honest state off-season: a window with no game carrying a round has nothing to prove, and
+/// calling it FAIL would be a red nobody could clear (the defect this file's header exists to prevent). Only a game that the
+/// relay reports with a round, for which the resolver finds no round or a different one, is a regression. Round 0 (the Opening
+/// Round) is a round, so null is tested strictly.
+export const aflRoundInSeason = ({ gamesInWindow, expectedRound, discoveredRound }) =>
+  gamesInWindow === 0 ? 'PENDING — no AFL game with a round in the ten-day window the resolver reads (off-season until 2027); nothing to read'
+  : discoveredRound === null ? `FAIL — the relay reports a round-${expectedRound} game in the window and the resolver found no round for its home club`
+  : discoveredRound !== expectedRound ? `FAIL — the resolver found round ${discoveredRound}; the relay's own adapter reports round ${expectedRound} for the same game`
+  : `PASS — ${gamesInWindow} game(s) in the window; the resolver found round ${discoveredRound}, the one the relay's adapter reports`
+// Games exist in the window and the resolver finds nothing: the defect the CC-CMD was written for.
+aflRoundInSeason.mustFailOn = { gamesInWindow: 6, expectedRound: 18, discoveredRound: null }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
@@ -314,4 +334,5 @@ export const VERDICTS = {
   vendor_watch_window_aligned: vendorWatchWindowAligned,
   cfl_abort_repeat_loses_nothing: cflAbortRepeatLosesNothing,
   deploy_commit_results: deployCommitResults,
+  afl_round_in_season: aflRoundInSeason,
 }

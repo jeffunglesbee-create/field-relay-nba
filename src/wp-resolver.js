@@ -379,9 +379,9 @@ function sameAFLClub(a, b) {
 // A read that is refused, fails, or answers a body with no `events` array is SAID (status and day) and skipped: the days that
 // did answer are still searched. Days are scanned in order, so the earliest matching game in the window wins, as it did when
 // the range was one list.
-const AFL_ROUND_DAYS_BACK = 3;
-const AFL_ROUND_DAYS_FORWARD = 6;
-async function _discoverAFLRound(predictedWinner) {
+export const AFL_ROUND_DAYS_BACK = 3;
+export const AFL_ROUND_DAYS_FORWARD = 6;
+export async function _discoverAFLRound(predictedWinner) {
     const now = new Date();
     const toDateStr = d => d.toISOString().slice(0, 10).replace(/-/g, '');
     const days = [];

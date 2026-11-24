@@ -34,13 +34,14 @@
 import { writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { PROMPT_EXAMPLE_LITERALS } from '../src/journalism-quality.js';
 import { selectScoringPlays } from '../src/context-assembler.js';
+import { _discoverAFLRound, AFL_ROUND_DAYS_BACK, AFL_ROUND_DAYS_FORWARD } from '../src/wp-resolver.js';
 // The four verdicts moved to their own module so they can be exercised against
 // known-bad payloads without a network round trip. Imported rather than copied:
 // two copies of a decision are free to disagree, and this file IS the decision
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup, d1WriteProvenance,
+         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason,
          oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
          cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles, deployCommitResults } from './staged-verdicts.mjs';
 
@@ -134,7 +135,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 10;
+const EXPECTED_CHECKS = 11;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -776,6 +777,39 @@ try {
     add({
         id: 'deploy_commit_results',
         what: "deploy.yml's verify job Commit results step, as fixed on 2026-11-19, pushes its note on a real deploy",
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
+
+// ── Check 11: AFL round discovery on a real in-season slate (docs/CC-CMD-2026-11-24-afl-round-discovery-sends-a-date-range.md) ──
+// The window and the function are the resolver's own (exported for this); the EXPECTATION is the relay's /v2/games adapter, which reads each event's
+// week.number by another path, so the check is not the code verifying itself. Off-season there is no game with a round and the verdict is PENDING.
+try {
+    const now = new Date();
+    const days = [];
+    for (let k = -AFL_ROUND_DAYS_BACK; k <= AFL_ROUND_DAYS_FORWARD; k++) days.push(new Date(now.getTime() + k * 86400000).toISOString().slice(0, 10));
+    const games = [];
+    for (const d of days) {
+        const j = await get(`/v2/games?sport=afl&date=${d}`);
+        for (const g of (j.games || [])) if (typeof g.round === 'number' && g.home && g.home.name) games.push(g);
+    }
+    const first = games[0] || null;            // days are in order, so this is the earliest game, and so its home club's earliest in the window
+    const discovered = first ? await _discoverAFLRound(first.home.name) : null;
+    add({
+        id: 'afl_round_in_season',
+        what: 'the AFL resolver finds the round of a game on the slate in front of it, the one the relay adapter reports',
+        qualifying_rows: games.length,
+        club: first ? first.home.name : null,
+        expected_round: first ? first.round : null,
+        discovered_round: discovered ? discovered.round : null,
+        coverage: `read ${days.length} day(s) of /v2/games?sport=afl, ${games.length} game(s) carrying a round; one club checked`,
+        status: aflRoundInSeason({ gamesInWindow: games.length, expectedRound: first ? first.round : null, discoveredRound: discovered ? discovered.round : null }),
+    });
+} catch (e) {
+    add({
+        id: 'afl_round_in_season',
+        what: 'the AFL resolver finds the round of a game on the slate in front of it, the one the relay adapter reports',
         qualifying_rows: 0,
         status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
     });

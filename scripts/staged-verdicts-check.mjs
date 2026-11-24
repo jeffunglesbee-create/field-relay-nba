@@ -79,6 +79,7 @@ const CAN_PASS = {
   odds_budget_charging: { tablesExist: true, dayRows: 1, charged: 1014, kvUsed: 1014 },
   vendor_watch_window_aligned: { logsSince: 1, judgedLogs: 1, refusal: '', verdictLines: 1, hasWindowLine: true, hasDiagnosticLines: true, hasKnownCi: true, seriesRow: 'found', seriesNumeric: true, seriesSourceD1: true },
   cfl_abort_repeat_loses_nothing: { artifacts: 2, repeats: 1, file: 'cfl-abort-experiment-20261110T120000Z.json', verdict: 'abort-loses-nothing', effective: 5, calls: 5, byDelta: 0, hitDelta: 5 },
+  afl_round_in_season: { gamesInWindow: 6, expectedRound: 18, discoveredRound: 18 },
   d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true },
 }
 // EVERY REGISTERED VERDICT NEEDS A CLEAN PAYLOAD, not just the ones someone
