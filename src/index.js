@@ -4570,11 +4570,11 @@ async function buildAFLJournalismContext(games, year, env, seasons = null) {
                 { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
                 3600, 'kali-journalism', env.KALI_CACHE)
             : Promise.reject(new Error('KALI_AFL_TOKEN not set')),
-        fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {
+        fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {
             headers: SQUIGGLE_HEADERS,
             cf: { cacheTtl: squiggleTtl(`q=tips;year=${year};round=${round}`),
                   cacheEverything: true,
-                  cacheKey: `squiggle:tips:${year}:${round}` },
+                  cacheKey: `squiggle:tips:${year}:${round}:aggregate` },
         }),
     ]);
     if (kaliResp.status === 'fulfilled' && kaliResp.value.ok) {

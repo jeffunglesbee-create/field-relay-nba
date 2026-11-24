@@ -502,8 +502,10 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                 } catch (_) { /* fall through to Squiggle */ }
             }
 
+            // ;source=8 asks for the Aggregate rows alone: 3,378 bytes for a round instead of 104,416 (measured 2026-11-24, 2026 round 1), as Squiggle's requirements ask
+            // ("avoid fetching more data than you need"). The Aggregate guard below stays: a changed source id then answers null, not another source's tip.
             try {
-                const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {
+                const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {
                     headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000),
                 });
                 if (r.ok) {

@@ -174,6 +174,7 @@ const WP = (probability) => ({ probability, source: 'squiggle', label: 'Statisti
 fresh();
 eq('S1 Fremantle (home, label "Fremantle Dockers", ESPN "Fremantle") on +1d resolves through round 18 to the Aggregate row, 62.49 -> 0.625, although every body says week 17 at the top level and a decoy source says 99', await pick('Fremantle Dockers'), WP(0.625));
 eq('S2 the Squiggle read is for 2026 round 18 exactly once', log.squiggle.map(s => [s.year, s.round]), [[2026, 18]]);
+eq('S2b ... and asks for the Aggregate source alone (3 KB for a round, not 104 KB)', log.squiggle.map(s => s.url.endsWith(';source=8')), [true]);
 const espn1 = log.espn.map(e => e.dates);
 ok('S3 no ESPN request carries a date RANGE (a dash in dates= is answered 400)', espn1.every(d => /^\d{8}$/.test(d || '')), 'dates sent: ' + JSON.stringify(espn1));
 eq('S4 exactly the ten days -3d..+6d were read, once each', [...espn1].sort(), ALL_DAYS);

@@ -130,6 +130,7 @@ const MUTANTS = [
   ['D5 a final\'s year is the clock\'s, not its event\'s', [["year: Number.isInteger(ev.season?.year) ? ev.season.year : now.getUTCFullYear(),", "year: now.getUTCFullYear(),"]]],
   ['D6 the finals read has no timeout', [["{ headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });\n                const pct", "{ headers: SQUIGGLE_HEADERS });\n                const pct"]]],
   ['D7 a final is resolved for the other side of the game (the confidence is read for the wrong club)', [["return id === tip.hteamid ? h : id === tip.ateamid ? 100 - h : null;", "return id === tip.hteamid ? 100 - h : id === tip.ateamid ? h : null;"], ], 'afl-squiggle.js'],
+  ['D8 the round-based Squiggle read asks for every source again', [["const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {", "const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {"]]],
   ['A28 an unreadable day body is caught but not warned', [["console.warn(`[AFL-ROUND] ESPN body for ${days[i]} could not be read: ${e && e.message}`);\n", ""]]],
 ];
 

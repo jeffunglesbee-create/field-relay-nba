@@ -177,7 +177,8 @@ eq('J1 the day is served, four games', [r1.status, r1.games.length], [200, 4]);
 eq('J2 GWS GIANTS v Geelong Cats gets Squiggle\'s "Greater Western Sydney" v "Geelong" tip (42.16): the game that carried null', pair(sqOf(byHome(r1, 'GWS GIANTS'))), ['42.16', '57.84']);
 eq('J3 the other three games get their own tips', [pair(sqOf(byHome(r1, 'St Kilda'))), pair(sqOf(byHome(r1, 'Carlton'))), pair(sqOf(byHome(r1, 'Adelaide Crows')))],
    [['62.49', '37.51'], ['39.14', '60.86'], ['72.30', '27.70']]);
-eq('J4 one Squiggle read, for 2026 round 18, and one Kali read for the same year and round', [r1.squiggle, r1.kali], [['?q=tips;year=2026;round=18'], ['/predictions?year=2026&round=18']]);
+eq('J4 one Squiggle read, for 2026 round 18, and one Kali read for the same year and round', [r1.squiggle, r1.kali], [['?q=tips;year=2026;round=18;source=8'], ['/predictions?year=2026&round=18']]);
+eq('J4b the round-based Squiggle read asks for the Aggregate source alone (3 KB, not 104 KB) and is edge-cached under its own key', r1.cacheKeys, ['squiggle:tips:2026:18:aggregate']);
 eq('J5 Kali answering with its holding page leaves kali null and Squiggle served (the state of the world now)', byHome(r1, 'St Kilda')?.journalism?.kali, null);
 
 // A row joins a game only when BOTH clubs are the game's clubs: Squiggle's list also has Collingwood v Geelong and North Melbourne v Geelong, and the slate has North Melbourne v Collingwood.
@@ -188,13 +189,13 @@ eq('J6 North Melbourne v Collingwood gets its own tip (31.40) and Melbourne v Ri
 // Part B: round 0 is a round. The Opening Round games carried no `journalism` key at all.
 const r3 = await get('2026-03-05');
 eq('J7 an Opening Round game (round 0) carries a journalism key, and its tip', [pair(sqOf(byHome(r3, 'Sydney Swans'))), pair(sqOf(byHome(r3, 'Gold Coast SUNS')))], [['64.91', '35.09'], ['47.22', '52.78']]);
-eq('J8 ... read for round 0', r3.squiggle, ['?q=tips;year=2026;round=0']);
+eq('J8 ... read for round 0', r3.squiggle, ['?q=tips;year=2026;round=0;source=8']);
 
 // Part D: the year is the event's, and without one the clock's. It was the constant 2026.
 const r4 = await get('2027-03-12');
-eq('J9 a 2027 game asks Squiggle for 2027 although the clock says 2026 (the event says season.year 2027), and gets that year\'s tip', [r4.squiggle, pair(sqOf(byHome(r4, 'Carlton')))], [['?q=tips;year=2027;round=1'], ['51.00', '49.00']]);
+eq('J9 a 2027 game asks Squiggle for 2027 although the clock says 2026 (the event says season.year 2027), and gets that year\'s tip', [r4.squiggle, pair(sqOf(byHome(r4, 'Carlton')))], [['?q=tips;year=2027;round=1;source=8'], ['51.00', '49.00']]);
 const r5 = await get('2027-03-13', { clock: '2027-03-13T10:00:00Z' });
-eq('J10 an event that carries no season takes the clock\'s year, not 2026', [r5.squiggle, pair(sqOf(byHome(r5, 'Geelong Cats')))], [['?q=tips;year=2027;round=1'], ['58.00', '42.00']]);
+eq('J10 an event that carries no season takes the clock\'s year, not 2026', [r5.squiggle, pair(sqOf(byHome(r5, 'Geelong Cats')))], [['?q=tips;year=2027;round=1;source=8'], ['58.00', '42.00']]);
 
 // Kali's own names ('Sydney') join the same game as ESPN's ('Sydney Swans').
 const r6 = await get('2026-07-09', { kali: 'json' });

@@ -80,6 +80,8 @@ const MUTANTS = [
   ['C3 a slate of finals only returns an empty context', [[FINALS_ONLY, "return {};"]]],
   ['C4 the caller does not hand the events\' seasons to the context', [[CALLER, "buildAFLJournalismContext(games, _aflYear, env);"]]],
   ['C5 a final asks Squiggle for the constant 2026', [[FYEAR, "year: 2026,"]]],
+  ['B13 the round-based Squiggle read asks for every source again', [["fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {", "fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {"]]],
+  ['B14 the round-based read shares the old edge-cache key (entries that hold every source)', [["cacheKey: `squiggle:tips:${year}:${round}:aggregate` },", "cacheKey: `squiggle:tips:${year}:${round}` },"]]],
   ['B12 a row from any source is taken, not the Aggregate', [["const aggTips = (sd.tips || []).filter(t => t.source === 'Aggregate');", "const aggTips = (sd.tips || []);"]]],
 ];
 
