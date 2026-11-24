@@ -1,0 +1,41 @@
+{
+  "ts": "2026-11-24T20:33:42.372Z",
+  "dryRun": true,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-08-01",
+  "to": "2026-10-23",
+  "maxDates": 5,
+  "pageCap": 40,
+  "survey": {
+    "daysInRange": 84,
+    "daysRead": 84,
+    "unreadDays": [],
+    "statuses": {
+      "200": 84
+    },
+    "daysToAttempt": 64,
+    "rowsToAttempt": 607,
+    "attemptedStillPending": 0,
+    "pendingRowsAllDays": 607
+  },
+  "chosen": [
+    "2026-08-01",
+    "2026-08-02",
+    "2026-08-04",
+    "2026-08-05",
+    "2026-08-06"
+  ],
+  "dates": [],
+  "pagesUsed": 0,
+  "written": 0,
+  "stoppedBecause": null,
+  "remainingToAttempt": 64,
+  "complete": false,
+  "runner": {
+    "gitSha": "103c9ac2498292fbe7c7702b1096102621f59869",
+    "runId": "45481921896",
+    "scriptSha256": "0644deb825fc4290fd6b967fd2409bb3fc7bdb75a8989ce40152f79176b85d18",
+    "libSha256": "072656ce0d125a0b54e87dc536f90a9c3332bbc36bb54a42f584d55cb31cee1c"
+  },
+  "coverageLine": "DRY RUN: 84 of 84 days read (0 unread) | to attempt 64 days / 607 rows, 0 days attempted before and still pending | this run: 0 dates posted, 0 rows written, 0 upstream pages (cap 40), 0 verified | no stop | remaining to attempt 64"
+}
