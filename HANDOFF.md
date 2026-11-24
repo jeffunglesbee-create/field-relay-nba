@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-24 (17:25Z) — the Worker's Wednesday NFL R2 call is removed (the CFL block is over); the runner already builds `nfl/{year}/player-stats.json`
+
+**HEAD:** `5c2737d` → `7fac024` (the removal) → `23895fa` (text fixes) → this close-out is the next commit. `src/index.js` changed (one block removed, two comment lines); the CFL experiment's verdict commit `0f35c96` is on `main` (no VOID) and the block on that file is lifted.
+**Session doc:** outbox/cc-session-2026-11-24-retire-nfl-r2-callers.md (task: the owner's "11-24 means the cfl block is over"; spec `docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md`, DONE for the change)
+
+- **Done:** `grep -a -c "runNFLR2Update(env)" src/index.js` is **1** (the admin route; was 2). Deploy RELAY Worker run `45445305494` (head `7fac024`) `success` 17:18Z; the comment-text commit's run is `45447662808`. The remaining caller is `POST /nfl-r2-update`, which answers "retired"; removing it, the import and `src/nfl-r2.js` is the owner's call, not done.
+- **What the R2 job was and what replaced it:** a Worker cron job (Wednesdays 12-15 UTC, 16 ticks) that parsed nflverse's 33.4 MB all-seasons `player_stats.csv` in the Worker and wrote `nfl/{year}/player-stats.json` to R2; it hit the 128 MB limit on 45 ticks over four Wednesdays (532 MB peak) and, when it finished, published misparsed data. Replaced since 2026-11-08 by `.github/workflows/nfl-player-stats.yml` (`scripts/build-nfl-player-stats.mjs`, Wednesday 12:41 UTC, once): the current season's 3.8 MB weekly file, a quote-aware parser, same key and fields, read back and checked against the public route. Logs 11-08, 11-11, 11-12, 11-18 end `WRITTEN AND SERVED`.
+- **Gate that bit, and why:** the first sweep of every `deploy.yml` run-step failed ONE step, "doc citations are anchored" (11 bare against a budget of 9): deleting the block orphaned the OOM CC-CMD's pointer to `src/index.js:9825` (its quoted fragment was gone), and my own Results text cited a line with nothing quoted. Fixed before the push. A doc that cites code you delete trips the ratchet.
+- **One read armed, not done:** the regression check (0 `exceededMemory` buckets between 12:00 and 16:00 UTC on Wednesday 2026-11-25), `worker-cpu-read.yml` reads days ending yesterday, so `trig_01QLB1MUj4iY8V5aYSBgxQwB` fires 2026-11-26T02:00Z and also checks the runner's 11-25 log. `trig_01RwwGVVt1uHQg4NXEvXc6Df` (17:30Z today, the other session's one-shot for this same CC-CMD) was left alone; its CC-CMD already says DONE.
+- **Independent review** (2 lenses, a skeptic per finding): 8 findings, 5 confirmed, all text and fixed. 3 refuted.
+
 ## SESSION CLOSE-OUT — 2026-11-24 (17:25Z) — Task 0 of the independent-reference CC-CMD ran: the grade can reach 113 of its 238 matches through the existing BSD join; E1 holds on the 7 leagues sampled
 
 **HEAD:** `2effeb3` → `127ea7e` (instruments), this close-out is the next commit · **Branch:** main · no `src/` change, no deploy. **Session doc:** outbox/cc-session-2026-11-24-espn-task0.md (spec and full result: field-laboratory `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, section "Task 0 result")
