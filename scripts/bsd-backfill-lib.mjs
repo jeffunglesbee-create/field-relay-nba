@@ -30,6 +30,12 @@ export function rowsOfDay(json) {
   return post === undefined ? json.games.regular : json.games.regular.concat(post);
 }
 
+/** The same read, kept apart: `games.regular` (the leagues' own matches) and `games.postseason` (tournaments and playoffs), or null when it is not the contract. */
+export function splitRows(json) {
+  if (rowsOfDay(json) === null) return null;
+  return { regular: json.games.regular, postseason: json.games.postseason === undefined ? [] : json.games.postseason };
+}
+
 /** Soccer rows in `sports` that carry no bsd_event_id, by sport. A row is pending when its id is null, undefined or the empty string. */
 export function pendingOf(rows, sports) {
   const bySport = proto();

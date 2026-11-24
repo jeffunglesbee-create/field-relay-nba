@@ -27,6 +27,10 @@ eq('rowsOfDay: regular only', L.rowsOfDay({ ok: true, games: { regular: [A] } })
 eq('rowsOfDay: an empty day is empty, not unread', L.rowsOfDay({ ok: true, games: { regular: [] } }), []);
 eq('rowsOfDay: not the contract is unread', [L.rowsOfDay({ ok: false, games: { regular: [] } }), L.rowsOfDay({ ok: true }), L.rowsOfDay({ ok: true, games: { regular: {} } }), L.rowsOfDay({ ok: true, games: { regular: [], postseason: {} } }), L.rowsOfDay(null)], [null, null, null, null, null]);
 
+eq('splitRows: the two tables kept apart', L.splitRows({ ok: true, games: { regular: [A], postseason: [B] } }), { regular: [A], postseason: [B] });
+eq('splitRows: no postseason is an empty postseason', L.splitRows({ ok: true, games: { regular: [A] } }), { regular: [A], postseason: [] });
+eq('splitRows: not the contract is null', [L.splitRows(null), L.splitRows({ ok: true, games: { regular: [], postseason: {} } })], [null, null]);
+
 // ---- what is pending
 const sports = ['MLS', 'EPL'];
 const p = L.pendingOf([{ sport: 'MLS', bsd_event_id: null }, { sport: 'MLS', bsd_event_id: '5' }, { sport: 'EPL' }, { sport: 'EPL', bsd_event_id: '' },

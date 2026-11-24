@@ -20,6 +20,7 @@ process.on('exit', (code) => {
   if (!finished) { console.log(`FAIL  the check did not run to its end (exit ${code}, ${scenarios} scenarios, ${assertions} assertions)`); process.exitCode = 1; }
 });
 const stable = (v) => JSON.stringify(v, (k, val) => (val === undefined ? '<<undefined>>' : val && typeof val === 'object' && !Array.isArray(val) ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : val));
+const FULL = { FROM: '2026-02-01', TO: '2026-10-23' };   // the script's default range, written out so the check does not follow the script's constants
 const eq = (label, got, want) => {
   assertions++;
   if (stable(got) !== stable(want)) { failed++; console.log(`FAIL  ${label}\n        got  ${stable(got)}\n        want ${stable(want)}`); if (FAIL_FAST) { finished = true; process.exit(1); } }
@@ -61,7 +62,12 @@ function relayRoute(w) {
         upstreamPages: b.pages === undefined ? 5 : b.pages, cacheHits: 0, unmatched: pending.slice(k).map((r) => `${r.sport}: Home ${r.id} v Away`) }];
     }
     const m = u.pathname.match(/^\/context\/date\/(\d{4}-\d{2}-\d{2})$/);
-    if (m) { const rows = w.days.get(m[1]); return rows === undefined ? [404, { error: 'no day' }] : rows === null ? [500, { error: 'boom' }] : [200, { ok: true, date: m[1], games: { regular: rows, postseason: [] } }]; }
+    if (m) {
+      const rows = w.days.get(m[1]);
+      if (rows === null) return [500, { error: 'boom' }];
+      const all = rows === undefined ? [] : rows;                    // a day the world does not name is a clean, empty day
+      return [200, { ok: true, date: m[1], games: { regular: all.filter((r) => !r._post), postseason: all.filter((r) => r._post) } }];
+    }
     return [404, { error: 'unknown' }];
   };
 }
@@ -124,7 +130,7 @@ await scenario('a real run: two dates, each verified', async () => {
   eq('totals: 4 written, 10 pages, no stop, one day left to attempt, not complete', [a.written, a.pagesUsed, a.stoppedBecause, a.remainingToAttempt, a.complete], [4, 10, null, 1, false]);
   eq('the state holds both answered days, with what was left pending', [Object.keys(r.state.attempted).sort(), r.state.attempted[D.b].pendingAfter, r.state.attempted[D.a].pendingAfter], [[D.a, D.b], 1, 0]);
   eq('the artifact names, no marker, and the secret is in none of them', [r.names, r.complete, r.raw.includes(SECRET)], [['bsd-join-backfill-2' + a.ts.slice(1).replace(/[:.]/g, '-') + '.json', 'bsd-join-backfill-latest.json', 'bsd-join-backfill-state.json'].sort(), null, false]);
-  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), /scope 5 sports \(MLS not included\): to attempt 3 days \/ 4 rows/.test(a.coverageLine), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
+  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), /scope 5 sports \(MLS not included\), regular-season rows choose a date: to attempt 3 days \/ 4 rows/.test(a.coverageLine), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
 });
 
 await scenario('a second run does not ask again about a day it already answered', async () => {
@@ -138,11 +144,37 @@ await scenario('a second run does not ask again about a day it already answered'
 
 await scenario('complete when nothing is left and nothing is unread', async () => {
   const w = world({ days: { [D.unread]: soccer(D.unread, 0, true) }, behave: { [D.b]: { kind: 'ok', join: 0 } } });
-  const r = await run({ world: w, env: { MAX_DATES: '5' } });
+  const r = await run({ world: w, env: { ...FULL, MAX_DATES: '5', INCLUDE_MLS: 'true' } });
   eq('three days posted, all verified, nothing remaining, complete', [posted(r), r.art.remainingToAttempt, r.art.complete], [[D.a, D.b, D.c], 0, true]);
   eq('the marker says what is still pending: day b, its two rows, with both unmatched names', [r.complete.attempted, r.complete.stillPending.map((x) => [x.date, x.rows, x.unmatched.length])], [3, [[D.b, 2, 2]]]);
-  const again = await run({ world: w, state: r.state, env: { MAX_DATES: '5' } });
+  const again = await run({ world: w, state: r.state, env: { ...FULL, MAX_DATES: '5', INCLUDE_MLS: 'true' } });
   eq('a later run has nothing to post and says complete again', [again.posts.length, again.art.complete], [0, true]);
+});
+
+await scenario('complete means the scheduled scope, not just the range that was asked for', async () => {
+  const w = () => world({ days: { [D.unread]: soccer(D.unread, 0, true) }, behave: { [D.b]: { kind: 'ok', join: 0 } } });
+  const narrow = await run({ world: w(), env: { MAX_DATES: '5', INCLUDE_MLS: 'true' } });          // FROM..TO is the six check days
+  eq('a narrower range with nothing left is range-complete, and writes NO marker (it would stop the schedule for good)', [narrow.art.rangeComplete, narrow.art.complete, narrow.complete, /not the scheduled scope/.test(narrow.art.coverageLine)], [true, false, null, true]);
+  const noMls = await run({ world: w(), env: { ...FULL, MAX_DATES: '5' } });                      // the full range, MLS not included
+  eq('the full range without MLS is range-complete, and writes no marker either', [noMls.art.rangeComplete, noMls.art.complete, noMls.complete], [true, false, null]);
+  const unreadDay = await run({ world: world({ behave: { [D.b]: { kind: 'ok', join: 0 } } }), env: { ...FULL, MAX_DATES: '5', INCLUDE_MLS: 'true' } });   // the world's day six answers 500
+  eq('the full range and MLS, every pending day attempted, but one day UNREAD: not complete, no marker', [unreadDay.art.rangeComplete, unreadDay.art.complete, unreadDay.complete], [false, false, null]);
+  const lateStart = await run({ world: w(), env: { FROM: '2026-03-01', TO: '2026-10-23', MAX_DATES: '5', INCLUDE_MLS: 'true' } });
+  eq('a range that STARTS after the default start proves nothing about the earlier dates: no marker', [lateStart.art.rangeComplete, lateStart.art.complete, lateStart.complete], [true, false, null]);
+  const earlyEnd = await run({ world: w(), env: { FROM: '2026-02-01', TO: '2026-09-30', MAX_DATES: '5', INCLUDE_MLS: 'true' } });
+  eq('a range that ENDS before the default end proves nothing about the later dates: no marker', [earlyEnd.art.rangeComplete, earlyEnd.art.complete, earlyEnd.complete], [true, false, null]);
+});
+
+await scenario('a postseason-only day is not chosen unless the owner says so', async () => {
+  const post = (id) => ({ id, sport: 'MLS', bsd_event_id: null, _post: true });
+  const w = () => world({ days: { [D.fine]: [post('p1'), post('p2')] } });
+  const r = await run({ world: w(), secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5', INCLUDE_MLS: 'true' } });
+  eq('the day whose only pending rows are tournament rows is not chosen, and is counted as out of scope', [r.art.chosen, r.art.survey.outOfScopeDays, r.art.survey.outOfScopeRows, r.art.survey.includePostseason], [[D.a, D.b, D.c], 1, 2, false]);
+  const wide = await run({ world: w(), secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5', INCLUDE_MLS: 'true', INCLUDE_POSTSEASON: 'true' } });
+  eq('with INCLUDE_POSTSEASON it is chosen, and nothing is out of scope', [wide.art.chosen, wide.art.survey.outOfScopeDays, wide.art.survey.includePostseason], [[D.a, D.fine, D.b, D.c], 0, true]);
+  const side = await run({ world: world({ days: { [D.c]: [{ id: 'e1', sport: 'EPL', bsd_event_id: null }, post('p3')] } }), env: { MAX_DATES: '5', INCLUDE_MLS: 'true' } });
+  const c = side.art.dates.find((d) => d.date === D.c);
+  eq('on a day that IS chosen (a regular row is pending) the route still joins the postseason row, and verification counts both tables: 2 pending -> 0', [c.pendingBefore, c.pendingAfter, c.response.written, c.verify.verified], [2, 0, 2, true]);
 });
 
 await scenario('a refusal stops at once', async () => {
@@ -195,10 +227,14 @@ await scenario('refusals before any request', async () => {
   eq('MAX_DATES over 10 exits 1, no request', [many.code, many.calls.length], [1, 0]);
   const mls = await run({ env: { INCLUDE_MLS: 'sometimes' } });
   eq('INCLUDE_MLS that is not true or false exits 1, no request', [mls.code, mls.calls.length], [1, 0]);
+  const post = await run({ env: { INCLUDE_POSTSEASON: 'perhaps' } });
+  eq('INCLUDE_POSTSEASON that is not true or false exits 1, no request', [post.code, post.calls.length], [1, 0]);
+  const longRange = await run({ env: { FROM: '2025-01-01', TO: '2026-10-23' } });
+  eq('a range over 400 days exits 1 with its own message, no request', [longRange.code, longRange.calls.length, /1 to 400 days/.test(longRange.stderr)], [1, 0, true]);
   const dry = await run({ env: { DRY_RUN: 'maybe' } });
   eq('DRY_RUN that is not true or false exits 1, no request', [dry.code, dry.calls.length], [1, 0]);
   const back = await run({ env: { FROM: D.unread, TO: D.clean } });
-  eq('a backwards range exits 1 with its own message (not a crash), no request', [back.code, back.calls.length, /is not a range of 1 to 200 days/.test(back.stderr)], [1, 0, true]);
+  eq('a backwards range exits 1 with its own message (not a crash), no request', [back.code, back.calls.length, /is not a range of 1 to 400 days/.test(back.stderr)], [1, 0, true]);
 });
 
 finished = true;

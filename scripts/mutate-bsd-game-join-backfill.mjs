@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 39;
+const MIN_ASSERTIONS = 49;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'bsd-game-join-backfill.mjs');
 const MUT = path.join(dir, '.mutant-bsd-game-join-backfill.mjs');
@@ -42,7 +42,15 @@ const MUTANTS = [
   M('the marker is not written', "fs.writeFileSync('outbox/bsd-join-backfill-complete.json'", "void ('outbox/bsd-join-backfill-complete.json'"),
   M('remaining ignores the failed days', 'out.remainingToAttempt = plan.pendingDays - attemptedNow;', 'out.remainingToAttempt = plan.remainingAfter;'),
   M('the secret guard is gone', "if (typeof secret === 'string' && secret !== '' && body.includes(secret)) fail('the artifact would contain the relay secret: refusing to write it');", ''),
-  M('the scope is all six sports', 'pendingOf(rd.rows, SCOPE_SPORTS).pending', 'pendingOf(rd.rows, BSD_SOCCER_SPORTS).pending'),
+  M('the scope is all six sports', 'rd.regular, SCOPE_SPORTS).pending', 'rd.regular, BSD_SOCCER_SPORTS).pending'),
+  M('postseason rows choose a date', 'pendingOf(INCLUDE_POSTSEASON ? rd.rows : rd.regular, SCOPE_SPORTS)', 'pendingOf(rd.rows, SCOPE_SPORTS)'),
+  M('postseason rows never choose a date', 'pendingOf(INCLUDE_POSTSEASON ? rd.rows : rd.regular, SCOPE_SPORTS)', 'pendingOf(rd.regular, SCOPE_SPORTS)'),
+  M('the marker is written for a narrower range', 'out.rangeComplete && FROM <= DEFAULT_FROM && TO >= DEFAULT_TO && INCLUDE_MLS;', 'out.rangeComplete && INCLUDE_MLS;'),
+  M('the marker is written without MLS', 'FROM <= DEFAULT_FROM && TO >= DEFAULT_TO && INCLUDE_MLS;', 'FROM <= DEFAULT_FROM && TO >= DEFAULT_TO;'),
+  M('the marker is written without checking the end of the range', 'FROM <= DEFAULT_FROM && TO >= DEFAULT_TO && INCLUDE_MLS;', 'FROM <= DEFAULT_FROM && INCLUDE_MLS;'),
+  M('the marker is written from the start of the range only', 'FROM <= DEFAULT_FROM && TO >= DEFAULT_TO', 'TO >= DEFAULT_TO'),
+  M('INCLUDE_POSTSEASON accepts anything', ": process.env.INCLUDE_POSTSEASON === 'false' ? false : fail('INCLUDE_POSTSEASON must be true or false')", ': false'),
+  M('the range limit is not applied', 'daysBetween(FROM, TO, 400)', 'daysBetween(FROM, TO, 40000)'),
   M('MLS is always in scope', "BSD_SOCCER_SPORTS.filter((s) => s !== 'MLS')", 'BSD_SOCCER_SPORTS'),
   M('out-of-scope days are not counted', 'v !== null && v.scope === 0 && v.pending > 0', 'false'),
   M('INCLUDE_MLS accepts anything', ": process.env.INCLUDE_MLS === 'false' ? false : fail('INCLUDE_MLS must be true or false')", ': false'),

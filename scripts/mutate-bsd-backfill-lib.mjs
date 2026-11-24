@@ -11,7 +11,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 43;
+const MIN_ASSERTIONS = 46;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'bsd-backfill-lib.mjs', CHECK = 'check-bsd-backfill-lib.mjs';
 const lib = fs.readFileSync(path.join(dir, LIB), 'utf8');
@@ -26,6 +26,8 @@ const MUTANTS = [
   M('rowsOfDay: postseason dropped', 'post === undefined ? json.games.regular : json.games.regular.concat(post)', 'json.games.regular'),
   M('rowsOfDay: a postseason that is not a list accepted', 'if (post !== undefined && !Array.isArray(post)) return null;', ''),
   M('rowsOfDay: regular not required to be a list', ' || !Array.isArray(json.games.regular)) return null;', ') return null;'),
+  M('splitRows: the tables swapped', 'return { regular: json.games.regular, postseason: json.games.postseason === undefined ? [] : json.games.postseason };', 'return { regular: json.games.postseason === undefined ? [] : json.games.postseason, postseason: json.games.regular };'),
+  M('splitRows: a read that is not the contract is split anyway', 'if (rowsOfDay(json) === null) return null;\n  return { regular', 'return { regular'),
   M('pendingOf: every sport counts', ' || !sports.includes(r.sport)) continue;', ') continue;'),
   M('pendingOf: an empty id is an id', " || String(r.bsd_event_id) === '')", ')'),
   M('pendingOf: an absent id is an id', 'r.bsd_event_id === undefined || ', ''),
