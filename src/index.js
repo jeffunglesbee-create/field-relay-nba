@@ -10167,6 +10167,8 @@ export default {
         ctx.waitUntil(sweepKVBriefs(env).catch(e =>
             console.error('[KV-SWEEP]', e.message)));
         // R2 weekly updates — run alongside journalism cron, non-blocking.
+        // (2026-11-24: the NFL call was removed, docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md. The text below is the 2026-08-02 record of FIVE
+        // callers, four of them hour-scoped; four callers remain, three hour-scoped (MLB, GSAX, Clutch), and the NHL series one is on the daily cron.)
         // CC-CMD-2026-08-02-gate-weekly-r2-update-windows: all five below now
         // additionally gated on event.cron -- previously each fired on EVERY
         // real tick landing inside its date/hour window, and since both */5

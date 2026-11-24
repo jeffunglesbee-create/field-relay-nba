@@ -15,10 +15,11 @@
 // version of this file is at commit 00c4866 (git show 00c4866:src/nfl-r2.js),
 // which scripts/nfl-r2-memory-repro.mjs measures.
 //
-// Why a stub and not a deletion: the call in src/index.js (the Wednesday R2
-// window and POST /nfl-r2-update) may not change between 2026-11-08 and 11-23
-// (the CFL experiment's commit-based VOID window). Removing both callers and
-// this file is docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md.
+// Why a stub and not a deletion: until 2026-11-23 the call in src/index.js (the
+// Wednesday R2 window) could not change (the CFL experiment's commit-based VOID
+// window). That call was removed on 2026-11-24
+// (docs/CC-CMD-2026-11-08-retire-nfl-r2-callers.md). POST /nfl-r2-update and this
+// file remain: it answers "retired", and removing them is the owner's call.
 //
 // ngs-passing.json is not decided here: its owner is
 // docs/CC-CMD-2026-08-15-ngs-passing-two-writers.md. pfr-rec.json has no reader.
