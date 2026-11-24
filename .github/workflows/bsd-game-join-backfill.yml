@@ -1,0 +1,179 @@
+name: BSD game join backfill
+
+# Option (a) of the 2026-11-15 addendum of docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md, approved by the owner on
+# 2026-11-24 ("Backfill approved"): fill bsd_event_id on the soccer archive rows of the dates nothing visits, a few dates a day, through the
+# deployed POST /admin/bsd-game-join (the same function the scheduled tick runs: NULL rows only, never an overwrite, reconcile() and one
+# change_log row per write). scripts/bsd-game-join-backfill.mjs has the rules; scripts/check-bsd-game-join-backfill.mjs and its mutation harness prove them.
+#
+# A dispatch defaults to a DRY RUN: it reads, plans and writes nothing to the relay. The daily schedule writes (dry_run is empty, which is false),
+# 5 dates a day by default (about 25 BSD pages; BSD's request budget is unknown), oldest first. It stops itself: when no un-attempted pending day is
+# left and none is unread, the script writes outbox/bsd-join-backfill-complete.json and every later run skips at the gate.
+#
+#   gate     decides whether there is anything to do (the marker).
+#   verify   NO secret. The checks (always) and the mutation harnesses (on a dispatch: a scheduled run does not re-prove unchanged code).
+#   backfill HAS RELAY_SHARED_SECRET (an admin credential), NO write credential, contents: read, nothing but this repository's own scripts runs.
+#   commit   HAS the write credential, NO secret. Accepts only files named like the script's, parsed as JSON; fails the run if the script stopped early.
+
+on:
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'true (default): read and plan only, nothing is written to the relay. false: write.'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      max_dates:
+        description: 'Max dates to post, 1 to 10 (default 5)'
+        required: false
+      page_cap:
+        description: 'Stop once this many upstream BSD pages are used, 1 to 200 (default 40)'
+        required: false
+      from:
+        description: 'First day to survey, YYYY-MM-DD (default 2026-08-01)'
+        required: false
+      to:
+        description: 'Last day to survey, YYYY-MM-DD (default 2026-10-23; must be at least two days ago)'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bsd-game-join-backfill
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      done: ${{ steps.marker.outputs.done }}
+    steps:
+      - name: Only on main
+        run: '[ "$GITHUB_REF" = "refs/heads/main" ] || { echo "run this workflow on main only (the commit job pushes to main); got $GITHUB_REF"; exit 1; }'
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: marker
+        run: |
+          if [ -f outbox/bsd-join-backfill-complete.json ]; then echo "done=true" >> "$GITHUB_OUTPUT"; echo "the backfill is complete (outbox/bsd-join-backfill-complete.json): nothing to do"; else echo "done=false" >> "$GITHUB_OUTPUT"; fi
+
+  verify:
+    needs: gate
+    if: ${{ needs.gate.outputs.done != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate the inputs
+        env:
+          MAX_DATES: ${{ inputs.max_dates }}
+          PAGE_CAP: ${{ inputs.page_cap }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: |
+          if [ -n "$MAX_DATES" ]; then [[ "$MAX_DATES" =~ ^[1-9][0-9]?$ ]] && [ "$MAX_DATES" -le 10 ] || { echo "max_dates must be a whole number from 1 to 10"; exit 1; }; fi
+          if [ -n "$PAGE_CAP" ]; then [[ "$PAGE_CAP" =~ ^[1-9][0-9]{0,2}$ ]] && [ "$PAGE_CAP" -le 200 ] || { echo "page_cap must be a whole number from 1 to 200"; exit 1; }; fi
+          if [ -n "$FROM" ]; then [[ "$FROM" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "from must be YYYY-MM-DD"; exit 1; }; fi
+          if [ -n "$TO" ]; then [[ "$TO" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "to must be YYYY-MM-DD"; exit 1; }; fi
+      # No secret in this job. If any of these is blind, nothing below runs.
+      - name: The checks can still fail
+        run: |
+          node scripts/check-bsd-backfill-lib.mjs
+          node scripts/check-bsd-game-join-backfill.mjs
+      - name: The mutation harnesses still catch every break (dispatch only)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          node scripts/mutate-bsd-backfill-lib.mjs
+          node scripts/mutate-bsd-game-join-backfill.mjs
+
+  backfill:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # The secret is in the environment of this ONE step, which has its own limit so that a hang cannot use the job's.
+      - name: Survey, post and verify
+        timeout-minutes: 20
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          MAX_DATES: ${{ inputs.max_dates }}
+          PAGE_CAP: ${{ inputs.page_cap }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: node scripts/bsd-game-join-backfill.mjs
+      - name: Hand the artifacts to the commit job
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsd-join-backfill
+          path: |
+            outbox/bsd-join-backfill-*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  commit:
+    needs: backfill
+    if: ${{ always() && needs.backfill.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Take the artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bsd-join-backfill
+          path: outbox
+        continue-on-error: true
+      # Only files named like the script's own are committed, and each must be JSON. Nothing else that came back is kept.
+      - name: Accept only the script's own files
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          N=0
+          for f in outbox/bsd-join-backfill-*.json; do
+            b=$(basename "$f")
+            [[ "$b" =~ ^bsd-join-backfill-(latest|state|complete|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}Z)\.json$ ]] || { echo "unexpected file name: $b"; exit 1; }
+            [ "$(stat -c %s "$f")" -lt 1000000 ] || { echo "$b is larger than 1 MB"; exit 1; }
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$f" || { echo "$b is not JSON"; exit 1; }
+            N=$((N+1))
+          done
+          echo "accepted $N file(s)"
+          [ "$N" -ge 1 ] || { echo "the backfill left no artifact"; exit 1; }
+      # The evidence, and the state that keeps tomorrow's run from asking about an answered day again, is committed whatever the verdict.
+      - name: Commit the artifacts
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/bsd-join-backfill-*.json' \
+          bash scripts/probe-commit-retry.sh "chore: BSD game join backfill"
+      - name: A run that stopped early is not a clean run
+        run: |
+          set -euo pipefail
+          node -e '
+            const fs=require("fs");
+            const d=JSON.parse(fs.readFileSync("outbox/bsd-join-backfill-latest.json","utf8"));
+            console.log(d.coverageLine);
+            if(d.stoppedBecause){console.error("STOPPED: "+d.stoppedBecause);process.exit(1);}
+          '
