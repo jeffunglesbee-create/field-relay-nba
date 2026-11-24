@@ -17,6 +17,15 @@ name: ESPN independent-reference Task 0
 on:
   workflow_dispatch:
     inputs:
+      parts:
+        description: 'Which probe to run: all, espn (no token, no BSD request) or reach (the BSD token). Default all.'
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - espn
+          - reach
       call_budget:
         description: 'Max BSD requests, 1 to 50 (default 16)'
         required: false
@@ -75,6 +84,7 @@ jobs:
 
   espn:
     needs: verify
+    if: ${{ inputs.parts != 'reach' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -100,6 +110,7 @@ jobs:
 
   reach:
     needs: verify
+    if: ${{ inputs.parts != 'espn' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -179,11 +190,17 @@ jobs:
 
       # A probe that left something out is evidence, not a result: -latest.json does not advance on it, and neither does this stay green.
       - name: A probe that did not reach its target is not a result
+        env:
+          ESPN_RAN: ${{ needs.espn.result != 'skipped' }}
+          REACH_RAN: ${{ needs.reach.result != 'skipped' }}
         run: |
           set -euo pipefail
           shopt -s nullglob
           FAIL=0
           for PREFIX in espn-task0 bsd-e2-reach; do
+            # a probe this dispatch did not run is not judged: the file in outbox/ would be an earlier run's
+            if [ "$PREFIX" = "espn-task0" ] && [ "$ESPN_RAN" != "true" ]; then echo "$PREFIX: not run this time"; continue; fi
+            if [ "$PREFIX" = "bsd-e2-reach" ] && [ "$REACH_RAN" != "true" ]; then echo "$PREFIX: not run this time"; continue; fi
             FILES=(outbox/${PREFIX}-2*.json)
             if [ "${#FILES[@]}" -eq 0 ]; then echo "$PREFIX: no artifact"; FAIL=1; continue; fi
             LATEST=$(printf '%s\n' "${FILES[@]}" | sort | tail -1)
