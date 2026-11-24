@@ -1,0 +1,4246 @@
+{
+ "source": "site.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga&event=401850981",
+ "readAt": "2026-11-24 13:00Z, the RSM Classic final, through the FIELD browser tool",
+ "why": "a four-man playoff after round 4: linescores carry period 5 flagged isPlayoff, status.playoff true, tournament.numberOfRounds 4; scoreToPar is the official total",
+ "event": {
+  "id": "401850981",
+  "name": "The RSM Classic",
+  "status": "Final"
+ },
+ "tournament": {
+  "id": "3358",
+  "displayName": "The RSM Classic",
+  "major": false,
+  "scoringSystem": {
+   "id": "1",
+   "name": "Medal"
+  },
+  "numberOfRounds": 4,
+  "cutRound": 2,
+  "cutScore": -2,
+  "cutCount": 66
+ },
+ "competitors": [
+  {
+   "id": "10030",
+   "name": "Zach Bauchou",
+   "sortOrder": 82,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "10048",
+   "name": "Nick Hardy",
+   "sortOrder": 41,
+   "position": "T40",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:53Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "10054",
+   "name": "Denny McCarthy",
+   "sortOrder": 21,
+   "position": "T21",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:15Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:26Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    }
+   ]
+  },
+  {
+   "id": "10057",
+   "name": "Chad Ramey",
+   "sortOrder": 34,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:04Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "10058",
+   "name": "Davis Riley",
+   "sortOrder": 24,
+   "position": "T21",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:31Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    }
+   ]
+  },
+  {
+   "id": "10231",
+   "name": "Stefano Mazzoli",
+   "sortOrder": 85,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "10372",
+   "name": "Adam Schenk",
+   "sortOrder": 136,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "10505",
+   "name": "J.T. Poston",
+   "sortOrder": 25,
+   "position": "T21",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:04Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "10522",
+   "name": "Eric Cole",
+   "sortOrder": 124,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "+6"
+    }
+   ]
+  },
+  {
+   "id": "10548",
+   "name": "Matt Wallace",
+   "sortOrder": 71,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "10562",
+   "name": "Hayden Springer",
+   "sortOrder": 45,
+   "position": "T45",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:53Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:26Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "10577",
+   "name": "Aaron Wise",
+   "sortOrder": 137,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "+7"
+    }
+   ]
+  },
+  {
+   "id": "10588",
+   "name": "Jeremy Paul",
+   "sortOrder": 52,
+   "position": "T52",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:04Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "1059",
+   "name": "Luke List",
+   "sortOrder": 69,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "10596",
+   "name": "Matthieu Pavon",
+   "sortOrder": 28,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:15Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "10664",
+   "name": "Taylor Moore",
+   "sortOrder": 38,
+   "position": "T35",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:42Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "1077",
+   "name": "Kevin Streelman",
+   "sortOrder": 119,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "10863",
+   "name": "Cam Davis",
+   "sortOrder": 107,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "10990",
+   "name": "Jimmy Stanger",
+   "sortOrder": 138,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+7"
+    }
+   ]
+  },
+  {
+   "id": "11056",
+   "name": "Austin Smotherman",
+   "sortOrder": 75,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "11098",
+   "name": "Cameron Champ",
+   "sortOrder": 146,
+   "position": "-",
+   "playoff": null,
+   "period": 1,
+   "scoreToPar": "+75",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    },
+    {
+     "period": 2,
+     "teeTime": null,
+     "isPlayoff": false,
+     "displayValue": "-"
+    }
+   ]
+  },
+  {
+   "id": "11101",
+   "name": "Max Greyserman",
+   "sortOrder": 4,
+   "position": "T2",
+   "playoff": true,
+   "period": 5,
+   "scoreToPar": "-16",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-7"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T14:10Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 5,
+     "teeTime": "2026-11-23T19:09Z",
+     "isPlayoff": true,
+     "displayValue": "-"
+    },
+    {
+     "period": 402,
+     "teeTime": null,
+     "isPlayoff": false,
+     "displayValue": null
+    }
+   ]
+  },
+  {
+   "id": "11143",
+   "name": "Carson Young",
+   "sortOrder": 20,
+   "position": "T15",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:15Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "11183",
+   "name": "Trace Crowe",
+   "sortOrder": 90,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "11253",
+   "name": "Rasmus H\u00f8jgaard",
+   "sortOrder": 6,
+   "position": "T5",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-14",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:53Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T14:10Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "11332",
+   "name": "Andrew Novak",
+   "sortOrder": 55,
+   "position": "T55",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:48Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "11333",
+   "name": "Greyson Sigg",
+   "sortOrder": 79,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "11383",
+   "name": "Max McGreevy",
+   "sortOrder": 14,
+   "position": "T10",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:53Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:59Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "11385",
+   "name": "Rico Hoey",
+   "sortOrder": 100,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "11387",
+   "name": "Hank Lebioda",
+   "sortOrder": 50,
+   "position": "T45",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "11393",
+   "name": "Garrick Higgo",
+   "sortOrder": 62,
+   "position": "T62",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-7"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:59Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "11395",
+   "name": "Christo Lamprecht",
+   "sortOrder": 126,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "11456",
+   "name": "Doug Ghim",
+   "sortOrder": 15,
+   "position": "T15",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:15Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:04Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    }
+   ]
+  },
+  {
+   "id": "1225",
+   "name": "Brian Harman",
+   "sortOrder": 102,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "1264",
+   "name": "Camilo Villegas",
+   "sortOrder": 147,
+   "position": "-",
+   "playoff": null,
+   "period": 1,
+   "scoreToPar": "+75",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    },
+    {
+     "period": 2,
+     "teeTime": null,
+     "isPlayoff": false,
+     "displayValue": "-"
+    }
+   ]
+  },
+  {
+   "id": "1548",
+   "name": "Ryan Brehm",
+   "sortOrder": 141,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "+9"
+    }
+   ]
+  },
+  {
+   "id": "1564",
+   "name": "Jeff Overton",
+   "sortOrder": 135,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "1614",
+   "name": "Webb Simpson",
+   "sortOrder": 122,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "1651",
+   "name": "Billy Horschel",
+   "sortOrder": 116,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "2230",
+   "name": "Tony Finau",
+   "sortOrder": 96,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "2283",
+   "name": "Brice Garnett",
+   "sortOrder": 63,
+   "position": "T62",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:59Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "2552",
+   "name": "Kevin Kisner",
+   "sortOrder": 109,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "257",
+   "name": "Matt Kuchar",
+   "sortOrder": 121,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "2571",
+   "name": "Martin Laird",
+   "sortOrder": 103,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "3089127",
+   "name": "Francisco Bid\u00e9",
+   "sortOrder": 132,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+8"
+    }
+   ]
+  },
+  {
+   "id": "3257",
+   "name": "David Skinns",
+   "sortOrder": 101,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "3449",
+   "name": "Chris Kirk",
+   "sortOrder": 57,
+   "position": "57",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-2",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:42Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    }
+   ]
+  },
+  {
+   "id": "3454",
+   "name": "Brendon Todd",
+   "sortOrder": 115,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "3683",
+   "name": "Rafael Campos",
+   "sortOrder": 127,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "3970",
+   "name": "Troy Merritt",
+   "sortOrder": 145,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+13",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+8"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "3980",
+   "name": "Patton Kizzire",
+   "sortOrder": 43,
+   "position": "T40",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:20Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "4267",
+   "name": "S.Y. Noh",
+   "sortOrder": 65,
+   "position": "65",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+6"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T14:10Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "4350033",
+   "name": "Rikuya Hoshino",
+   "sortOrder": 98,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "4351896",
+   "name": "Kristoffer Ventura",
+   "sortOrder": 49,
+   "position": "T45",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:53Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "4358081",
+   "name": "Alejandro Tosti",
+   "sortOrder": 118,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+6"
+    }
+   ]
+  },
+  {
+   "id": "4358083",
+   "name": "Patrick Fishburn",
+   "sortOrder": 104,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    }
+   ]
+  },
+  {
+   "id": "4361934",
+   "name": "John VanDerLaan",
+   "sortOrder": 44,
+   "position": "T40",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:26Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "4375977",
+   "name": "Pontus Nyholm",
+   "sortOrder": 64,
+   "position": "T62",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:37Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    }
+   ]
+  },
+  {
+   "id": "4404991",
+   "name": "Lee Hodges",
+   "sortOrder": 39,
+   "position": "T35",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:04Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:53Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "4408315",
+   "name": "Vince Whaley",
+   "sortOrder": 22,
+   "position": "T21",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:42Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "4408318",
+   "name": "Jeffrey Kang",
+   "sortOrder": 142,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "4408319",
+   "name": "Danny Walker",
+   "sortOrder": 23,
+   "position": "T21",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:31Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "4408320",
+   "name": "Kevin Roy",
+   "sortOrder": 73,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "4410612",
+   "name": "Takumi Kanaya",
+   "sortOrder": 133,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+6",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "4423323",
+   "name": "Dylan Wu",
+   "sortOrder": 99,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "4425898",
+   "name": "Austin Eckroat",
+   "sortOrder": 114,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "4425904",
+   "name": "Michael Thorbjornsen",
+   "sortOrder": 2,
+   "position": "T2",
+   "playoff": true,
+   "period": 5,
+   "scoreToPar": "-16",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:15Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T14:10Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 5,
+     "teeTime": "2026-11-23T19:09Z",
+     "isPlayoff": true,
+     "displayValue": "E"
+    },
+    {
+     "period": 402,
+     "teeTime": null,
+     "isPlayoff": false,
+     "displayValue": null
+    }
+   ]
+  },
+  {
+   "id": "4426181",
+   "name": "Sam Stevens",
+   "sortOrder": 111,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "4426182",
+   "name": "Steven Fisk",
+   "sortOrder": 47,
+   "position": "T45",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:53Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "4513",
+   "name": "Keegan Bradley",
+   "sortOrder": 46,
+   "position": "T45",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:15Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "4565482",
+   "name": "Will Gordon",
+   "sortOrder": 110,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "4585548",
+   "name": "Sami V\u00e4lim\u00e4ki",
+   "sortOrder": 11,
+   "position": "T10",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:37Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "4585549",
+   "name": "Marco Penge",
+   "sortOrder": 1,
+   "position": "1",
+   "playoff": true,
+   "period": 5,
+   "scoreToPar": "-16",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:15Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:59Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 5,
+     "teeTime": "2026-11-23T19:09Z",
+     "isPlayoff": true,
+     "displayValue": "-1"
+    },
+    {
+     "period": 402,
+     "teeTime": null,
+     "isPlayoff": false,
+     "displayValue": null
+    }
+   ]
+  },
+  {
+   "id": "4587989",
+   "name": "Chandler Phillips",
+   "sortOrder": 42,
+   "position": "T40",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:42Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "4589438",
+   "name": "Harry Hall",
+   "sortOrder": 26,
+   "position": "T21",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:04Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "4602218",
+   "name": "Davis Thompson",
+   "sortOrder": 51,
+   "position": "T45",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:37Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    }
+   ]
+  },
+  {
+   "id": "4610387",
+   "name": "Shad Tuten",
+   "sortOrder": 76,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "4618114",
+   "name": "Chandler Blanchet",
+   "sortOrder": 70,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "4638",
+   "name": "Ben Martin",
+   "sortOrder": 106,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "4671",
+   "name": "John Parry",
+   "sortOrder": 89,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "4691931",
+   "name": "Ricky Castillo",
+   "sortOrder": 12,
+   "position": "T10",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:04Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:37Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "4699329",
+   "name": "Jesper Svensson",
+   "sortOrder": 35,
+   "position": "T35",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-8"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:37Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "4723205",
+   "name": "Tyler Collet",
+   "sortOrder": 129,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "4791222",
+   "name": "Mac Meissner",
+   "sortOrder": 97,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "4832046",
+   "name": "Nick Dunlap",
+   "sortOrder": 9,
+   "position": "9",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-12",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:20Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    }
+   ]
+  },
+  {
+   "id": "4837368",
+   "name": "Pierceson Coody",
+   "sortOrder": 29,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "4844",
+   "name": "Harry Higgs",
+   "sortOrder": 123,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+6"
+    }
+   ]
+  },
+  {
+   "id": "4858572",
+   "name": "Ryo Hisatsune",
+   "sortOrder": 40,
+   "position": "T40",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:48Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "4858859",
+   "name": "Rasmus Neergaard-Petersen",
+   "sortOrder": 13,
+   "position": "T10",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:15Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:48Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "4868733",
+   "name": "Joe Highsmith",
+   "sortOrder": 117,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "4921329",
+   "name": "Michael Brennan",
+   "sortOrder": 31,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "4982182",
+   "name": "Jackson Suber",
+   "sortOrder": 105,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "5075548",
+   "name": "Kensei Hirata",
+   "sortOrder": 60,
+   "position": "T60",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T14:10Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "5075652",
+   "name": "A.J. Ewart",
+   "sortOrder": 94,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "5076011",
+   "name": "Adrien Dumont de Chassart",
+   "sortOrder": 8,
+   "position": "T7",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-13",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:04Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:48Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    }
+   ]
+  },
+  {
+   "id": "5077389",
+   "name": "Ben James",
+   "sortOrder": 27,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:26Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    }
+   ]
+  },
+  {
+   "id": "508",
+   "name": "Jonathan Byrd",
+   "sortOrder": 130,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "5113338",
+   "name": "Davis Chatfield",
+   "sortOrder": 59,
+   "position": "T58",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:37Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "5139663",
+   "name": "Gordon Sargent",
+   "sortOrder": 108,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "5147097",
+   "name": "Karl Vilips",
+   "sortOrder": 56,
+   "position": "T55",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:15Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "5150294",
+   "name": "David Ford",
+   "sortOrder": 54,
+   "position": "T52",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:26Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "5209442",
+   "name": "Neal Shipley",
+   "sortOrder": 33,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:31Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "5211425",
+   "name": "Blades Brown",
+   "sortOrder": 87,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "5215013",
+   "name": "Jackson Koivun",
+   "sortOrder": 5,
+   "position": "T5",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-14",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:48Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "5215039",
+   "name": "Luke Clanton",
+   "sortOrder": 112,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "5217048",
+   "name": "Johnny Keefer",
+   "sortOrder": 91,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "5338",
+   "name": "Bud Cauley",
+   "sortOrder": 84,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "5362018",
+   "name": "Calen Sanderson",
+   "sortOrder": 144,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+10",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+6"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "5369915",
+   "name": "Muzzy Donohue",
+   "sortOrder": 113,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "5408",
+   "name": "Harris English",
+   "sortOrder": 7,
+   "position": "T7",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-13",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:15Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    }
+   ]
+  },
+  {
+   "id": "5502",
+   "name": "Andrew Putnam",
+   "sortOrder": 53,
+   "position": "T52",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:04Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:20Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "5548",
+   "name": "Adam Hadwin",
+   "sortOrder": 128,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    }
+   ]
+  },
+  {
+   "id": "5573",
+   "name": "Henrik Norlander",
+   "sortOrder": 95,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "5574",
+   "name": "David Lingmerth",
+   "sortOrder": 131,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+7"
+    }
+   ]
+  },
+  {
+   "id": "5619",
+   "name": "Robert Streb",
+   "sortOrder": 143,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+9",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "5692",
+   "name": "Peter Malnati",
+   "sortOrder": 140,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "5765",
+   "name": "Michael Johnson",
+   "sortOrder": 134,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+6",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+5"
+    }
+   ]
+  },
+  {
+   "id": "5882",
+   "name": "Emiliano Grillo",
+   "sortOrder": 19,
+   "position": "T15",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:15Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    }
+   ]
+  },
+  {
+   "id": "6196",
+   "name": "Joel Dahmen",
+   "sortOrder": 32,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:42Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "6701",
+   "name": "David Lipsky",
+   "sortOrder": 81,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "676",
+   "name": "Lucas Glover",
+   "sortOrder": 80,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "6798",
+   "name": "Brooks Koepka",
+   "sortOrder": 10,
+   "position": "T10",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:26Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    }
+   ]
+  },
+  {
+   "id": "6825",
+   "name": "Patrick Rodgers",
+   "sortOrder": 83,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "6922",
+   "name": "Ben Kohles",
+   "sortOrder": 36,
+   "position": "T35",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:04Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    }
+   ]
+  },
+  {
+   "id": "6931",
+   "name": "Mackenzie Hughes",
+   "sortOrder": 86,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "6962",
+   "name": "Adrien Saddier",
+   "sortOrder": 88,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "6999",
+   "name": "Nicholas Lindheim",
+   "sortOrder": 74,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "+2"
+    }
+   ]
+  },
+  {
+   "id": "7120",
+   "name": "Marcelo Rozo",
+   "sortOrder": 120,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "774",
+   "name": "Bill Haas",
+   "sortOrder": 139,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "8889",
+   "name": "Zecheng Dou",
+   "sortOrder": 58,
+   "position": "T58",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:15Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:59Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "8906",
+   "name": "Keith Mitchell",
+   "sortOrder": 37,
+   "position": "T35",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:04Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:53Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "8910",
+   "name": "Ben Silverman",
+   "sortOrder": 66,
+   "position": "66",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:53Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T14:10Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    }
+   ]
+  },
+  {
+   "id": "8961",
+   "name": "Sepp Straka",
+   "sortOrder": 93,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "+4"
+    }
+   ]
+  },
+  {
+   "id": "9040",
+   "name": "Zac Blair",
+   "sortOrder": 61,
+   "position": "T60",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:30Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:53Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:48Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "9127",
+   "name": "Adam Svensson",
+   "sortOrder": 77,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "9143",
+   "name": "Mark Hubbard",
+   "sortOrder": 30,
+   "position": "T27",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "9144",
+   "name": "Justin Lower",
+   "sortOrder": 92,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T13:41Z",
+     "isPlayoff": false,
+     "displayValue": "+3"
+    }
+   ]
+  },
+  {
+   "id": "9221",
+   "name": "Haotong Li",
+   "sortOrder": 3,
+   "position": "T2",
+   "playoff": true,
+   "period": 5,
+   "scoreToPar": "-16",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T15:53Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T13:59Z",
+     "isPlayoff": false,
+     "displayValue": "-5"
+    },
+    {
+     "period": 5,
+     "teeTime": "2026-11-23T19:09Z",
+     "isPlayoff": true,
+     "displayValue": "-"
+    },
+    {
+     "period": 402,
+     "teeTime": null,
+     "isPlayoff": false,
+     "displayValue": null
+    }
+   ]
+  },
+  {
+   "id": "9243",
+   "name": "Christiaan Bezuidenhout",
+   "sortOrder": 17,
+   "position": "T15",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:47Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:42Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "9484",
+   "name": "Alex Smalley",
+   "sortOrder": 78,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:03Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:09Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    }
+   ]
+  },
+  {
+   "id": "9506",
+   "name": "Jordan Smith",
+   "sortOrder": 48,
+   "position": "T45",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:31Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    }
+   ]
+  },
+  {
+   "id": "9517",
+   "name": "Austin Cook",
+   "sortOrder": 72,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    }
+   ]
+  },
+  {
+   "id": "9530",
+   "name": "Maverick McNealy",
+   "sortOrder": 18,
+   "position": "T15",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "-6"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-1"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:53Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "9569",
+   "name": "Tyler Duncan",
+   "sortOrder": 67,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:14Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:20Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "9600",
+   "name": "Paul Peterson",
+   "sortOrder": 68,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:25Z",
+     "isPlayoff": false,
+     "displayValue": "+1"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:31Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    }
+   ]
+  },
+  {
+   "id": "9658",
+   "name": "Taylor Pendrith",
+   "sortOrder": 16,
+   "position": "T15",
+   "playoff": false,
+   "period": 4,
+   "scoreToPar": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T13:52Z",
+     "isPlayoff": false,
+     "displayValue": "E"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T14:58Z",
+     "isPlayoff": false,
+     "displayValue": "-2"
+    },
+    {
+     "period": 3,
+     "teeTime": "2026-11-22T16:04Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    },
+    {
+     "period": 4,
+     "teeTime": "2026-11-23T12:31Z",
+     "isPlayoff": false,
+     "displayValue": "-4"
+    }
+   ]
+  },
+  {
+   "id": "9788",
+   "name": "Matt Atkins",
+   "sortOrder": 125,
+   "position": "-",
+   "playoff": null,
+   "period": 2,
+   "scoreToPar": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "teeTime": "2026-11-19T14:36Z",
+     "isPlayoff": false,
+     "displayValue": "-3"
+    },
+    {
+     "period": 2,
+     "teeTime": "2026-11-20T15:42Z",
+     "isPlayoff": false,
+     "displayValue": "+7"
+    }
+   ]
+  }
+ ]
+}

@@ -148,7 +148,7 @@ import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { summariseGolfTeeTimes, teeTimeRound } from './golf-tee-times.js';
-import { golfRoundLine } from './golf-round-line.js';
+import { golfRoundLine, regularToPar, golfPlayoffFrom } from './golf-round-line.js';
 import { readCoreMirror, CORE_MIRROR_TABLE } from './espn-core-mirror.js';
 import { playEpa, epTableFrom } from './nfl-epa.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
@@ -3906,7 +3906,8 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     // r4 (2026-11-18): `timeValid` added beside `startDate`.
     // docs/CC-CMD-2026-11-16-golf-tee-times.md Task 2.
     // r5 (2026-11-21): today/thru from the current round's linescore, not round 1's.
-    const cacheKey = `v2:golf:scoreboard:r5:${date}`;
+    // r6 (2026-11-24): regular rounds only; a playoff is not a round, and toPar is the official total.
+    const cacheKey = `v2:golf:scoreboard:r6:${date}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -3957,6 +3958,10 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     // Competitors live inside competitions[0].competitors during active rounds.
     const comp     = Array.isArray(ev.competitions) ? ev.competitions[0] : null;
     const entries  = comp && Array.isArray(comp.competitors) ? comp.competitors : [];
+    // How many regular rounds the event has: a later linescore is a playoff (golfRoundLine).
+    const regularRounds = eventId
+        ? await getGolfRegularRounds(`${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=${encodeURIComponent(eventId)}`, eventId)
+        : null;
 
     // Tied-position computation: ESPN's live competitor objects do NOT carry
     // c.status.position or c.position. They carry c.order (1-based rank,
@@ -3982,23 +3987,11 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         if (!g) return null;
         return g.count > 1 ? `T${g.firstOrder}` : String(g.firstOrder);
     };
-    // Per-player current round = count of linescores entries that have begun
-    // (have a displayValue OR a non-empty per-hole linescores array). Future
-    // rounds carry displayValue:null + linescores:[] / holes:0 so they don't
-    // count. Round 1 in-progress → returns 1. Round 2 after R1 final → 2.
-    const currentRoundFromLinescores = (lsArr) => {
-        if (!Array.isArray(lsArr)) return null;
-        const n = lsArr.filter(x =>
-            (x?.displayValue !== null && x?.displayValue !== undefined) ||
-            (Array.isArray(x?.linescores) && x.linescores.length > 0)
-        ).length;
-        return n > 0 ? n : null;
-    };
 
     const leaderboard = entries.map(c => {
         // today/thru/round from the competitor's CURRENT round linescore
         // (src/golf-round-line.js); until 2026-11-21 they read the first linescore, round 1, in every round.
-        const line     = golfRoundLine(c.linescores);
+        const line     = golfRoundLine(c.linescores, undefined, regularRounds);
         const athlete  = c.athlete || {};
         const stats    = c.statistics || [];
         const findStat = name => {
@@ -4012,11 +4005,13 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
                        ?? c.status?.position?.displayName
                        ?? c.position
                        ?? null,
-            toPar:     findStat('scoreToPar') ?? c.score ?? null,
+            // After a playoff ESPN's `score` includes the playoff holes; the official total is
+            // the regular rounds' (regularToPar, null when there is no playoff entry).
+            toPar:     regularToPar(c.linescores, regularRounds) ?? findStat('scoreToPar') ?? c.score ?? null,
             // The current round's score (e.g. '-2') and holes completed in it.
             today:     line.today ?? findStat('today') ?? null,
             thru:      line.thru ?? findStat('thru') ?? c.status?.thru ?? null,
-            round:     currentRoundFromLinescores(c.linescores)
+            round:     line.round
                        ?? c.status?.period
                        ?? null,
         };
@@ -4024,7 +4019,7 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     // Top-level round: prefer current-round derived from the first competitor's
     // linescores during live play. Falls back to ev.status.period (set during
     // off-play windows when ESPN populates it) then the short detail string.
-    const topRound = currentRoundFromLinescores(entries[0]?.linescores)
+    const topRound = golfRoundLine(entries[0]?.linescores, undefined, regularRounds).round
         ?? ev.status?.period
         ?? ev.status?.type?.shortDetail
         ?? null;
@@ -4059,6 +4054,8 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         // to detect when a round officially finishes.
         roundStatus: comp?.status?.type?.description || null,
         round: topRound,
+        // The event's regular round count, from the leaderboard; null when it could not be read.
+        regularRounds,
         broadcasts: broadcastNames.length ? broadcastNames : null,
         leaderboard,
     };
@@ -4263,6 +4260,25 @@ async function handleGolfEventlog(athleteId, season, env) {
 // never from a cron path. The caller builds the URL, so the route's provenance
 // manifest (scripts/build-route-provenance.mjs reads one level of delegation for
 // hosts) names the host this read really contacts.
+// The tournament's number of regular rounds, for the scoreboard, which does not carry it and
+// shows a playoff as one more linescore (src/golf-round-line.js). The same leaderboard read,
+// edge-cached an hour: the count does not change during an event. Null when it cannot be read,
+// and the scoreboard then counts every linescore as before.
+async function getGolfRegularRounds(url, eventId) {
+    if (!url || !eventId) return null;
+    try {
+        const r = await fetch(url, { cf: { cacheTtl: 3600, cacheEverything: true } });
+        if (!r.ok) { console.error(`[GOLF] rounds read ${r.status}`); return null; }
+        const data = await r.json();
+        const ev = (data.events || []).find(e => String(e?.id) === String(eventId)) || null;
+        const n = Number(ev?.tournament?.numberOfRounds);
+        return Number.isInteger(n) && n > 0 ? n : null;
+    } catch (e) {
+        console.error("[GOLF] rounds read failed:", e.message);
+        return null;
+    }
+}
+
 async function getGolfLeaderboardFacts(url, eventId) {
     if (!url || !eventId) return null;
     try {
@@ -4280,10 +4296,16 @@ async function getGolfLeaderboardFacts(url, eventId) {
         // status showed 145 of 147 at period 2 and linescores kept all 147 round-1
         // times, outbox/golf-leaderboard-rsm-r2-2026-11-20.json).
         const list = Array.isArray(competitors) ? competitors : [];
+        // The tournament's regular rounds, and its playoff, which this endpoint flags and the
+        // scoreboard does not (2026-11-23 RSM: a four-man playoff read as a fifth round;
+        // outbox/golf-leaderboard-rsm-final-2026-11-24.json). A playoff's tee time is not a round's.
+        const n = Number(ev.tournament?.numberOfRounds);
         return {
             statuses: list.map(c => c?.status),
-            roundTees: list.flatMap(c => (Array.isArray(c?.linescores) ? c.linescores : []).map(l => ({ period: l?.period, teeTime: l?.teeTime }))),
+            roundTees: list.flatMap(c => (Array.isArray(c?.linescores) ? c.linescores : []).filter(l => l?.isPlayoff !== true).map(l => ({ period: l?.period, teeTime: l?.teeTime }))),
             courses: Array.isArray(ev.courses) ? ev.courses : [],
+            numberOfRounds: Number.isInteger(n) && n > 0 ? n : null,
+            playoff: golfPlayoffFrom(list, ev.status?.type?.completed),
         };
     } catch (e) {
         console.error("[GOLF] leaderboard read failed:", e.message);
@@ -4303,7 +4325,8 @@ async function handleGolfEnriched(date, env, ctx) {
     // v7 (2026-11-19): tee times and venue from the leaderboard; teeTimes.round.
     // v8 (2026-11-20): each round's tee times from linescores, not the current-round status.
     // v9 (2026-11-21): the scoreboard's today/thru are the current round's.
-    const cacheKey = `golf:enriched:v9:${date_clean}`;
+    // v10 (2026-11-24): `playoff`, and a playoff's tee time is not a round's.
+    const cacheKey = `golf:enriched:v10:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -4457,7 +4480,7 @@ async function handleGolfEnriched(date, env, ctx) {
     // round the competitors are teed up for (teeTimeRound, src/golf-tee-times.js).
     let teeTimes = null;
     if (facts) {
-        const round = teeTimeRound(scoreboard.round, facts.statuses);
+        const round = teeTimeRound(scoreboard.round, facts.numberOfRounds ? facts.statuses.filter(st => Number(st?.period) <= facts.numberOfRounds) : facts.statuses);
         if (round !== null) teeTimes = { ...summariseGolfTeeTimes(facts.roundTees, round), competitors: facts.statuses.length };
     }
     const result = {
@@ -4481,6 +4504,9 @@ async function handleGolfEnriched(date, env, ctx) {
         roundLastTee: teeTimes?.roundLastTee ?? null,
         teeTimes: teeTimes ? { round: teeTimes.round, inRound: teeTimes.inRound, withTeeTime: teeTimes.withTeeTime, competitors: teeTimes.competitors } : null,
         cutLine: scoreboard.cutLine ?? null,
+        // A playoff, as its own fact, never a round: { start, players [{athleteId, name, result,
+        // position}], winner, complete }, or null (golfPlayoffFrom, src/golf-round-line.js).
+        playoff: facts?.playoff ?? null,
         venue:         courseName,
         venueLocation: (courseCity && courseState) ? `${courseCity}, ${courseState}` : null,
         broadcasts: scoreboard.broadcasts || null,

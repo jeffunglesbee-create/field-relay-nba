@@ -55,6 +55,14 @@ const run = (summarise, pickRound, src) => {
   check('round 1 read back during round 2, from linescores: 147 of 147, first 13:30Z, last 15:42Z',
     past.inRound === 147 && past.withTeeTime === 147 && past.roundStart === '2026-11-19T13:30:00.000Z' && past.roundLastTee === '2026-11-19T15:42:00.000Z', JSON.stringify(past))
   const cur = summarise(tees, 2)
+  // The final, read 2026-11-24: a four-man playoff at 19:09Z after round 4 (12:20Z to 14:10Z).
+  const fin = JSON.parse(readFileSync('outbox/golf-leaderboard-rsm-final-2026-11-24.json', 'utf8')).competitors
+  const finTees = fin.flatMap(c => c.linescores.filter(l => l.isPlayoff !== true))
+  const fin4 = summarise(finTees, 4)
+  check('round 4 from linescores, the playoff excluded: 66 of 66, 12:20Z to 14:10Z',
+    fin4.inRound === 66 && fin4.withTeeTime === 66 && fin4.roundStart === "2026-11-23T12:20:00.000Z" && fin4.roundLastTee === "2026-11-23T14:10:00.000Z", JSON.stringify(fin4))
+  const fin5 = summarise(finTees, 5)
+  check('no fifth round: the playoff tee time is not a round', fin5.inRound === 0 && fin5.roundStart === null, JSON.stringify(fin5))
   check('round 2 from linescores: first 13:30Z on 11-20', cur.roundStart === '2026-11-20T13:30:00.000Z' && cur.withTeeTime === cur.inRound, JSON.stringify(cur))
 
   const enriched = src.slice(src.indexOf('async function handleGolfEnriched('))
@@ -67,9 +75,9 @@ const run = (summarise, pickRound, src) => {
   check('the leaderboard is read from ESPN_API_BASE, the host the Worker reaches',
     body.includes('`${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=') && body.includes('getGolfLeaderboardFacts(leaderboardUrl, eventId)') && reader.includes('fetch(url'), 'no ESPN_API_BASE leaderboard read')
   check('no core-API read is left in the enriched route (403 from the Worker)', !body.includes('sports.core.api.espn.com') && !reader.includes('sports.core.api.espn.com'), 'a core-API URL is in the route')
-  check('the round comes from teeTimeRound(scoreboard.round, ...)', body.includes('teeTimeRound(scoreboard.round, facts.statuses)'), 'the round is not chosen by teeTimeRound')
+  check('the round comes from teeTimeRound(scoreboard.round, ...)', body.includes('teeTimeRound(scoreboard.round, facts.numberOfRounds ? facts.statuses.filter(st => Number(st?.period) <= facts.numberOfRounds) : facts.statuses)'), 'the round is not chosen by teeTimeRound')
   check('the tee times are summarised from linescores (roundTees), not the current-round status',
-    body.includes('summariseGolfTeeTimes(facts.roundTees, round)') && /roundTees: list\.flatMap\(c => \(Array\.isArray\(c\?\.linescores\)/.test(reader), 'not read from linescores')
+    body.includes('summariseGolfTeeTimes(facts.roundTees, round)') && /roundTees: list\.flatMap\(c => \(Array\.isArray\(c\?\.linescores\) \? c\.linescores : \[\]\)\.filter\(l => l\?\.isPlayoff !== true\)/.test(reader), 'not read from linescores')
   return results
 }
 
@@ -94,8 +102,9 @@ if (process.argv.includes('--self-test')) {
     'scoreboard round ignored': [S, (sb, st) => R(null, st), src],
     'core API put back in the route': [S, R, srcMut('const leaderboardUrl = `${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=', 'const leaderboardUrl = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/${eventId}`; const _u = `/sports/golf/leaderboard?league=pga&event=')],
     'the helper fetches something other than the URL it is given': [S, R, srcMut('        const r = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });\n        if (!r.ok) { console.error(`[GOLF] leaderboard read', '        const r = await fetch(String(eventId), { cf: { cacheTtl: 300, cacheEverything: true } });\n        if (!r.ok) { console.error(`[GOLF] leaderboard read')],
+    'playoff tee times kept as a round': [S, R, srcMut('.filter(l => l?.isPlayoff !== true).map(l => ({ period: l?.period, teeTime: l?.teeTime }))', '.map(l => ({ period: l?.period, teeTime: l?.teeTime }))')],
     'tee times read from status again': [S, R, srcMut('summariseGolfTeeTimes(facts.roundTees, round)', 'summariseGolfTeeTimes(facts.statuses.filter(Boolean), round)')],
-    'round not chosen by teeTimeRound': [S, R, srcMut('teeTimeRound(scoreboard.round, facts.statuses)', 'Number(scoreboard.round)')],
+    'round not chosen by teeTimeRound': [S, R, srcMut('teeTimeRound(scoreboard.round, facts.numberOfRounds ? facts.statuses.filter(st => Number(st?.period) <= facts.numberOfRounds) : facts.statuses)', 'Number(scoreboard.round)')],
   }
   let survived = 0
   for (const [name, [ms, mr, msrc]] of Object.entries(mutants)) {

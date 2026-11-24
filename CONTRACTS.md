@@ -1832,7 +1832,7 @@ game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-mat
 
 ## GET /v2/golf/enriched — round start times and ESPN's time flag (added 2026-11-18)
 
-`docs/CC-CMD-2026-11-16-golf-tee-times.md`, Task 2. Fields added to the active-tournament response (KV key `golf:enriched:v8:<date>` since 2026-11-20, 180 s):
+`docs/CC-CMD-2026-11-16-golf-tee-times.md`, Task 2. Fields added to the active-tournament response (KV key `golf:enriched:v10:<date>` since 2026-11-24, 180 s):
 
 | field | type | meaning |
 |---|---|---|
@@ -1843,5 +1843,6 @@ game-to-BSD join was live-only (`g.bsdEventId` in `handleV2Games`) and a pre-mat
 | `teeTimes` | `{ round, inRound, withTeeTime, competitors }` or null | which round the times are for (the scoreboard's `round`, or before the first shot the round the field is teed up for), how many competitors are in it and carry a time, out of how many on the leaderboard; null when the read failed. `failedReads` (2026-11-18 shape) is gone: there is one read, not one per competitor |
 
 - **Producer:** field-relay-nba (`getGolfLeaderboardFacts`: `${ESPN_API_BASE}/sports/golf/leaderboard?league=pga&event=<id>`, edge-cached 300 s, called only from this route; it also supplies `venue` and `venueLocation`, from the host course). Changed 2026-11-19 from ESPN's core API, which answers 403 to the Worker and left these fields null live. **Consumer:** jubilant-bassoon `saveGolfRoundFinal` (`src/legacy/field.js`) posts `roundStart` as the archive row's `start_time`. jubilant-bassoon's copy of this contract must be synced with that change.
+- Since 2026-11-24 a playoff is never a round. `round`, `today` and `thru` count only the tournament's regular rounds (the leaderboard's `numberOfRounds`, served by the scoreboard as `regularRounds`). `toPar` after a playoff is the official total over the regular rounds. `playoff` is `{ start, players: [{athleteId, name, result, position}], winner, complete }` or null (`src/golf-round-line.js`). Client: `saveGolfRoundFinal` posts a separate `away: 'PO'` row once `playoff.complete` (jubilant-bassoon `_saveGolfPlayoff`).
 - Since 2026-11-21 each leaderboard entry's `today` and `thru` are the player's CURRENT round (its own score and holes completed), read from that round's linescore; before, they were round 1's in every round (`src/golf-round-line.js`).
 - A `roundStart` of null is "not read", never "no round". `round` is unchanged and can still be null before the first shot; `teeTimes.round` names the round `roundStart` belongs to.

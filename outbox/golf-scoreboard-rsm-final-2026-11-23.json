@@ -1,0 +1,3353 @@
+{
+ "source": "site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates=20261123",
+ "readAt": "2026-11-24 13:00Z, the RSM Classic final",
+ "why": "no playoff flag and no round count on the scoreboard: the playoff is a period-5 linescore, then an empty period 402; score includes the playoff hole",
+ "competitors": [
+  {
+   "id": "4585549",
+   "name": "Marco Penge",
+   "order": 1,
+   "score": "-17",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 5,
+     "displayValue": "-1",
+     "holes": 1
+    },
+    {
+     "period": 402,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "4425904",
+   "name": "Michael Thorbjornsen",
+   "order": 2,
+   "score": "-16",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 5,
+     "displayValue": "E",
+     "holes": 1
+    },
+    {
+     "period": 402,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "9221",
+   "name": "Haotong Li",
+   "order": 3,
+   "score": "-16",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 5,
+     "displayValue": "-",
+     "holes": 0
+    },
+    {
+     "period": 402,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "11101",
+   "name": "Max Greyserman",
+   "order": 4,
+   "score": "-16",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-7",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 5,
+     "displayValue": "-",
+     "holes": 0
+    },
+    {
+     "period": 402,
+     "displayValue": null,
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "5215013",
+   "name": "Jackson Koivun",
+   "order": 5,
+   "score": "-14",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11253",
+   "name": "Rasmus H\u00f8jgaard",
+   "order": 6,
+   "score": "-14",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5408",
+   "name": "Harris English",
+   "order": 7,
+   "score": "-13",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5076011",
+   "name": "Adrien Dumont de Chassart",
+   "order": 8,
+   "score": "-13",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4832046",
+   "name": "Nick Dunlap",
+   "order": 9,
+   "score": "-12",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-6",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6798",
+   "name": "Brooks Koepka",
+   "order": 10,
+   "score": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4585548",
+   "name": "Sami V\u00e4lim\u00e4ki",
+   "order": 11,
+   "score": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4691931",
+   "name": "Ricky Castillo",
+   "order": 12,
+   "score": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4858859",
+   "name": "Rasmus Neergaard-Petersen",
+   "order": 13,
+   "score": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11383",
+   "name": "Max McGreevy",
+   "order": 14,
+   "score": "-11",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11456",
+   "name": "Doug Ghim",
+   "order": 15,
+   "score": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9658",
+   "name": "Taylor Pendrith",
+   "order": 16,
+   "score": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9243",
+   "name": "Christiaan Bezuidenhout",
+   "order": 17,
+   "score": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9530",
+   "name": "Maverick McNealy",
+   "order": 18,
+   "score": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5882",
+   "name": "Emiliano Grillo",
+   "order": 19,
+   "score": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11143",
+   "name": "Carson Young",
+   "order": 20,
+   "score": "-10",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10054",
+   "name": "Denny McCarthy",
+   "order": 21,
+   "score": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4408315",
+   "name": "Vince Whaley",
+   "order": 22,
+   "score": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4408319",
+   "name": "Danny Walker",
+   "order": 23,
+   "score": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10058",
+   "name": "Davis Riley",
+   "order": 24,
+   "score": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10505",
+   "name": "J.T. Poston",
+   "order": 25,
+   "score": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4589438",
+   "name": "Harry Hall",
+   "order": 26,
+   "score": "-9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5077389",
+   "name": "Ben James",
+   "order": 27,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10596",
+   "name": "Matthieu Pavon",
+   "order": 28,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4837368",
+   "name": "Pierceson Coody",
+   "order": 29,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9143",
+   "name": "Mark Hubbard",
+   "order": 30,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4921329",
+   "name": "Michael Brennan",
+   "order": 31,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6196",
+   "name": "Joel Dahmen",
+   "order": 32,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5209442",
+   "name": "Neal Shipley",
+   "order": 33,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10057",
+   "name": "Chad Ramey",
+   "order": 34,
+   "score": "-8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4699329",
+   "name": "Jesper Svensson",
+   "order": 35,
+   "score": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-8",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6922",
+   "name": "Ben Kohles",
+   "order": 36,
+   "score": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "8906",
+   "name": "Keith Mitchell",
+   "order": 37,
+   "score": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10664",
+   "name": "Taylor Moore",
+   "order": 38,
+   "score": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4404991",
+   "name": "Lee Hodges",
+   "order": 39,
+   "score": "-7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4858572",
+   "name": "Ryo Hisatsune",
+   "order": 40,
+   "score": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10048",
+   "name": "Nick Hardy",
+   "order": 41,
+   "score": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4587989",
+   "name": "Chandler Phillips",
+   "order": 42,
+   "score": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3980",
+   "name": "Patton Kizzire",
+   "order": 43,
+   "score": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4361934",
+   "name": "John VanDerLaan",
+   "order": 44,
+   "score": "-6",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10562",
+   "name": "Hayden Springer",
+   "order": 45,
+   "score": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4513",
+   "name": "Keegan Bradley",
+   "order": 46,
+   "score": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4426182",
+   "name": "Steven Fisk",
+   "order": 47,
+   "score": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9506",
+   "name": "Jordan Smith",
+   "order": 48,
+   "score": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4351896",
+   "name": "Kristoffer Ventura",
+   "order": 49,
+   "score": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11387",
+   "name": "Hank Lebioda",
+   "order": 50,
+   "score": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4602218",
+   "name": "Davis Thompson",
+   "order": 51,
+   "score": "-5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10588",
+   "name": "Jeremy Paul",
+   "order": 52,
+   "score": "-4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5502",
+   "name": "Andrew Putnam",
+   "order": 53,
+   "score": "-4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5150294",
+   "name": "David Ford",
+   "order": 54,
+   "score": "-4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11332",
+   "name": "Andrew Novak",
+   "order": 55,
+   "score": "-3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5147097",
+   "name": "Karl Vilips",
+   "order": 56,
+   "score": "-3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3449",
+   "name": "Chris Kirk",
+   "order": 57,
+   "score": "-2",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "8889",
+   "name": "Zecheng Dou",
+   "order": 58,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5113338",
+   "name": "Davis Chatfield",
+   "order": 59,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5075548",
+   "name": "Kensei Hirata",
+   "order": 60,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9040",
+   "name": "Zac Blair",
+   "order": 61,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11393",
+   "name": "Garrick Higgo",
+   "order": 62,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-7",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+5",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "2283",
+   "name": "Brice Garnett",
+   "order": 63,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4375977",
+   "name": "Pontus Nyholm",
+   "order": 64,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4267",
+   "name": "S.Y. Noh",
+   "order": 65,
+   "score": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+6",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "8910",
+   "name": "Ben Silverman",
+   "order": 66,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 3,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 4,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9569",
+   "name": "Tyler Duncan",
+   "order": 67,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9600",
+   "name": "Paul Peterson",
+   "order": 68,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1059",
+   "name": "Luke List",
+   "order": 69,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4618114",
+   "name": "Chandler Blanchet",
+   "order": 70,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10548",
+   "name": "Matt Wallace",
+   "order": 71,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9517",
+   "name": "Austin Cook",
+   "order": 72,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4408320",
+   "name": "Kevin Roy",
+   "order": 73,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6999",
+   "name": "Nicholas Lindheim",
+   "order": 74,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11056",
+   "name": "Austin Smotherman",
+   "order": 75,
+   "score": "-1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4610387",
+   "name": "Shad Tuten",
+   "order": 76,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9127",
+   "name": "Adam Svensson",
+   "order": 77,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9484",
+   "name": "Alex Smalley",
+   "order": 78,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11333",
+   "name": "Greyson Sigg",
+   "order": 79,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "676",
+   "name": "Lucas Glover",
+   "order": 80,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6701",
+   "name": "David Lipsky",
+   "order": 81,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10030",
+   "name": "Zach Bauchou",
+   "order": 82,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6825",
+   "name": "Patrick Rodgers",
+   "order": 83,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5338",
+   "name": "Bud Cauley",
+   "order": 84,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10231",
+   "name": "Stefano Mazzoli",
+   "order": 85,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6931",
+   "name": "Mackenzie Hughes",
+   "order": 86,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5211425",
+   "name": "Blades Brown",
+   "order": 87,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "6962",
+   "name": "Adrien Saddier",
+   "order": 88,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4671",
+   "name": "John Parry",
+   "order": 89,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11183",
+   "name": "Trace Crowe",
+   "order": 90,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5217048",
+   "name": "Johnny Keefer",
+   "order": 91,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9144",
+   "name": "Justin Lower",
+   "order": 92,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "8961",
+   "name": "Sepp Straka",
+   "order": 93,
+   "score": "E",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5075652",
+   "name": "A.J. Ewart",
+   "order": 94,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5573",
+   "name": "Henrik Norlander",
+   "order": 95,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "2230",
+   "name": "Tony Finau",
+   "order": 96,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4791222",
+   "name": "Mac Meissner",
+   "order": 97,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4350033",
+   "name": "Rikuya Hoshino",
+   "order": 98,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4423323",
+   "name": "Dylan Wu",
+   "order": 99,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11385",
+   "name": "Rico Hoey",
+   "order": 100,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3257",
+   "name": "David Skinns",
+   "order": 101,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1225",
+   "name": "Brian Harman",
+   "order": 102,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "2571",
+   "name": "Martin Laird",
+   "order": 103,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4358083",
+   "name": "Patrick Fishburn",
+   "order": 104,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4982182",
+   "name": "Jackson Suber",
+   "order": 105,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4638",
+   "name": "Ben Martin",
+   "order": 106,
+   "score": "+1",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10863",
+   "name": "Cam Davis",
+   "order": 107,
+   "score": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5139663",
+   "name": "Gordon Sargent",
+   "order": 108,
+   "score": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "2552",
+   "name": "Kevin Kisner",
+   "order": 109,
+   "score": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4565482",
+   "name": "Will Gordon",
+   "order": 110,
+   "score": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4426181",
+   "name": "Sam Stevens",
+   "order": 111,
+   "score": "+2",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5215039",
+   "name": "Luke Clanton",
+   "order": 112,
+   "score": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5369915",
+   "name": "Muzzy Donohue",
+   "order": 113,
+   "score": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4425898",
+   "name": "Austin Eckroat",
+   "order": 114,
+   "score": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3454",
+   "name": "Brendon Todd",
+   "order": 115,
+   "score": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+2",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1651",
+   "name": "Billy Horschel",
+   "order": 116,
+   "score": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4868733",
+   "name": "Joe Highsmith",
+   "order": 117,
+   "score": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4358081",
+   "name": "Alejandro Tosti",
+   "order": 118,
+   "score": "+3",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+6",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1077",
+   "name": "Kevin Streelman",
+   "order": 119,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "-1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "7120",
+   "name": "Marcelo Rozo",
+   "order": 120,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "E",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "257",
+   "name": "Matt Kuchar",
+   "order": 121,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1614",
+   "name": "Webb Simpson",
+   "order": 122,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4844",
+   "name": "Harry Higgs",
+   "order": 123,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+6",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10522",
+   "name": "Eric Cole",
+   "order": 124,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+6",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "9788",
+   "name": "Matt Atkins",
+   "order": 125,
+   "score": "+4",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11395",
+   "name": "Christo Lamprecht",
+   "order": 126,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3683",
+   "name": "Rafael Campos",
+   "order": 127,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+1",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5548",
+   "name": "Adam Hadwin",
+   "order": 128,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+3",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4723205",
+   "name": "Tyler Collet",
+   "order": 129,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "508",
+   "name": "Jonathan Byrd",
+   "order": 130,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5574",
+   "name": "David Lingmerth",
+   "order": 131,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3089127",
+   "name": "Francisco Bid\u00e9",
+   "order": 132,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+8",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4410612",
+   "name": "Takumi Kanaya",
+   "order": 133,
+   "score": "+6",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5765",
+   "name": "Michael Johnson",
+   "order": 134,
+   "score": "+6",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1564",
+   "name": "Jeff Overton",
+   "order": 135,
+   "score": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+3",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10372",
+   "name": "Adam Schenk",
+   "order": 136,
+   "score": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+2",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10577",
+   "name": "Aaron Wise",
+   "order": 137,
+   "score": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "10990",
+   "name": "Jimmy Stanger",
+   "order": 138,
+   "score": "+7",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "E",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+7",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "774",
+   "name": "Bill Haas",
+   "order": 139,
+   "score": "+8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5692",
+   "name": "Peter Malnati",
+   "order": 140,
+   "score": "+8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "1548",
+   "name": "Ryan Brehm",
+   "order": 141,
+   "score": "+8",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "-1",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+9",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "4408318",
+   "name": "Jeffrey Kang",
+   "order": 142,
+   "score": "+9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5619",
+   "name": "Robert Streb",
+   "order": 143,
+   "score": "+9",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+4",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "5362018",
+   "name": "Calen Sanderson",
+   "order": 144,
+   "score": "+10",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+6",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+4",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "3970",
+   "name": "Troy Merritt",
+   "order": 145,
+   "score": "+13",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+8",
+     "holes": 18
+    },
+    {
+     "period": 2,
+     "displayValue": "+5",
+     "holes": 18
+    }
+   ]
+  },
+  {
+   "id": "11098",
+   "name": "Cameron Champ",
+   "order": 146,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 0
+    },
+    {
+     "period": 2,
+     "displayValue": "-",
+     "holes": 0
+    }
+   ]
+  },
+  {
+   "id": "1264",
+   "name": "Camilo Villegas",
+   "order": 147,
+   "score": "+5",
+   "linescores": [
+    {
+     "period": 1,
+     "displayValue": "+5",
+     "holes": 0
+    },
+    {
+     "period": 2,
+     "displayValue": "-",
+     "holes": 0
+    }
+   ]
+  }
+ ]
+}
