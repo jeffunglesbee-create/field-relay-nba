@@ -1,0 +1,18 @@
+ok   recorded H_whole.holds = true (expected true)
+ok   recorded H_none.holds = true (expected true)
+ok   recorded spec_2_3.degenerate = true (expected true)
+ok   recorded M_a.holds = false (expected false)
+ok   recorded M_b.holds = true (expected true)
+ok   recorded M_c.holds = false (expected false)
+ok   recorded inconclusive = false (expected false)
+ok   mutant "a -800 residual on one judged day (2026-11-19)": H_whole.holds true -> false (expected false)
+ok   mutant "a -800 residual on one judged day (2026-11-19)": H_none.holds true -> false (expected false)
+ok   mutant "a -800 residual on one judged day (2026-11-19)": M_b.holds true -> false (expected false)
+ok   mutant "CFL charging 6 a day with 6 receipts behind it on every post day (a net charge with no stranded part)": M_a.holds false -> true (expected true)
+ok   mutant "24 stranded credits a day on every post day": M_a.holds false -> true (expected true)
+ok   mutant "24 stranded credits a day on every post day": M_c.holds false -> true (expected true)
+ok   mutant "a pre-window carrying 741 a day of residual and 647 a day of stranded credit": H_none.holds true -> false (expected false)
+ok   mutant "a pre-window carrying 741 a day of residual and 647 a day of stranded credit": spec_2_3.degenerate true -> false (expected false)
+ok   mutant "three post days refused (window-drift)": inconclusive false -> true (expected true)
+
+self-test: 5 mutants, 7 recorded assertions, 0 failures

@@ -328,3 +328,8 @@ figure is 0, not small, on all seven days, including 2026-11-11 (CFL by site 114
 judging run compares the post-window against. The 11-01 paragraph's sentences for
 H-whole, spec 2.3, M (b) and M (c) apply as written. This paragraph adds no rule
 and changes no test.
+
+**Judged 2026-11-24 by the scheduled run `trig_019aQvU36rYwZ7PqjaMnV5ut`.** The scores,
+the VOID check, the call volume of both windows and the scorer's self-test are in
+`outbox/odds-cfl-season-end-judgment-2026-11-24.md` (scorer and rows:
+`outbox/odds-cfl-judgment-score-2026-11-24.mjs`). Nothing above this paragraph was edited.
