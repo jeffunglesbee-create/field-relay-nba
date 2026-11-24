@@ -42,6 +42,43 @@
       "pendingAfter": 0,
       "written": 9,
       "unmatched": []
+    },
+    "2026-02-04": {
+      "at": "2026-11-24T23:29:20.391Z",
+      "outcome": "none-matched",
+      "pendingBefore": 2,
+      "pendingAfter": 2,
+      "written": 0,
+      "unmatched": [
+        "MLS: San Diego FC v Pumas",
+        "MLS: San Diego FC v Pumas"
+      ]
+    },
+    "2026-02-11": {
+      "at": "2026-11-24T23:29:21.483Z",
+      "outcome": "none-matched",
+      "pendingBefore": 2,
+      "pendingAfter": 2,
+      "written": 0,
+      "unmatched": [
+        "MLS: Pumas v San Diego FC",
+        "MLS: Pumas v San Diego FC"
+      ]
+    },
+    "2026-02-18": {
+      "at": "2026-11-24T23:29:22.555Z",
+      "outcome": "none-matched",
+      "pendingBefore": 6,
+      "pendingAfter": 6,
+      "written": 0,
+      "unmatched": [
+        "MLS: Defence Force Football Club v Philadelphia Union",
+        "MLS: Real Club Deportivo España v Los Angeles Football Club",
+        "MLS: Atlético Ottawa v Nashville SC",
+        "MLS: Defence Force Football Club v Philadelphia Union",
+        "MLS: Real Club Deportivo España v Los Angeles Football Club",
+        "MLS: Atlético Ottawa v Nashville SC"
+      ]
     }
   }
 }

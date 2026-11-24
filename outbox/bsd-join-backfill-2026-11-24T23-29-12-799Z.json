@@ -1,0 +1,147 @@
+{
+  "ts": "2026-11-24T23:29:12.799Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-02-01",
+  "to": "2026-07-31",
+  "maxDates": 3,
+  "pageCap": 20,
+  "survey": {
+    "daysInRange": 181,
+    "daysRead": 181,
+    "unreadDays": [],
+    "statuses": {
+      "200": 181
+    },
+    "daysToAttempt": 50,
+    "rowsToAttempt": 315,
+    "attemptedStillPending": 0,
+    "pendingRowsAllDays": 315,
+    "scopeSports": [
+      "MLS",
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "outOfScopeDays": 0,
+    "outOfScopeRows": 0
+  },
+  "chosen": [
+    "2026-02-04",
+    "2026-02-11",
+    "2026-02-18"
+  ],
+  "dates": [
+    {
+      "date": "2026-02-04",
+      "outcome": "none-matched",
+      "pendingBefore": 2,
+      "pendingBeforeBySport": {
+        "MLS": 2
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 2,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 92,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: San Diego FC v Pumas",
+          "MLS: San Diego FC v Pumas"
+        ]
+      }
+    },
+    {
+      "date": "2026-02-11",
+      "outcome": "none-matched",
+      "pendingBefore": 2,
+      "pendingBeforeBySport": {
+        "MLS": 2
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 2,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 113,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Pumas v San Diego FC",
+          "MLS: Pumas v San Diego FC"
+        ]
+      }
+    },
+    {
+      "date": "2026-02-18",
+      "outcome": "none-matched",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "MLS": 6
+      },
+      "pendingAfter": 6,
+      "verify": {
+        "verified": true,
+        "expected": 6
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 77,
+        "upstreamPages": 2,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Defence Force Football Club v Philadelphia Union",
+          "MLS: Real Club Deportivo España v Los Angeles Football Club",
+          "MLS: Atlético Ottawa v Nashville SC",
+          "MLS: Defence Force Football Club v Philadelphia Union",
+          "MLS: Real Club Deportivo España v Los Angeles Football Club",
+          "MLS: Atlético Ottawa v Nashville SC"
+        ]
+      }
+    }
+  ],
+  "pagesUsed": 8,
+  "written": 0,
+  "stoppedBecause": null,
+  "remainingToAttempt": 47,
+  "complete": false,
+  "runner": {
+    "gitSha": "b88f0217c259f59530ee39a5c41616be7902f44a",
+    "runId": "45510216125",
+    "scriptSha256": "bb2da7da54430f6f8a9e599b9cdbfd01529e90d64e7cd1c89d25a5ae6ff64f0b",
+    "libSha256": "072656ce0d125a0b54e87dc536f90a9c3332bbc36bb54a42f584d55cb31cee1c"
+  },
+  "coverageLine": "181 of 181 days read (0 unread) | scope 6 sports (MLS included): to attempt 50 days / 315 rows, 0 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 0 days / 0 rows | this run: 3 dates posted, 0 rows written, 8 upstream pages (cap 20), 3 verified | no stop | remaining to attempt 47"
+}
