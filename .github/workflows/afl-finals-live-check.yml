@@ -1,0 +1,80 @@
+name: AFL finals and journalism, real ESPN and Squiggle (dispatch only)
+
+# docs/CC-CMD-2026-11-24-afl-finals-round-and-journalism-club-match.md.
+#
+# scripts/check-afl-round-discovery.mjs and scripts/check-afl-journalism-context.mjs prove the logic over stubs built from the shapes read on 2026-11-24. This proves it
+# against the real services, from a runner (the sandbox cannot reach ESPN or Squiggle). The 2026 season is finished and Squiggle's finals tips are final, so the values
+# do not move:
+#   1. the real resolver, the clock pinned inside the 2026 finals, real ESPN and real Squiggle: a final resolves to ITS OWN tip (must pass);
+#   2. the same on the resolver as it was before the fix, which hands ESPN's week to Squiggle as a round: it must FAIL by assertion (Rule 90: a live check that cannot
+#      tell the two apart proves nothing);
+#   3. the DEPLOYED relay's /v2/games for the finals, GWS GIANTS and the Opening Round: before the deploy that carries the fix it fails (it serves March's 47.29 for the
+#      2026-09-05 Adelaide v Western Bulldogs final); after it, it passes. Dispatch it again after the deploy.
+#
+# DISPATCH ONLY. No secrets, no billed API: ESPN's public scoreboard (ten reads per pick, five picks), Squiggle (one read per pick), five reads of the relay.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # pipefail: without it the step's exit code is tee's.
+      - name: Resolver, fixed source (must pass)
+        shell: bash
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          { echo "=== afl finals live check, resolver  utc=$(date -u +%FT%TZ)  head=$(git rev-parse --short HEAD) ==="
+            node scripts/afl-finals-live-check.mjs
+          } 2>&1 | tee "outbox/afl-finals-live-check-${STAMP}.log" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The resolver as it was before the fix: the parent of the commit that carries it. Found by its subject, so a rebase does not break the reference.
+      - name: Resolver, pre-fix source (must FAIL by assertion, not by crash)
+        shell: bash
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          FIX=$(git log --format=%H -n1 --grep="an AFL final's Squiggle tip is its own game's")
+          [ -n "$FIX" ] || { echo "the fix commit is not in this checkout's history"; exit 1; }
+          git show "$FIX^:src/wp-resolver.js" > src/.prefix-wp-resolver.js
+          set +e
+          { echo "=== CONTROL: the resolver before the fix ($(git rev-parse --short "$FIX^")) against the same real ESPN and Squiggle ==="
+            WP_RESOLVER_SRC=src/.prefix-wp-resolver.js node scripts/afl-finals-live-check.mjs
+          } > "outbox/afl-finals-live-check-control-${STAMP}.log" 2>&1
+          CODE=$?
+          set -e
+          rm -f src/.prefix-wp-resolver.js
+          cat "outbox/afl-finals-live-check-control-${STAMP}.log" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$CODE" -eq 0 ]; then echo "CONTROL PASSED: the live check cannot tell the pre-fix source from the fixed one"; exit 1; fi
+          if ! grep -q '^FAIL  ' "outbox/afl-finals-live-check-control-${STAMP}.log"; then echo "CONTROL CRASHED without an assertion failing: that is not a catch"; exit 1; fi
+          echo "control failed by assertion, as it must"
+
+      - name: The deployed relay (fails before the deploy that carries the fix, passes after)
+        shell: bash
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          { echo "=== afl finals live check, relay  utc=$(date -u +%FT%TZ)  head=$(git rev-parse --short HEAD) ==="
+            MODE=relay node scripts/afl-finals-live-check.mjs
+          } 2>&1 | tee "outbox/afl-finals-live-check-relay-${STAMP}.log" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the logs
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="afl-finals-live-check" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: afl finals live check"
