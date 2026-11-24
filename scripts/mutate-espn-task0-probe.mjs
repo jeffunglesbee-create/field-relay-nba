@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 31;
+const MIN_ASSERTIONS = 32;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'espn-task0-probe.mjs');
 const MUT = path.join(dir, '.mutant-espn-task0-probe.mjs');
@@ -42,7 +42,8 @@ const MUTANTS = [
   M('probeLeague: the first event, not the most recent finished one', 'const ev = pickRecentFinished(events);', 'const ev = events[0];'),
   M('probeLeague: a league with no finished match is read anyway', 'if (ev === null) { out.chosen = null; return out; }', 'if (ev === null) { out.chosen = null; }'),
   M('probeLeague: the summary of the wrong event', 'summary?event=${encodeURIComponent(String(ev.id))}', 'summary?event=${encodeURIComponent(String(events[0].id))}'),
-  M('probeLeague: no page limit', '&limit=300`', '`'),
+  M('probeLeague: no page limit', '&limit=200`', '`'),
+  M('get: a refusal does not keep its words', 'if (r.status !== 200) rec.errorBody = text.slice(0, 200);', ''),
   M('window: thirteen days', 'const WINDOW_DAYS = 14;', 'const WINDOW_DAYS = 13;'),
   M('E2a: another day', "const E2A_DAY = '2026-10-25';", "const E2A_DAY = '2026-10-26';"),
   M('E2a: the rows are not counted', 'labelStats(new Map([[E2A_DAY, rows]]))', 'labelStats(new Map())'),

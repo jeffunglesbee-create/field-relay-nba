@@ -44,7 +44,7 @@ async function get(label, url, { spaced = true } = {}) {
   const t0 = Date.now();
   let json;
   try {
-    const r = await fetch(url, { redirect: 'manual', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const r = await fetch(url, { redirect: 'manual', headers: { Accept: 'application/json', 'User-Agent': 'FIELD/1.0' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     rec.status = r.status;
     rec.contentType = r.headers.get('content-type');
     rec.cacheControl = r.headers.get('cache-control');
@@ -52,6 +52,7 @@ async function get(label, url, { spaced = true } = {}) {
     if (r.status === 403 || r.status === 429) stopped = String(r.status);
     const text = await r.text();
     rec.bytes = text.length;
+    if (r.status !== 200) rec.errorBody = text.slice(0, 200);   // a refusal's own words are the diagnosis (ESPN's error text, public)
     try { json = JSON.parse(text); } catch (_) { rec.nonJson = true; }
   } catch (e) { rec.error = String(e && e.message ? e.message : e); }
   rec.ms = Date.now() - t0;
@@ -73,7 +74,7 @@ function listsOf(ev, summary) {
 async function probeLeague(slug, espnLeague, today) {
   const from = new Date(today.getTime() - WINDOW_DAYS * 86400000);
   const out = { espnLeague, scoreboard: null, chosen: null, summary: null, lists: {} };
-  const sb = await get(`scoreboard ${slug}`, `${ESPN}/${espnLeague}/scoreboard?dates=${ymd(from)}-${ymd(today)}&limit=300`);
+  const sb = await get(`scoreboard ${slug}`, `${ESPN}/${espnLeague}/scoreboard?dates=${ymd(from)}-${ymd(today)}&limit=200`);
   if (sb.blocked) return out;
   const events = isObj(sb.json) && Array.isArray(sb.json.events) ? sb.json.events : null;
   out.scoreboard = { status: sb.rec.status, events: events === null ? null : events.length, shapeOk: events !== null };

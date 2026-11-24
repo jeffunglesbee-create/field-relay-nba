@@ -116,8 +116,8 @@ await scenario('a complete run', async () => {
   eq('reached its target, stopped nowhere', [a.reachedTarget, a.stopped, a.notReachedBecause], [true, null, null]);
   eq('nine scoreboards, nine summaries, one relay read: nineteen requests in all', [kind(r.espnLog, 'scoreboard').length, kind(r.espnLog, 'summary').length, r.relayLog.length, a.requestCount], [9, 9, 1, 19]);
   const q = r.espnLog.find((x) => x.path.endsWith('/scoreboard')).query;
-  const m = /dates=(\d{8})-(\d{8})&limit=300$/.exec(q);
-  eq('the window is the 14 days ending today (UTC), at limit 300', [m !== null, m && r.days.includes(m[2]), m && (Date.parse(`${m[2].slice(0, 4)}-${m[2].slice(4, 6)}-${m[2].slice(6)}`) - Date.parse(`${m[1].slice(0, 4)}-${m[1].slice(4, 6)}-${m[1].slice(6)}`)) / 86400000], [true, true, 14]);
+  const m = /dates=(\d{8})-(\d{8})&limit=200$/.exec(q);
+  eq('the window is the 14 days ending today (UTC), at limit 200', [m !== null, m && r.days.includes(m[2]), m && (Date.parse(`${m[2].slice(0, 4)}-${m[2].slice(4, 6)}-${m[2].slice(6)}`) - Date.parse(`${m[1].slice(0, 4)}-${m[1].slice(4, 6)}-${m[1].slice(6)}`)) / 86400000], [true, true, 14]);
   eq('the manifest keeps the status and the cache header of each read', [a.requests.find((x) => x.label === 'scoreboard epl').status, a.requests.find((x) => x.label === 'scoreboard epl').cacheControl], [200, 'max-age=60']);
   eq('the summary read asks for the chosen event, by id', kind(r.espnLog, 'summary')[0].query, '?event=E-epl');
   eq('the most recent finished match WITH a score is chosen, never the older or the unscored one', Object.values(a.leagues).map((l) => l.chosen.espnEventId).sort(), SLUGS.map((s) => `E-${s}`).sort());
@@ -150,7 +150,8 @@ await scenario('a 429 on a summary stops the run', async () => {
 });
 
 await scenario('a scoreboard that is not 200 is not answered, even when its body looks right', async () => {
-  const r = await run({ world: espnWorld({ scoreboard: { laliga: [500, { events: [] }] } }) });
+  const r = await run({ world: espnWorld({ scoreboard: { laliga: [500, { events: [], code: 'BAD-PARAM-TEXT' }] } }) });
+  eq('the refusal keeps its own words (the diagnosis), and a 200 keeps none', [/BAD-PARAM-TEXT/.test(r.art.requests.find((x) => x.label === 'scoreboard laliga').errorBody), r.art.requests.find((x) => x.label === 'scoreboard epl').errorBody], [true, undefined]);
   eq('eight probed, not reached, no -latest.json, and the run went on to the other leagues', [r.art.e1.leaguesProbed, r.art.reachedTarget, r.latest, kind(r.espnLog, 'scoreboard').length], [8, false, false, 9]);
   eq('the coverage line does not say nine answered', /8 of 9 league scoreboards answered 200/.test(r.art.coverageLine), true);
 });
