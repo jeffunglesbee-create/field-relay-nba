@@ -13,6 +13,7 @@
 // EQUIVALENT (not mutated, with the reason):
 //   - the `out.zero === reasons` and `out.one === ...` terms of `partitions` are guards that hold by construction of the loop above them,
 //     so no input can make them differ; they are kept as a tripwire against a later edit.
+//   - the `out.one + out.many === out.espnIds...` term of `partitions`: the same kind of guard, true by construction of the block above it.
 //   - dayOf's leading /^\d{4}-\d{2}-\d{2}/ test: the calendar round trip after it (`toISOString().slice(0, 10) !== d`) already forces the
 //     first ten characters to be exactly a real YYYY-MM-DD, so removing the test changes no result (found by this harness: the mutant
 //     survived, and no input separates it).
@@ -22,7 +23,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 51;
+const MIN_ASSERTIONS = 56;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'espn-task0-lib.mjs';
 const CHECK = 'check-espn-task0-lib.mjs';
@@ -59,6 +60,11 @@ const MUTANTS = [
   M('reachOf: an unread day is not noticed', '|| dayRows.get(d) === null', ''),
   M('reachOf: an absent day is not noticed', '!dayRows.has(d) || ', ''),
   M('reachOf: one-row espn id counts swapped', 'out.oneRow.withEspnId++; else out.oneRow.withoutEspnId++;', 'out.oneRow.withoutEspnId++; else out.oneRow.withEspnId++;'),
+  M('espnIds: rows that agree are a conflict', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => h.id));'),
+  M('espnIds: a null id counts as an id', 'hits.filter((h) => has(h.espn_event_id)).map(', 'hits.map('),
+  M('espnIds: none and one swapped', "ids.size === 1 ? 'one' : ids.size === 0 ? 'none' : 'conflict'", "ids.size === 1 ? 'none' : ids.size === 0 ? 'one' : 'conflict'"),
+  M('espnIds: a conflict is read as one', "ids.size === 1 ? 'one' : ids.size === 0 ? 'none' : 'conflict'", "ids.size >= 1 ? 'one' : 'none'"),
+  M('espnIds: not counted by slug', 'out.espnBySlug[slug][k]++;', ''),
   M('reachOf: a match with no day is a zero', 'if (callDays.length === 0)', 'if (callDays.length === 99)'),
   M('reachOf: a slug is used as given', "isStr(m.slug) && SAFE_SLUG.test(m.slug) ? m.slug : '(other)'", 'm.slug'),
   M('reachOf: days needed not collected', 'for (const d of days) allDays.add(d);', ''),

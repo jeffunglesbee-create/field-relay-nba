@@ -16,7 +16,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 26;
+const MIN_ASSERTIONS = 27;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'bsd-e2-reach-probe.mjs');
 const MUT = path.join(dir, '.mutant-bsd-e2-reach-probe.mjs');
@@ -40,6 +40,7 @@ const MUTANTS = [
   M('main: the census verdict is not consulted', "analysis.calls.verdict !== 'ANSWERED'", "analysis.calls.verdict === 'NEVER'"),
   M('main: the days-read count counts failures', '[...dayRead.dayRows.values()].filter((v) => v !== null).length', 'dayRead.dayRows.size'),
   M('main: the reach is computed on the wrong rows', 'reachOf({ matches, dayRows: dayRead.dayRows })', 'reachOf({ matches, dayRows: new Map() })'),
+  M('main: the espn-id outcome is not in the coverage line', ', ESPN id on the rows of the ${reach.one + reach.many} matches that have rows: exactly one distinct ${reach.espnIds.one}, none ${reach.espnIds.none}, conflicting ${reach.espnIds.conflict}', ''),
   M('main: the labels are not counted', 'labels = labelStats(dayRead.dayRows);', 'labels = labelStats(new Map());'),
 ];
 

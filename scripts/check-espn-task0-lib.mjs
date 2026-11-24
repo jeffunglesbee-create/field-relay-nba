@@ -90,6 +90,24 @@ eq('reachOf: two one-row matches that both have an espn id are not read as havin
   L.reachOf({ matches: [{ key: '100', slug: 'epl', callDays: ['2026-10-25'] }, { key: '100', slug: 'epl', callDays: ['2026-10-25'] }], dayRows }).oneRow, { withEspnId: 2, withoutEspnId: 0 });
 eq('reachOf: no matches is an empty, consistent result', [L.reachOf({ matches: [], dayRows }).matches, L.reachOf({ matches: [], dayRows }).partitions], [0, true]);
 
+// ---- what the rows say about the ESPN id: one distinct id (rows that agree are fine), none, or a conflict
+const rowsE = (id, espn) => ({ id: `${id}-${espn}`, sport: 'MLS', bsd_event_id: id, espn_event_id: espn });
+const dayE = new Map([['2026-10-24', []], ['2026-10-25', [
+  rowsE('1', 'X'),                                      // mA: one row, an id
+  rowsE('2', 'X'), { ...rowsE('2', 'X'), id: '2-X-b' }, // mB: two rows that agree
+  rowsE('3', 'X'), rowsE('3', 'Y'),                     // mC: two rows that conflict
+  rowsE('4', null),                                     // mD: one row, no id
+  rowsE('5', null), { ...rowsE('5', null), id: '5-n-b' },   // mE: two rows, no id
+  rowsE('6', null), rowsE('6', 'Z'),                    // mF: two rows, one with an id
+]]]);
+const mE = ['1', '2', '3', '4', '5', '6'].map((k) => ({ key: k, slug: 'mls', callDays: ['2026-10-25'] }));
+const re = L.reachOf({ matches: mE, dayRows: dayE });
+eq('reachOf: rows per match', [re.one, re.many, re.zero], [2, 4, 0]);
+eq('reachOf: one distinct espn id (A, B, F), none (D, E), a conflict (C)', re.espnIds, { one: 3, none: 2, conflict: 1 });
+eq('reachOf: the same by slug', re.espnBySlug, { mls: { one: 3, none: 2, conflict: 1 } });
+eq('reachOf: the espn-id outcomes cover every match that has rows', re.partitions, true);
+eq('reachOf: a match with no row has no espn-id outcome', L.reachOf({ matches: [{ key: '9', slug: 'mls', callDays: ['2026-10-25'] }], dayRows: dayE }).espnIds, { one: 0, none: 0, conflict: 0 });
+
 // ---- ESPN's shape
 const ev = (date, a, b, completed) => ({ date, competitions: [{ status: { type: { completed } }, competitors: [{ homeAway: 'home', score: a, team: { id: 11 } }, { homeAway: 'away', score: b, team: { id: '22' } }] }] });
 const E1 = ev('2026-11-22T15:00Z', '2', '1', true);

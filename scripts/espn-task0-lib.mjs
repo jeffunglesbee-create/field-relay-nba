@@ -99,7 +99,7 @@ function zeroReason(slug, firstCallDay, boundaryDay) {
  * Every match lands in exactly one of: noDay, unread, zero (with one named reason), one, many.
  */
 export function reachOf({ matches, dayRows, boundaryDay = BOUNDARY_DAY }) {
-  const out = { matches: matches.length, noDay: 0, unread: 0, zero: 0, one: 0, many: 0, bySlug: proto(), zeroReasons: proto(), oneRow: { withEspnId: 0, withoutEspnId: 0 }, daysNeeded: 0 };
+  const out = { matches: matches.length, noDay: 0, unread: 0, zero: 0, one: 0, many: 0, bySlug: proto(), zeroReasons: proto(), oneRow: { withEspnId: 0, withoutEspnId: 0 }, espnIds: { one: 0, none: 0, conflict: 0 }, espnBySlug: proto(), daysNeeded: 0 };
   const allDays = new Set();
   for (const m of matches) {
     const slug = isStr(m.slug) && SAFE_SLUG.test(m.slug) ? m.slug : '(other)';
@@ -124,11 +124,20 @@ export function reachOf({ matches, dayRows, boundaryDay = BOUNDARY_DAY }) {
     if (hits.length === 0) { out.zero++; s.zero++; bump(out.zeroReasons, zeroReason(slug, callDays.slice().sort()[0], boundaryDay)); }
     else if (hits.length === 1) { out.one++; s.one++; if (has(hits[0].espn_event_id)) out.oneRow.withEspnId++; else out.oneRow.withoutEspnId++; }
     else { out.many++; s.many++; }
+    if (hits.length >= 1) {
+      // what the grade needs from the rows is ONE espn id: one distinct non-null id across them (two rows that agree are fine), none at all, or a conflict
+      const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));
+      const k = ids.size === 1 ? 'one' : ids.size === 0 ? 'none' : 'conflict';
+      out.espnIds[k]++;
+      if (out.espnBySlug[slug] === undefined) out.espnBySlug[slug] = { one: 0, none: 0, conflict: 0 };
+      out.espnBySlug[slug][k]++;
+    }
   }
   out.daysNeeded = allDays.size;
   const reasons = Object.values(out.zeroReasons).reduce((a, n) => a + n, 0);
   out.partitions = out.matches === out.noDay + out.unread + out.zero + out.one + out.many
-    && out.zero === reasons && out.one === out.oneRow.withEspnId + out.oneRow.withoutEspnId;
+    && out.zero === reasons && out.one === out.oneRow.withEspnId + out.oneRow.withoutEspnId
+    && out.one + out.many === out.espnIds.one + out.espnIds.none + out.espnIds.conflict;
   return out;
 }
 

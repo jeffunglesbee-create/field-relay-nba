@@ -132,11 +132,12 @@ await scenario('a complete run', async () => {
   eq('days needed, cap, statuses', [a.daysNeeded, a.dayCap, a.dayReadStatuses], [7, 300, { 200: 7 }]);
   eq('every match placed once: one 2, two or more 1, none 3, unread 0, no day 0', [a.reach.one, a.reach.many, a.reach.zero, a.reach.unread, a.reach.noDay, a.reach.partitions], [2, 1, 3, 0, 0, true]);
   eq('the one-row matches: the epl row has an espn id, the mls row (a number bsd id) has none', a.reach.oneRow, { withEspnId: 1, withoutEspnId: 1 });
+  eq('what the rows say about the ESPN id: 201 one id, 206 two rows and ONE distinct id, 202 a row with none', a.reach.espnIds, { one: 2, none: 1, conflict: 0 });
   eq('the three zeros each have their named reason', a.reach.zeroReasons, { 'eflchamp: no archive rows': 1, "ucl or europa: archive rows, outside the join's sports": 1, 'other unjoined': 1 });
   eq('by slug', Object.fromEntries(Object.entries(a.reach.bySlug).map(([k, v]) => [k, [v.zero, v.one, v.many]])), { epl: [0, 1, 0], mls: [0, 1, 0], eflchamp: [1, 0, 0], europa: [1, 0, 0], seriea: [1, 0, 0], laliga: [0, 0, 1] });
   eq('the label counts read the rows once each', [a.labels.rows, a.labels.byLabel.EPL, a.labels.byLabel.MLS, a.labels.targetLabelRows['UEFA Champions League'], a.labels.targetLabelRows['EFL Championship']],
     [6, { rows: 1, withBsd: 1, withEspn: 1, withBoth: 1 }, { rows: 1, withBsd: 1, withEspn: 0, withBoth: 0 }, 1, 0]);
-  eq('the coverage line carries every denominator', /7 gradeable calls on 6 distinct matches/.test(a.coverageLine) && /one 2 \(with an espn id 1, without 1\), two or more 1, none 3/.test(a.coverageLine) && /days read 7 of 7 needed \(cap 300\)/.test(a.coverageLine), true);
+  eq('the coverage line carries every denominator', /7 gradeable calls on 6 distinct matches/.test(a.coverageLine) && /one 2 \(with an espn id 1, without 1\), two or more 1, none 3/.test(a.coverageLine) && /exactly one distinct 2, none 1, conflicting 0/.test(a.coverageLine) && /days read 7 of 7 needed \(cap 300\)/.test(a.coverageLine), true);
   eq('counts only: no team, no token, no per-match day list or event id as a value, no row payload in the artifact', [/Alpha|Beta/.test(r.raw), r.raw.includes(TOKEN), /"callDays"|"20[1-6]"/.test(r.raw), r.raw.includes('big')], [false, false, false, false]);
   eq('the BSD side stayed inside the census budget and no /context/date read failed', [r.bsdLog.length <= 16, r.stderr], [true, '']);
 });
