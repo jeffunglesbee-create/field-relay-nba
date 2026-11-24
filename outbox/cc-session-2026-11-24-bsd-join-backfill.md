@@ -24,3 +24,7 @@
 - **The grade's population.** After the backfill the laboratory's reach probe (`espn-task0.yml`, `parts` = `reach`) will say how many of the 56 early matches now reach an ESPN id; the lab CC-CMD's "Task 0 result" is updated from that artifact.
 
 **Integration state (Rule 65):** VERIFIED for the first five dates (route answer, `/context/date` re-read, and D1); STAGED for the remaining 29 dates (scheduled).
+
+## Update, 2026-11-24 late: faster, from February, and two defects found by real runs
+
+The owner asked for a faster pace and an earlier range. Now every 4 hours, 10 dates and 50 pages a run, from 2026-02-01. Tournament-only dates (postseason table) are counted and skipped on measured evidence (0 of ~297 ever joined, 0 of 24 matched in tests); `include_postseason` overrides. A narrow test run wrote a false "complete" marker (removed; completeness now means the scheduled scope), and the page cap reported a stop after the last date (it now stops a run only while dates remain). Full numbers and the re-timed follow-ups (2026-11-25 09:00Z, 2026-11-27 09:00Z) are in the CC-CMD addendum "2026-11-24 (late)". Lib 47 assertions / 39 of 39 mutants; script 15 scenarios / 50 assertions / 36 of 36.

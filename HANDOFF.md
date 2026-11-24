@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-24 (23:50Z) — the BSD join backfill goes faster and starts in February; two defects of mine found and fixed; tournament rows left out on measured evidence
+
+**HEAD:** `eee533b` → `05f5ed0` · **Branch:** main · no `src/` change. **Record:** the "Addendum 2026-11-24 (late)" of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`; session doc outbox/cc-session-2026-11-24-bsd-join-backfill.md.
+
+- **The owner: "faster, with a range that starts earlier."** Schedule `23 */4 * * *`, 10 dates and a 50-page cap a run, range 2026-02-01..2026-10-23, six sports. First 10-date run (run 45511835745): 46 rows written, 10 of 10 verified, 53 pages. BSD serves old dates (92 to 501 events a day); older dates cost about 5.3 pages each. No throttle in about 100 pages.
+- **Tournament rows do not choose a date.** The pre-November `postseason_games` MLS rows are Leagues Cup and CONCACAF Champions Cup matches: 0 of ~297 ever joined (the tick tried them), 0 of 24 matched in the backfill's tests. 47 days / 215 rows counted, not attempted; `include_postseason` = `true` overrides. Not found out: BSD not carrying them, or Liga MX club-name aliases missing.
+- **Two defects of mine, both fixed:** a narrow test run wrote a "complete" marker that would have stopped the schedule for good (removed; `complete` now means the scheduled scope), and the page cap reported a stop after the last date of a normal run (it now stops a run only while dates remain). Each came from a real run, not from the checks; each now has a check and a mutant.
+- **Follow-ups:** 2026-11-25 09:00Z checks the first scheduled runs (the schedule has never fired); 2026-11-27 09:00Z confirms completion, rechecks D1, reruns the laboratory's reach probe and asks about the tournament rows. Expected finish about 2026-11-26/27.
+
 ## SESSION CLOSE-OUT — 2026-11-24 (21:45Z) — "Build the AFL fix now": AFL round discovery reads ESPN one day at a time; the club match it exposed is fixed; two parts filed
 
 **HEAD:** `630ea6aa` (the staged verifier) ← `ac52af50` (the live run's logs) ← `b3dbdf81` ← `11670e9d` ← `2da46894` ← `ac187a0b` ← `109d2ed2`; this close-out is the next commit. `src/wp-resolver.js` changed, so it deploys: Deploy RELAY Worker run **45489859700**, Repo guards run **45489859672** (results in the Update bullet).
