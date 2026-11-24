@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba (the source and the contract). One paired client change in jubilant-bassoon (Rule 70, ATOMIC-A): the relay deploys first, the client consumes.
 **Filed:** 2026-11-16 by CC, on the owner's order "file the relay CC-CMD for golf tee times", from the Deep Cuts design work (field-laboratory `docs/CC-CMD-2026-11-15-scout-daypart-picks.md`, section "Golf").
 **Confidence gate:** >= 95 before any commit
-**Status:** DONE 2026-11-23. Every done condition read on real rows: `/v2/golf/enriched` serves `timeValid:false` beside `startDate` and a `roundStart` equal to the earliest tee time of the round (round 1 13:30Z, round 2 13:30Z, live); the archive rows for rounds 2 and 3 carry that round's first tee (2026-11-20T13:30Z; 2026-11-22T14:25Z, ESPN's tee times after the rain delay); the round-1 rows were corrected to 13:30Z on the owner's GO; no `PGA Tour` row since 2026-11-18. Builds: `140fa56`, `20eb710`, `464d4f7`, `3cbe458`, `4943d43`, client `b3e2c878`. A confirming read of round 4 is armed (`trig_011LFJx6dq5AmyZYKHusAq9U`, 2026-11-24 13:00Z). The pre-round `roundStart` gap is recorded below as the owner's decision.
+**Status:** OPEN 2026-11-24, reopened by the round-4 read: the final round was archived as `R5` (the playoff counted as a round), with the playoff's start and a score that includes the playoff hole; round 4 has no row. Rounds 1 to 3 and the live route stand as read on 2026-11-23 (below).
 
 ---
 
@@ -181,4 +181,25 @@ Done-condition read 1 now expects `roundStart` `2026-11-19T13:30:00.000Z`, `roun
   - Højgaard is still the leader at -13 as round 4 starts.
 - **No round was archived at its start this time:** the round-3 row is the only one, written once round 3 had finished (`4943d43`).
 - Round 4 is in play today: 66 tees, 2026-11-23T12:20Z to 14:10Z. Its row is read 2026-11-24 13:00Z.
+
+### 2026-11-24 13:00Z: round 4 read; the playoff was archived as a fifth round
+
+- **D1:** no `R4` row for `golf_401850981`.
+  - Instead there are `golf_2026-11-23_thersmclassic_r5` (created 2026-11-23 23:17:03) and `golf_2026-11-24_thersmclassic_r5` (created 2026-11-24 10:00:06, the duplicate-date pattern).
+  - Both carry `away` "R5", `start_time` `2026-11-23T19:09:00.000Z`, `home_score` -17, `note` "Marco Penge -17".
+- **ESPN, leaderboard endpoint** (FIELD browser tool, 13:00Z):
+  - Event `Final`, competition `Final`, period 5.
+  - Round-4 tee times 66 of 66, `2026-11-23T12:20Z` to `14:10Z`.
+  - Penge and Thorbjornsen both at -16: a playoff, which Penge won.
+- **ESPN, scoreboard `?dates=20261123`:** each player's `linescores` has the four rounds, then a `period: 5` entry, then an empty `period: 402` entry.
+  - Penge's period 5: "-1", 1 hole. Thorbjornsen's: "E", 1 hole. Two other players: "-", 0 holes. 143 players have no period-5 entry.
+  - No entry carries a playoff flag, and the scoreboard carries no number of rounds. The leaderboard endpoint does (`tournament.numberOfRounds` 4, read 2026-11-19).
+  - Penge's scoreboard `score` is -17, the playoff hole included. The leaderboard endpoint's official total is -16.
+- **Cause (source read):** the relay's current round is the number of linescore entries that have begun (`golfRoundLine`, and `currentRoundFromLinescores` for `round`). A playoff entry counts as a fifth round, and a "-" displayValue counts as begun.
+  - So at the end, `round` was 5. The client archived the round it saw complete as R5, with the period-5 tee time as `roundStart` and the playoff-inclusive `toPar` as the leader's score.
+  - Round 4 was never archived: it was complete only in the minutes before the playoff began, and no viewer's browser saved it in that window.
+- **Not yet changed.** The fix has two choices for the owner:
+  - where the number of regular rounds comes from (the leaderboard endpoint the relay already reads);
+  - whether a playoff is archived inside round 4's row or as its own.
+  - Correcting the two R5 rows into one R4 row is a production write and the owner's call.
 

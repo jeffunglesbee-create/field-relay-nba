@@ -92,3 +92,8 @@
 - ESPN's round-3 tees read 14:25Z to 16:15Z: shifted 15 minutes by the rain delay after the previous day's 14:10Z read.
 - Status DONE. Round 4 confirming read: 2026-11-24 13:00Z.
 
+## 2026-11-24: round-4 read, CC-CMD reopened
+
+- The final round was archived as "R5": the playoff counted as a round. Rows `..._r5` on 11-23 and 11-24, start 19:09Z, "Marco Penge -17" (official -16). Round 4 has no row.
+- Detail and cause are in the CC-CMD's 2026-11-24 section. The fix waits on the owner's two choices.
+
