@@ -1,0 +1,49 @@
+=== afl round live check  utc=2026-11-24T21:19:37Z  head=b3dbdf81 ===
+resolver: /home/runner/work/field-relay-nba/field-relay-nba/src/wp-resolver.js
+clock pinned: 2026-07-08T10:00:00.000Z
+ESPN reads made by the resolver (all four picks, in the order they completed):
+  dates=20260706  HTTP 200  events 0  
+  dates=20260707  HTTP 200  events 0  
+  dates=20260708  HTTP 200  events 0  
+  dates=20260710  HTTP 200  events 1  r18 Collingwood v North Melbourne
+  dates=20260712  HTTP 200  events 3  r18 Western Bulldogs v West Coast Eagles; r18 Melbourne v Richmond; r18 Brisbane Lions v Essendon
+  dates=20260705  HTTP 200  events 2  r17 Essendon v St Kilda; r17 Port Adelaide v North Melbourne
+  dates=20260713  HTTP 200  events 0  
+  dates=20260714  HTTP 200  events 0  
+  dates=20260709  HTTP 200  events 1  r18 Fremantle v Sydney Swans
+  dates=20260711  HTTP 200  events 4  r18 St Kilda v Port Adelaide; r18 GWS GIANTS v Geelong Cats; r18 Carlton v Hawthorn; r18 Adelaide Crows v Gold Coast SUNS
+  dates=20260707  HTTP 200  events 0  
+  dates=20260710  HTTP 200  events 1  r18 Collingwood v North Melbourne
+  dates=20260706  HTTP 200  events 0  
+  dates=20260705  HTTP 200  events 2  r17 Essendon v St Kilda; r17 Port Adelaide v North Melbourne
+  dates=20260711  HTTP 200  events 4  r18 St Kilda v Port Adelaide; r18 GWS GIANTS v Geelong Cats; r18 Carlton v Hawthorn; r18 Adelaide Crows v Gold Coast SUNS
+  dates=20260712  HTTP 200  events 3  r18 Western Bulldogs v West Coast Eagles; r18 Melbourne v Richmond; r18 Brisbane Lions v Essendon
+  dates=20260713  HTTP 200  events 0  
+  dates=20260708  HTTP 200  events 0  
+  dates=20260709  HTTP 200  events 1  r18 Fremantle v Sydney Swans
+  dates=20260714  HTTP 200  events 0  
+  dates=20260710  HTTP 200  events 1  r18 Collingwood v North Melbourne
+  dates=20260705  HTTP 200  events 2  r17 Essendon v St Kilda; r17 Port Adelaide v North Melbourne
+  dates=20260706  HTTP 200  events 0  
+  dates=20260708  HTTP 200  events 0  
+  dates=20260712  HTTP 200  events 3  r18 Western Bulldogs v West Coast Eagles; r18 Melbourne v Richmond; r18 Brisbane Lions v Essendon
+  dates=20260707  HTTP 200  events 0  
+  dates=20260711  HTTP 200  events 4  r18 St Kilda v Port Adelaide; r18 GWS GIANTS v Geelong Cats; r18 Carlton v Hawthorn; r18 Adelaide Crows v Gold Coast SUNS
+  dates=20260713  HTTP 200  events 0  
+  dates=20260714  HTTP 200  events 0  
+  dates=20260709  HTTP 200  events 1  r18 Fremantle v Sydney Swans
+  dates=20260711  HTTP 200  events 4  r18 St Kilda v Port Adelaide; r18 GWS GIANTS v Geelong Cats; r18 Carlton v Hawthorn; r18 Adelaide Crows v Gold Coast SUNS
+  dates=20260713  HTTP 200  events 0  
+  dates=20260707  HTTP 200  events 0  
+  dates=20260709  HTTP 200  events 1  r18 Fremantle v Sydney Swans
+  dates=20260712  HTTP 200  events 3  r18 Western Bulldogs v West Coast Eagles; r18 Melbourne v Richmond; r18 Brisbane Lions v Essendon
+  dates=20260708  HTTP 200  events 0  
+  dates=20260714  HTTP 200  events 0  
+  dates=20260705  HTTP 200  events 2  r17 Essendon v St Kilda; r17 Port Adelaide v North Melbourne
+  dates=20260710  HTTP 200  events 1  r18 Collingwood v North Melbourne
+  dates=20260706  HTTP 200  events 0  
+Squiggle asked for: [[2026,18],[2026,18],[2026,18],[2026,17]]
+answers: Fremantle Dockers -> {"probability":0.6,"source":"squiggle","label":"Statistical probability"}  Sydney Swans -> {"probability":0.4,"source":"squiggle","label":"Statistical probability"}  GWS GIANTS -> {"probability":0.4,"source":"squiggle","label":"Statistical probability"}  Port Adelaide -> {"probability":0.7,"source":"squiggle","label":"Statistical probability"}
+INFO  a date RANGE (dates=20260705-20260714) is answered HTTP 400: {"code":400,"message":"Failed to get events endpoint."}
+COVERAGE: 40 ESPN reads recorded over 4 picks (ten per pick when the resolver reads one day at a time; the pre-fix resolver makes one range read per pick), one pinned clock (2026-07-08), one stubbed Squiggle (round-keyed, Squiggle's own team names). Not covered: any other round or season, the other fourteen clubs, Kali, and the live in-season slate.
+8 of 8 passed.

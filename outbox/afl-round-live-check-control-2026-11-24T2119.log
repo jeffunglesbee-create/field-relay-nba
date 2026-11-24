@@ -1,0 +1,29 @@
+=== CONTROL: the pre-fix resolver (7ec2d03f) against the same real ESPN ===
+resolver: /home/runner/work/field-relay-nba/field-relay-nba/src/.prefix-wp-resolver.js
+clock pinned: 2026-07-08T10:00:00.000Z
+ESPN reads made by the resolver (all four picks, in the order they completed):
+  dates=20260705-20260714  HTTP 400  events 0  
+  dates=20260705-20260714  HTTP 400  events 0  
+  dates=20260705-20260714  HTTP 400  events 0  
+  dates=20260705-20260714  HTTP 400  events 0  
+Squiggle asked for: []
+answers: Fremantle Dockers -> null  Sydney Swans -> null  GWS GIANTS -> null  Port Adelaide -> null
+FAIL  L1 no ESPN request the resolver made carried a date range
+        dates: ["20260705-20260714","20260705-20260714","20260705-20260714","20260705-20260714"]
+FAIL  L2 ESPN answered 200, with a JSON body, to every one-day read
+        statuses: [["20260705-20260714",400],["20260705-20260714",400],["20260705-20260714",400],["20260705-20260714",400]]
+FAIL  L3 the read for 20260709 carried the Fremantle v Sydney game, with a week number
+        20260709: undefined
+FAIL  L4 Squiggle was asked for 2026 round 18 for Fremantle and for Sydney, 18 for GWS GIANTS (GWS GIANTS v Geelong Cats, 2026-07-11) and 17 for Port Adelaide (v North Melbourne, 2026-07-05)
+        asked: []
+FAIL  L5 the home pick resolved to a probability
+        got null
+FAIL  L6 the away pick resolved to the complement
+        got null
+FAIL  L7 GWS GIANTS (ESPN) found Squiggle's Greater Western Sydney tip: home side, 0.4
+        got null
+FAIL  L8 Port Adelaide took its own round-17 tip (home, 0.7)
+        got null
+INFO  a date RANGE (dates=20260705-20260714) is answered HTTP 400: {"code":400,"message":"Failed to get events endpoint."}
+COVERAGE: 4 ESPN reads recorded over 4 picks (ten per pick when the resolver reads one day at a time; the pre-fix resolver makes one range read per pick), one pinned clock (2026-07-08), one stubbed Squiggle (round-keyed, Squiggle's own team names). Not covered: any other round or season, the other fourteen clubs, Kali, and the live in-season slate.
+0 of 8 passed.
