@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-24 (17:25Z) — Task 0 of the independent-reference CC-CMD ran: the grade can reach 113 of its 238 matches through the existing BSD join; E1 holds on the 7 leagues sampled
+
+**HEAD:** `2effeb3` → `127ea7e` (instruments), this close-out is the next commit · **Branch:** main · no `src/` change, no deploy. **Session doc:** outbox/cc-session-2026-11-24-espn-task0.md (spec and full result: field-laboratory `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, section "Task 0 result")
+
+- **E2, measured (run `espn-task0.yml`, artifact `outbox/bsd-e2-reach-latest.json`):** of 238 graded matches, **113** reach exactly one ESPN id through the archive rows that carry their `bsd_event_id` (96 with one row, 17 MLS matches with two or more rows that agree), 1 has a row and no ESPN id, **124 have no row**: 17 `eflchamp` (not archive-written; `UNDECIDED` in `src/seed-manifest.js`), 51 `ucl`/`europa` (archive rows with ESPN ids exist; `BSD_SOCCER_SPORTS` skips them), 56 dated before 2026-10-24 (never joined; the 2026-11-15 addendum's owner decision). For the five European leagues every row with a BSD id has an ESPN id; MLS is the exception (630 rows, 295 with a BSD id, 249 with an ESPN id, 149 both).
+- **E1, measured (artifact `outbox/espn-task0-2026-11-24T17-14-03-855Z.json`):** held on 7 of 7 leagues sampled, in `summary.keyEvents`, `scoreboard.competitions[0].details` and `summary.header.competitions[0].details`; `ucl` and `europa` had no finished match in 10 days (not sampled); no own goal in the sample (E3 unmeasured); E1 for matches older than ten days untested.
+- **Two refused iterations, both mine:** ESPN's scoreboard takes ONE day per read; a range answers HTTP 400, and `docs/CC-CMD-2026-10-14-espn-host-flip.md` already said so in its table. I changed `limit` and the User-Agent first, on a guess, before the captured body and that table pointed to the range. Recorded in the CC-CMD as a correction (Rule 77).
+- **Addenda written, no new CC-CMD (BUILD-ON-A):** `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md` (the UEFA labels: rows with ESPN ids, no BSD ids, the join not extended; unblocked when the owner says to extend it) and one line in the 2026-11-15 addendum of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md` (the 56 early matches, by league).
+- **Instruments:** `scripts/espn-task0-lib.mjs` (pure), `espn-task0-probe.mjs`, `bsd-e2-reach-probe.mjs`, `.github/workflows/espn-task0.yml` (dispatch only, main only; `parts` = all, espn or reach), each with a check and a mutation harness: 53 of 53, 26 of 26, 16 of 16 mutants caught. The harnesses found one blind spot in a check, one redundant term in the probe, and refused one stale anchor.
+- **Not started, the owner's call:** Tasks 1 to 4 of the CC-CMD (build the reference grade, one targeted review, the run, the record). BSD requests used today for this: 22 (two reach runs), plus the grade run's 11 on 2026-11-23.
+
 ## SESSION CLOSE-OUT — 2026-11-24 — a golf playoff is never a round; the RSM final's rows corrected
 
 **HEAD:** `4943d43` → `bc8f7f5` · **Branch:** main · this close-out is the next commit. One `src/` commit (`bc8f7f5`); none of the CFL experiment's functions (VOID window ended 2026-11-23).

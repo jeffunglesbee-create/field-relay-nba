@@ -1,7 +1,7 @@
 # CC session 2026-11-24 — Task 0 of the independent-reference CC-CMD: the instruments, and what they were built against
 
 **Task:** the owner's "Run task 0" (2026-11-24), Task 0 of field-laboratory `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md` (E1: does ESPN publish a goal list with a scoring side; E2a/E2b/E2c: how far does the relay's existing BSD-to-archive join reach the 238 graded matches).
-**Result:** not yet: the instruments are built and checked, the run is in flight (see "Run" below).
+**Result:** Task 0 DONE 2026-11-24, see "Run" below; Tasks 1 to 4 not started.
 
 ## Found before anything was built (Rule 68 pre-build probe, Rule 100)
 
@@ -22,4 +22,12 @@
 
 ## Run
 
-**Status at this commit (2026-11-24 ~17:00Z): dispatched, no result yet.** Run 45442799799 (`espn-task0.yml`, on `2effeb3`). The `verify` job was running; the `espn` and `reach` probes and the artifact commit follow. The numbers below are appended in a later commit, from the committed artifacts `outbox/espn-task0-latest.json` and `outbox/bsd-e2-reach-latest.json`; until then nothing in this document is a result.
+Runs of `espn-task0.yml` (all on `main`, `verify` green each time): **45442799799** (on `2effeb3`): reach reached its target, the ESPN probe did not (9 of 9 scoreboards HTTP 400, body not kept); **run 2** (on `b6ec035`, two fixes: the reach probe now counts distinct ESPN ids, the ESPN probe keeps a refusal's body): reach reached its target, ESPN still 400 with the body `{"code":400,"message":"Failed to get events endpoint."}`; **45445954294** (on `127ea7e`, `parts` = `espn`): the ESPN probe reached its target. Three runs, two refused-probe iterations, 22 BSD requests in all.
+
+**What was wrong, in order.** (1) The first ESPN request asked for a date RANGE (`dates=A-B`) with `limit=300`: refused. (2) I changed `limit` to 200 and added a User-Agent, on the strength of a script that used them; the body then said what ESPN objected to, and the repo's own `docs/CC-CMD-2026-10-14-espn-host-flip.md` already had the answer in its table (a range is refused, "one read per league per day"), which I had not read. (3) One day per read, walking back from yesterday: 9 of 9 answered. Step (2) was a change made on a guess; the captured body, not the guess, is what pointed to the cause.
+
+**Results** (full tables in the laboratory's `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, section "Task 0 result"): of the 238 matches the next-goal grade covers, **113 reach exactly one ESPN id** through the existing BSD join (96 with one archive row, 17 with two or more rows that agree), 1 has a row and no ESPN id, 0 conflict, **124 have no row**: 17 `eflchamp` (not archive-written), 51 `ucl` and `europa` (archive rows exist, the join skips them), 56 dated before 2026-10-24 (never joined). E1 held on 7 of 7 leagues sampled (`ucl` and `europa` had no finished match in 10 days; not sampled); goal rows equalled the final score on 7 of 7; no own goal occurred in the sample, so E3 is unmeasured. Artifacts: `outbox/espn-task0-2026-11-24T17-14-03-855Z.json`, `outbox/bsd-e2-reach-latest.json`.
+
+**Not verified:** E1 for matches older than ten days (the population is August to November), E1 for `ucl` and `europa`, E3, E4 beyond seven matches, E5 (Step A, needs the run). Tasks 1 to 4 of the CC-CMD are not started; that is the owner's call.
+
+**Integration state (Rule 65):** VERIFIED for the probes (three runs, artifacts committed by the workflow's own commit job); STAGED for everything the grade will need: unblocked when the owner says to build Task 1; verify with the Task 0 artifacts named above.
