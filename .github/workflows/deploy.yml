@@ -507,6 +507,15 @@ jobs:
           node scripts/check-wc-knockout-not-group.mjs
           node scripts/check-wc-knockout-not-group.mjs --mutate
 
+      # Same CC-CMD, "Also found". handleWCAdminSeed read bsd_event_id without
+      # declaring it, so every call threw after its INSERT and never recomputed the
+      # group or answered. The real handler: red on the unfixed source (6 cases),
+      # seventeen mutants.
+      - name: POST /wc/admin/seed completes, whole
+        run: |
+          node scripts/check-wc-admin-seed.mjs
+          node scripts/check-wc-admin-seed.mjs --mutate
+
       # Same CC-CMD, review finding G2. The slate date steps back one calendar
       # day before 4am ET; 24 hours back on the instant named the wrong day for
       # an hour after spring-forward. src/field-date.js is shared by index.js

@@ -7,8 +7,8 @@ nearest are the June knockout-phase CC-CMDs that BUILT the path (`docs/CC-CMD-20
 `docs/CC-CMD-2026-06-29-wc-knockout-phase.md`, both DONE) and the owner's open `sport === 'wc26'` question about
 `getWCPregameLambdas` (HANDOFF, 2026-11-05 close-out), which is a different function with the same shape of cause.
 **Status:** PARTIAL 2026-11-24. DEFECT A (club games written to the World Cup tables) FIXED 2026-11-07 (the guard, its check and a flipped control).
-DEFECT B (World Cup knockout games filed through the GROUP path) FIXED 2026-11-24, in the push that carries this edit, with
-`scripts/check-wc-knockout-not-group.mjs`. `handleWCAdminSeed`'s ReferenceError is the next commit. The production writes await the owner: Task 3 (the 61
+DEFECT B (World Cup knockout games filed through the GROUP path) and `handleWCAdminSeed`'s ReferenceError FIXED 2026-11-24, in the push that carries
+this edit, with `scripts/check-wc-knockout-not-group.mjs` and `scripts/check-wc-admin-seed.mjs`. The production writes await the owner: Task 3 (the 61
 club rows) and Task 3b (10 misfiled knockout rows, 56 duplicate legacy rows, the `wc_group` rebuild), with their previews, read 2026-11-24, below.
 
 ## Why this exists, measured 2026-11-07
@@ -232,7 +232,9 @@ SELECT COUNT(*) FROM wc_results WHERE match_date < '2026-06-11' OR match_date > 
 SELECT phase, COUNT(*) FROM wc_results GROUP BY phase    -- group 72, r32 >= 14, r16 8, qf 4, sf 2, third 1, final 1
 ```
 
-## Also found, pre-existing, not part of this CC-CMD
+## Also found, pre-existing, now fixed
 
-`handleWCAdminSeed` throws `ReferenceError: bsd_event_id is not defined` after writing its row, so the standings recompute and the response are
-skipped (run on the real handler by two reviews; gated by `FIELD_MCP_SECRET`). A one-line fix in `src/index.js`, built in the next commit of 2026-11-24.
+`handleWCAdminSeed` threw `ReferenceError: bsd_event_id is not defined` after writing its row, so the standings recompute and the response were skipped. FIXED
+2026-11-24: `bsd_event_id` is destructured from the body (`src/index.js`, one name). `scripts/check-wc-admin-seed.mjs` (in `deploy.yml`) runs the real handler and asserts
+every column the INSERT binds, the backfill, the recompute, the answer, and both gates (no bearer, a wrong one): red on the unfixed source (5 cases), green on the
+fix, 10 of 10 mutants caught.

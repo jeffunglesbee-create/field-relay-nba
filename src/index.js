@@ -3848,7 +3848,7 @@ async function handleWCWPVerify(env) {
 }
 
 
-// Body: { game_id, group_id, home, away, home_score, away_score, match_date }
+// Body: { game_id, group_id, home, away, home_score, away_score, match_date[, bsd_event_id] }
 // Gated by FIELD_MCP_SECRET (same as other admin endpoints)
 async function handleWCAdminSeed(request, env) {
     const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -3858,7 +3858,7 @@ async function handleWCAdminSeed(request, env) {
         return new Response('WC2026_DB not bound', { status: 503, headers: CORS });
     let body;
     try { body = await request.json(); } catch { return new Response('Invalid JSON', { status: 400, headers: CORS }); }
-    const { game_id, group_id, home, away, home_score, away_score, match_date } = body || {};
+    const { game_id, group_id, home, away, home_score, away_score, match_date, bsd_event_id } = body || {};
     if (!game_id || !group_id || !home || !away)
         return new Response('Missing required fields: game_id, group_id, home, away', { status: 400, headers: CORS });
     // Normalize names so the seed path matches the cron writeWCResult path.
