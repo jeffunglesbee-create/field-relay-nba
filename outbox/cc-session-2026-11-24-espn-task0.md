@@ -1,0 +1,25 @@
+# CC session 2026-11-24 — Task 0 of the independent-reference CC-CMD: the instruments, and what they were built against
+
+**Task:** the owner's "Run task 0" (2026-11-24), Task 0 of field-laboratory `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md` (E1: does ESPN publish a goal list with a scoring side; E2a/E2b/E2c: how far does the relay's existing BSD-to-archive join reach the 238 graded matches).
+**Result:** not yet: the instruments are built and checked, the run is in flight (see "Run" below).
+
+## Found before anything was built (Rule 68 pre-build probe, Rule 100)
+
+`/context/date/2026-10-25`, read once through `probe_relay_route` on 2026-11-24 (HTTP 200, 334 KB; the response is truncated by the tool): the seven MLS rows at the top carry a `bsd_event_id` ("5371" to "5377") and **`espn_event_id: null`**, `start_time: null`, `created_at: 2026-07-06` (pre-seeded schedule rows, ids like `2026-10-25-mls-sd-sea`); the NBA rows on the same day carry `espn_event_id` and a null `bsd_event_id`. So "a joined row carries the ESPN id" is NOT true of every row. One read of one day is a glance, not a measurement: Task 0 counts it (rows with a bsd id, an espn id, both, by sport label), and the CC-CMD is not rewritten from the glance (Rule 100: an untested premise is not reported as a finding).
+
+## What was built (field-relay-nba, branch `main`)
+
+- `scripts/espn-task0-lib.mjs` — pure (imports nothing): the day arithmetic, the rows of a `/context/date` read (`null` when it is not the contract shape: an unread day is never an empty one), per-sport-label counts of rows with a bsd id / espn id / both, `reachOf` (each graded match lands in exactly one of: no valid day, unread, zero with ONE named reason, one row (with or without an espn id), two or more), and the shape accounting for ESPN goal rows (`inventory` of field paths, `goalShape`, `pickRecentFinished`, `registryFromSource`). Check: `scripts/check-espn-task0-lib.mjs` (51 assertions, hand-derived). Mutation harness: `scripts/mutate-espn-task0-lib.mjs` (48 of 48 caught, with controls; one equivalent mutant found and documented).
+- `scripts/espn-task0-probe.mjs` — E1 and E2a, no token. Nine scoreboard reads and up to nine summary reads (one match per league: the most recent finished one with a score, last 14 days) on `site.web.api.espn.com`, one second apart, a 403 or 429 stops it, redirects read as statuses, every fetch timed out. League slugs are parsed from this repository's own registry text, not written from memory. Reports which LIST witnesses E1 (`summary.keyEvents`, `scoreboard.competitions[0].details`, `summary.header.competitions[0].details`), because the grade will read one of them. Check: `scripts/check-espn-task0-probe.mjs` (11 scenarios, 31 assertions, against stub ESPN and relay servers). Harness: `scripts/mutate-espn-task0-probe.mjs` (22 of 22 caught; the first run found one redundant E1 condition, `withTeamId`, which was removed rather than left as an equivalent mutant).
+- `scripts/bsd-e2-reach-probe.mjs` — E2b and E2c, the BSD token. Reuses the census's `collect()` and the grade runner's `populationOf` (one definition of "gradeable"), groups the calls by BSD event, reads `/context/date/{day}` for each call's UTC day and the day before (one read per distinct day, cap 300, none made if more are needed), and writes counts only. Imports only this repository's own scripts: no laboratory code runs in the process that holds the token. Check: `scripts/check-bsd-e2-reach-probe.mjs` (8 scenarios, 26 assertions). Harness: `scripts/mutate-bsd-e2-reach-probe.mjs` (15 of 15 caught).
+- `.github/workflows/espn-task0.yml` — dispatch only, main only: `verify` (no secret; every check and harness above plus the census's), then `espn` (no secret) and `reach` (the token, read-only) in parallel, then `commit` (the write credential, no token; accepts only files named like the probes' artifacts, each parsed as JSON; fails the workflow if either probe did not reach its target).
+
+## Governance notes
+
+- Existing work searched first (BUILD-ON-A): `espn-core-mirror.mjs` reads `keyEvents` from a runner but only for substitutions (`type.text`, `participants[0].athlete.id`), not goal sides; `espn-host-parity-probe`, `espn-core-runner-probe` and `espn-reachability-monitor` answer host reachability, not goal-row shape. Nothing here duplicates them.
+- A sandbox check of the ESPN probe printed "9 of 9 league scoreboards answered" for nine failed fetches. It was the instrument's own defect (a failed read counted as answered); fixed before any run, with a scenario and a mutant that fail on it.
+- `scripts/absence-collapse-ratchet.sh`: OK at every step.
+
+## Run
+
+**Status at this commit (2026-11-24 ~17:00Z): dispatched, no result yet.** Run 45442799799 (`espn-task0.yml`, on `2effeb3`). The `verify` job was running; the `espn` and `reach` probes and the artifact commit follow. The numbers below are appended in a later commit, from the committed artifacts `outbox/espn-task0-latest.json` and `outbox/bsd-e2-reach-latest.json`; until then nothing in this document is a result.
