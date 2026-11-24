@@ -9,18 +9,29 @@
  * error proves nothing about what the check asserts and is reported as a harness error. A mutation whose anchor is missing
  * or not unique applies NOTHING, so each fails the harness by name instead of passing quietly.
  */
-import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, resolve, dirname } from 'node:path';
 
 const SRC = 'src/wp-resolver.js';
 const original = readFileSync(SRC, 'utf8');
+const IDENT_SRC = 'src/identity-resolver.js';
+const identityOriginal = readFileSync(IDENT_SRC, 'utf8');
 const born = [];
 const place = (text, tag) => {
   const p = join(dirname(SRC), `.mutant-${tag}-${Math.random().toString(36).slice(2, 8)}.js`);
   writeFileSync(p, text); born.push(p); return resolve(p);
 };
-process.on('exit', () => { for (const p of born) rmSync(p, { force: true }); });
+// A mutant of a module the resolver IMPORTS needs the resolver to import the mutant, so the whole of src/ (index.js aside) is copied into a
+// directory of its own with that one file mutated, and the check is aimed at the resolver inside it.
+const placeTree = (file, text, tag) => {
+  const dir = join(dirname(SRC), `.mutant-tree-${tag}-${Math.random().toString(36).slice(2, 8)}`);
+  mkdirSync(dir); born.push(dir);
+  for (const f of readdirSync(dirname(SRC))) if (f.endsWith('.js') && f !== 'index.js') copyFileSync(join(dirname(SRC), f), join(dir, f));
+  writeFileSync(join(dir, file), text);
+  return resolve(dir, 'wp-resolver.js');
+};
+process.on('exit', () => { for (const p of born) rmSync(p, { force: true, recursive: true }); });
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => process.exit(130));
 
 // 'pass' | 'red' (an assertion failed) | 'error' (anything else).
@@ -92,14 +103,14 @@ const MUTANTS = [
   ['A29 round 0 is read as no round again (!round)', [["if (round === null) continue;", "if (!round) continue;"]]],
   ['A30 the round search matches clubs by 5-character prefix again (Melbourne lands on North Melbourne\'s game)', [[SIDES, "if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {"]]],
   ['A31 the tip search matches clubs by 5-character prefix again (Port Adelaide takes Adelaide\'s tip)', [[ISMATCH, "const isMatch = name => teamNameMatch(predictedWinner, name);"]]],
-  ['A32 clubs are keyed by the generic team key, not the AFL one (ESPN \'GWS GIANTS\' and Squiggle \'Greater Western Sydney\' part ways)', [[CLUB_KEY, "const ka = resolveTeamKey(a);\n    return !!ka && ka === resolveTeamKey(b);"]]],
+  ['A32 clubs are keyed by the generic team key, not the AFL one (ESPN \'GWS GIANTS\' and Squiggle \'Greater Western Sydney\' part ways)', [[CLUB_KEY, "const ka = resolveTeamKey(a);\n    return !!ka && ka === resolveTeamKey(b);"]], 'identity-resolver.js'],
   ['A33 the tip search matches a club by the nickname-stripped 6 characters of its name only when the prefix rule also agrees (the old fallback restored)', [[ISMATCH, "const isMatch = name => sameAFLClub(predictedWinner, name) || teamNameMatch(predictedWinner, name);"]]],
   ['A34 the window is anchored 10 hours ahead of UTC (Australian time)', [["new Date(now.getTime() + k * 86400000)", "new Date(now.getTime() + 36000000 + k * 86400000)"]]],
   ['A35 the year is a constant', [[RET, "return { round, year: 2026 };"]]],
   ['A36 "none answered" counts days with games, so an off-season window is reported as a failure', [["const answered = slates.filter(d => d !== null).length;", "const answered = slates.filter(d => d !== null && d.events.length > 0).length;"]]],
-  ['A37 a name that strips to no key matches another such name (the !!ka guard is gone)', [[CLUB_KEY, "return resolveAFLTeamKey(a) === resolveAFLTeamKey(b);"]]],
-  ['A38 clubs are compared by the first 3 characters of their key', [[CLUB_KEY, "const ka = resolveAFLTeamKey(a);\n    return !!ka && ka.slice(0, 3) === resolveAFLTeamKey(b).slice(0, 3);"]]],
-  ['A39 clubs are compared by the first 4 characters of their key', [[CLUB_KEY, "const ka = resolveAFLTeamKey(a);\n    return !!ka && ka.slice(0, 4) === resolveAFLTeamKey(b).slice(0, 4);"]]],
+  ['A37 a name that strips to no key matches another such name (the !!ka guard is gone)', [[CLUB_KEY, "return resolveAFLTeamKey(a) === resolveAFLTeamKey(b);"]], 'identity-resolver.js'],
+  ['A38 clubs are compared by the first 3 characters of their key', [[CLUB_KEY, "const ka = resolveAFLTeamKey(a);\n    return !!ka && ka.slice(0, 3) === resolveAFLTeamKey(b).slice(0, 3);"]], 'identity-resolver.js'],
+  ['A39 clubs are compared by the first 4 characters of their key', [[CLUB_KEY, "const ka = resolveAFLTeamKey(a);\n    return !!ka && ka.slice(0, 4) === resolveAFLTeamKey(b).slice(0, 4);"]], 'identity-resolver.js'],
   ['A41 the Squiggle row is taken whatever its source (the Aggregate filter is gone)', [["find(t => t.source === 'Aggregate' &&\n", "find(t => true &&\n"]]],
   ['A42 the home confidence is read from the tipped team\'s `confidence`', [["parseFloat(aggTip.hconfidence)", "parseFloat(aggTip.confidence)"]]],
   ['A43 the probability is not rounded to three places', [["probability: Math.round(prob * 1000) / 1000, source: 'squiggle'", "probability: prob, source: 'squiggle'"]]],
@@ -114,16 +125,17 @@ const MUTANTS = [
 ];
 
 let missed = 0, nothing = 0, errored = 0;
-for (const [name, edits] of MUTANTS) {
-  let text = original, bad = null;
+for (const [name, edits, file = 'wp-resolver.js'] of MUTANTS) {
+  const base = file === 'wp-resolver.js' ? original : identityOriginal;
+  let text = base, bad = null;
   for (const [anchor, repl] of edits) {
     const count = text.split(anchor).length - 1;
-    if (count !== 1) { bad = `the anchor occurs ${count} times in ${SRC}, not once: ${JSON.stringify(anchor.slice(0, 70))}`; break; }
+    if (count !== 1) { bad = `the anchor occurs ${count} times in ${file}, not once: ${JSON.stringify(anchor.slice(0, 70))}`; break; }
     text = text.replace(anchor, () => repl);
   }
-  if (bad === null && text === original) bad = 'the replacement equals the anchor';
+  if (bad === null && text === base) bad = 'the replacement equals the anchor';
   if (bad !== null) { nothing++; console.log(`NOTHING MUTATED  ${name}\n        ${bad}`); continue; }
-  const verdict = run(place(text, name.slice(0, 3).trim()));
+  const verdict = run(file === 'wp-resolver.js' ? place(text, name.slice(0, 3).trim()) : placeTree(file, text, name.slice(0, 3).trim()));
   const label = verdict === 'red' ? 'CAUGHT    ' : verdict === 'pass' ? 'NOT CAUGHT' : 'HARNESS ERROR (no assertion failed; a crash is not a catch)';
   console.log(`${label}  ${name}`);
   if (verdict === 'pass') missed++;
@@ -131,6 +143,6 @@ for (const [name, edits] of MUTANTS) {
 }
 const caughtN = MUTANTS.length - missed - nothing - errored;
 console.log(`\nmutations: ${caughtN} of ${MUTANTS.length} caught${missed ? `, ${missed} SURVIVED` : ''}${errored ? `, ${errored} harness error(s)` : ''}${nothing ? `, ${nothing} not applied` : ''}`);
-console.log('COVERAGE: the request shape (range vs day, an extra parameter, the headers), both ends of the window and a day beyond each, parallel vs sequential reads, an edge-cache option, the timeout and its value, each of the warnings, failed-day handling and an unreadable body, how many days must answer before "none answered" is said, scan order, the week-number test, its default and the top-level week, which sides of a game are matched and how a club is identified (identity key, the 5-character prefix rule, the generic key, the prefix rule as a fallback), the year (a constant, last year) and the round returned, the zone the window is anchored in, the off-season window, the Squiggle read source filter, field choice, rounding, timeout, match sides and home/away reading, and a 400 read as a slate, mutated in a copy of src/wp-resolver.js.');
+console.log('COVERAGE: the request shape (range vs day, an extra parameter, the headers), both ends of the window and a day beyond each, parallel vs sequential reads, an edge-cache option, the timeout and its value, each of the warnings, failed-day handling and an unreadable body, how many days must answer before "none answered" is said, scan order, the week-number test, its default and the top-level week, which sides of a game are matched and how a club is identified (identity key, the 5-character prefix rule, the generic key, the prefix rule as a fallback), the year (a constant, last year) and the round returned, the zone the window is anchored in, the off-season window, the Squiggle read source filter, field choice, rounding, timeout, match sides and home/away reading, and a 400 read as a slate, mutated in a copy of src/wp-resolver.js (the club-identity mutants in a copy of src/identity-resolver.js, inside a copy of the rest of src/).');
 console.log('NOT mutated here: the Kali branch (no token in the check; its team names are unmeasured), the Squiggle tip reading beyond the club match, teamNameMatch itself (other sports use it), and the real ESPN payload (.github/workflows/afl-round-live-check.yml).');
 process.exit(missed || nothing || errored ? 1 : 0);

@@ -7,7 +7,7 @@
 // (index.js imports UserDO from user-do.js, which imports this module).
 // If a constant changes in index.js, update it here too.
 
-import { resolveTeamKey, resolveAFLTeamKey } from './identity-resolver.js';
+import { resolveTeamKey, sameAFLClub } from './identity-resolver.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 import { chargeOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
@@ -341,21 +341,6 @@ async function fetchESPNNativeWP(espnPath, espnId, predictedWinner) {
 // a backward-only window, confirmed via a direct today+yesterday query
 // returning zero events both days.
 //
-// One AFL club, by exact comparison of its identity key. teamNameMatch's 5-character prefix rule matches 'Port Adelaide' to 'Adelaide'
-// ('adela' is inside 'portadelaide'), 'Melbourne' to 'North Melbourne' ('melbo' is inside 'northmelbourne') and 'Western Bulldogs'
-// to 'Greater Western Sydney' ('weste'), so once the range request stopped hiding the code below it, a pick could resolve through
-// another club's game or tip and come back as that club's probability under source 'squiggle' (reproduced in review, 2026-11-24).
-// resolveAFLTeamKey (identity-resolver.js, the existing AFL identity) maps ESPN's displayNames ('GWS GIANTS', 'Gold Coast SUNS',
-// 'Fremantle'), Squiggle's names ('Greater Western Sydney', 'Gold Coast', 'Sydney') and the client's nickname labels
-// ('Fremantle Dockers', 'GWS Giants') to the same 18 distinct keys (measured 2026-11-24: 18 of 18 in each set, and the check pins
-// it). The key is itself the club name without its nickname, cut to six letters, so a name that is not an AFL club but shares those
-// six letters with one would still match it: that is safe only because normalizeSportCode sends AFL labels alone to this branch.
-// A name that strips to nothing (a bare nickname such as 'Swans') has no key and matches nothing.
-function sameAFLClub(a, b) {
-    const ka = resolveAFLTeamKey(a);
-    return !!ka && ka === resolveAFLTeamKey(b);
-}
-
 // Ten ONE-DAY reads in parallel (UTC dates -3d..+6d), NOT a date range. ESPN's scoreboard answers a range with HTTP 400
 // ({"code":400,"message":"Failed to get events endpoint."}): measured 2026-11-24 for AFL and eng.1, and on both ESPN hosts on
 // 2026-11-06 (outbox/probe-fa-cup-season-2026-11-06T23-18-47-844Z.json). A range was still accepted on 2026-07-08 (the live
