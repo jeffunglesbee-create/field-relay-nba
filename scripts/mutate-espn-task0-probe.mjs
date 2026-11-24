@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 32;
+const MIN_ASSERTIONS = 37;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'espn-task0-probe.mjs');
 const MUT = path.join(dir, '.mutant-espn-task0-probe.mjs');
@@ -39,12 +39,15 @@ const MUTANTS = [
   M('reached: the relay status is not required', REACH, 'e2a.shapeOk === true'),
   M('reached: the relay shape is not required', REACH, 'e2a.status === 200'),
   M('main: -latest.json always advances', "if (reached) { fs.writeFileSync('outbox/espn-task0-latest.json'", "if (true) { fs.writeFileSync('outbox/espn-task0-latest.json'"),
-  M('probeLeague: the first event, not the most recent finished one', 'const ev = pickRecentFinished(events);', 'const ev = events[0];'),
+  M('probeLeague: the first event, not the most recent finished one', 'ev = pickRecentFinished(events);', 'ev = events.length > 0 ? events[0] : null;'),
   M('probeLeague: a league with no finished match is read anyway', 'if (ev === null) { out.chosen = null; return out; }', 'if (ev === null) { out.chosen = null; }'),
   M('probeLeague: the summary of the wrong event', 'summary?event=${encodeURIComponent(String(ev.id))}', 'summary?event=${encodeURIComponent(String(events[0].id))}'),
-  M('probeLeague: no page limit', '&limit=200`', '`'),
+  M('walk: today instead of yesterday', 'for (let back = 1; back <= MAX_DAYS_BACK && ev === null; back++) {', 'for (let back = 0; back <= MAX_DAYS_BACK && ev === null; back++) {'),
+  M('walk: gives up after one day', 'const MAX_DAYS_BACK = 10;', 'const MAX_DAYS_BACK = 1;'),
+  M('walk: does not stop at the first match', 'for (let back = 1; back <= MAX_DAYS_BACK && ev === null; back++) {', 'for (let back = 1; back <= MAX_DAYS_BACK; back++) {'),
+  M('walk: goes on past a failed read', 'if (events === null || out.scoreboard.status !== 200) return out;', ''),
+  M('walk: a date range again', 'scoreboard?dates=${ymd(day)}`', 'scoreboard?dates=${ymd(day)}-${ymd(today)}`'),
   M('get: a refusal does not keep its words', 'if (r.status !== 200) rec.errorBody = text.slice(0, 200);', ''),
-  M('window: thirteen days', 'const WINDOW_DAYS = 14;', 'const WINDOW_DAYS = 13;'),
   M('E2a: another day', "const E2A_DAY = '2026-10-25';", "const E2A_DAY = '2026-10-26';"),
   M('E2a: the rows are not counted', 'labelStats(new Map([[E2A_DAY, rows]]))', 'labelStats(new Map())'),
   M('main: a league missing from the registry is not fatal', 'if (missing.length > 0)', 'if (missing.length > 99)'),

@@ -44,12 +44,18 @@ const goalRows = (o = {}) => [
 const event = (id, date, completed, a, b, details) => ({ id, date, competitions: [{ status: { type: { completed } }, competitors: [{ homeAway: 'home', score: a, team: { id: '11' } }, { homeAway: 'away', score: b, team: { id: '22' } }], details }] });
 const ago = (d) => new Date(Date.now() - d * 86400000).toISOString();
 function espnWorld(over = {}) {
-  const scoreboard = (slug) => {
+  const scoreboard = (slug, u) => {
     if (over.scoreboard && over.scoreboard[slug]) return over.scoreboard[slug];
     const rows = goalRows(over.rows && over.rows[slug]);
     const noMatch = over.noMatch && over.noMatch.includes(slug);
-    return [200, { events: noMatch ? [event('live', ago(0), false, '0', '0', [])]
-      : [event('old', ago(9), true, '0', '0', []), event(`E-${slug}`, ago(2), true, '2', '1', rows), event('live', ago(0), false, '1', '0', []), event('noscore', ago(1), true, undefined, undefined, [])] }, { 'cache-control': 'max-age=60' }];
+    const back = over.daysBack !== undefined && over.daysBack[slug] !== undefined ? over.daysBack[slug] : 2;
+    // ESPN's scoreboard takes ONE day: a range is refused with a 400 (the repo's own measurement), so the stub refuses one too
+    const asked = u.searchParams.get('dates');
+    if (!/^\d{8}$/.test(String(asked))) return [400, { code: 400, message: 'Failed to get events endpoint.' }];
+    const finished = !noMatch && asked === ymd(new Date(Date.now() - back * 86400000));
+    return [200, { events: finished
+      ? [event('old', ago(9), true, '0', '0', []), event(`E-${slug}`, ago(back), true, '2', '1', rows), event('live', ago(0), false, '1', '0', []), event('noscore', ago(1), true, undefined, undefined, [])]
+      : [event('live', ago(0), false, '0', '0', [])] }, { 'cache-control': 'max-age=60' }];
   };
   const summary = (slug) => {
     if (over.summary && over.summary[slug]) return over.summary[slug];
@@ -105,7 +111,7 @@ async function run({ world = espnWorld(), day = [200, DAYROWS], source = SOURCE,
   const art = stamped.length ? JSON.parse(fs.readFileSync(path.join(out, stamped[0]), 'utf8')) : null;
   const raw = files.map((f) => fs.readFileSync(path.join(out, f), 'utf8')).join('\n');
   fs.rmSync(dir, { recursive: true, force: true });
-  return { code, stdout, stderr, espnLog, relayLog, files, art, latest: files.includes('espn-task0-latest.json'), raw, days: [ymd(t0), ymd(t1)] };
+  return { code, stdout, stderr, espnLog, relayLog, files, art, latest: files.includes('espn-task0-latest.json'), raw, days: [ymd(t0), ymd(t1)], yesterdays: [ymd(new Date(t0.getTime() - 86400000)), ymd(new Date(t1.getTime() - 86400000))] };
 }
 const kind = (log, k) => log.filter((x) => x.path.endsWith(`/${k}`));
 
@@ -114,11 +120,11 @@ await scenario('a complete run', async () => {
   const a = r.art;
   eq('exit 0, a stamped artifact and -latest.json', [r.code, r.files.length, r.latest], [0, 2, true]);
   eq('reached its target, stopped nowhere', [a.reachedTarget, a.stopped, a.notReachedBecause], [true, null, null]);
-  eq('nine scoreboards, nine summaries, one relay read: nineteen requests in all', [kind(r.espnLog, 'scoreboard').length, kind(r.espnLog, 'summary').length, r.relayLog.length, a.requestCount], [9, 9, 1, 19]);
-  const q = r.espnLog.find((x) => x.path.endsWith('/scoreboard')).query;
-  const m = /dates=(\d{8})-(\d{8})&limit=200$/.exec(q);
-  eq('the window is the 14 days ending today (UTC), at limit 200', [m !== null, m && r.days.includes(m[2]), m && (Date.parse(`${m[2].slice(0, 4)}-${m[2].slice(4, 6)}-${m[2].slice(6)}`) - Date.parse(`${m[1].slice(0, 4)}-${m[1].slice(4, 6)}-${m[1].slice(6)}`)) / 86400000], [true, true, 14]);
-  eq('the manifest keeps the status and the cache header of each read', [a.requests.find((x) => x.label === 'scoreboard epl').status, a.requests.find((x) => x.label === 'scoreboard epl').cacheControl], [200, 'max-age=60']);
+  eq('per league two day-reads (yesterday is empty, the match is two days back) and one summary: 18 + 9 + 1 relay read = 28 requests', [kind(r.espnLog, 'scoreboard').length, kind(r.espnLog, 'summary').length, r.relayLog.length, a.requestCount], [18, 9, 1, 28]);
+  const sbq = kind(r.espnLog, 'scoreboard').map((x) => x.query);
+  eq('every scoreboard read is ONE day (no range, no limit), and the first is yesterday (UTC)', [sbq.every((x) => /^\?dates=\d{8}$/.test(x)), r.yesterdays.includes(sbq[0].slice(7))], [true, true]);
+  eq('the walk found the match two days back in every league, after exactly two reads', [Object.values(a.leagues).map((l) => l.scoreboard.daysBack).join(), Object.values(a.leagues).map((l) => l.scoreboard.reads).join()], ['2,2,2,2,2,2,2,2,2', '2,2,2,2,2,2,2,2,2']);
+  eq('the manifest keeps the status and the cache header of each read', [a.requests.find((x) => x.label.startsWith('scoreboard epl')).status, a.requests.find((x) => x.label.startsWith('scoreboard epl')).cacheControl], [200, 'max-age=60']);
   eq('the summary read asks for the chosen event, by id', kind(r.espnLog, 'summary')[0].query, '?event=E-epl');
   eq('the most recent finished match WITH a score is chosen, never the older or the unscored one', Object.values(a.leagues).map((l) => l.chosen.espnEventId).sort(), SLUGS.map((s) => `E-${s}`).sort());
   eq('E1 held in all nine, goal rows equalled the final score in all nine, the own goal is seen in ucl only', [a.e1.e1HeldOn.length, a.e1.goalRowsEqualFinalTotalOn.length, a.e1.ownGoalSeenOn], [9, 9, ['ucl']]);
@@ -135,30 +141,38 @@ await scenario('a league with no finished match', async () => {
   const r = await run({ world: espnWorld({ noMatch: ['ucl'], rows: { ucl: { ownGoal: true } } }) });
   eq('still reached: its scoreboard answered', [r.art.reachedTarget, r.art.e1.leaguesProbed, r.art.e1.leaguesWithAFinishedMatch], [true, 9, 8]);
   eq('no summary was read for it, and the league is not counted in E1', [kind(r.espnLog, 'summary').length, r.art.e1.e1HeldOn.includes('ucl'), r.art.leagues.ucl.chosen], [8, false, null]);
+  eq('the walk gave up after ten days, having read each: 8 leagues x 2 reads + 10 = 26', [r.art.leagues.ucl.scoreboard.reads, kind(r.espnLog, 'scoreboard').length], [10, 26]);
 });
 
 await scenario('a 403 stops the run', async () => {
   const r = await run({ world: espnWorld({ scoreboard: { mls: [403, { error: 'denied' }] } }) });
-  eq('stopped on 403: epl scoreboard and summary, then the mls scoreboard, and nothing after', [r.art.stopped, kind(r.espnLog, 'scoreboard').length, kind(r.espnLog, 'summary').length], ['403', 2, 1]);
+  eq('stopped on 403: epl two day-reads and its summary, then the mls scoreboard, and nothing after', [r.art.stopped, kind(r.espnLog, 'scoreboard').length, kind(r.espnLog, 'summary').length], ['403', 3, 1]);
   eq('not reached, no -latest.json, the reason says so', [r.art.reachedTarget, r.latest, r.art.notReachedBecause], [false, false, 'stopped on 403']);
   eq('the relay read was blocked too, and is not reported as a shape', [r.relayLog.length, r.art.e2a.status], [0, null]);
 });
 
 await scenario('a 429 on a summary stops the run', async () => {
   const r = await run({ world: espnWorld({ summary: { epl: [429, { error: 'slow' }] } }) });
-  eq('stopped on 429 after the first summary', [r.art.stopped, kind(r.espnLog, 'scoreboard').length, kind(r.espnLog, 'summary').length, r.art.reachedTarget], ['429', 1, 1, false]);
+  eq('stopped on 429 after the first summary', [r.art.stopped, kind(r.espnLog, 'scoreboard').length, kind(r.espnLog, 'summary').length, r.art.reachedTarget], ['429', 2, 1, false]);
 });
 
 await scenario('a scoreboard that is not 200 is not answered, even when its body looks right', async () => {
   const r = await run({ world: espnWorld({ scoreboard: { laliga: [500, { events: [], code: 'BAD-PARAM-TEXT' }] } }) });
-  eq('the refusal keeps its own words (the diagnosis), and a 200 keeps none', [/BAD-PARAM-TEXT/.test(r.art.requests.find((x) => x.label === 'scoreboard laliga').errorBody), r.art.requests.find((x) => x.label === 'scoreboard epl').errorBody], [true, undefined]);
-  eq('eight probed, not reached, no -latest.json, and the run went on to the other leagues', [r.art.e1.leaguesProbed, r.art.reachedTarget, r.latest, kind(r.espnLog, 'scoreboard').length], [8, false, false, 9]);
+  eq('the refusal keeps its own words (the diagnosis), and a 200 keeps none', [/BAD-PARAM-TEXT/.test(r.art.requests.find((x) => x.label.startsWith('scoreboard laliga')).errorBody), r.art.requests.find((x) => x.label.startsWith('scoreboard epl')).errorBody], [true, undefined]);
+  eq('a failed read ends that league at once: laliga read once, not walked on past the failure', r.art.leagues.laliga.scoreboard.reads, 1);
+  eq('eight probed, not reached, no -latest.json, and the run went on to the other leagues: 8 x 2 + 1 reads', [r.art.e1.leaguesProbed, r.art.reachedTarget, r.latest, kind(r.espnLog, 'scoreboard').length], [8, false, false, 17]);
   eq('the coverage line does not say nine answered', /8 of 9 league scoreboards answered 200/.test(r.art.coverageLine), true);
 });
 
 await scenario('a 200 that is not the shape is not answered', async () => {
   const r = await run({ world: espnWorld({ scoreboard: { seriea: [200, { note: 'no events here' }] } }) });
   eq('eight probed, not reached', [r.art.e1.leaguesProbed, r.art.reachedTarget], [8, false]);
+});
+
+await scenario('a match further back is found by walking, and the walk stops at it', async () => {
+  const r = await run({ world: espnWorld({ daysBack: { epl: 4 } }) });
+  eq('epl was read four times and stopped; the others twice: 4 + 8 x 2 = 20 scoreboard reads', [r.art.leagues.epl.scoreboard.reads, r.art.leagues.epl.scoreboard.daysBack, kind(r.espnLog, 'scoreboard').length], [4, 4, 20]);
+  eq('and the day it asked for last is four days back', r.espnLog.filter((x) => x.query.length > 0 && x.path.startsWith(`/${REG.epl}/scoreboard`)).map((x) => x.query).length, 4);
 });
 
 await scenario('a redirect is read as a status and never followed', async () => {
