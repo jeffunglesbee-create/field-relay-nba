@@ -28,7 +28,8 @@ class PinnedDate extends RealDate {
 }
 globalThis.Date = PinnedDate;
 
-const BASE = 'https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard';
+const SCOREBOARD_PATH = '/sports/australian-football/afl/scoreboard';   // the host is not pinned: the resolver has moved ESPN hosts twice
+const DEFAULT_BASE = 'https://site.api.espn.com/apis/site/v2' + SCOREBOARD_PATH;
 const realFetch = globalThis.fetch;
 const espn = [];       // { dates, status, events, afl: [{round, home, away}] }
 const squiggle = [];   // { url, year, round }
@@ -43,12 +44,12 @@ globalThis.fetch = async (input, init) => {
     return new Response(JSON.stringify({ tips }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   const r = await realFetch(url, init);
-  if (url.startsWith(BASE)) {
+  if (new URL(url).pathname.endsWith(SCOREBOARD_PATH)) {
     const dates = new URL(url).searchParams.get('dates');
     let body = null, parseError = null;
     try { body = await r.clone().json(); } catch (e) { parseError = String(e && e.message); }
     const evs = Array.isArray(body && body.events) ? body.events : [];
-    espn.push({ dates, status: r.status, parseError, events: evs.length,
+    espn.push({ url, dates, status: r.status, parseError, events: evs.length,
       afl: evs.map(ev => { const c = (ev.competitions && ev.competitions[0] && ev.competitions[0].competitors) || [];
         const nm = side => (c.find(t => t.homeAway === side) || {}).team?.displayName || null;
         return { round: ev.week && ev.week.number != null ? ev.week.number : null, home: nm('home'), away: nm('away') }; }) });
@@ -71,7 +72,7 @@ const port = await asPick('Port Adelaide');       // plays the round-17 game on 
 
 console.log(`resolver: ${SRC}`);
 console.log(`clock pinned: ${new RealDate(CLOCK).toISOString()}`);
-console.log('ESPN reads made by the resolver (first pick):');
+console.log('ESPN reads made by the resolver (all four picks, in the order they completed):');
 for (const e of espn) console.log(`  dates=${e.dates}  HTTP ${e.status}  events ${e.events}${e.parseError ? '  NOT JSON: ' + e.parseError : ''}  ${e.afl.map(g => `r${g.round} ${g.home} v ${g.away}`).join('; ')}`);
 console.log('Squiggle asked for:', JSON.stringify(squiggle.map(s => [s.year, s.round])));
 console.log('answers: Fremantle Dockers ->', JSON.stringify(home), ' Sydney Swans ->', JSON.stringify(away), ' GWS GIANTS ->', JSON.stringify(gws), ' Port Adelaide ->', JSON.stringify(port));
@@ -90,10 +91,11 @@ ok('L8 Port Adelaide took its own round-17 tip (home, 0.7)', port && port.probab
 
 // Printed, not asserted: what ESPN says to a date RANGE today.
 try {
-  const rr = await realFetch(`${BASE}?dates=20260705-20260714`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+  const base = espn.length ? espn[0].url.split('?')[0] : DEFAULT_BASE;   // the host the resolver itself used
+  const rr = await realFetch(`${base}?dates=20260705-20260714`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
   console.log(`INFO  a date RANGE (dates=20260705-20260714) is answered HTTP ${rr.status}: ${(await rr.text()).slice(0, 120)}`);
 } catch (e) { console.log(`INFO  the range read failed: ${e && e.message}`); }
 
-console.log(`COVERAGE: ${espn.length} real ESPN reads over 4 picks (each pick reads the same ten days), one pinned clock (2026-07-08), one stubbed Squiggle (round-keyed, Squiggle's own team names). Not covered: any other round or season, the other fourteen clubs, Kali, and the live in-season slate.`);
+console.log(`COVERAGE: ${espn.length} ESPN reads recorded over 4 picks (ten per pick when the resolver reads one day at a time; the pre-fix resolver makes one range read per pick), one pinned clock (2026-07-08), one stubbed Squiggle (round-keyed, Squiggle's own team names). Not covered: any other round or season, the other fourteen clubs, Kali, and the live in-season slate.`);
 console.log(`${passed} of ${total} passed.`);
 process.exit(passed === total ? 0 : 1);

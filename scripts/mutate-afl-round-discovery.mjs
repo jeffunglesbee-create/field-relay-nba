@@ -94,6 +94,22 @@ const MUTANTS = [
   ['A31 the tip search matches clubs by 5-character prefix again (Port Adelaide takes Adelaide\'s tip)', [[ISMATCH, "const isMatch = name => teamNameMatch(predictedWinner, name);"]]],
   ['A32 clubs are keyed by the generic team key, not the AFL one (ESPN \'GWS GIANTS\' and Squiggle \'Greater Western Sydney\' part ways)', [[CLUB_KEY, "const ka = resolveTeamKey(a);\n    return !!ka && ka === resolveTeamKey(b);"]]],
   ['A33 the tip search matches a club by the nickname-stripped 6 characters of its name only when the prefix rule also agrees (the old fallback restored)', [[ISMATCH, "const isMatch = name => sameAFLClub(predictedWinner, name) || teamNameMatch(predictedWinner, name);"]]],
+  ['A34 the window is anchored 10 hours ahead of UTC (Australian time)', [["new Date(now.getTime() + k * 86400000)", "new Date(now.getTime() + 36000000 + k * 86400000)"]]],
+  ['A35 the year is a constant', [[RET, "return { round, year: 2026 };"]]],
+  ['A36 "none answered" counts days with games, so an off-season window is reported as a failure', [["const answered = slates.filter(d => d !== null).length;", "const answered = slates.filter(d => d !== null && d.events.length > 0).length;"]]],
+  ['A37 a name that strips to no key matches another such name (the !!ka guard is gone)', [[CLUB_KEY, "return resolveAFLTeamKey(a) === resolveAFLTeamKey(b);"]]],
+  ['A38 clubs are compared by the first 3 characters of their key', [[CLUB_KEY, "const ka = resolveAFLTeamKey(a);\n    return !!ka && ka.slice(0, 3) === resolveAFLTeamKey(b).slice(0, 3);"]]],
+  ['A39 clubs are compared by the first 4 characters of their key', [[CLUB_KEY, "const ka = resolveAFLTeamKey(a);\n    return !!ka && ka.slice(0, 4) === resolveAFLTeamKey(b).slice(0, 4);"]]],
+  ['A41 the Squiggle row is taken whatever its source (the Aggregate filter is gone)', [["find(t => t.source === 'Aggregate' &&\n", "find(t => true &&\n"]]],
+  ['A42 the home confidence is read from the tipped team\'s `confidence`', [["parseFloat(aggTip.hconfidence)", "parseFloat(aggTip.confidence)"]]],
+  ['A43 the probability is not rounded to three places', [["probability: Math.round(prob * 1000) / 1000, source: 'squiggle'", "probability: prob, source: 'squiggle'"]]],
+  ['A44 the nearest game to today wins, not the earliest', [[SCAN, "for (const i of [...slates.keys()].sort((a, b) => Math.abs(a - AFL_ROUND_DAYS_BACK) - Math.abs(b - AFL_ROUND_DAYS_BACK))) {"]]],
+  ['A45 the Squiggle read has no timeout', [["headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000),", "headers: SQUIGGLE_HEADERS,"]]],
+  ['A46 the Squiggle tip is matched on the away team only', [["(isMatch(t.hteam) || isMatch(t.ateam)));", "(isMatch(t.ateam)));"]]],
+  ['A47 the tip search says the home side is the one that matches the AWAY team', [["const isHome = isMatch(aggTip.hteam);", "const isHome = isMatch(aggTip.ateam);"]]],
+  ['A48 a warning names every day, not the one that failed', [["console.warn(`[AFL-ROUND] ESPN answered ${r.status} for ${day}`)", "console.warn(`[AFL-ROUND] ESPN answered ${r.status} for ${days}`)"]]],
+  ['A49 the "none answered" warning loses the module tag', [["console.warn(`[AFL-ROUND] none of the", "console.warn(`none of the"]]],
+  ['A50 a null event is treated as a failed day (the optional chaining on the event is gone)', [[WEEK, "const round = ev.week?.number ?? null;"]]],
   ['A28 an unreadable day body is caught but not warned', [["console.warn(`[AFL-ROUND] ESPN body for ${days[i]} could not be read: ${e && e.message}`);\n", ""]]],
 ];
 
@@ -115,6 +131,6 @@ for (const [name, edits] of MUTANTS) {
 }
 const caughtN = MUTANTS.length - missed - nothing - errored;
 console.log(`\nmutations: ${caughtN} of ${MUTANTS.length} caught${missed ? `, ${missed} SURVIVED` : ''}${errored ? `, ${errored} harness error(s)` : ''}${nothing ? `, ${nothing} not applied` : ''}`);
-console.log('COVERAGE: the request shape (range vs day, an extra parameter, the headers), both ends of the window and a day beyond each, parallel vs sequential reads, an edge-cache option, the timeout and its value, each of the warnings, failed-day handling and an unreadable body, how many days must answer before "none answered" is said, scan order, the week-number test, its default and the top-level week, which sides of a game are matched and how a club is identified (identity key, the 5-character prefix rule, the generic key, the prefix rule as a fallback), the year and the round returned, and a 400 read as a slate, mutated in a copy of src/wp-resolver.js.');
+console.log('COVERAGE: the request shape (range vs day, an extra parameter, the headers), both ends of the window and a day beyond each, parallel vs sequential reads, an edge-cache option, the timeout and its value, each of the warnings, failed-day handling and an unreadable body, how many days must answer before "none answered" is said, scan order, the week-number test, its default and the top-level week, which sides of a game are matched and how a club is identified (identity key, the 5-character prefix rule, the generic key, the prefix rule as a fallback), the year (a constant, last year) and the round returned, the zone the window is anchored in, the off-season window, the Squiggle read source filter, field choice, rounding, timeout, match sides and home/away reading, and a 400 read as a slate, mutated in a copy of src/wp-resolver.js.');
 console.log('NOT mutated here: the Kali branch (no token in the check; its team names are unmeasured), the Squiggle tip reading beyond the club match, teamNameMatch itself (other sports use it), and the real ESPN payload (.github/workflows/afl-round-live-check.yml).');
 process.exit(missed || nothing || errored ? 1 : 0);

@@ -1,0 +1,87 @@
+{
+  "_provenance": {
+    "what": "ESPN AFL scoreboard, ONE day, trimmed to the fields src/wp-resolver.js _discoverAFLRound reads plus the top-level week; values are the served ones",
+    "url": "https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard?dates=20260709",
+    "verified": "2026-11-24 20:42Z, HTTP 200, through the FIELD_Handoff browser_quick connector (a Cloudflare-side fetch; the sandbox cannot reach ESPN)",
+    "conditions": "a completed event (STATUS_FINAL), off-season; the live-event shape is not recorded here",
+    "trimmed": "leagues, links, leaders, linescores, statistics, venue and the second competitor's links were dropped; nothing the resolver reads was changed",
+    "used_by": "scripts/check-afl-round-discovery.mjs (S43)"
+  },
+  "events": [
+    {
+      "id": "1133635",
+      "date": "2026-07-09T10:10Z",
+      "name": "Sydney Swans at Fremantle",
+      "shortName": "SYD @ FRE",
+      "season": {
+        "year": 2026,
+        "type": 2,
+        "slug": "regular-season"
+      },
+      "week": {
+        "number": 18
+      },
+      "competitions": [
+        {
+          "id": "1133635",
+          "date": "2026-07-09T10:10Z",
+          "competitors": [
+            {
+              "id": "1",
+              "type": "team",
+              "order": 0,
+              "homeAway": "home",
+              "winner": true,
+              "team": {
+                "id": "1",
+                "name": "Fremantle",
+                "abbreviation": "FRE",
+                "displayName": "Fremantle",
+                "shortDisplayName": "Fremantle"
+              },
+              "score": "111"
+            },
+            {
+              "id": "4",
+              "type": "team",
+              "order": 1,
+              "homeAway": "away",
+              "winner": false,
+              "team": {
+                "id": "4",
+                "name": "Sydney Swans",
+                "abbreviation": "SYD",
+                "displayName": "Sydney Swans",
+                "shortDisplayName": "Sydney Swans"
+              },
+              "score": "73"
+            }
+          ],
+          "status": {
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true
+            }
+          }
+        }
+      ],
+      "status": {
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true
+        }
+      }
+    }
+  ],
+  "provider": {
+    "id": "100",
+    "name": "Draft Kings"
+  },
+  "week": {
+    "number": 18
+  }
+}

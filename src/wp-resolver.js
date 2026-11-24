@@ -341,14 +341,16 @@ async function fetchESPNNativeWP(espnPath, espnId, predictedWinner) {
 // a backward-only window, confirmed via a direct today+yesterday query
 // returning zero events both days.
 //
-// One AFL club, by identity, never by prefix. teamNameMatch's 5-character prefix rule matches 'Port Adelaide' to 'Adelaide'
+// One AFL club, by exact comparison of its identity key. teamNameMatch's 5-character prefix rule matches 'Port Adelaide' to 'Adelaide'
 // ('adela' is inside 'portadelaide'), 'Melbourne' to 'North Melbourne' ('melbo' is inside 'northmelbourne') and 'Western Bulldogs'
 // to 'Greater Western Sydney' ('weste'), so once the range request stopped hiding the code below it, a pick could resolve through
 // another club's game or tip and come back as that club's probability under source 'squiggle' (reproduced in review, 2026-11-24).
 // resolveAFLTeamKey (identity-resolver.js, the existing AFL identity) maps ESPN's displayNames ('GWS GIANTS', 'Gold Coast SUNS',
 // 'Fremantle'), Squiggle's names ('Greater Western Sydney', 'Gold Coast', 'Sydney') and the client's nickname labels
-// ('Fremantle Dockers', 'GWS Giants') to the same 18 distinct keys (measured 2026-11-24, all three sets, 18 of 18 each). A name
-// it cannot place is not a club: no match, so no number, rather than the wrong club's number.
+// ('Fremantle Dockers', 'GWS Giants') to the same 18 distinct keys (measured 2026-11-24: 18 of 18 in each set, and the check pins
+// it). The key is itself the club name without its nickname, cut to six letters, so a name that is not an AFL club but shares those
+// six letters with one would still match it: that is safe only because normalizeSportCode sends AFL labels alone to this branch.
+// A name that strips to nothing (a bare nickname such as 'Swans') has no key and matches nothing.
 function sameAFLClub(a, b) {
     const ka = resolveAFLTeamKey(a);
     return !!ka && ka === resolveAFLTeamKey(b);
@@ -367,12 +369,13 @@ function sameAFLClub(a, b) {
 // A one-day read still carries each EVENT's own `week.number` (the relay's /v2/games for 2026-07-09 serves round 18 for
 // Fremantle v Sydney Swans from one). Keep reading the round from the EVENT, never from a top-level `week`: the old comment
 // recorded that for a multi-day range the top-level value disagreed with the events inside it (top-level 17 while round-18
-// games carried 18). Whether a ONE-day body has a top-level `week` at all is not measured here; the rule holds either way.
+// games carried 18). One-day bodies measured 2026-11-24 (20260705, 20260709, 20260711) carry a top-level `week` equal to their
+// events' round, and an empty day has none, so the disagreement was a range artefact; the rule holds either way.
 //
 // The reads are deliberately NOT edge-cached. /v2/games reads the same URL with a 15 s TTL (handleV2Games) and the client polls
 // it during a round; an entry this function wrote with a longer TTL would serve that poll a stale live scoreboard. Workers
 // queue a seventh simultaneous connection until one of six gets headers, so the last four reads wait for a slot with their
-// 5 s timer already running; at the 100-300 ms ESPN answers measured on 2026-11-24 that costs one extra round trip.
+// 5 s timer already running; if ESPN is slow enough that a wait plus an answer exceeds 5 s, those days are warned and skipped.
 // A read that is refused, fails, or answers a body with no `events` array is SAID (status and day) and skipped: the days that
 // did answer are still searched. Days are scanned in order, so the earliest matching game in the window wins, as it did when
 // the range was one list.

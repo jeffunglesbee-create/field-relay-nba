@@ -5,11 +5,11 @@ name: AFL round discovery, real ESPN (dispatch only)
 # scripts/check-afl-round-discovery.mjs proves the resolver's logic over a stub. This proves the field names the stub was built
 # from: it runs the real resolveWinProbability('AFL', ...) with the clock pinned to 2026-07-08 and REAL ESPN scoreboard reads (a
 # runner can reach ESPN; the sandbox cannot). 2026-07-09 is the date measured by hand (Fremantle v Sydney Swans, round 18), so a
-# correct discovery must ask Squiggle for 2026 round 18 (and for 18 for GWS GIANTS, 17 for Port Adelaide: the ESPN spellings that differ
-# from Squiggle's). It then runs the SAME check on the pre-fix source, which must FAIL by
+# correct discovery must ask Squiggle for 2026 round 18 (and 18 for GWS GIANTS, whose ESPN spelling differs from Squiggle's, and 17 for
+# Port Adelaide, whose earliest game in the window is on 2026-07-05). It then runs the SAME check on the pre-fix source, which must FAIL by
 # assertion: a live check that cannot tell the two apart proves nothing (Rule 90).
 #
-# DISPATCH ONLY. No secrets, no billed API: ESPN's public scoreboard, ten reads per pick, two picks. It writes one log to outbox/.
+# DISPATCH ONLY. No secrets, no billed API: ESPN's public scoreboard, ten reads per pick, four picks (40 reads in the fixed run, 4 in the control). It writes two logs to outbox/: the fixed run and the control.
 
 on:
   workflow_dispatch:
