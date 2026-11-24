@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-24 (18:00Z) — "Check on espn 400s": ESPN refuses a date RANGE, not the relay's requests; one production request sends a range and fails silently (AFL, off-season)
+
+**HEAD:** `e899dff` → this close-out is the next commit. No `src/` change, no deploy, no credits.
+**Session doc:** outbox/cc-session-2026-11-24-espn-400s-check.md (task: the owner's "Check on espn 400s")
+
+- **Measured today (through `html_probe`; the sandbox cannot reach ESPN):** a scoreboard range answers HTTP 400 (`{"code":400,"message":"Failed to get events endpoint."}`) for AFL and soccer, one day answers 200. Today's `espn-task0.yml` 400s (9 of 9) were the probe sending a range and are fixed. The relay's `/v2/games` for 2026-11-24 answers 200 with no error for `afl` (0 games), `ucl` (9) and `nba` (3).
+- **One production request sends a range:** `_discoverAFLRound` in `src/wp-resolver.js` (3 days back to 6 ahead). It swallows the 400 and the AFL win-probability branch then returns null for every pick, silently. No user effect until AFL fixtures return in 2027. Filed, STAGED: `docs/CC-CMD-2026-11-24-afl-round-discovery-sends-a-date-range.md`. Its source comment says a range was "confirmed live" on 2026-07-08; ESPN refuses it now.
+- **Not checked:** the relay's historical ESPN failure counts (no route exposes them; no log access from here). `scripts/verify-mls-sub-impact.mjs` also sends a range (a one-shot CI probe; left alone).
+
 ## SESSION CLOSE-OUT — 2026-11-24 (17:25Z) — accounting-edges item 3 LANDED: a refund that landed in D1 is never recorded as `error`; 2026-11-25 is the first clean UTC day
 
 **HEAD:** `05d78b9` → the landing commit (the next commit after this entry is written; its hash is in the Update bullet) · **Branch:** main · `src/budget-helpers.js` changed, so it deploys. No credits, no Odds API call.
