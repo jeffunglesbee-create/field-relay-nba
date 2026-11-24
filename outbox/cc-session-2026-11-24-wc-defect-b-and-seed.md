@@ -46,6 +46,8 @@ recorded there as a write.
 
 ## STAGED: the production cleanup (Task 3 and Task 3b)
 
+**UPDATE 2026-11-24, 17:20Z: APPLIED, except step 1c.** The owner answered "Approve all of Task 3 and 3b"; the statements, row counts and done-condition output are in `outbox/wc-cleanup-applied-2026-11-24.md`, applied from 17:01:58Z (restore script `outbox/wc-cleanup-restore-2026-11-24.sql`). The deploy of the fix: `Deploy RELAY Worker` 45439264953 success, `Repo guards` 45439264942 success. One correction: the question to the owner called the D1 tool read-only; it accepts writes, so no runner was written. The section below is the pre-approval record.
+
 - **What:** reclassify 10 rows, update 2 `bsd_event_id` values, optionally normalise Bosnia's spelling, delete 56 duplicate legacy rows and 61 club rows, rebuild `wc_group` (48 rows).
   The literal SQL and the previews are in the CC-CMD, "Task 3b".
 - **Blocked by:** the owner's approval (a production write). **Unblocked when:** the owner answers the question asked at the end of this session.
@@ -57,4 +59,4 @@ recorded there as a write.
 - What the round string was when each of the nine Round of 32 rows was written.
 - Whether any 2026 group game lacked a letter in both ESPN's and BSD's strings (ESPN is 403 from the sandbox); 12 of 72 group games were read through the relay, all with a letter.
 - How the client renders group B after the cleanup (Bosnia's spelling).
-- The deploy result of this push (a later HANDOFF Update bullet, once the run has finished).
+- ~~The deploy result of this push~~ (read: success, see the update above).

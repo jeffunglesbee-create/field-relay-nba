@@ -6,10 +6,12 @@
 nearest are the June knockout-phase CC-CMDs that BUILT the path (`docs/CC-CMD-2026-06-27-relay-knockout-phase.md`,
 `docs/CC-CMD-2026-06-29-wc-knockout-phase.md`, both DONE) and the owner's open `sport === 'wc26'` question about
 `getWCPregameLambdas` (HANDOFF, 2026-11-05 close-out), which is a different function with the same shape of cause.
-**Status:** PARTIAL 2026-11-24. DEFECT A (club games written to the World Cup tables) FIXED 2026-11-07 (the guard, its check and a flipped control).
+**Status:** DONE 2026-11-24 except the owner's decisions listed under "Not reached" and step 1c (Bosnia's spelling). DEFECT A (club games written to the World Cup tables) FIXED 2026-11-07 (the guard, its check and a flipped control).
 DEFECT B (World Cup knockout games filed through the GROUP path) and `handleWCAdminSeed`'s ReferenceError FIXED 2026-11-24, in the push that carries
-this edit, with `scripts/check-wc-knockout-not-group.mjs` and `scripts/check-wc-admin-seed.mjs`. The production writes await the owner: Task 3 (the 61
-club rows) and Task 3b (10 misfiled knockout rows, 56 duplicate legacy rows, the `wc_group` rebuild), with their previews, read 2026-11-24, below.
+this edit, with `scripts/check-wc-knockout-not-group.mjs` and `scripts/check-wc-admin-seed.mjs`. The production writes (Task 3: the 61
+club rows; Task 3b: 10 misfiled knockout rows, 2 `bsd_event_id` fills, 56 duplicate legacy rows, the `wc_group` rebuild) were APPLIED 2026-11-24 from 17:01:58Z on the owner's
+"Approve all of Task 3 and 3b"; the statements, their row counts and the done-condition output are in `outbox/wc-cleanup-applied-2026-11-24.md`, the restore script in
+`outbox/wc-cleanup-restore-2026-11-24.sql`.
 
 ## Why this exists, measured 2026-11-07
 
@@ -97,7 +99,7 @@ after 2026-11-24.
    (18) at five rounds plus four real strings, three live club games, `wc26` at six rounds and live as controls; red on the unfixed source,
    green on the fix, 11 of 11 mutants caught; in `deploy.yml`. `check-v2-games-nba-board.mjs`: N8's EPL control flipped (an EPL final is not
    handed to the writer), three anchors re-pointed, 10 of 10 caught.
-3. **Data cleanup, with the owner's approval first (a write to production): NOT DONE.** By date and by team, never by phase (a World Cup
+3. **Data cleanup, with the owner's approval first (a write to production): DONE 2026-11-24 (after 17:01:58Z, 61 rows deleted; see Task 3b).** By date and by team, never by phase (a World Cup
    third-place game is itself filed as a group row). `match_date` is the GAME's date (`(game.start || '').slice(0, 10)`), so the predicate is
    the tournament's dates. Preview, expected 61 rows today (58 `third`, 3 `final`), every home and away a club:
    `SELECT game_id, group_id, home, away, match_date FROM wc_results WHERE match_date < '2026-06-11' OR match_date > '2026-07-19' ORDER BY match_date`
@@ -181,7 +183,7 @@ driven through the real `scheduled` handler (one run with a tried marker); the e
 and the score UPDATE asserted; and every request asserts no D1 member beyond `prepare` and no rejected writer. Red on the unfixed source (13 cases), green on the fix,
 27 of 27 mutants caught. One independent review (four read-only reviewers) ran before it was committed and its findings are fixed here; what the check does not cover is printed with its result.
 
-## Task 3b: the cleanup of the group rows (a production write, NOT DONE, needs the owner's approval first)
+## Task 3b: the cleanup of the group rows (a production write: APPLIED 2026-11-24 on the owner's approval; step 1c NOT applied)
 
 Previews, read-only, 2026-11-24 (every number below was returned by D1). **Order: 1, 1b, 1c, 2, 3, then 4 last** (4 reads what the others leave; run first it
 rebuilds the polluted table).
@@ -224,7 +226,7 @@ misfiled games have `game_recap` briefs in `ARCHIVE_DB` that frame them as group
 `wc:bracket:current` have a 7-day TTL and `wc:movers:current` a 1-day TTL, so they have probably expired; the first `/wc/projections` miss recomputes from `/wc/standings` and `/wc/results`,
 so it should come after the cleanup.
 
-Done condition (Rule 89), after the owner's approval and the writes (the r32 count is a floor, because a board request writes the two missing games):
+Done condition (Rule 89), after the owner's approval and the writes (the r32 count is a floor, because a board request writes the two missing games). **Read 2026-11-24 after the writes: 0 rows; 72; 0; final 1, group 72, qf 4, r16 8, r32 14, sf 2, third 1** (`outbox/wc-cleanup-applied-2026-11-24.md`):
 ```
 SELECT group_id, COUNT(*) FROM wc_group GROUP BY group_id HAVING COUNT(*) <> 4                  -- no rows
 SELECT COUNT(*) FROM wc_results WHERE phase = 'group'                                          -- 72
