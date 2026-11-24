@@ -5,8 +5,9 @@ name: BSD game join backfill
 # deployed POST /admin/bsd-game-join (the same function the scheduled tick runs: NULL rows only, never an overwrite, reconcile() and one
 # change_log row per write). scripts/bsd-game-join-backfill.mjs has the rules; scripts/check-bsd-game-join-backfill.mjs and its mutation harness prove them.
 #
-# SCOPE: the addendum's five European leagues (34 dates, 197 rows on 2026-11-15). MLS was explicitly left out there, so MLS-only dates are not
-# chosen (the first dry run counted them: they are why the survey found 64 days, not 34). include_mls = true widens it: a separate go-ahead from the owner.
+# SCOPE: all six soccer sports of the join since the owner's "include MLS" (2026-11-24). The 2026-11-15 addendum had left MLS out, so the first runs chose only dates
+# with a European-league row pending (34 dates, 197 rows); the first dry run counted the MLS-only dates (30 days, 212 rows: why the survey found 64 days, not 34).
+# A SCHEDULED run now includes MLS; a dispatch takes include_mls (default false: a dispatch asks for what it wants).
 #
 # A dispatch defaults to a DRY RUN: it reads, plans and writes nothing to the relay. The daily schedule writes (dry_run is empty, which is false),
 # 5 dates a day by default (about 25 BSD pages; BSD's request budget is unknown), oldest first. It stops itself: when no un-attempted pending day is
@@ -129,7 +130,7 @@ jobs:
         env:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
           DRY_RUN: ${{ inputs.dry_run }}
-          INCLUDE_MLS: ${{ inputs.include_mls }}
+          INCLUDE_MLS: ${{ github.event_name == 'schedule' && 'true' || inputs.include_mls }}
           MAX_DATES: ${{ inputs.max_dates }}
           PAGE_CAP: ${{ inputs.page_cap }}
           FROM: ${{ inputs.from }}
