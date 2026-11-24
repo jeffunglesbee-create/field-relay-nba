@@ -1,0 +1,67 @@
+name: AFL round discovery, real ESPN (dispatch only)
+
+# docs/CC-CMD-2026-11-24-afl-round-discovery-sends-a-date-range.md.
+#
+# scripts/check-afl-round-discovery.mjs proves the resolver's logic over a stub. This proves the field names the stub was built
+# from: it runs the real resolveWinProbability('AFL', ...) with the clock pinned to 2026-07-08 and REAL ESPN scoreboard reads (a
+# runner can reach ESPN; the sandbox cannot). 2026-07-09 is the date measured by hand (Fremantle v Sydney Swans, round 18), so a
+# correct discovery must ask Squiggle for 2026 round 18 (and for 18 for GWS GIANTS, 17 for Port Adelaide: the ESPN spellings that differ
+# from Squiggle's). It then runs the SAME check on the pre-fix source, which must FAIL by
+# assertion: a live check that cannot tell the two apart proves nothing (Rule 90).
+#
+# DISPATCH ONLY. No secrets, no billed API: ESPN's public scoreboard, ten reads per pick, two picks. It writes one log to outbox/.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # pipefail: without it the step's exit code is tee's.
+      - name: Live read, fixed source (must pass)
+        shell: bash
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          { echo "=== afl round live check  utc=$(date -u +%FT%TZ)  head=$(git rev-parse --short HEAD) ==="
+            node scripts/afl-round-live-check.mjs
+          } 2>&1 | tee "outbox/afl-round-live-check-${STAMP}.log" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # 7ec2d03f is the last commit that touched src/wp-resolver.js before the fix: the one that sends the date range.
+      - name: Live read, pre-fix source (must FAIL by assertion, not by crash)
+        shell: bash
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          git show 7ec2d03f07d8184cfa0fc4b7553d9fa0297a7e39:src/wp-resolver.js > src/.prefix-wp-resolver.js
+          set +e
+          { echo "=== CONTROL: the pre-fix resolver (7ec2d03f) against the same real ESPN ==="
+            WP_RESOLVER_SRC=src/.prefix-wp-resolver.js node scripts/afl-round-live-check.mjs
+          } > "outbox/afl-round-live-check-control-${STAMP}.log" 2>&1
+          CODE=$?
+          set -e
+          rm -f src/.prefix-wp-resolver.js
+          cat "outbox/afl-round-live-check-control-${STAMP}.log" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$CODE" -eq 0 ]; then echo "CONTROL PASSED: the live check cannot tell the pre-fix source from the fixed one"; exit 1; fi
+          if ! grep -q '^FAIL  ' "outbox/afl-round-live-check-control-${STAMP}.log"; then echo "CONTROL CRASHED without an assertion failing: that is not a catch"; exit 1; fi
+          echo "control failed by assertion, as it must"
+
+      - name: Commit the logs
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="afl-round-live-check" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: afl round live check"
