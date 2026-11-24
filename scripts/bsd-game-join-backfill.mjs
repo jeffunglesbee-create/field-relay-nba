@@ -190,7 +190,7 @@ async function main() {
       }
       console.log(`${date}  ${outcome}  pending ${before.pending} -> ${pendingAfter === null ? '?' : pendingAfter}  written ${written === null ? '?' : written}  pages ${pages === null ? '?' : pages}  verified ${verify.verified}${verify.verified === false ? ` (${verify.why})` : ''}`);
       save();
-      const stop = stopAfter({ outcomes, verified: verify.verified, pagesUsed: out.pagesUsed, pageCap: PAGE_CAP });
+      const stop = stopAfter({ outcomes, verified: verify.verified, pagesUsed: out.pagesUsed, pageCap: PAGE_CAP, remaining: plan.chosen.length - out.dates.length });
       if (stop !== null) { out.stoppedBecause = stop; console.log(`STOP: ${stop}`); break; }
     }
     const attemptedNow = out.dates.filter((d) => ANSWERED.has(d.outcome)).length;

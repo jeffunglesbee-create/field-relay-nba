@@ -84,13 +84,14 @@ export function verifyOf({ pendingBefore, pendingAfter, written }) {
   return pendingAfter === expected ? { verified: true, expected } : { verified: false, expected, why: `pending went ${pendingBefore} -> ${pendingAfter}, the route said it wrote ${written} (expected ${expected})` };
 }
 
-/** After each date: should the run stop, and why. A refusal or a throttle stops at once; two failed passes in a row stop; a mismatch stops. */
-export function stopAfter({ outcomes, verified, pagesUsed, pageCap }) {
+/** After each date: should the run stop, and why. A refusal or a throttle stops at once; two failed passes in a row stop; a mismatch stops.
+ *  The page cap stops a run only while chosen dates are still waiting (`remaining` > 0): reaching it on the last date is the normal end of a tranche, not a stop. */
+export function stopAfter({ outcomes, verified, pagesUsed, pageCap, remaining }) {
   const last = outcomes[outcomes.length - 1];
   if (last === 'refused') return 'the route refused the secret';
   if (last === 'throttled') return 'the route answered 429';
   if (verified === false) return 'what the route said it wrote is not what /context/date shows';
   if (outcomes.length >= 2 && outcomes[outcomes.length - 2] === 'failed' && last === 'failed') return 'two failed passes in a row';
-  if (pagesUsed >= pageCap) return `upstream pages used ${pagesUsed} reached the cap ${pageCap}`;
+  if (pagesUsed >= pageCap && remaining > 0) return `upstream pages used ${pagesUsed} reached the cap ${pageCap} with ${remaining} chosen date(s) not yet posted`;
   return null;
 }

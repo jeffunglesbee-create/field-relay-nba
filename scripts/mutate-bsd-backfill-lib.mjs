@@ -11,7 +11,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 46;
+const MIN_ASSERTIONS = 47;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'bsd-backfill-lib.mjs', CHECK = 'check-bsd-backfill-lib.mjs';
 const lib = fs.readFileSync(path.join(dir, LIB), 'utf8');
@@ -55,7 +55,8 @@ const MUTANTS = [
   M('stopAfter: an unverified pass is a mismatch', 'if (verified === false) return', 'if (verified !== true) return'),
   M('stopAfter: two failures do not stop', "if (outcomes.length >= 2 && outcomes[outcomes.length - 2] === 'failed' && last === 'failed') return 'two failed passes in a row';", ''),
   M('stopAfter: one failure stops', "outcomes.length >= 2 && outcomes[outcomes.length - 2] === 'failed' && last === 'failed'", "last === 'failed'"),
-  M('stopAfter: the cap is exclusive', 'pagesUsed >= pageCap', 'pagesUsed > pageCap'),
+  M('stopAfter: the cap is exclusive', 'pagesUsed >= pageCap &&', 'pagesUsed > pageCap &&'),
+  M('stopAfter: the cap stops the last date too', 'pagesUsed >= pageCap && remaining > 0', 'pagesUsed >= pageCap'),
 ];
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bsd-backfill-mutate-'));

@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 49;
+const MIN_ASSERTIONS = 50;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'bsd-game-join-backfill.mjs');
 const MUT = path.join(dir, '.mutant-bsd-game-join-backfill.mjs');
@@ -33,7 +33,8 @@ const MUTANTS = [
   M('verification ignores what was written', 'written: written === null ? 0 : written })', 'written: 0 })'),
   M('a join is not counted as written', "const written = outcome === 'joined' ? num(resp.written) : 0;", 'const written = 0;'),
   M('pages are not added up', 'out.pagesUsed += pages === null ? 0 : pages;', 'out.pagesUsed += 0;'),
-  M('the page cap is not applied', 'pageCap: PAGE_CAP });', 'pageCap: 99999 });'),
+  M('the page cap is not applied', 'pageCap: PAGE_CAP, remaining:', 'pageCap: 99999, remaining:'),
+  M('the cap stops the last date too', 'remaining: plan.chosen.length - out.dates.length });', 'remaining: 1 });'),
   M('a stop does not stop', 'console.log(`STOP: ${stop}`); break; }', 'console.log(`STOP: ${stop}`); }'),
   M('a failed day is recorded as answered', 'if (ANSWERED.has(outcome)) {', 'if (true) {'),
   M('an answered day is not recorded', "fs.writeFileSync('outbox/bsd-join-backfill-state.json', JSON.stringify(state, null, 2));\n      }", '}'),

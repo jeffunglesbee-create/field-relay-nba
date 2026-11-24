@@ -209,7 +209,9 @@ await scenario('what the route says it wrote must be what the rows show', async 
 
 await scenario('the upstream page cap', async () => {
   const r = await run({ world: world({ behave: { [D.a]: { kind: 'ok', join: 99, pages: 6 } } }), env: { PAGE_CAP: '5' } });
-  eq('6 pages used against a cap of 5: stop after the first day', [posted(r), r.art.pagesUsed, /reached the cap 5/.test(r.art.stoppedBecause)], [[D.a], 6, true]);
+  eq('6 pages used against a cap of 5 with a second chosen date waiting: stop after the first day', [posted(r), r.art.pagesUsed, /reached the cap 5/.test(r.art.stoppedBecause)], [[D.a], 6, true]);
+  const last = await run({ world: world({ behave: { [D.a]: { kind: 'ok', join: 99, pages: 6 } } }), env: { PAGE_CAP: '5', MAX_DATES: '1' } });
+  eq('the same 6 pages against a cap of 5 on the ONLY chosen date: the tranche is over, not stopped (the workflow would otherwise go red at every normal end)', [posted(last), last.art.pagesUsed, last.art.stoppedBecause], [[D.a], 6, null]);
 });
 
 await scenario('BSD has no events for the day', async () => {

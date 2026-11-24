@@ -67,15 +67,16 @@ eq('verifyOf: everything written', L.verifyOf({ pendingBefore: 5, pendingAfter: 
 eq('verifyOf: a count that is not a whole number, or negative, is not verified', [L.verifyOf({ pendingBefore: '10', pendingAfter: 7, written: 3 }).verified, L.verifyOf({ pendingBefore: 3, pendingAfter: -1, written: 4 }).verified, L.verifyOf({ pendingBefore: 3, pendingAfter: 0.5, written: 2.5 }).verified], [false, false, false]);
 
 // ---- when to stop
-const st = (o, v = true, pagesUsed = 5, pageCap = 30) => L.stopAfter({ outcomes: o, verified: v, pagesUsed, pageCap });
+const st = (o, v = true, pagesUsed = 5, pageCap = 30, remaining = 2) => L.stopAfter({ outcomes: o, verified: v, pagesUsed, pageCap, remaining });
 eq('stopAfter: a refusal stops at once', st(['joined', 'refused']), 'the route refused the secret');
 eq('stopAfter: a throttle stops at once', st(['throttled']), 'the route answered 429');
 eq('stopAfter: a mismatch stops', st(['joined'], false), 'what the route said it wrote is not what /context/date shows');
 eq('stopAfter: one failed pass does not stop', st(['failed']), null);
 eq('stopAfter: two failed passes in a row stop', st(['joined', 'failed', 'failed']), 'two failed passes in a row');
 eq('stopAfter: failed, joined, failed does not stop', st(['failed', 'joined', 'failed']), null);
-eq('stopAfter: the page cap is reached at the cap, not after it', [st(['joined'], true, 30, 30), st(['joined'], true, 29, 30)], ['upstream pages used 30 reached the cap 30', null]);
-eq('stopAfter: a refusal outranks the cap', st(['refused'], true, 99, 30), 'the route refused the secret');
+eq('stopAfter: the page cap is reached at the cap, not after it', [st(['joined'], true, 30, 30), st(['joined'], true, 29, 30)], ['upstream pages used 30 reached the cap 30 with 2 chosen date(s) not yet posted', null]);
+eq('stopAfter: the cap reached on the LAST chosen date is the end of the tranche, not a stop', [st(['joined'], true, 53, 50, 0), st(['joined'], true, 53, 50, 1)], [null, 'upstream pages used 53 reached the cap 50 with 1 chosen date(s) not yet posted']);
+eq('stopAfter: a refusal outranks the cap, even at the end of the tranche', st(['refused'], true, 99, 30, 0), 'the route refused the secret');
 eq('stopAfter: an unverified pass (null) is not a mismatch', st(['nothing-pending'], null), null);
 
 console.log(bad === 0 ? `ok ${n} assertions` : `${bad} of ${n} assertions FAILED`);
