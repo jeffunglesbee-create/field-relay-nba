@@ -1,0 +1,480 @@
+{
+  "ts": "2026-11-24T17:07:16.842Z",
+  "reachedTarget": false,
+  "stopped": null,
+  "notReachedBecause": "9 league scoreboards not answered 200 in the contract shape",
+  "runner": {
+    "gitSha": "b6ec0356e773b77a49d189345d1e33b2922cbf6a",
+    "runId": "45444719116",
+    "probeSha256": "e6480e5b506181afbae19f88c210d6cda513ce1982a5ae208bdab21c910c5042",
+    "libSha256": "52738d14820b19fecd8176144e4ea1392919bade42bd4bc32cbcef6f675ec571"
+  },
+  "host": "site.web.api.espn.com",
+  "windowDays": 14,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "requestCount": 10,
+  "coverageLine": "ESPN: 0 of 9 league scoreboards answered 200 in the contract shape, 0 had a finished match in the last 14 days (one match each, 0 summaries read) | E1 (every goal row has a clock and a team id that is a competitor) held on 0 of 0 (by list: ), goal rows equalled the final score on 0 of 0, an own goal was seen in 0 of 0 | relay /context/date/2026-10-25: 200, 57 rows, 23 with BOTH a bsd and an espn id | all requests 200: false",
+  "e1": {
+    "leaguesProbed": 0,
+    "leaguesWithAFinishedMatch": 0,
+    "e1HeldOn": [],
+    "heldOnByList": {},
+    "goalRowsEqualFinalTotalOn": [],
+    "ownGoalSeenOn": []
+  },
+  "e2a": {
+    "status": 200,
+    "shapeOk": true,
+    "rowKeys": {
+      "id": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "sport": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "league": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "date": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "home": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "away": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "home_score": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "number": 50
+        }
+      },
+      "away_score": {
+        "rows": 57,
+        "types": {
+          "null": 9,
+          "number": 48
+        }
+      },
+      "venue": {
+        "rows": 57,
+        "types": {
+          "string": 55,
+          "null": 2
+        }
+      },
+      "streams": {
+        "rows": 57,
+        "types": {
+          "null": 13,
+          "string": 44
+        }
+      },
+      "note": {
+        "rows": 57,
+        "types": {
+          "null": 55,
+          "string": 2
+        }
+      },
+      "tags": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "crew": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "local_note": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "created_at": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "opening_odds": {
+        "rows": 57,
+        "types": {
+          "null": 16,
+          "string": 41
+        }
+      },
+      "closing_odds": {
+        "rows": 57,
+        "types": {
+          "null": 12,
+          "string": 45
+        }
+      },
+      "drama_peak": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "number": 50
+        }
+      },
+      "drama_arc": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "espn_event_id": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "went_to_ot": {
+        "rows": 57,
+        "types": {
+          "null": 38,
+          "number": 19
+        }
+      },
+      "finalized_at": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "start_time": {
+        "rows": 57,
+        "types": {
+          "null": 10,
+          "string": 47
+        }
+      },
+      "importance": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "inplay_odds": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "bsd_event_id": {
+        "rows": 57,
+        "types": {
+          "string": 30,
+          "null": 27
+        }
+      }
+    },
+    "days": 1,
+    "unreadDays": 0,
+    "rows": 57,
+    "noIdRows": 0,
+    "duplicateRows": 0,
+    "byLabel": {
+      "MLS": {
+        "rows": 8,
+        "withBsd": 8,
+        "withEspn": 1,
+        "withBoth": 1
+      },
+      "golf": {
+        "rows": 2,
+        "withBsd": 0,
+        "withEspn": 2,
+        "withBoth": 0
+      },
+      "NBA": {
+        "rows": 7,
+        "withBsd": 0,
+        "withEspn": 7,
+        "withBoth": 0
+      },
+      "NHL": {
+        "rows": 6,
+        "withBsd": 0,
+        "withEspn": 6,
+        "withBoth": 0
+      },
+      "EPL": {
+        "rows": 5,
+        "withBsd": 5,
+        "withEspn": 5,
+        "withBoth": 5
+      },
+      "La Liga": {
+        "rows": 4,
+        "withBsd": 4,
+        "withEspn": 4,
+        "withBoth": 4
+      },
+      "Serie A": {
+        "rows": 5,
+        "withBsd": 5,
+        "withEspn": 5,
+        "withBoth": 5
+      },
+      "Bundesliga": {
+        "rows": 2,
+        "withBsd": 2,
+        "withEspn": 2,
+        "withBoth": 2
+      },
+      "Ligue 1": {
+        "rows": 6,
+        "withBsd": 6,
+        "withEspn": 6,
+        "withBoth": 6
+      },
+      "NFL": {
+        "rows": 12,
+        "withBsd": 0,
+        "withEspn": 12,
+        "withBoth": 0
+      }
+    },
+    "targetLabelRows": {
+      "EFL Championship": 0,
+      "UEFA Champions League": 0,
+      "UEFA Europa League": 0,
+      "UEFA Europa Conference League": 0,
+      "UEFA Champions League Qualifying": 0,
+      "UEFA Europa League Qualifying": 0,
+      "UEFA Europa Conference League Qualifying": 0
+    }
+  },
+  "leagues": {
+    "epl": {
+      "espnLeague": "eng.1",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "mls": {
+      "espnLeague": "usa.1",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "ucl": {
+      "espnLeague": "uefa.champions",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "eflchamp": {
+      "espnLeague": "eng.2",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "laliga": {
+      "espnLeague": "esp.1",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "europa": {
+      "espnLeague": "uefa.europa",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "seriea": {
+      "espnLeague": "ita.1",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "bundesliga": {
+      "espnLeague": "ger.1",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "ligue1": {
+      "espnLeague": "fra.1",
+      "scoreboard": {
+        "status": 400,
+        "events": null,
+        "shapeOk": false
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    }
+  },
+  "requests": [
+    {
+      "label": "scoreboard epl",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=231",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 477
+    },
+    {
+      "label": "scoreboard mls",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=497",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 43
+    },
+    {
+      "label": "scoreboard ucl",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=519",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 41
+    },
+    {
+      "label": "scoreboard eflchamp",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=577",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 42
+    },
+    {
+      "label": "scoreboard laliga",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=464",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 41
+    },
+    {
+      "label": "scoreboard europa",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=245",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 41
+    },
+    {
+      "label": "scoreboard seriea",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=219",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 42
+    },
+    {
+      "label": "scoreboard bundesliga",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=155",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 40
+    },
+    {
+      "label": "scoreboard ligue1",
+      "status": 400,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=479",
+      "age": null,
+      "bytes": 55,
+      "errorBody": "{\"code\":400,\"message\":\"Failed to get events endpoint.\"}",
+      "ms": 41
+    },
+    {
+      "label": "relay /context/date/2026-10-25",
+      "status": 200,
+      "contentType": "application/json",
+      "cacheControl": "public,max-age=300",
+      "age": null,
+      "bytes": 334824,
+      "ms": 406
+    }
+  ]
+}

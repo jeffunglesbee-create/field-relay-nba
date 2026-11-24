@@ -1,0 +1,394 @@
+{
+  "ts": "2026-11-24T17:07:10.057Z",
+  "base": "https://sports.bzzoiro.com",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "tokenPresent": true,
+  "callBudget": 16,
+  "readCap": 1500,
+  "deadlineSeconds": 420,
+  "fetchTimeoutSeconds": 30,
+  "bsdCallsMade": 11,
+  "stopped": null,
+  "analysisError": null,
+  "readsMade": 249,
+  "reachedTarget": true,
+  "notReachedBecause": null,
+  "runner": {
+    "gitSha": "b6ec0356e773b77a49d189345d1e33b2922cbf6a",
+    "runId": "45444719116",
+    "probeSha256": "ca8260c77528ed5c8ab4356d722943810a0ac6aefaf353636bdb4c3e7d88e43f",
+    "libSha256": "52738d14820b19fecd8176144e4ea1392919bade42bd4bc32cbcef6f675ec571",
+    "censusSha256": "466cf30f43e7f004a533805a04ba1139e16a80cb137d1f3e8b639cca91855f4f",
+    "graderSha256": "e54c384633ad304839d16e9b8b6ee7e5b461404c38d9e67404d7633bc5531c21"
+  },
+  "coverageLine": "372 gradeable calls on 238 distinct matches | archive rows carrying the match's bsd id: one 97 (with an espn id 96, without 1), two or more 17, none 124 [eflchamp: no archive rows 17; ucl or europa: archive rows, outside the join's sports 51; before 2026-10-24, no joined row that day 56; other unjoined 0], ESPN id on the rows of the 114 matches that have rows: exactly one distinct 113, none 1, conflicting 0, unread 0, no valid call day 0 | days read 78 of 78 needed (cap 300) | rows read 3739 (target-label rows: EFL Championship 0, UEFA Champions League 72, UEFA Europa League 72, UEFA Europa Conference League 54, UEFA Champions League Qualifying 11, UEFA Europa League Qualifying 24, UEFA Europa Conference League Qualifying 48)",
+  "censusCoverageLine": "ledger: 1754 unique calls (COMPLETE, reported 1754 then 1754, 9 pages, 0 duplicates) | R2: 2877 keys, 1365 events with incidents.json (COMPLETE) | reads: 249 parsed of 249 attempted | calls: 372 gradeable of 1754 (393 in a tracked league, 393 with an incidents.json, 17 with a full-time capture) | BSD calls 11/16",
+  "census": {
+    "verdict": "ANSWERED",
+    "gradeable": 372
+  },
+  "calls": 372,
+  "matches": 238,
+  "dayCap": 300,
+  "daysNeeded": 78,
+  "dayReadStatuses": {
+    "200": 78
+  },
+  "dayReadSeconds": 3.5,
+  "dayReadStopped": null,
+  "reach": {
+    "matches": 238,
+    "noDay": 0,
+    "unread": 0,
+    "zero": 124,
+    "one": 97,
+    "many": 17,
+    "bySlug": {
+      "mls": {
+        "matches": 38,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 14,
+        "one": 7,
+        "many": 17
+      },
+      "seriea": {
+        "matches": 33,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 10,
+        "one": 23,
+        "many": 0
+      },
+      "epl": {
+        "matches": 21,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 7,
+        "one": 14,
+        "many": 0
+      },
+      "ligue1": {
+        "matches": 17,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 5,
+        "one": 12,
+        "many": 0
+      },
+      "laliga": {
+        "matches": 33,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 12,
+        "one": 21,
+        "many": 0
+      },
+      "eflchamp": {
+        "matches": 17,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 17,
+        "one": 0,
+        "many": 0
+      },
+      "bundesliga": {
+        "matches": 28,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 8,
+        "one": 20,
+        "many": 0
+      },
+      "europa": {
+        "matches": 22,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 22,
+        "one": 0,
+        "many": 0
+      },
+      "ucl": {
+        "matches": 29,
+        "noDay": 0,
+        "unread": 0,
+        "zero": 29,
+        "one": 0,
+        "many": 0
+      }
+    },
+    "zeroReasons": {
+      "eflchamp: no archive rows": 17,
+      "ucl or europa: archive rows, outside the join's sports": 51,
+      "before 2026-10-24, no joined row that day": 56
+    },
+    "oneRow": {
+      "withEspnId": 96,
+      "withoutEspnId": 1
+    },
+    "espnIds": {
+      "one": 113,
+      "none": 1,
+      "conflict": 0
+    },
+    "espnBySlug": {
+      "mls": {
+        "one": 23,
+        "none": 1,
+        "conflict": 0
+      },
+      "seriea": {
+        "one": 23,
+        "none": 0,
+        "conflict": 0
+      },
+      "epl": {
+        "one": 14,
+        "none": 0,
+        "conflict": 0
+      },
+      "ligue1": {
+        "one": 12,
+        "none": 0,
+        "conflict": 0
+      },
+      "laliga": {
+        "one": 21,
+        "none": 0,
+        "conflict": 0
+      },
+      "bundesliga": {
+        "one": 20,
+        "none": 0,
+        "conflict": 0
+      }
+    },
+    "daysNeeded": 78,
+    "partitions": true
+  },
+  "labels": {
+    "days": 78,
+    "unreadDays": 0,
+    "rows": 3739,
+    "noIdRows": 0,
+    "duplicateRows": 0,
+    "byLabel": {
+      "MLB": {
+        "rows": 548,
+        "withBsd": 0,
+        "withEspn": 548,
+        "withBoth": 0
+      },
+      "WNBA": {
+        "rows": 85,
+        "withBsd": 0,
+        "withEspn": 85,
+        "withBoth": 0
+      },
+      "MLS": {
+        "rows": 630,
+        "withBsd": 295,
+        "withEspn": 249,
+        "withBoth": 149
+      },
+      "EFL Cup": {
+        "rows": 48,
+        "withBsd": 0,
+        "withEspn": 48,
+        "withBoth": 0
+      },
+      "La Liga": {
+        "rows": 128,
+        "withBsd": 65,
+        "withEspn": 128,
+        "withBoth": 65
+      },
+      "NFL": {
+        "rows": 169,
+        "withBsd": 0,
+        "withEspn": 169,
+        "withBoth": 0
+      },
+      "golf": {
+        "rows": 64,
+        "withBsd": 0,
+        "withEspn": 64,
+        "withBoth": 0
+      },
+      "wnba": {
+        "rows": 12,
+        "withBsd": 0,
+        "withEspn": 12,
+        "withBoth": 0
+      },
+      "CFL": {
+        "rows": 39,
+        "withBsd": 0,
+        "withEspn": 39,
+        "withBoth": 0
+      },
+      "EFL Trophy": {
+        "rows": 30,
+        "withBsd": 0,
+        "withEspn": 30,
+        "withBoth": 0
+      },
+      "UEFA Champions League Qualifying": {
+        "rows": 11,
+        "withBsd": 0,
+        "withEspn": 11,
+        "withBoth": 0
+      },
+      "PGA Tour": {
+        "rows": 12,
+        "withBsd": 0,
+        "withEspn": 12,
+        "withBoth": 0
+      },
+      "UEFA Europa League Qualifying": {
+        "rows": 24,
+        "withBsd": 0,
+        "withEspn": 24,
+        "withBoth": 0
+      },
+      "UEFA Europa Conference League Qualifying": {
+        "rows": 48,
+        "withBsd": 0,
+        "withEspn": 48,
+        "withBoth": 0
+      },
+      "EPL": {
+        "rows": 110,
+        "withBsd": 77,
+        "withEspn": 110,
+        "withBoth": 77
+      },
+      "Ligue 1": {
+        "rows": 99,
+        "withBsd": 66,
+        "withEspn": 99,
+        "withBoth": 66
+      },
+      "Serie A": {
+        "rows": 118,
+        "withBsd": 73,
+        "withEspn": 118,
+        "withBoth": 73
+      },
+      "Bundesliga": {
+        "rows": 90,
+        "withBsd": 72,
+        "withEspn": 90,
+        "withBoth": 72
+      },
+      "CFB": {
+        "rows": 686,
+        "withBsd": 0,
+        "withEspn": 686,
+        "withBoth": 0
+      },
+      "UEFA Champions League": {
+        "rows": 72,
+        "withBsd": 0,
+        "withEspn": 72,
+        "withBoth": 0
+      },
+      "UEFA Europa League": {
+        "rows": 72,
+        "withBsd": 0,
+        "withEspn": 72,
+        "withBoth": 0
+      },
+      "NHL": {
+        "rows": 319,
+        "withBsd": 0,
+        "withEspn": 319,
+        "withBoth": 0
+      },
+      "NBA": {
+        "rows": 232,
+        "withBsd": 0,
+        "withEspn": 232,
+        "withBoth": 0
+      },
+      "UEFA Europa Conference League": {
+        "rows": 54,
+        "withBsd": 0,
+        "withEspn": 54,
+        "withBoth": 0
+      },
+      "FA Cup": {
+        "rows": 39,
+        "withBsd": 0,
+        "withEspn": 39,
+        "withBoth": 0
+      }
+    },
+    "targetLabelRows": {
+      "EFL Championship": 0,
+      "UEFA Champions League": 72,
+      "UEFA Europa League": 72,
+      "UEFA Europa Conference League": 54,
+      "UEFA Champions League Qualifying": 11,
+      "UEFA Europa League Qualifying": 24,
+      "UEFA Europa Conference League Qualifying": 48
+    }
+  },
+  "bsdLog": [
+    {
+      "key": "count_first",
+      "status": 200,
+      "ms": 291
+    },
+    {
+      "key": "page_0",
+      "status": 200,
+      "ms": 462
+    },
+    {
+      "key": "page_1",
+      "status": 200,
+      "ms": 518
+    },
+    {
+      "key": "page_2",
+      "status": 200,
+      "ms": 589
+    },
+    {
+      "key": "page_3",
+      "status": 200,
+      "ms": 485
+    },
+    {
+      "key": "page_4",
+      "status": 200,
+      "ms": 478
+    },
+    {
+      "key": "page_5",
+      "status": 200,
+      "ms": 814
+    },
+    {
+      "key": "page_6",
+      "status": 200,
+      "ms": 843
+    },
+    {
+      "key": "page_7",
+      "status": 200,
+      "ms": 488
+    },
+    {
+      "key": "page_8",
+      "status": 200,
+      "ms": 396
+    },
+    {
+      "key": "count_last",
+      "status": 200,
+      "ms": 167
+    }
+  ]
+}
