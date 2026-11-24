@@ -2598,48 +2598,19 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
 // Relay-is-dumb: these write arithmetic facts (scores/standings) to D1 only.
 // No editorial intelligence, no interest levels. Pure score bookkeeping.
 
-// Extract group letter from API-Sports round string, with team-name fallback.
-// api-sports changed format mid-tournament: "Group Stage - Group A" → "Group Stage - 1"
-// Primary:  regex on round string — handles "Group Stage - Group A" and "Group A"
-// Fallback: derive from home/away team name — handles "Group Stage - 1" (matchday number)
-// Returns null for knockout rounds (Round of 32, etc.) regardless of team names.
-const _WC_TEAM_GROUP = {
-    // Group A
-    'mexico':'A','south africa':'A','south korea':'A','czechia':'A','czech republic':'A',
-    // Group B
-    'canada':'B','bosnia and herzegovina':'B','bosnia & herzegovina':'B','qatar':'B','switzerland':'B',
-    // Group C
-    'brazil':'C','morocco':'C','haiti':'C','scotland':'C',
-    // Group D
-    'united states':'D','usa':'D','paraguay':'D','australia':'D','turkey':'D','turkiye':'D',
-    // Group E
-    'germany':'E','curacao':'E','ivory coast':'E','ecuador':'E',
-    // Group F
-    'netherlands':'F','japan':'F','tunisia':'F','sweden':'F',
-    // Group G
-    'belgium':'G','egypt':'G','iran':'G','new zealand':'G',
-    // Group H
-    'spain':'H','cape verde':'H','saudi arabia':'H','uruguay':'H',
-    // Group I
-    'france':'I','senegal':'I','iraq':'I','norway':'I',
-    // Group J
-    'argentina':'J','algeria':'J','austria':'J','jordan':'J',
-    // Group K
-    'colombia':'K','congo dr':'K','dr congo':'K','portugal':'K','uzbekistan':'K',
-    // Group L
-    'panama':'L','england':'L','croatia':'L','ghana':'L',
-};
-function extractWCGroup(round, homeName, awayName) {
-    // Primary: round string contains explicit group letter
+// The group a game belongs to, read from its OWN round string and nothing else: ESPN's altGameNote is "FIFA World Cup,
+// Group A" and BSD's group_name is "Group A". A round that names a knockout phase is read as a knockout game (a design
+// choice: no real string names both), and a round that names neither a group nor a phase has no group, so the writer skips
+// it, silently. There is no team-name fallback. It filed any game of a known World Cup team under the home team's group,
+// so knockout games whose round string lacked a knockout word became group rows: the third-place game ("FIFA World Cup,
+// 3rd-Place Match": neither extractor had a word for it) and nine Round of 32 games written 2026-06-29 to 07-03, before
+// 07bc51a8 gave the adapter its real round (inferred: the string at write time is not stored, and an unfiltered BSD lookup
+// fits the same rows); recomputeGroupStandings then put each visiting team into the home team's group.
+// docs/CC-CMD-2026-11-07-wc-results-club-contamination.md, Defect B; scripts/check-wc-knockout-not-group.mjs holds it.
+function extractWCGroup(round) {
+    if (extractWCPhase(round)) return null;
     const m = (round || '').match(/Group\s+([A-L])\b/i);
-    if (m) return m[1].toUpperCase();
-    // Knockout guard: named knockout rounds never yield a group
-    if (/round of|quarter|semi|final/i.test(round || '')) return null;
-    // Fallback: derive from team name (handles "Group Stage - 1" matchday format)
-    const norm = s => (s || '').toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-    const g = _WC_TEAM_GROUP[norm(homeName)] || _WC_TEAM_GROUP[norm(awayName)];
-    return g || null;
+    return m ? m[1].toUpperCase() : null;
 }
 
 // Maps ESPN/BSD knockout round strings → phase values for D1 wc_results.phase.
@@ -2652,7 +2623,7 @@ function extractWCPhase(round) {
     if (/round\s+of\s+16|r16/.test(r))                           return 'r16';
     if (/quarter/.test(r))                                        return 'qf';
     if (/semi/.test(r))                                           return 'sf';
-    if (/third|3rd\s+place/.test(r))                             return 'third';
+    if (/third|3rd[\s-]+place/.test(r))                          return 'third';
     if (/final/.test(r) && !/semi|quarter|third|3rd/.test(r))   return 'final';
     return null;
 }
@@ -3138,7 +3109,7 @@ async function runBSDClubLeagueEndgameCapture(env) {
 async function writeWCResult(db, game, env, ctx) {
     const homeName  = resolveTeamName(game.home?.name || '');
     const awayName  = resolveTeamName(game.away?.name || '');
-    const groupId   = extractWCGroup(game.round, homeName, awayName);
+    const groupId   = extractWCGroup(game.round);
     const wcPhase   = extractWCPhase(game.round);
     if (!groupId && !wcPhase) return; // unrecognized round — skip
     const matchDate = (game.start || '').slice(0, 10);
@@ -4808,7 +4779,7 @@ async function handleV2Games(url, env, ctx, request = null) {
         // ── BSD group_name + weather enrichment ──────────────────────────────
         // Fetches today's WC events from BSD by-date (league_id=27) and matches
         // to ESPN games by home/away team name. Injects:
-        //   game.round    — "Group I" → extractWCGroup() uses regex path, not fallback
+        //   game.round    — "Group I" → extractWCGroup() reads the letter from this string
         //   game.weather  — {description, wind_speed, temperature_c} for journalism context
         // Non-blocking — failure leaves round='' and weather undefined; both degrade gracefully.
         // Uses date_from/date_to, not date= -- confirmed live 2026-08-01 that BSD's
@@ -4842,7 +4813,9 @@ async function handleV2Games(url, env, ctx, request = null) {
                             _normName(String(be.away_team || '')) === _hNorm
                         );
                         if (_hit) {
-                            if (_hit.group_name) _g.round = _hit.group_name;
+                            // A group name never replaces a round that already names a knockout phase: BSD's group_name
+                            // would turn a knockout game into a group row (reproduced with a stubbed BSD; docs/CC-CMD-2026-11-07).
+                            if (_hit.group_name && !extractWCPhase(_g.round)) _g.round = _hit.group_name;
                             if (_hit.weather)    _g.weather = _hit.weather;
                             // Everything else on this row used to stop here.
                             // `_hit` is the full BSD event; two fields were
@@ -5017,7 +4990,7 @@ async function handleV2Games(url, env, ctx, request = null) {
             // club game whose round string holds "Group F" took World Cup Group F's
             // standings and an advancement probability computed from them.
             if (env.WC2026_DB && cfg.espnLeague === 'fifa.world') {
-                const gLetter = extractWCGroup(g.round, g.home?.name, g.away?.name);
+                const gLetter = extractWCGroup(g.round);
                 if (gLetter) {
                     try {
                         const [standingsRes, thirdRes] = await Promise.allSettled([
@@ -8610,24 +8583,13 @@ async function handleJournalismCycle(env, opts = {}) {
               const triedKey = `wc26_sweep:tried:${g.game_id}`;
               const tried = await env.FIELD_JOURNALISM.get(triedKey).catch(e => { console.error("[WC26-SWEEP] tried-marker read failed:", e.message); return null; });
               if (tried) { skipped++; continue; }
-              // Cross-check: extractWCGroup's team-name fallback must agree
-              // with wc_results' own group_id (ground truth from this game's
-              // original write) before reusing writeWCResult — a mismatch
-              // means the synthetic game object below would file under the
-              // wrong group, so skip and mark tried rather than risk a
-              // silent misfile.
-              const derivedGroup = extractWCGroup('', g.home, g.away);
-              if (derivedGroup !== g.group_id) {
-                console.error(`[WC26-SWEEP] group mismatch for ${g.game_id}: derived ${derivedGroup} vs known ${g.group_id} -- skipping`);
-                await env.FIELD_JOURNALISM.put(triedKey, '1', { expirationTtl: 30 * 86400 }).catch(e => console.error("[WC26-SWEEP] tried-marker write failed:", e.message));
-                skipped++;
-                continue;
-              }
               const syntheticGame = {
                 id: g.game_id,
                 home: { name: g.home, score: g.home_score },
                 away: { name: g.away, score: g.away_score },
-                round: '',
+                // The row's own group, which extractWCGroup reads back from the string: the writer takes the group from the
+                // round and nowhere else.
+                round: `Group ${g.group_id}`,
                 start: `${g.match_date}T00:00:00Z`,
                 bsdEventId: g.bsd_event_id || undefined,
                 espnEventId: g.game_id.replace(/^espn:/, ''),

@@ -487,11 +487,25 @@ jobs:
       # every live soccer game, so production wc_results held club cup rows (58
       # 'third' from UEFA qualifying, 3 May 'final') and wc_group held groups of five
       # and six teams. The real worker, every soccer key read from V2_LEAGUES at five
-      # rounds, with wc26 as the control, and eight mutants of the two gates.
+      # rounds, with wc26 as the control, and eleven mutants of the two gates.
       - name: The World Cup tables hold the World Cup, and only the World Cup
         run: |
           node scripts/check-wc-tables-world-cup-only.mjs
           node scripts/check-wc-tables-world-cup-only.mjs --mutate
+
+      # Same CC-CMD, Defect B. extractWCGroup filed any game of a known World Cup team
+      # under that team's group when the round string held no group letter and no
+      # knockout word, so production wc_group held World Cup teams in other groups'
+      # tables (10 knockout games in wc_results as phase 'group': the third-place game,
+      # whose round is "FIFA World Cup, 3rd-Place Match", and 9 Round of 32 games). The
+      # real worker with the six real knockout strings (as finals and live), rounds
+      # that name neither a group nor a phase, BSD's group_name, the dead-hours sweep,
+      # and all twelve group letters as controls; red on the unfixed source (13
+      # cases), and twenty-seven mutants.
+      - name: A World Cup knockout game is never filed through the group path
+        run: |
+          node scripts/check-wc-knockout-not-group.mjs
+          node scripts/check-wc-knockout-not-group.mjs --mutate
 
       # Same CC-CMD, review finding G2. The slate date steps back one calendar
       # day before 4am ET; 24 hours back on the instant named the wrong day for
