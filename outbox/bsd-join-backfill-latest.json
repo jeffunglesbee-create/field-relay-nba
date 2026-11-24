@@ -1,6 +1,6 @@
 {
-  "ts": "2026-11-24T20:42:59.069Z",
-  "dryRun": true,
+  "ts": "2026-11-24T20:45:29.063Z",
+  "dryRun": false,
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "from": "2026-08-01",
   "to": "2026-10-23",
@@ -34,17 +34,166 @@
     "2026-08-19",
     "2026-08-20"
   ],
-  "dates": [],
-  "pagesUsed": 0,
-  "written": 0,
+  "dates": [
+    {
+      "date": "2026-08-15",
+      "outcome": "joined",
+      "pendingBefore": 22,
+      "pendingBeforeBySport": {
+        "MLS": 20,
+        "La Liga": 2
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 22,
+        "written": 20,
+        "joined": 20,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 7,
+        "eventsRead": 404,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Seattle Sounders FC v Vancouver Whitecaps FC",
+          "MLS: Austin FC v FC Dallas"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-16",
+      "outcome": "joined",
+      "pendingBefore": 14,
+      "pendingBeforeBySport": {
+        "MLS": 12,
+        "La Liga": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 14,
+        "written": 14,
+        "joined": 14,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 8,
+        "eventsRead": 217,
+        "upstreamPages": 1,
+        "cacheHits": 4,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-17",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingBeforeBySport": {
+        "MLS": 2,
+        "La Liga": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 3,
+        "written": 3,
+        "joined": 3,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 2,
+        "eventsRead": 63,
+        "upstreamPages": 1,
+        "cacheHits": 1,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-19",
+      "outcome": "joined",
+      "pendingBefore": 23,
+      "pendingBeforeBySport": {
+        "MLS": 22,
+        "La Liga": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 23,
+        "written": 23,
+        "joined": 23,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 7,
+        "eventsRead": 155,
+        "upstreamPages": 4,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-20",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingBeforeBySport": {
+        "MLS": 8,
+        "La Liga": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 9,
+        "written": 9,
+        "joined": 9,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 8,
+        "eventsRead": 147,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    }
+  ],
+  "pagesUsed": 17,
+  "written": 69,
   "stoppedBecause": null,
-  "remainingToAttempt": 34,
+  "remainingToAttempt": 29,
   "complete": false,
   "runner": {
-    "gitSha": "7613e85e308b12ff6c277a1c6b9bbcdbd3a8fdba",
-    "runId": "45483481366",
+    "gitSha": "f7170856368b6dccd3d543516f31110a438b1b8c",
+    "runId": "45483895799",
     "scriptSha256": "bb2da7da54430f6f8a9e599b9cdbfd01529e90d64e7cd1c89d25a5ae6ff64f0b",
     "libSha256": "072656ce0d125a0b54e87dc536f90a9c3332bbc36bb54a42f584d55cb31cee1c"
   },
-  "coverageLine": "DRY RUN: 84 of 84 days read (0 unread) | scope 5 sports (MLS not included): to attempt 34 days / 197 rows, 0 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 30 days / 212 rows | this run: 0 dates posted, 0 rows written, 0 upstream pages (cap 40), 0 verified | no stop | remaining to attempt 34"
+  "coverageLine": "84 of 84 days read (0 unread) | scope 5 sports (MLS not included): to attempt 34 days / 197 rows, 0 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 30 days / 212 rows | this run: 5 dates posted, 69 rows written, 17 upstream pages (cap 40), 5 verified | no stop | remaining to attempt 29"
 }

@@ -1,0 +1,47 @@
+{
+  "attempted": {
+    "2026-08-15": {
+      "at": "2026-11-24T20:45:36.674Z",
+      "outcome": "joined",
+      "pendingBefore": 22,
+      "pendingAfter": 2,
+      "written": 20,
+      "unmatched": [
+        "MLS: Seattle Sounders FC v Vancouver Whitecaps FC",
+        "MLS: Austin FC v FC Dallas"
+      ]
+    },
+    "2026-08-16": {
+      "at": "2026-11-24T20:45:37.530Z",
+      "outcome": "joined",
+      "pendingBefore": 14,
+      "pendingAfter": 0,
+      "written": 14,
+      "unmatched": []
+    },
+    "2026-08-17": {
+      "at": "2026-11-24T20:45:38.220Z",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingAfter": 0,
+      "written": 3,
+      "unmatched": []
+    },
+    "2026-08-19": {
+      "at": "2026-11-24T20:45:40.978Z",
+      "outcome": "joined",
+      "pendingBefore": 23,
+      "pendingAfter": 0,
+      "written": 23,
+      "unmatched": []
+    },
+    "2026-08-20": {
+      "at": "2026-11-24T20:45:41.894Z",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingAfter": 0,
+      "written": 9,
+      "unmatched": []
+    }
+  }
+}
