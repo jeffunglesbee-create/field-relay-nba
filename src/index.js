@@ -108,7 +108,7 @@ import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, classifySubstitution, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
+import { resolveTeamKey, sameAFLClub, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, classifySubstitution, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
 import { matchSlate, slateWindow } from './odds-name-match.js';
 import { joinBatch, eventDaysFor, BSD_SOCCER_SPORTS } from './bsd-game-join.js';
@@ -4519,20 +4519,19 @@ async function handleGolfEnriched(date, env, ctx) {
     return result;
 }
 
+// Round 0 is a round: ESPN's Opening Round carries week.number 0 and Squiggle serves round=0 tips (measured 2026-11-24), so only a MISSING round
+// ends the context. `year` is the season of the games' own ESPN events, never a constant (the AFL config's `season: 2026` is not read here).
+// A row joins a game only when BOTH of its clubs are the game's two clubs, by AFL identity (sameAFLClub): ESPN says "GWS GIANTS", Squiggle says
+// "Greater Western Sydney", and the clauses that matched the home club alone (and the prefix rule) are gone.
 async function buildAFLJournalismContext(games, round, year, env) {
-    if (!round || !year || !games.length) return {};
+    if (round === null || round === undefined || !year || !games.length) return {};
     const ctx = {};
     for (const g of games) {
         if (g.espnEventId) ctx[g.espnEventId] = { kali: null, squiggle: null };
     }
-    const _norm = s => String(s || '').toLowerCase()
-        .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
-        .replace(/[^a-z]/g, '').slice(0, 6);
     const findGame = (homeTeam, awayTeam) => games.find(g =>
-        (teamNameMatch(homeTeam, g.home.name) && teamNameMatch(awayTeam, g.away.name)) ||
-        (teamNameMatch(homeTeam, g.away.name) && teamNameMatch(awayTeam, g.home.name)) ||
-        (_norm(homeTeam) && _norm(homeTeam) === _norm(g.home.name)) ||
-        (_norm(homeTeam) && _norm(homeTeam) === _norm(g.away.name))
+        (sameAFLClub(homeTeam, g.home.name) && sameAFLClub(awayTeam, g.away.name)) ||
+        (sameAFLClub(homeTeam, g.away.name) && sameAFLClub(awayTeam, g.home.name))
     );
     const kaliKey = env.KALI_AFL_TOKEN;
     const [kaliResp, squiggleResp] = await Promise.allSettled([
@@ -4565,9 +4564,10 @@ async function buildAFLJournalismContext(games, round, year, env) {
             for (const pred of (kd.data || [])) {
                 const g = findGame(pred.homeTeam, pred.awayTeam);
                 if (!g?.espnEventId || !ctx[g.espnEventId]) continue;
+                const keep = sameAFLClub(pred.homeTeam, g.home.name);   // false when the row lists the two clubs the other way round: its sides swap
                 ctx[g.espnEventId].kali = {
-                    homeWinPct:        pred.homeProbability,
-                    awayWinPct:        pred.awayProbability,
+                    homeWinPct:        keep ? pred.homeProbability : pred.awayProbability,
+                    awayWinPct:        keep ? pred.awayProbability : pred.homeProbability,
                     squiggleConsensus: pred.squiggleConsensus,
                     factors:           pred.factors || [],
                     homeBreakdown:     pred.homeBreakdown || {},
@@ -4589,10 +4589,11 @@ async function buildAFLJournalismContext(games, round, year, env) {
             for (const tip of aggTips) {
                 const g = findGame(tip.hteam, tip.ateam);
                 if (!g?.espnEventId || !ctx[g.espnEventId]) continue;
-                ctx[g.espnEventId].squiggle = {
-                    homeConfidence: tip.hconfidence,
-                    awayConfidence: 100 - tip.hconfidence,
-                };
+                // hconfidence is the home side's of SQUIGGLE's home club. When the row lists the clubs the other way round to ESPN's game, the game's home club
+                // takes the other side: serving Squiggle's home value as this game's would put a tip on the wrong club.
+                ctx[g.espnEventId].squiggle = sameAFLClub(tip.hteam, g.home.name)
+                    ? { homeConfidence: tip.hconfidence, awayConfidence: 100 - tip.hconfidence }
+                    : { homeConfidence: (100 - tip.hconfidence).toFixed(2), awayConfidence: Number(tip.hconfidence) };
             }
         } catch (e) { console.error("[AFL-CONTEXT] squiggle tips parse failed:", e.message); }
     }
@@ -4732,6 +4733,8 @@ async function handleV2Games(url, env, ctx, request = null) {
         let _v2Source = 'espn-wc';
         let _v2FetchedAt = null;
         let _v2StaleSeconds = null;
+        // AFL only: each ESPN event's own `season` ({year, type, slug}), by event id. The adapter drops it; the journalism context reads the year from it.
+        let _aflEventSeasons = null;
 
         // Shared by both failure paths below (non-OK response and thrown fetch)
         // -- an outage presents as either, and treating them differently would
@@ -4768,6 +4771,7 @@ async function handleV2Games(url, env, ctx, request = null) {
                 }
             } else {
                 const espnData = await espnResp.json();
+                if (sport === 'afl') _aflEventSeasons = new Map((espnData.events || []).map(ev => [String(ev?.id), ev?.season ?? null]));
                 espnGames = (espnData.events || []).map(ev =>
                     cfg.espnSport === 'baseball'                                          ? adaptESPNMLB(ev)
                     : cfg.espnSport === 'football'                                        ? adaptESPNFootball(ev, sport)
@@ -4789,7 +4793,9 @@ async function handleV2Games(url, env, ctx, request = null) {
         if (sport === 'afl' && env.KALI_AFL_TOKEN) {
             try {
                 const _aflRound = games[0]?.round ?? null;  // games[0].round set by adaptESPNBasketball (ev.week?.number) — espnData is block-scoped
-                const _aflYear  = cfg.season ?? new Date().getUTCFullYear();
+                // The year of the games' own season (ESPN's event.season.year); an event that carries none takes the clock's year. Never cfg.season: that is the
+                // constant 2026, and in 2027 it would ask Squiggle for last year's tips (docs/CC-CMD-2026-11-24-afl-finals-round-and-journalism-club-match.md, Part D).
+                const _aflYear  = [...(_aflEventSeasons?.values() || [])].map(x => x?.year).find(Number.isInteger) ?? new Date().getUTCFullYear();
                 const _aflCtx   = await buildAFLJournalismContext(games, _aflRound, _aflYear, env);
                 for (const g of games) {
                     if (g.espnEventId && _aflCtx[g.espnEventId]) {
