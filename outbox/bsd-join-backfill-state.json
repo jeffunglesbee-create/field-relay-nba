@@ -79,6 +79,47 @@
         "MLS: Real Club Deportivo España v Los Angeles Football Club",
         "MLS: Atlético Ottawa v Nashville SC"
       ]
+    },
+    "2026-08-04": {
+      "at": "2026-11-24T23:32:50.441Z",
+      "outcome": "none-matched",
+      "pendingBefore": 2,
+      "pendingAfter": 2,
+      "written": 0,
+      "unmatched": [
+        "MLS: FC Cincinnati v Club de Fútbol Pachuca",
+        "MLS: Columbus Crew v Atlas FC"
+      ]
+    },
+    "2026-08-05": {
+      "at": "2026-11-24T23:32:51.655Z",
+      "outcome": "none-matched",
+      "pendingBefore": 6,
+      "pendingAfter": 6,
+      "written": 0,
+      "unmatched": [
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City",
+        "MLS: Inter Miami CF v Atlético de San Luis",
+        "MLS: Vancouver Whitecaps FC v Atlante FC",
+        "MLS: Club Tigres v Real Salt Lake",
+        "MLS: Minnesota United FC v FC Juárez",
+        "MLS: Charlotte FC v Pumas"
+      ]
+    },
+    "2026-08-06": {
+      "at": "2026-11-24T23:32:52.628Z",
+      "outcome": "none-matched",
+      "pendingBefore": 6,
+      "pendingAfter": 6,
+      "written": 0,
+      "unmatched": [
+        "MLS: New York City Football Club v Club Santos Laguna",
+        "MLS: Los Angeles Football Club v Chivas de Guadalajara",
+        "MLS: Toluca FC v Seattle Sounders FC",
+        "MLS: FC Dallas v Club Querétaro",
+        "MLS: Nashville SC v Club León",
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City"
+      ]
     }
   }
 }

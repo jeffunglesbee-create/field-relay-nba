@@ -1,0 +1,151 @@
+{
+  "ts": "2026-11-24T23:32:48.224Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-08-04",
+  "to": "2026-08-06",
+  "maxDates": 3,
+  "pageCap": 20,
+  "survey": {
+    "daysInRange": 3,
+    "daysRead": 3,
+    "unreadDays": [],
+    "statuses": {
+      "200": 3
+    },
+    "daysToAttempt": 3,
+    "rowsToAttempt": 14,
+    "attemptedStillPending": 0,
+    "pendingRowsAllDays": 14,
+    "scopeSports": [
+      "MLS",
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "outOfScopeDays": 0,
+    "outOfScopeRows": 0
+  },
+  "chosen": [
+    "2026-08-04",
+    "2026-08-05",
+    "2026-08-06"
+  ],
+  "dates": [
+    {
+      "date": "2026-08-04",
+      "outcome": "none-matched",
+      "pendingBefore": 2,
+      "pendingBeforeBySport": {
+        "MLS": 2
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 2,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 156,
+        "upstreamPages": 4,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: FC Cincinnati v Club de Fútbol Pachuca",
+          "MLS: Columbus Crew v Atlas FC"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-05",
+      "outcome": "none-matched",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "MLS": 6
+      },
+      "pendingAfter": 6,
+      "verify": {
+        "verified": true,
+        "expected": 6
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 174,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": [
+          "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City",
+          "MLS: Inter Miami CF v Atlético de San Luis",
+          "MLS: Vancouver Whitecaps FC v Atlante FC",
+          "MLS: Club Tigres v Real Salt Lake",
+          "MLS: Minnesota United FC v FC Juárez",
+          "MLS: Charlotte FC v Pumas"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-06",
+      "outcome": "none-matched",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "MLS": 6
+      },
+      "pendingAfter": 6,
+      "verify": {
+        "verified": true,
+        "expected": 6
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 146,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": [
+          "MLS: New York City Football Club v Club Santos Laguna",
+          "MLS: Los Angeles Football Club v Chivas de Guadalajara",
+          "MLS: Toluca FC v Seattle Sounders FC",
+          "MLS: FC Dallas v Club Querétaro",
+          "MLS: Nashville SC v Club León",
+          "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City"
+        ]
+      }
+    }
+  ],
+  "pagesUsed": 8,
+  "written": 0,
+  "stoppedBecause": null,
+  "remainingToAttempt": 0,
+  "complete": true,
+  "runner": {
+    "gitSha": "5e22bf887eff4381cacaa901834ad1e6b9fc95ca",
+    "runId": "45510720023",
+    "scriptSha256": "bb2da7da54430f6f8a9e599b9cdbfd01529e90d64e7cd1c89d25a5ae6ff64f0b",
+    "libSha256": "072656ce0d125a0b54e87dc536f90a9c3332bbc36bb54a42f584d55cb31cee1c"
+  },
+  "coverageLine": "3 of 3 days read (0 unread) | scope 6 sports (MLS included): to attempt 3 days / 14 rows, 0 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 0 days / 0 rows | this run: 3 dates posted, 0 rows written, 8 upstream pages (cap 20), 3 verified | no stop | remaining to attempt 0 | COMPLETE"
+}

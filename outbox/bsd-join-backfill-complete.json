@@ -1,0 +1,76 @@
+{
+  "at": "2026-11-24T23:32:48.224Z",
+  "from": "2026-08-04",
+  "to": "2026-08-06",
+  "attempted": 11,
+  "stillPending": [
+    {
+      "date": "2026-08-15",
+      "rows": 2,
+      "unmatched": [
+        "MLS: Seattle Sounders FC v Vancouver Whitecaps FC",
+        "MLS: Austin FC v FC Dallas"
+      ]
+    },
+    {
+      "date": "2026-02-04",
+      "rows": 2,
+      "unmatched": [
+        "MLS: San Diego FC v Pumas",
+        "MLS: San Diego FC v Pumas"
+      ]
+    },
+    {
+      "date": "2026-02-11",
+      "rows": 2,
+      "unmatched": [
+        "MLS: Pumas v San Diego FC",
+        "MLS: Pumas v San Diego FC"
+      ]
+    },
+    {
+      "date": "2026-02-18",
+      "rows": 6,
+      "unmatched": [
+        "MLS: Defence Force Football Club v Philadelphia Union",
+        "MLS: Real Club Deportivo España v Los Angeles Football Club",
+        "MLS: Atlético Ottawa v Nashville SC",
+        "MLS: Defence Force Football Club v Philadelphia Union",
+        "MLS: Real Club Deportivo España v Los Angeles Football Club",
+        "MLS: Atlético Ottawa v Nashville SC"
+      ]
+    },
+    {
+      "date": "2026-08-04",
+      "rows": 2,
+      "unmatched": [
+        "MLS: FC Cincinnati v Club de Fútbol Pachuca",
+        "MLS: Columbus Crew v Atlas FC"
+      ]
+    },
+    {
+      "date": "2026-08-05",
+      "rows": 6,
+      "unmatched": [
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City",
+        "MLS: Inter Miami CF v Atlético de San Luis",
+        "MLS: Vancouver Whitecaps FC v Atlante FC",
+        "MLS: Club Tigres v Real Salt Lake",
+        "MLS: Minnesota United FC v FC Juárez",
+        "MLS: Charlotte FC v Pumas"
+      ]
+    },
+    {
+      "date": "2026-08-06",
+      "rows": 6,
+      "unmatched": [
+        "MLS: New York City Football Club v Club Santos Laguna",
+        "MLS: Los Angeles Football Club v Chivas de Guadalajara",
+        "MLS: Toluca FC v Seattle Sounders FC",
+        "MLS: FC Dallas v Club Querétaro",
+        "MLS: Nashville SC v Club León",
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City"
+      ]
+    }
+  ]
+}
