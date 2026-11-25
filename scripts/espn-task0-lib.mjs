@@ -201,7 +201,8 @@ export function inventory(rows, { maxPaths = 120, maxDepth = 3 } = {}) {
 /** What a list of ESPN rows says about its goals: is there a scoring side, a clock, an own-goal flag, and does the count equal the score. */
 export function goalShape(rows, { competitorIds, finalTotal }) {
   const o = { rows: rows.length, typeVocabulary: proto(), goalRows: 0, withTeamId: 0, teamIdIsACompetitor: 0, withClock: 0,
-    ownGoalKey: 0, ownGoalTrue: 0, penaltyKickKey: 0, scoringPlayTrue: 0, finalTotal, goalRowsEqualFinalTotal: false };
+    ownGoalKey: 0, ownGoalTrue: 0, penaltyKickKey: 0, scoringPlayTrue: 0, finalTotal, goalRowsEqualFinalTotal: false,
+    clockSamples: [], typeTexts: proto() };   // the FORMAT of a goal's clock, and the words ESPN uses for a goal's type: both are what a reader of these rows must be told
   for (const r of rows) {
     if (!isObj(r)) continue;
     bump(o.typeVocabulary, label(isObj(r.type) ? r.type.type : undefined));
@@ -210,6 +211,13 @@ export function goalShape(rows, { competitorIds, finalTotal }) {
     const tid = isObj(r.team) && (isStr(r.team.id) || Number.isInteger(r.team.id)) ? String(r.team.id) : null;
     if (tid !== null) { o.withTeamId++; if (competitorIds.includes(tid)) o.teamIdIsACompetitor++; }
     if (isObj(r.clock) ? isStr(r.clock.displayValue) : isStr(r.clock)) o.withClock++;
+    if (o.clockSamples.length < 4) {
+      const c = r.clock;
+      const v = isObj(c) && typeof c.value === 'number' && Number.isFinite(c.value) ? c.value : null;
+      const dsp = isObj(c) ? c.displayValue : c;
+      o.clockSamples.push({ value: v, display: isStr(dsp) ? (/^[0-9+' :.]{1,16}$/.test(dsp) ? dsp : '(other)') : null });
+    }
+    bump(o.typeTexts, label(isObj(r.type) ? r.type.text : undefined));
     if ('ownGoal' in r) { o.ownGoalKey++; if (r.ownGoal === true) o.ownGoalTrue++; }
     if ('penaltyKick' in r) o.penaltyKickKey++;
     if (r.scoringPlay === true) o.scoringPlayTrue++;

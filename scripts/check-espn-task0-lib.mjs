@@ -130,15 +130,19 @@ eq('inventory: a path cap says so', [Object.keys(capped.paths).length, capped.tr
 
 eq('isGoalRow', [L.isGoalRow({ type: { type: 'own-goal' } }), L.isGoalRow({ type: { type: 'card' } }), L.isGoalRow({ scoringPlay: true }), L.isGoalRow({ scoringPlay: false, type: { type: 'x' } }), L.isGoalRow(null)], [true, false, true, false, false]);
 const rows = [
-  { type: { type: 'goal' }, team: { id: '11' }, clock: { displayValue: "10'" }, ownGoal: false, penaltyKick: false, scoringPlay: true },
-  { type: { type: 'goal---header' }, team: { id: '99' }, clock: "20'", ownGoal: true },
-  { scoringPlay: true, type: { type: 'penalty---scored' }, team: { id: 22 }, penaltyKick: true, clock: {} },
+  { type: { type: 'goal', text: 'Goal' }, team: { id: '11' }, clock: { displayValue: "10'", value: 600 }, ownGoal: false, penaltyKick: false, scoringPlay: true },
+  { type: { type: 'goal---header', text: 'Goal - Header' }, team: { id: '99' }, clock: "20'", ownGoal: true },
+  { scoringPlay: true, type: { type: 'penalty---scored', text: 'Penalty - Scored' }, team: { id: 22 }, penaltyKick: true, clock: {} },
   { type: { type: 'yellow-card' }, team: { id: '11' } },
   null,
 ];
 const gs = L.goalShape(rows, { competitorIds: ['11', '22'], finalTotal: 3 });
 eq('goalShape: counts', [gs.rows, gs.goalRows, gs.withTeamId, gs.teamIdIsACompetitor, gs.withClock, gs.ownGoalKey, gs.ownGoalTrue, gs.penaltyKickKey, gs.scoringPlayTrue], [5, 3, 3, 2, 2, 2, 1, 2, 2]);
 eq('goalShape: three goal rows against a final total of three', gs.goalRowsEqualFinalTotal, true);
+eq('goalShape: the clock FORMAT of the goal rows (a numeric value kept, a string clock has none, an empty clock has neither) and the type texts', [gs.clockSamples, gs.typeTexts], [[{ value: 600, display: "10'" }, { value: null, display: "20'" }, { value: null, display: null }], { Goal: 1, 'Goal - Header': 1, 'Penalty - Scored': 1 }]);
+const six = L.goalShape([1, 2, 3, 4, 5, 6].map((i) => ({ scoringPlay: true, clock: { value: i * 60, displayValue: i === 5 ? 'Goal by Some Player' : `${i}'` } })), { competitorIds: [], finalTotal: 6 });
+eq('goalShape: only the first four goal clocks are sampled, and a display that is not a clock is not copied out', [six.clockSamples.length, six.clockSamples.map((x) => x.display)], [4, ["1'", "2'", "3'", "4'"]]);
+eq('goalShape: a display that is not a clock is not copied out (the fifth, past the sample, is checked on its own)', L.goalShape([{ scoringPlay: true, clock: { displayValue: 'Goal by Some Player' } }], { competitorIds: [], finalTotal: 1 }).clockSamples, [{ value: null, display: '(other)' }]);
 eq('goalShape: the type vocabulary, safe names only', gs.typeVocabulary, { goal: 1, 'goal---header': 1, 'penalty---scored': 1, 'yellow-card': 1 });
 eq('goalShape: no readable final total is never "equal"', L.goalShape(rows, { competitorIds: ['11'], finalTotal: null }).goalRowsEqualFinalTotal, false);
 eq('goalShape: a different count is not equal', L.goalShape(rows, { competitorIds: ['11'], finalTotal: 4 }).goalRowsEqualFinalTotal, false);

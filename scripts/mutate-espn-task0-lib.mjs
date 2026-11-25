@@ -23,7 +23,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 56;
+const MIN_ASSERTIONS = 59;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'espn-task0-lib.mjs';
 const CHECK = 'check-espn-task0-lib.mjs';
@@ -83,6 +83,10 @@ const MUTANTS = [
   M('goalShape: fewer goals than the score is "equal"', 'o.goalRows === finalTotal', 'o.goalRows <= finalTotal'),
   M('isGoalRow: scoringPlay ignored', 'r.scoringPlay === true || (isObj(r.type)', '(isObj(r.type)'),
   M('goalShape: an object clock always counts', 'isObj(r.clock) ? isStr(r.clock.displayValue) : isStr(r.clock)', 'isObj(r.clock) || isStr(r.clock)'),
+  M('goalShape: clock samples not capped', 'if (o.clockSamples.length < 4) {', 'if (true) {'),
+  M('goalShape: a numeric clock value dropped', "typeof c.value === 'number' && Number.isFinite(c.value) ? c.value : null", 'null'),
+  M('goalShape: a display copied out unchecked', "(/^[0-9+' :.]{1,16}$/.test(dsp) ? dsp : '(other)')", 'dsp'),
+  M('goalShape: type texts not counted', 'bump(o.typeTexts, label(isObj(r.type) ? r.type.text : undefined));', ''),
   M('registry: every sport accepted', "sport:\\s*'soccer',", "sport:\\s*'[a-z]+',"),
   M('registry: last entry wins', 'if (out[m[1]] === undefined) out[m[1]] = m[2];', 'out[m[1]] = m[2];'),
 ];
