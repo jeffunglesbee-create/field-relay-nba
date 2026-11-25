@@ -1090,6 +1090,25 @@ only `STATUS_IN_PROGRESS` as live; its status names for them are not read); a bo
 
 **The laboratory's copy must be synced** (ATOMIC-A), relay first, as for the soccer board: a change to any key above, to the state words, or to which sports carry an `espnEventId`.
 
+## `journalism` on GET /v2/games?sport=afl — Kali and Squiggle context per game (relay-owned; written 2026-11-24)
+
+Producer: `buildAFLJournalismContext` (`src/index.js`), called from `handleV2Games` only when `KALI_AFL_TOKEN` is set (the block's gate; the Squiggle half rides on it too), with `src/afl-squiggle.js` for finals.
+Consumer: none that reads a value. jubilant-bassoon's one reader, `tests/adapter-visible-value.spec.js` (optional-chained, runs only on dispatch), and no field-laboratory code. If a consumer is added it must be synced here first.
+
+```
+game.journalism: {
+  kali:     null | { homeWinPct, awayWinPct, squiggleConsensus, factors, homeBreakdown, awayBreakdown, _kaliProof: { adapterId, sourceId, round, year } },
+  squiggle: null | { homeConfidence: string, awayConfidence: number }
+}
+```
+`squiggle` is Squiggle's Aggregate tip for THIS game: `homeConfidence` is the game's home club's percentage as a two-decimal STRING and `awayConfidence` is the rest as a NUMBER (float noise included: `100 - 72.30` is `27.700000000000003`). The two types differ because the value is passed through as Squiggle serves it; they are kept as they were (a change is a contract decision: `docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md`). When Squiggle's row lists the two clubs the other way round to ESPN's game, each side's value goes to the right club (the home value is then `(100 - h).toFixed(2)`). A row whose `hconfidence` is not a non-empty string or a number in 0..100 (a tip not yet computed arrives as null, which `Number()` reads as 0) is no tip: `squiggle` stays null, for a regular game and for a final. The relay reads Squiggle with `;source=8` (the Aggregate source), so the rows are Squiggle's consensus alone.
+Presence: every game of the slate carries `journalism: { kali: null, squiggle: null }` once the context ran for it, and a value where a row joined. No `journalism` key at all when the context returned nothing (no Kali token, or a slate of regular games with no week number).
+
+The join (since 2026-11-24): a Kali or Squiggle row belongs to a game only when BOTH its clubs are the game's two clubs, by the AFL identity key (`resolveAFLTeamKey`, `sameAFLClub` in `src/identity-resolver.js`): ESPN's "GWS GIANTS" and Squiggle's "Greater Western Sydney" are one club. Before it a game of GWS carried `squiggle: null` and a prefix rule joined rows by their home club alone.
+Round and year: a REGULAR game is read through its ESPN week (`event.week.number`, 0 for the Opening Round) as the Squiggle and Kali round, in the year of its own ESPN `event.season.year` (the clock's year when an event has none; never the AFL config's constant). A FINAL (ESPN `event.season.type` 3, slug `post-season`) is not: ESPN's week restarts at 1 for the postseason (1 Wildcard Finals ... 5 Grand Final) and Squiggle numbers the finals 25-29 in 2026, so its tip is the Aggregate row of its own two clubs on its Melbourne kickoff day (`squiggleTipForGame`, one read of `?q=tips;year=Y;team=T;source=8`), `kali` stays `null`, and a final with no row is `squiggle: null` with a warning (`[AFL-SQUIGGLE]`), never another round's tip.
+Observed (Rule 73), 2026-11-24, `probe_relay_route` on the deployed relay before the fix: 2026-09-05 Adelaide Crows v Western Bulldogs `squiggle` `{ "47.29", 52.71 }` (March's round-2 tip; the final's own is 68.60 for Adelaide), the 2026-09-26 Grand Final `null`, GWS GIANTS v Geelong Cats (2026-07-11) `null`, the Opening Round games (2026-03-05) no `journalism` key. After the fix: `scripts/check-afl-journalism-context.mjs` and `.github/workflows/afl-finals-live-check.yml`.
+`game.round` on the AFL board is a NUMBER (ESPN's week: 0 for the Opening Round, 1-24, then 1-5 for the finals), against the string the `game.round` section above specifies, and a final's number is a regular round's: known, not changed here (the client's badge shows it as a bare digit and hides 0).
+
 ## GET /v2/games?sport=aflw — the AFLW board (aflapi.afl.com.au, written 2026-11-23)
 
 AFLW is not on ESPN (core `australian-football/leagues` lists `afl` only, runner probe 2026-11-22), so this board is the AFL's own API: `https://aflapi.afl.com.au/afl/v2`, competition 3 ("NAB AFLW"), read
