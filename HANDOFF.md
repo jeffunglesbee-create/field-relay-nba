@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-25 (18:40Z) — "clean up reds and ESPN core API mirror failures": the mirror's golf rule, the HANDOFF format, and the laboratory's verify chain
+
+**HEAD:** `d35a69c` ← `0240be6` ← `075fe14` · **Branch:** main · no `src/` change, no deploy.
+**Session doc:** outbox/cc-session-2026-11-25-reds-cleanup.md (task: the owner's "clean up reds and ESPN core API mirror failures"; laboratory half field-laboratory `outbox/cc-session-2026-11-25-mutate-copy-protocol.md`)
+
+- **The mirror was red in every run from 10:15Z (29 of 29):** an unstarted PGA event (Hero World Challenge, state `pre`, starts 2026-12-03) lists no `competitors` key until its field is published, measured from a runner (`outbox/espn-golf-leaderboard-shape-2026-11-25T18-05-46-597Z.json`); the mirror counted it as a failed read. `golfFieldOf` now says "no field yet" for a `pre` event and still fails for any other state. Run 45672225522 on `d35a69c`: success, `failed 0` in every kind, the "has not started and lists no field yet" line in its log.
+- **Repo guards:** the only red step was the close-out check (8 without a session doc, budget 6): two of my own close-outs lacked the colon form. Fixed; green on `0240be6` and `d35a69c`.
+- **field-laboratory:** guards and verify were red from my ESPN core scripts (undeclared in the unreachable ledger) and from two mutation harnesses of mine that did not follow `mutate-copy-check`'s protocol; that skipped the deploy and left `live-check` red. Fixed in the laboratory (`8be63509`, `bc6059d6`).
+- **Open:** the laboratory's verify, deploy and live-check on `bc6059d6` (result in the laboratory's session doc); Task 3 of the independent-reference CC-CMD still waits for the owner.
+
 ## SESSION CLOSE-OUT — 2026-11-25 (late) — "Build task 1": the ESPN reference grade's runner and workflow are built and checked on stubs; not dispatched
 
 **HEAD:** `431c0cc` ← `6d23457` ← `92718a8` · **Branch:** main · no `src/` change, no deploy.
