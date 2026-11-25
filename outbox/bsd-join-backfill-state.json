@@ -222,6 +222,103 @@
       "pendingAfter": 0,
       "written": 2,
       "unmatched": []
+    },
+    "2026-07-22": {
+      "at": "2026-11-25T08:52:09.553Z",
+      "outcome": "joined",
+      "pendingBefore": 30,
+      "pendingAfter": 0,
+      "written": 30,
+      "unmatched": []
+    },
+    "2026-07-23": {
+      "at": "2026-11-25T08:52:10.251Z",
+      "outcome": "joined",
+      "pendingBefore": 10,
+      "pendingAfter": 0,
+      "written": 10,
+      "unmatched": []
+    },
+    "2026-07-25": {
+      "at": "2026-11-25T08:52:13.734Z",
+      "outcome": "joined",
+      "pendingBefore": 30,
+      "pendingAfter": 0,
+      "written": 30,
+      "unmatched": []
+    },
+    "2026-07-26": {
+      "at": "2026-11-25T08:52:14.103Z",
+      "outcome": "joined",
+      "pendingBefore": 8,
+      "pendingAfter": 0,
+      "written": 8,
+      "unmatched": []
+    },
+    "2026-07-29": {
+      "at": "2026-11-25T08:52:15.753Z",
+      "outcome": "none-matched",
+      "pendingBefore": 1,
+      "pendingAfter": 1,
+      "written": 0,
+      "unmatched": [
+        "MLS: MLS All-Stars v Liga MX All-Stars"
+      ]
+    },
+    "2026-07-31": {
+      "at": "2026-11-25T08:52:18.550Z",
+      "outcome": "joined",
+      "pendingBefore": 16,
+      "pendingAfter": 9,
+      "written": 7,
+      "unmatched": [
+        "MLS: St. Louis CITY SC v Real Salt Lake",
+        "MLS: Portland Timbers v Seattle Sounders FC",
+        "MLS: Minnesota United FC v San Diego FC",
+        "MLS: LA Galaxy v FC Dallas",
+        "MLS: Sporting Kansas City v Houston Dynamo FC",
+        "MLS: Colorado Rapids v Austin FC",
+        "MLS: Chicago Fire FC v Charlotte FC",
+        "MLS: Inter Miami CF v Columbus Crew",
+        "MLS: FC Cincinnati v San Jose Earthquakes"
+      ]
+    },
+    "2026-08-01": {
+      "at": "2026-11-25T08:52:19.433Z",
+      "outcome": "joined",
+      "pendingBefore": 21,
+      "pendingAfter": 0,
+      "written": 21,
+      "unmatched": []
+    },
+    "2026-08-02": {
+      "at": "2026-11-25T08:52:19.781Z",
+      "outcome": "joined",
+      "pendingBefore": 8,
+      "pendingAfter": 0,
+      "written": 8,
+      "unmatched": []
+    },
+    "2026-08-08": {
+      "at": "2026-11-25T08:52:22.709Z",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingAfter": 4,
+      "written": 2,
+      "unmatched": [
+        "MLS: Orlando City v Club León",
+        "MLS: Vancouver Whitecaps FC v FC Juárez",
+        "MLS: Club Tigres v Minnesota United FC",
+        "MLS: FC Cincinnati v Pumas"
+      ]
+    },
+    "2026-08-21": {
+      "at": "2026-11-25T08:52:25.733Z",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingAfter": 0,
+      "written": 3,
+      "unmatched": []
     }
   }
 }
