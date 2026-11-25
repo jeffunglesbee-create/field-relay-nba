@@ -1,0 +1,377 @@
+{
+  "ts": "2026-11-25T09:04:43.007Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-02-01",
+  "to": "2026-10-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 265,
+    "daysRead": 265,
+    "unreadDays": [],
+    "statuses": {
+      "200": 265
+    },
+    "daysToAttempt": 42,
+    "rowsToAttempt": 421,
+    "attemptedStillPending": 5,
+    "pendingRowsAllDays": 688,
+    "scopeSports": [
+      "MLS",
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 50,
+    "outOfScopeRows": 227
+  },
+  "chosen": [
+    "2026-08-22",
+    "2026-08-23",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27",
+    "2026-08-28",
+    "2026-08-30",
+    "2026-08-31",
+    "2026-09-03"
+  ],
+  "dates": [
+    {
+      "date": "2026-08-22",
+      "outcome": "joined",
+      "pendingBefore": 38,
+      "pendingBeforeBySport": {
+        "MLS": 21,
+        "EPL": 5,
+        "La Liga": 3,
+        "Serie A": 4,
+        "Ligue 1": 5
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 38,
+        "written": 38,
+        "joined": 38,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 8,
+        "eventsRead": 472,
+        "upstreamPages": 11,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-23",
+      "outcome": "joined",
+      "pendingBefore": 24,
+      "pendingBeforeBySport": {
+        "MLS": 11,
+        "EPL": 3,
+        "La Liga": 3,
+        "Serie A": 4,
+        "Ligue 1": 3
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 24,
+        "written": 24,
+        "joined": 24,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 9,
+        "eventsRead": 260,
+        "upstreamPages": 2,
+        "cacheHits": 5,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-24",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "EPL": 1,
+        "La Liga": 2,
+        "Serie A": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 5,
+        "joined": 5,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 93,
+        "upstreamPages": 1,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-25",
+      "outcome": "joined",
+      "pendingBefore": 2,
+      "pendingBeforeBySport": {
+        "La Liga": 1,
+        "MLS": 1
+      },
+      "pendingAfter": 1,
+      "verify": {
+        "verified": true,
+        "expected": 1
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 2,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 112,
+        "upstreamPages": 2,
+        "cacheHits": 1,
+        "unmatched": [
+          "MLS: Club León v Real Salt Lake"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-26",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "La Liga": 1,
+        "MLS": 3
+      },
+      "pendingAfter": 3,
+      "verify": {
+        "verified": true,
+        "expected": 3
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 127,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": [
+          "MLS: Toluca FC v Austin FC",
+          "MLS: Club de Fútbol Monterrey Rayados, A.C. v Chicago Fire FC",
+          "MLS: Club León v Real Salt Lake"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-27",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "La Liga": 2,
+        "MLS": 3
+      },
+      "pendingAfter": 3,
+      "verify": {
+        "verified": true,
+        "expected": 3
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 2,
+        "joined": 2,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 143,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": [
+          "MLS: Club América v Columbus Crew",
+          "MLS: Club de Fútbol Monterrey Rayados, A.C. v Chicago Fire FC",
+          "MLS: Toluca FC v Austin FC"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-28",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "EPL": 1,
+        "La Liga": 2,
+        "Serie A": 1,
+        "Bundesliga": 1,
+        "Ligue 1": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 6,
+        "joined": 6,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 333,
+        "upstreamPages": 5,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-30",
+      "outcome": "joined",
+      "pendingBefore": 26,
+      "pendingBeforeBySport": {
+        "MLS": 11,
+        "EPL": 4,
+        "La Liga": 3,
+        "Serie A": 3,
+        "Bundesliga": 2,
+        "Ligue 1": 3
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 26,
+        "written": 26,
+        "joined": 26,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 9,
+        "eventsRead": 292,
+        "upstreamPages": 7,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-08-31",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "EPL": 1,
+        "La Liga": 2,
+        "Serie A": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 5,
+        "joined": 5,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 121,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-03",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingBeforeBySport": {
+        "La Liga": 1,
+        "Ligue 1": 1,
+        "MLS": 1
+      },
+      "pendingAfter": 1,
+      "verify": {
+        "verified": true,
+        "expected": 1
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 3,
+        "written": 2,
+        "joined": 2,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 103,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Vancouver Whitecaps FC v CF Montréal"
+        ]
+      }
+    }
+  ],
+  "pagesUsed": 37,
+  "written": 110,
+  "stoppedBecause": null,
+  "remainingToAttempt": 32,
+  "complete": false,
+  "runner": {
+    "gitSha": "87d6cf71e1456afe1e3fd323acd66b59c2be653f",
+    "runId": "45581592836",
+    "scriptSha256": "2374e5347320a4d56a298dcb62a022d811077ba29bfd6c99fa8bfd7f9f2043ef",
+    "libSha256": "7050816e2253604f79096733186f5ddae1ce341c0734ed3acfd4ed686dd79b88"
+  },
+  "rangeComplete": false,
+  "coverageLine": "265 of 265 days read (0 unread) | scope 6 sports (MLS included), regular-season rows choose a date: to attempt 42 days / 421 rows, 5 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 50 days / 227 rows | this run: 10 dates posted, 110 rows written, 37 upstream pages (cap 50), 10 verified | no stop | remaining to attempt 32"
+}
