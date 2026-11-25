@@ -172,6 +172,19 @@ async function soccerPass(leagues, days) {
 }
 
 // ── Golf ──────────────────────────────────────────────────────────────────────
+
+// What the leaderboard's first event offers to read. ESPN lists an event that has not started with NO `competitors` key on its competition until
+// the field is published (measured 2026-11-25 18:05Z from a runner, outbox/espn-golf-leaderboard-shape-2026-11-25T18-05-46-597Z.json: Hero World
+// Challenge, status.type.state 'pre', starts 2026-12-03, competitors absent on the mirror's read, the event-specific read and the scoreboard,
+// all HTTP 200). That is the leaderboard answering, like an off week, so it is not a failed read: it made every run from 10:15Z red (runs 611 to
+// 639). An event that has started or finished and lists no competitors is still one: ESPN would be serving a field it never lost.
+export function golfFieldOf(ev) {
+  const comps = ev?.competitions?.[0]?.competitors
+  if (Array.isArray(comps)) return { kind: 'field', comps }
+  if (ev?.status?.type?.state === 'pre') return { kind: 'no field yet' }
+  return { kind: 'failed' }
+}
+
 async function golfPass() {
   const lb = await getJson(`${SITE}/golf/leaderboard?league=pga`)
   count('site golf leaderboard', 'wanted')
@@ -179,8 +192,10 @@ async function golfPass() {
   count('site golf leaderboard', 'answered')
   const ev = Array.isArray(lb.json.events) ? lb.json.events[0] : undefined
   if (!ev) { console.log('golf: the leaderboard lists no PGA event (an off week)'); return }
-  const comps = ev.competitions?.[0]?.competitors
-  if (!Array.isArray(comps)) { count('site golf leaderboard', 'failed'); console.error(`  site golf leaderboard: event ${ev.id} lists no competitors`); return }
+  const fld = golfFieldOf(ev)
+  if (fld.kind === 'no field yet') { console.log(`golf: ${ev.name} (${ev.id}) has not started and lists no field yet`); return }
+  if (fld.kind === 'failed') { count('site golf leaderboard', 'failed'); console.error(`  site golf leaderboard: event ${ev.id} lists no competitors`); return }
+  const comps = fld.comps
   const season = ev.season?.year
   const anyOn = comps.some(c => c?.status?.type?.state === 'in')
   const statUrl = c => `${CORE}/golf/leagues/pga/events/${ev.id}/competitions/${ev.id}/competitors/${c.id}/statistics/0`

@@ -10,13 +10,15 @@
 //     item's refs and `played`; an athlete's position
 //   * a missing mirror row is said ("not mirrored"), never an empty answer
 //   * the runner is dispatched from the relay's */15 tick and has no GitHub schedule of its own
+//   * a golf event that has not started and lists no competitors yet is "no field yet", not a failed read (the 2026-11-25 reds);
+//     one that has started or finished and lists none still is
 //
 //   node scripts/check-espn-core-mirror.mjs              run the check
 //   node scripts/check-espn-core-mirror.mjs --self-test  each mutant must turn a check red (Rule 90)
 
 import { readFileSync } from 'node:fs'
 import * as M from '../src/espn-core-mirror.js'
-import { soccerLeaguesFrom } from './espn-core-mirror.mjs'
+import { soccerLeaguesFrom, golfFieldOf } from './espn-core-mirror.mjs'
 
 const fx = name => JSON.parse(readFileSync(`outbox/espn-core-fixtures/${name}.json`, 'utf8'))
 const flat = b => [...(b?.splits?.categories || []).flatMap(c => c.stats || []), ...(b?.stats || [])]
@@ -104,6 +106,22 @@ function run(D) {
   const at = fx('soccer-athlete').body
   check('soccer athlete: the position abbreviation is kept', D.trim('soccer-athlete', at)?.position?.abbreviation === at.position?.abbreviation && !!at.position?.abbreviation, JSON.stringify(D.trim('soccer-athlete', at)))
 
+  // 3b. The golf leaderboard's first event. The shape is what a runner measured on 2026-11-25 18:05Z (outbox/espn-golf-leaderboard-shape-*.json):
+  // Hero World Challenge, status.type.state 'pre', competitions[0] with no competitors key.
+  const gev = (state, extra = {}) => ({ id: '401850982', name: 'Hero World Challenge', status: state === undefined ? undefined : { type: { state, completed: state === 'post' } }, competitions: [{ id: '401850982', ...extra }] })
+  const gfield = D.golfField
+  check('golf: an event that has not started and lists no competitors is "no field yet"', gfield(gev('pre')).kind === 'no field yet', JSON.stringify(gfield(gev('pre'))))
+  check('golf: an event under way that lists no competitors is a failed read', gfield(gev('in')).kind === 'failed', JSON.stringify(gfield(gev('in'))))
+  check('golf: a finished event that lists no competitors is a failed read', gfield(gev('post')).kind === 'failed', JSON.stringify(gfield(gev('post'))))
+  check('golf: an event with no status at all and no competitors is a failed read (an unknown state is not excused)', gfield(gev(undefined)).kind === 'failed', JSON.stringify(gfield(gev(undefined))))
+  check('golf: an event with no competition at all and no status is a failed read', gfield({ id: '1', name: 'x' }).kind === 'failed', JSON.stringify(gfield({ id: '1', name: 'x' })))
+  check('golf: competitors that are not an array (an object) are not a field', gfield(gev('pre', { competitors: {} })).kind === 'no field yet' && gfield(gev('in', { competitors: {} })).kind === 'failed', 'an object was read as a field')
+  const withField = gfield(gev('in', { competitors: [{ id: '1' }, { id: '2' }] }))
+  check('golf: a listed field is returned as it is, whatever the state', withField.kind === 'field' && withField.comps.length === 2 && gfield(gev('pre', { competitors: [{ id: '1' }] })).kind === 'field' && gfield(gev('post', { competitors: [{ id: '1' }] })).kind === 'field', JSON.stringify(withField))
+  check('golf: an empty field array is a field of nobody, not a failure, in every state', ['pre', 'in', 'post'].every(st => gfield(gev(st, { competitors: [] })).kind === 'field'), 'an empty array was refused')
+  const gpass = D.runner.slice(D.runner.indexOf('async function golfPass()'))
+  check('golf: golfPass reads its field through golfFieldOf, and counts only a failed one', /golfFieldOf\(ev\)/.test(gpass) && /kind === 'failed'\) \{ count\('site golf leaderboard', 'failed'\)/.test(gpass) && /kind === 'no field yet'\) \{ console\.log/.test(gpass), 'golfPass does not branch on the three kinds')
+
   // 4. A missing row is said.
   return { results, check, pending: (async () => {
     const none = await D.read({ ARCHIVE_DB: { prepare: () => ({ bind: () => ({ first: async () => null }) }) } }, 'golf/leagues/pga/events/1/competitions/1/competitors/1/statistics/0')
@@ -133,7 +151,7 @@ const print = results => {
 const base = {
   src: readFileSync('src/index.js', 'utf8'), runner: readFileSync('scripts/espn-core-mirror.mjs', 'utf8'),
   wf: readFileSync('.github/workflows/espn-core-mirror.yml', 'utf8'),
-  key: M.coreMirrorKey, kind: M.coreMirrorKind, trim: M.trimCoreBody, read: M.readCoreMirror, leagues: soccerLeaguesFrom,
+  key: M.coreMirrorKey, kind: M.coreMirrorKind, trim: M.trimCoreBody, read: M.readCoreMirror, leagues: soccerLeaguesFrom, golfField: golfFieldOf,
 }
 const swap = (field, a, b) => { if (base[field].split(a).length !== 2) throw new Error(`mutation anchor not unique in ${field}: ${a.slice(0, 60)}`); return { ...base, [field]: base[field].replace(a, b) } }
 
@@ -150,6 +168,14 @@ if (process.argv.includes('--self-test')) {
     'the dispatch removed from the */15 tick': swap('src', '            ctx.waitUntil(dispatchEspnCoreMirror(env).catch(e =>', '            ctx.waitUntil(Promise.resolve().catch(e =>'),
     'a GitHub schedule added': { ...base, wf: base.wf.replace('on:\n  workflow_dispatch:', "on:\n  schedule:\n    - cron: '*/10 * * * *'\n  workflow_dispatch:") },
     'the runner keys athletes by team': swap('runner', '`${CORE}/soccer/leagues/${g.lg}/athletes/${on}`', '`${CORE}/soccer/leagues/${g.lg}/teams/${on}`'),
+    'golf: a missing field is a failed read in every state (the pre-fix rule)': { ...base, golfField: ev => { const c = ev?.competitions?.[0]?.competitors; return Array.isArray(c) ? { kind: 'field', comps: c } : { kind: 'failed' } } },
+    'golf: a missing field is excused in every state': { ...base, golfField: ev => { const c = ev?.competitions?.[0]?.competitors; return Array.isArray(c) ? { kind: 'field', comps: c } : { kind: 'no field yet' } } },
+    'golf: only an event under way is excused': { ...base, golfField: ev => { const c = ev?.competitions?.[0]?.competitors; return Array.isArray(c) ? { kind: 'field', comps: c } : ev?.status?.type?.state === 'in' ? { kind: 'no field yet' } : { kind: 'failed' } } },
+    'golf: an unknown state is excused': { ...base, golfField: ev => { const c = ev?.competitions?.[0]?.competitors; return Array.isArray(c) ? { kind: 'field', comps: c } : ev?.status?.type?.state !== 'in' && ev?.status?.type?.state !== 'post' ? { kind: 'no field yet' } : { kind: 'failed' } } },
+    'golf: an empty field array is refused': { ...base, golfField: ev => { const c = ev?.competitions?.[0]?.competitors; return Array.isArray(c) && c.length ? { kind: 'field', comps: c } : ev?.status?.type?.state === 'pre' ? { kind: 'no field yet' } : { kind: 'failed' } } },
+    'golf: a field is turned into a wait when the event is pre': { ...base, golfField: ev => { const c = ev?.competitions?.[0]?.competitors; return ev?.status?.type?.state === 'pre' ? { kind: 'no field yet' } : Array.isArray(c) ? { kind: 'field', comps: c } : { kind: 'failed' } } },
+    'golf: golfPass no longer asks golfFieldOf': swap('runner', '  const fld = golfFieldOf(ev)\n', '  const fld = { kind: \'failed\' }\n'),
+    'golf: golfPass counts a wait as a failure': swap('runner', "if (fld.kind === 'no field yet') { console.log(", "if (fld.kind === 'no field yet') { count('site golf leaderboard', 'failed'); console.log("),
     'the mirror table not allowed': swap('src', '                CORE_MIRROR_TABLE];', "                'espn_core_mirror_x'];"),
   }
   let survived = 0
