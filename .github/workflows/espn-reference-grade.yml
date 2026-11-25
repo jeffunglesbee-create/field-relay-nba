@@ -1,0 +1,231 @@
+name: BSD next-goal grade against ESPN's goal timeline
+
+# field-laboratory docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md, Task 1 (the build). The RUN is Task 3 and waits for the
+# owner's word; this file is dispatch-only and nothing in it schedules itself.
+#
+# Of the calls the census found gradeable, how many does ESPN's independent goal timeline agree with? The RULE and its counting are the
+# laboratory's (scripts/espn-reference-grade-core.mjs: pure, imports nothing, returns counts); this repository's scripts/espn-reference-grade.mjs
+# only collects the data (the census's collect(): the ledger and the capture reads; /context/date for the archive rows that carry the ESPN id;
+# one ESPN summary per reached match, one second apart) and writes a counts-only artifact. No ledger row, team, player, BSD id or ESPN id is
+# written anywhere.
+#
+# THREE JOBS, the same shape as bsd-next-goal-grade.yml and for the same reasons:
+#   verify  NO secret, read-only. Checks out the laboratory at a FULL SHA and runs the laboratory's checks and mutation harnesses, the census
+#           checks, and this repository's lib, reach, run checks and mutation harnesses. A blind check stops the run here, before any request.
+#   grade   HAS the token and NO write credential: read-only, its checkout keeps no credential. It imports the laboratory's cores, runs the
+#           grade, and hands the artifact files to the next job as a build artifact. It pushes nothing.
+#   commit  HAS the write credential and NO token, and imports no laboratory code. It accepts only files named like the grade's artifacts,
+#           parses each as JSON, commits them to main, and fails the workflow if the grade did not reach its target.
+# THE TRUST BOUNDARY, stated plainly: the laboratory's cores are import()ed into the grade step's process, which holds the token. Nothing in
+# this file can prevent that code reaching the token. What limits it: lab_ref is REQUIRED and must be a full 40-hex SHA (a branch name is
+# refused, because a branch moves); the laboratory's check asserts the core's source text reaches for nothing (a tripwire against an accident,
+# not a sandbox); the artifact is refused if the token appears in it; and each core's sha256, the laboratory commit and this repository's own
+# file hashes are written into the artifact (a record, not a prevention). The grade job holds no write credential, so a core cannot push.
+# The workflow runs only on main: the commit job pushes to main, so a dispatch from another ref must not reach it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      lab_ref:
+        description: 'field-laboratory commit to run: a full 40-hex SHA (required; a branch name is refused)'
+        required: true
+      call_budget:
+        description: 'Max BSD requests, 1 to 50 (default 16)'
+        required: false
+      read_cap:
+        description: 'Max incidents.json reads through the relay, 1 to 5000 (default 1500)'
+        required: false
+      day_cap:
+        description: 'Max distinct /context/date days, 1 to 2000 (default 300)'
+        required: false
+      espn_read_cap:
+        description: 'Max ESPN summary reads, 1 to 2000 (default 400)'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: espn-reference-grade
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Only on main, a full commit SHA, and sane budgets
+        env:
+          LAB_REF: ${{ inputs.lab_ref }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+          READ_CAP: ${{ inputs.read_cap }}
+          DAY_CAP: ${{ inputs.day_cap }}
+          ESPN_READ_CAP: ${{ inputs.espn_read_cap }}
+        run: |
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "dispatch this workflow on main only (the commit job pushes to main); got $GITHUB_REF"; exit 1; }
+          [[ "$LAB_REF" =~ ^[0-9a-f]{40}$ ]] || { echo "lab_ref must be a full 40-hex commit SHA, not a branch or a short SHA"; exit 1; }
+          if [ -n "$CALL_BUDGET" ]; then [[ "$CALL_BUDGET" =~ ^[1-9][0-9]?$ ]] && [ "$CALL_BUDGET" -le 50 ] || { echo "call_budget must be a whole number from 1 to 50"; exit 1; }; fi
+          if [ -n "$READ_CAP" ]; then [[ "$READ_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$READ_CAP" -le 5000 ] || { echo "read_cap must be a whole number from 1 to 5000"; exit 1; }; fi
+          if [ -n "$DAY_CAP" ]; then [[ "$DAY_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$DAY_CAP" -le 2000 ] || { echo "day_cap must be a whole number from 1 to 2000"; exit 1; }; fi
+          if [ -n "$ESPN_READ_CAP" ]; then [[ "$ESPN_READ_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$ESPN_READ_CAP" -le 2000 ] || { echo "espn_read_cap must be a whole number from 1 to 2000"; exit 1; }; fi
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: The laboratory, at the commit named
+        uses: actions/checkout@v4
+        with:
+          repository: jeffunglesbee-create/field-laboratory
+          ref: ${{ inputs.lab_ref }}
+          path: lab
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The laboratory commit is the one named
+        env:
+          LAB_REF: ${{ inputs.lab_ref }}
+        run: |
+          SHA=$(git -C lab rev-parse HEAD)
+          [ "$SHA" = "$LAB_REF" ] || { echo "the checkout is $SHA, not $LAB_REF"; exit 1; }
+          echo "laboratory at $SHA"
+
+      # No token in this job. If any of these is blind, nothing below runs.
+      - name: The checks can still fail
+        run: |
+          (cd lab && node scripts/check-bsd-next-goal-grade-core.mjs --self-test && node scripts/check-bsd-next-goal-grade-core.mjs)
+          (cd lab && node scripts/check-espn-reference-grade-core.mjs)
+          node scripts/check-bsd-next-goal-census.mjs
+          node scripts/check-bsd-next-goal-census-run.mjs
+          node scripts/check-bsd-next-goal-grade-run.mjs --lab lab
+          node scripts/check-espn-task0-lib.mjs
+          node scripts/check-bsd-e2-reach-probe.mjs
+          node scripts/check-espn-reference-grade-run.mjs --lab lab
+
+      - name: The laboratory's mutation harnesses still catch every break
+        working-directory: lab
+        run: |
+          node scripts/mutate-bsd-next-goal-grade-core.mjs
+          node scripts/mutate-espn-reference-grade-core.mjs
+
+      - name: This repository's mutation harnesses still catch every break
+        run: |
+          node scripts/mutate-espn-task0-lib.mjs
+          node scripts/mutate-bsd-e2-reach-probe.mjs
+          node scripts/mutate-espn-reference-grade.mjs --lab lab
+
+  grade:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: The laboratory, at the commit named
+        uses: actions/checkout@v4
+        with:
+          repository: jeffunglesbee-create/field-laboratory
+          ref: ${{ inputs.lab_ref }}
+          path: lab
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Assigned first so that a failing rev-parse stops the step; checked against what verify checked, so the artifact is always tied to it.
+      - name: Record the laboratory commit
+        env:
+          LAB_REF: ${{ inputs.lab_ref }}
+        run: |
+          SHA=$(git -C lab rev-parse HEAD)
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "the laboratory commit is not a 40-hex SHA: '$SHA'"; exit 1; }
+          [ "$SHA" = "$LAB_REF" ] || { echo "the checkout is $SHA, not $LAB_REF"; exit 1; }
+          echo "LAB_SHA=$SHA" >> "$GITHUB_ENV"
+
+      # The token is in the environment of this ONE step. The step has its own limit, so that a hang cannot use the job's: 400 ESPN reads a
+      # second apart are about 7 minutes, the day reads and the ledger a few more.
+      - name: Grade
+        timeout-minutes: 20
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+          READ_CAP: ${{ inputs.read_cap }}
+          DAY_CAP: ${{ inputs.day_cap }}
+          ESPN_READ_CAP: ${{ inputs.espn_read_cap }}
+          LAB_DIR: lab
+        run: node scripts/espn-reference-grade.mjs
+
+      # The evidence goes to the commit job whatever the verdict: a grade that was throttled or partial still left a record of what was asked.
+      - name: Hand the artifact to the commit job
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: espn-reference-grade
+          path: outbox/espn-reference-grade-*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  commit:
+    needs: grade
+    if: ${{ always() && needs.grade.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Take the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: espn-reference-grade
+          path: outbox
+        continue-on-error: true
+
+      # Only files named like the grade's own are committed, and each must be JSON. Nothing else that came back is kept.
+      - name: Accept only the grade's own files
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          N=0
+          for f in outbox/espn-reference-grade-*.json; do
+            b=$(basename "$f")
+            [[ "$b" =~ ^espn-reference-grade-(latest|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{3}Z)\.json$ ]] || { echo "unexpected file name: $b"; exit 1; }
+            [ "$(stat -c %s "$f")" -lt 2000000 ] || { echo "$b is larger than 2 MB"; exit 1; }
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$f" || { echo "$b is not JSON"; exit 1; }
+            N=$((N+1))
+          done
+          echo "accepted $N file(s)"
+          [ "$N" -ge 1 ] || { echo "the grade job left no artifact"; exit 1; }
+
+      # The evidence is committed whatever the verdict.
+      - name: Commit the artifact
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/espn-reference-grade-*.json' \
+          bash scripts/probe-commit-retry.sh "chore: BSD next-goal ESPN reference grade artifact"
+
+      # A grade that left something out is evidence, not a result: -latest.json does not advance on it, and neither does this stay green.
+      - name: A grade that left something out is not a result
+        run: |
+          set -euo pipefail
+          LATEST=$(ls outbox/espn-reference-grade-2*.json | sort | tail -1)
+          echo "reading $LATEST"
+          node -e '
+            const fs=require("fs");
+            const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            console.log(`bsd ${d.bsdCallsMade}/${d.callBudget}, reads ${d.readsMade}, token ${d.tokenPresent}, stopped ${d.stopped}, analysisError ${d.analysisError}, reachedTarget ${d.reachedTarget}`);
+            console.log(d.coverageLine);
+            if(!d.tokenPresent){console.error("BSD_API_TOKEN absent: the ledger was not read, so every count is UNKNOWN, not zero");process.exit(1);}
+            if(d.analysisError){console.error("the analysis threw: the request log is kept, the counts are not");process.exit(1);}
+            if(!d.reachedTarget){console.error("not graded: "+d.notReachedBecause);process.exit(1);}
+          ' "$LATEST"
