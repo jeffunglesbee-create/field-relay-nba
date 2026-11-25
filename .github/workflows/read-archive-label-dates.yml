@@ -1,0 +1,41 @@
+name: Read archive label dates
+
+# Dispatch-only, read-only (SELECT through /d1/execute). Which (sport label, date) pairs does the archive hold for labels matching a LIKE pattern, and how many already carry a
+# bsd_event_id? Counts and dates of the relay's own archive rows only (scripts/read-archive-label-dates.mjs). Written for docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md
+# (the UEFA labels and the EFL Championship): which dates must a fixture capture, and what does the archive hold before anything is changed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      like:
+        description: 'SQL LIKE pattern(s) for the sport label, comma-separated, e.g. UEFA%,EFL%'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The reader can still fail (self-test, then its mutation harness)
+        run: |
+          node scripts/read-archive-label-dates.mjs --self-test
+          node scripts/mutate-read-archive-label-dates.mjs
+      - name: Read the archive
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+          LIKE: ${{ inputs.like }}
+        run: node scripts/read-archive-label-dates.mjs --like "$LIKE" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Commit the reading
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/archive-label-dates-*.json' \
+          bash scripts/probe-commit-retry.sh "probe: archive label dates"
