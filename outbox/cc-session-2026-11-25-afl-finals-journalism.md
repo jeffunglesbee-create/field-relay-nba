@@ -5,9 +5,19 @@
 
 ## Done condition (artifact)
 
-The live proof is a dispatch, `.github/workflows/afl-finals-live-check.yml` (resolver against real ESPN and Squiggle from a runner, a pre-fix control, and the deployed relay): it runs twice, once before the deploy lands (the relay step must FAIL, documenting the old behaviour: 2026-09-05 Adelaide v Western Bulldogs served 47.29) and once after. The runs and their logs are recorded below in "Live runs" (appended by the commit that adds the logs).
+The live proof is a dispatch, `.github/workflows/afl-finals-live-check.yml` (the resolver against REAL ESPN and REAL Squiggle from a runner, a pre-fix control, and the DEPLOYED relay). Run **45525556353** (head `eb03f751`, 2026-11-25 01:24Z), logs `outbox/afl-finals-live-check-2026-11-25T0124.log`, `-control-2026-11-25T0125.log` and `-relay-2026-11-25T0125.log`:
 
-The artifact that exists at this commit: the two checks and their harnesses, run on the final tree: `scripts/check-afl-round-discovery.mjs` 82 of 82, `scripts/check-afl-journalism-context.mjs` 48 of 48, `scripts/mutate-afl-round-discovery.mjs` 65 of 65 mutants caught, `scripts/mutate-afl-journalism-context.mjs` 68 of 68, `scripts/staged-verdicts-check.mjs` 142 passed.
+```
+resolver, real ESPN + real Squiggle:  Adelaide Crows 0.686 (the 2026-09-05 final's own 68.60, not March's 47.29 -> 0.473)  Western Bulldogs 0.314
+  Fremantle Dockers 0.66  Brisbane Lions (Grand Final) 0.515  Collingwood Magpies (Wildcard Final) 0.528        6 of 6 passed
+pre-fix resolver, same real data (the control):  the March round-2 / round-1 / round-5 tips, 0.527 0.673 0.837 0.606        0 of 6 passed, by assertion
+deployed relay, GET /v2/games?sport=afl:  2026-09-05 Adelaide 68.60 and Sydney 50.61, the Grand Final 48.51, a Wildcard Final 47.20,
+  GWS GIANTS v Geelong Cats 42.16, the Opening Round carries a tip, 2027-03-18 Fremantle v Western Bulldogs 68.10                  7 of 7 passed
+```
+
+**Met**, for the finished 2026 season and one 2027 date. Before the deploy the same relay served 47.29 for the 2026-09-05 final, null for the Grand Final and for GWS GIANTS v Geelong Cats, no `journalism` key for the Opening Round, and 71.48 (2026's Western Bulldogs v GWS) for the 2027-03-18 game (read with `probe_relay_route` on 2026-11-24 and 2026-11-25). The relay step was NOT run before the deploy as planned: the deploy finished (01:19Z) before the first dispatch (01:19:56Z). **Not met, STAGED:** the live read on a game that is actually in the window (2027).
+
+The checks and harnesses that guard it, run on the final tree: `scripts/check-afl-round-discovery.mjs` 82 of 82, `scripts/check-afl-journalism-context.mjs` 48 of 48, `scripts/mutate-afl-round-discovery.mjs` 65 of 65 mutants caught, `scripts/mutate-afl-journalism-context.mjs` 68 of 68, `scripts/staged-verdicts-check.mjs` 142 passed.
 
 ## HEAD progression and what each commit was
 
@@ -28,6 +38,7 @@ The artifact that exists at this commit: the two checks and their harnesses, run
 | `7f7cd26d` | checks 12 and 13 choose their game by Squiggle's `is_final`, not by ESPN's `season.type` |
 | `33b8a9c7` | the two CC-CMDs and the Task 0 record |
 | `ffdffeaa` | the live check's relay step also asserts a 2027 date is not served 2026's tip (live today: 71.48 against Squiggle's own 68.10 for 2027-03-18) |
+| `eb03f751` | runner-side Squiggle reads go through the relay's `/squiggle` route, because a GitHub runner is refused with 403 (below) |
 | `89fbe1c5` | `scripts/staged-verifier-check.mjs` requires the executor to report the claimed verdict (deleting check 12's call left every gate green) |
 | this commit | this doc and the HANDOFF close-out |
 
@@ -54,10 +65,15 @@ It reviewed `497fd391`, `9713a394` and the checks that guard them, from five ang
 11. **Coverage lines that said finals were not covered** while asserting them (Rule 91), and a synthetic 2025 row that Squiggle's real row (GWS v Hawthorn, 51.74) replaces.
 12. **The Squiggle contract in the CC-CMD said an untagged "STAGED until"**, which the staged-claim gate never saw; now tagged with `afl_finals_tip_in_season`. And the gate itself resolved a claim's id against the registry but never asked whether the executor reports it: deleting check 12's call and lowering `EXPECTED_CHECKS` left every gate green. It now does (`89fbe1c5`; with the call deleted the gate exits 1).
 
+## What the live run found that I had wrong
+
+13. **Squiggle refuses a GitHub runner.** The first dispatch (run 45524946667, 01:20Z) failed 5 of 6: `api.squiggle.com.au` answered HTTP 403 to every `?q=tips;year=2026;team=N;source=8` read from the runner, with the relay's own User-Agent. Squiggle's changelog (v1.13.0, April 2026) says clients without a contact address "may now be blocked at edge level (particularly if they run from a server farm)". The relay's Cloudflare egress is served: the deployed relay returned the finals' own tips, and its `/squiggle` pass-through returned 200 for a team season nobody had read and for a cache-busted query (`probe_relay_route`, 01:2xZ). Nothing in the build had read Squiggle from a runner before: Task 0 and every review read it through Cloudflare (`html_probe`), and the round-discovery live check stubs Squiggle. Two readers were affected: this live check's resolver step, and checks 12 and 13 of the staged verifier, which would have read PENDING ("could not read: Squiggle HTTP 403") for as long as the block holds, indistinguishable from the off-season. Both now reach Squiggle through the relay's `/squiggle` route (`eb03f751`); the next run, 6 of 6 and 7 of 7 above. Whether the block extends to the relay's own egress later is unmeasured; a refusal there serves null and warns, never a wrong tip. The contact address that would let a runner read Squiggle directly is Item 4 of the third CC-CMD, the owner's.
+
 ## Gates
 
 - **Local sweep of every `run:` step of `deploy.yml` (to the deploy step) and `guards.yml`, on the final rebased tree, from a checkout directory named `field-relay-nba`** (one gate demands that name): every runnable `run:` step of `deploy.yml` (to the deploy step: 127 passed, 5 need Cloudflare credentials) and of `guards.yml` (61 passed, 1 skipped), on the final tree from a clean worktree. Three failures in `guards.yml`, none from this change: step 45 (the BSD frame checks, HTTP 0: no egress), step 54 (needs `RELAY_SHARED_SECRET`), and step 60 ("HANDOFF close-outs name a session doc": 7 without against a budget of 6, which `origin/main` already fails before this push: the 2026-11-24 23:50Z BSD close-out names its session doc in prose, not in the `**Session doc:**` form the gate reads; another session's entry, not touched). The first full sweep found the one real failure of mine, the absence-collapse ratchet (the text of mutant B21 contained `|| []`); fixed in its commit and re-run green. Also run by hand: `staged-verifier-check.mjs` (and its self-test, and with check 12's call deleted: exit 1), `cc-cmd-status-check.mjs`, `check-doc-citations.mjs` (bare 9 of budget 9), `check-handoff-current.mjs`, `check-handoff-claims.mjs`, `check-commit-skip-prose.mjs`.
-- Sandbox-only failures, not regressions: the BSD frame checks (HTTP 0, no egress), the steps that need `RELAY_SHARED_SECRET`, the three Cloudflare-bootstrap steps, and the two gates that read production secrets.
+- Sandbox-only failures, not regressions: the BSD frame checks (HTTP 0, no egress), the steps that need `RELAY_SHARED_SECRET` (both green in CI), the Cloudflare-bootstrap steps and the gates that read production secrets.
+- **CI on the push:** Deploy RELAY Worker run **45523673999** (head `5b6f08e3`) **success**, 01:19Z (`deploy.yml` to the deploy step and every post-deploy probe). Repo guards run **45523673962**: one step red, "HANDOFF close-outs name a session doc that exists" (7 without, budget 6), red on `origin/main` before this push (run 45512656553): the 2026-11-24 23:50Z BSD close-out names its session doc in prose, not in the `**Session doc:**` form the gate reads. Another session's entry; left alone. Every other guards step green, including the BSD frame and archive-date steps that cannot run in the sandbox.
 
 ## Integration state (Rule 65)
 
