@@ -3,7 +3,7 @@
 ## SESSION CLOSE-OUT — 2026-11-25 (18:40Z) — "clean up reds and ESPN core API mirror failures": the mirror's golf rule, the HANDOFF format, and the laboratory's verify chain
 
 **HEAD:** `d35a69c` ← `0240be6` ← `075fe14` · **Branch:** main · no `src/` change, no deploy.
-**Session doc:** outbox/cc-session-2026-11-25-reds-cleanup.md (task: the owner's "clean up reds and ESPN core API mirror failures"; laboratory half field-laboratory `outbox/cc-session-2026-11-25-mutate-copy-protocol.md`)
+**Session doc:** outbox/cc-session-2026-11-25-reds-cleanup.md (task: the owner's "clean up reds and ESPN core API mirror failures"; laboratory half: field-laboratory/outbox/cc-session-2026-11-25-mutate-copy-protocol.md)
 
 - **The mirror was red in every run from 10:15Z (29 of 29):** an unstarted PGA event (Hero World Challenge, state `pre`, starts 2026-12-03) lists no `competitors` key until its field is published, measured from a runner (`outbox/espn-golf-leaderboard-shape-2026-11-25T18-05-46-597Z.json`); the mirror counted it as a failed read. `golfFieldOf` now says "no field yet" for a `pre` event and still fails for any other state. Run 45672225522 on `d35a69c`: success, `failed 0` in every kind, the "has not started and lists no field yet" line in its log.
 - **Repo guards:** the only red step was the close-out check (8 without a session doc, budget 6): two of my own close-outs lacked the colon form. Fixed; green on `0240be6` and `d35a69c`.
