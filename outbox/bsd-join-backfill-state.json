@@ -605,6 +605,86 @@
       "pendingAfter": 0,
       "written": 1,
       "unmatched": []
+    },
+    "2026-10-02": {
+      "at": "2026-11-25T09:17:12.870Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": []
+    },
+    "2026-10-06": {
+      "at": "2026-11-25T09:17:13.683Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": []
+    },
+    "2026-10-07": {
+      "at": "2026-11-25T09:17:14.169Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": []
+    },
+    "2026-10-09": {
+      "at": "2026-11-25T09:17:16.903Z",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingAfter": 0,
+      "written": 3,
+      "unmatched": []
+    },
+    "2026-10-11": {
+      "at": "2026-11-25T09:17:18.771Z",
+      "outcome": "joined",
+      "pendingBefore": 24,
+      "pendingAfter": 0,
+      "written": 24,
+      "unmatched": []
+    },
+    "2026-10-12": {
+      "at": "2026-11-25T09:17:19.192Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 0,
+      "written": 4,
+      "unmatched": []
+    },
+    "2026-10-14": {
+      "at": "2026-11-25T09:17:20.164Z",
+      "outcome": "joined",
+      "pendingBefore": 30,
+      "pendingAfter": 0,
+      "written": 30,
+      "unmatched": []
+    },
+    "2026-10-15": {
+      "at": "2026-11-25T09:17:20.676Z",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingAfter": 0,
+      "written": 9,
+      "unmatched": []
+    },
+    "2026-10-16": {
+      "at": "2026-11-25T09:17:22.759Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 0,
+      "written": 4,
+      "unmatched": []
+    },
+    "2026-10-19": {
+      "at": "2026-11-25T09:17:23.723Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 0,
+      "written": 4,
+      "unmatched": []
     }
   }
 }

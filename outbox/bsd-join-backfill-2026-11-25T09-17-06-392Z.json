@@ -1,0 +1,353 @@
+{
+  "ts": "2026-11-25T09:17:06.392Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-02-01",
+  "to": "2026-10-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 265,
+    "daysRead": 265,
+    "unreadDays": [],
+    "statuses": {
+      "200": 265
+    },
+    "daysToAttempt": 12,
+    "rowsToAttempt": 89,
+    "attemptedStillPending": 8,
+    "pendingRowsAllDays": 376,
+    "scopeSports": [
+      "MLS",
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 57,
+    "outOfScopeRows": 243
+  },
+  "chosen": [
+    "2026-10-02",
+    "2026-10-06",
+    "2026-10-07",
+    "2026-10-09",
+    "2026-10-11",
+    "2026-10-12",
+    "2026-10-14",
+    "2026-10-15",
+    "2026-10-16",
+    "2026-10-19"
+  ],
+  "dates": [
+    {
+      "date": "2026-10-02",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "MLS": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 1,
+        "eventsRead": 368,
+        "upstreamPages": 8,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "MLS": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 94,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "MLS": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 1,
+        "eventsRead": 73,
+        "upstreamPages": 1,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-09",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingBeforeBySport": {
+        "La Liga": 1,
+        "Bundesliga": 1,
+        "Ligue 1": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 3,
+        "written": 3,
+        "joined": 3,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 298,
+        "upstreamPages": 7,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-11",
+      "outcome": "joined",
+      "pendingBefore": 24,
+      "pendingBeforeBySport": {
+        "MLS": 7,
+        "EPL": 3,
+        "La Liga": 4,
+        "Serie A": 5,
+        "Bundesliga": 2,
+        "Ligue 1": 3
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 24,
+        "written": 24,
+        "joined": 24,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 6,
+        "eventsRead": 250,
+        "upstreamPages": 6,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-12",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "EPL": 1,
+        "La Liga": 1,
+        "Serie A": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 69,
+        "upstreamPages": 1,
+        "cacheHits": 1,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "outcome": "joined",
+      "pendingBefore": 30,
+      "pendingBeforeBySport": {
+        "MLS": 30
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 30,
+        "written": 30,
+        "joined": 30,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 15,
+        "eventsRead": 96,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-15",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingBeforeBySport": {
+        "MLS": 9
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 9,
+        "written": 9,
+        "joined": 9,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 9,
+        "eventsRead": 107,
+        "upstreamPages": 1,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "La Liga": 1,
+        "Serie A": 1,
+        "Bundesliga": 1,
+        "Ligue 1": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 312,
+        "upstreamPages": 6,
+        "cacheHits": 1,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "EPL": 1,
+        "La Liga": 1,
+        "Serie A": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 103,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    }
+  ],
+  "pagesUsed": 39,
+  "written": 81,
+  "stoppedBecause": null,
+  "remainingToAttempt": 2,
+  "complete": false,
+  "runner": {
+    "gitSha": "0a3b5d9ca655381c20e40ba64d2d893ebfcb22b3",
+    "runId": "45583584325",
+    "scriptSha256": "2374e5347320a4d56a298dcb62a022d811077ba29bfd6c99fa8bfd7f9f2043ef",
+    "libSha256": "7050816e2253604f79096733186f5ddae1ce341c0734ed3acfd4ed686dd79b88"
+  },
+  "rangeComplete": false,
+  "coverageLine": "265 of 265 days read (0 unread) | scope 6 sports (MLS included), regular-season rows choose a date: to attempt 12 days / 89 rows, 8 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 57 days / 243 rows | this run: 10 dates posted, 81 rows written, 39 upstream pages (cap 50), 10 verified | no stop | remaining to attempt 2"
+}
