@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-25 (20:30Z) — the ESPN reference grade: Task 2 (one independent reader) done, Task 3 ran: 268 of 382 calls graded, 268 agree, 0 disagree
+
+**HEAD:** `5e2e62a` (the runner after the reader) ← `d35a69c`; the run's own artifact commit follows it · **Branch:** main · no `src/` change, no deploy.
+**Session doc:** outbox/cc-session-2026-11-25-espn-reference-grade-v2.md (task: the owner's "task 2 and task 3 are approved"; record field-laboratory/docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md, "Task 2 result" and "Task 3 result"; laboratory half field-laboratory/outbox/cc-session-2026-11-25-espn-core-v2.md)
+
+- **Task 2:** one independent reader attacked the premises and the harness; every finding was checked by a command first. Confirmed and fixed: the final-score guard was idle for 354 of 370 calls (a capture with no full-time row; now held to "not ahead of ESPN's final"), step A called a cut-off capture "different in number", the summary's event id was never compared, the core's `partitions` was trusted, a 5xx counted as "no timeline", and the harness header's "equivalent" tie-break claim was false. Counts: lab core check 84 → 119, harness 78 → 122; runner check 49 → 69, harness 50 → 73; all caught.
+- **Task 3, run 45689623116** (lab `af3500da`): 382 calls on 246 matches; **268 graded, 268 agree, 0 disagree** on 264 distinct goals; 170 of 246 matches with a usable ESPN timeline, 170 of 170 summaries HTTP 200, event ids matched 170 of 170; 267 of 268 at 0 minutes from `resolved_minute`. Not graded: 89 UEFA calls and 25 EFL Championship calls (the owner's open join decisions). ESPN credits an own goal to the beneficiary (21 of 21).
+- **What it says, and what it does not (E5):** step A found no difference between ESPN and BSD's capture on 170 matches, so this cannot tell an independent second source from one provider's feed licensed to both. Limits: the guard is full equality on only 9 matches (one-sided on 161), the k=0 join check is vacuous.
+- **Open, none blocking:** extend the join to the UEFA labels (57 matches) and the EFL Championship seed decision (19) would raise the graded population; the ESPN completed-status is unchecked; whether BSD's 22 cut-off captures end early is unmeasured.
+
 ## SESSION CLOSE-OUT — 2026-11-25 (18:40Z) — "clean up reds and ESPN core API mirror failures": the mirror's golf rule, the HANDOFF format, and the laboratory's verify chain
 
 **HEAD:** `d35a69c` ← `0240be6` ← `075fe14` · **Branch:** main · no `src/` change, no deploy.

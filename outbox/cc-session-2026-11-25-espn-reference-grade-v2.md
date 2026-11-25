@@ -25,3 +25,15 @@ Four checks of the partition rule duplicated each other or the explicit census t
 
 - **The guard for a capture with no full-time row is one-sided** (the laboratory's session doc). The run reports it; it does not hide it.
 - The run itself (Task 3), ESPN's own-goal convention, `header.id` presence and a shootout flag in the header rows remain unmeasured until it has run.
+
+## Task 3: the run, and its result (2026-11-25, owner-approved)
+
+Run 45689623116 (`espn-reference-grade.yml`, dispatched on `main` at `5e2e62a`, `lab_ref` `af3500da353d8bc0fba26398d595e8b97c65365b`): `verify` (7 minutes: every check and harness, no secret), `grade` (3 minutes: the token, no write credential) and `commit` all succeeded; "A grade that left something out is not a result" passed. Artifact: `outbox/espn-reference-grade-latest.json` (and the stamped `espn-reference-grade-2026-11-25T20-00-34-834Z.json`): `reachedTarget` true, `stopped` null, `analysisError` null.
+
+- **382 gradeable calls on 246 matches; graded 268, agree 268, disagree 0, not applicable 114** (the 57 UEFA matches the join does not look at, 89 calls; the 19 EFL Championship matches with no archive rows, 25 calls).
+- **170 ESPN summaries read, all HTTP 200, the event id on each matched the one asked for (170 of 170), no ESPN id shared.** 170 of 170 usable timelines.
+- Step A on 170 matches: identical 148, cut short 22, different in number, order or minute 0. 267 of 268 graded calls resolve at 0 minutes from the ledger's `resolved_minute`, 1 at 1 minute. Own goals: ESPN's row carries the side credited (21 of 21).
+- **E5 says what this means:** ESPN and BSD's capture never differ on these 170 matches, so this cannot tell an independent confirmation from one provider's feed licensed to both. The full table and the limits (the one-sided guard on 161 captures, the vacuous k=0 join check, the 22 cut-off captures): field-laboratory `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, "Task 3 result".
+- Public artifact scanned for ids, names and the token: none.
+
+**Integration state (Rule 65):** relay contract unchanged (reads `/context/date`, `/bsd/r2/*`); VERIFIED end to end by the run. Nothing is STAGED.
