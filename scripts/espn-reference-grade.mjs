@@ -30,7 +30,7 @@ import { refuseIfTokenInside } from './bsd-next-goal-probe.mjs';
 import { collect, analyseCensus } from './bsd-next-goal-census.mjs';
 import { populationOf } from './bsd-next-goal-grade.mjs';
 import { matchesOf, readDays } from './bsd-e2-reach-probe.mjs';
-import { daysToRead, reachEach, registryFromSource, summaryToEspn } from './espn-task0-lib.mjs';
+import { daysToRead, reachEach, registryFromSource, summaryToEspn, summaryEventId } from './espn-task0-lib.mjs';
 
 const ESPN_OVERRIDE = typeof process.env.ESPN_BASE === 'string' && process.env.ESPN_BASE !== '' ? process.env.ESPN_BASE : null;   // the check points this at a stub
 const SUMMARY = ESPN_OVERRIDE !== null ? ESPN_OVERRIDE : 'https://site.web.api.espn.com/apis/site/v2/sports/soccer';
@@ -66,12 +66,13 @@ async function loadCores(labDir) {
 async function readEspn(reached, leagueOf, readCap) {
   const out = new Map();
   const statuses = Object.create(null);
-  let stopped = null, made = 0, capped = false;
+  const ids = Object.create(null);   // the event id the summary says it is for, against the one asked: matched, absent, differs
+  let stopped = null, made = 0, capped = false, failed = 0;
   for (const m of reached) {
     if (stopped !== null) { out.set(m.key, null); bump(statuses, '(not read: stopped)'); continue; }
     if (made >= readCap) { capped = true; out.set(m.key, null); bump(statuses, '(not read: cap)'); continue; }
     const league = leagueOf(m.slug);
-    if (league === undefined) { out.set(m.key, null); bump(statuses, '(no ESPN league for the directory)'); continue; }
+    if (league === undefined) { out.set(m.key, null); bump(statuses, '(no ESPN league for the directory)'); failed++; continue; }
     if (made > 0) await sleep(SPACING_MS);
     made++;
     let st = 'no response', espn = null;
@@ -80,12 +81,40 @@ async function readEspn(reached, leagueOf, readCap) {
       st = String(r.status);
       if (r.status === 403 || r.status === 429) stopped = st;
       const text = await r.text();
-      if (r.status === 200) { try { espn = summaryToEspn(JSON.parse(text)); } catch (_) { st = '200 non-JSON'; } if (espn === null && st === '200') st = '200 not the summary shape'; }
+      if (r.status === 200) {
+        let json = null;
+        try { json = JSON.parse(text); } catch (_) { st = '200 non-JSON'; }
+        if (st === '200') {
+          espn = summaryToEspn(json);
+          if (espn === null) st = '200 not the summary shape';
+          else {
+            const got = summaryEventId(json);
+            const idCheck = got === null ? 'absent' : got === m.espnId ? 'matched' : 'differs';
+            bump(ids, idCheck);
+            if (idCheck === 'differs') { espn = null; st = '200 other event'; }
+          }
+        }
+      }
     } catch (e) { st = `error: ${String(e && e.message ? e.message : e).slice(0, 40)}`; }
     out.set(m.key, espn);
     bump(statuses, st);
+    if (st !== '200' && st !== '404') failed++;   // a 404 is ESPN saying it has no such event; anything else is a read that did not answer
   }
-  return { byKey: out, statuses, stopped, made, capped };
+  return { byKey: out, statuses, ids, stopped, made, capped, failed };
+}
+
+// The core's own `partitions` is not trusted alone: the sums are added up again here, from the numbers it returned (as the first grade's runner does). The census
+// ties (population and matches) are checked beside it, so they are not repeated here, and a count that is not a whole number cannot pass the sums below.
+function partitionsHold(g) {
+  if (!isObj(g) || !isObj(g.notApplicable) || !isObj(g.notApplicable.byReason) || !isObj(g.bySlug)) return false;
+  const slugs = Object.values(g.bySlug);
+  const reasons = Object.values(g.notApplicable.byReason);
+  const sum = (list) => list.reduce((t, x) => t + x, 0);
+  return reasons.every((x) => Number.isInteger(x) && x >= 0)
+    && g.population === g.graded + g.notApplicable.total && g.graded === g.agree + g.disagree
+    && sum(reasons) === g.notApplicable.total
+    && sum(slugs.map((x) => x.calls)) === g.population && sum(slugs.map((x) => x.graded)) === g.graded && sum(slugs.map((x) => x.agree)) === g.agree
+    && sum(slugs.map((x) => x.disagree)) === g.disagree && sum(slugs.map((x) => x.notApplicable)) === g.notApplicable.total;
 }
 
 async function main() {
@@ -135,20 +164,24 @@ async function main() {
         gradeLine = cores.espn.mod.coverageLine(grade);
         if (typeof gradeLine !== 'string' || !isObj(grade) || grade.partitions !== true) throw new Error('the core returned a grade that does not partition, or a line that is not text');
         if (grade.population !== items.length || grade.matches !== matches.length) throw new Error(`the core's population ${grade.population} / matches ${grade.matches} is not the census's ${items.length} / ${matches.length}`);
+        if (!partitionsHold(grade)) throw new Error('the numbers the core returned do not add up: every call must be agree, disagree or one named reason, once');
       } catch (e) { gradeError = redact(String(e && e.stack ? e.stack : e).split('\n').slice(0, 4).join(' | ')); grade = null; gradeLine = null; }
     }
   } else if (notReached === null && analysisError === null) notReached = 'the census found no gradeable calls';
 
   const reachedCount = reach === null ? 0 : reach.filter((r) => r.reached).length;
+  const idUse = new Map();
+  if (reach !== null) for (const r of reach) if (r.reached) idUse.set(r.espnId, (idUse.get(r.espnId) || 0) + 1);
+  const sharedIds = [...idUse.values()].filter((n) => n > 1).reduce((t, n) => t + n, 0);
   const espnOk = espnRead === null ? 0 : [...espnRead.byKey.values()].filter((v) => v !== null).length;
   const complete = grade !== null && dayRead !== null && dayRead.stopped === null && [...dayRead.dayRows.values()].every((v) => v !== null)
-    && espnRead !== null && espnRead.stopped === null && espnRead.capped === false && bsdStopped === null && census.gradeable === items.length;
+    && espnRead !== null && espnRead.stopped === null && espnRead.capped === false && espnRead.failed === 0 && bsdStopped === null && census.gradeable === items.length;
   const why = complete ? null : analysisError !== null ? 'the analysis threw' : notReached !== null ? notReached : gradeError !== null ? `the grade threw or did not partition: ${gradeError.slice(0, 120)}`
     : dayRead === null ? 'no reach was computed' : dayRead.stopped !== null || [...dayRead.dayRows.values()].some((v) => v === null) ? 'a /context/date day was not read'
-      : espnRead.stopped !== null ? `ESPN answered ${espnRead.stopped}: the run stopped` : espnRead.capped ? `the ESPN read cap was reached` : bsdStopped !== null ? `BSD answered ${bsdStopped}` : `the census's gradeable count ${census.gradeable} is not the population ${items.length}`;
+      : espnRead.stopped !== null ? `ESPN answered ${espnRead.stopped}: the run stopped` : espnRead.capped ? `the ESPN read cap was reached` : espnRead.failed > 0 ? `${espnRead.failed} ESPN read(s) answered neither 200 nor 404, so those matches are unread, not "no timeline"` : bsdStopped !== null ? `BSD answered ${bsdStopped}` : `the census's gradeable count ${census.gradeable} is not the population ${items.length}`;
   const notReachedLine = Object.entries(reachCounts).filter(([k]) => k !== 'reached').map(([k, n]) => `${k} ${n}`).join('; ');
   const coverageLine = grade === null ? `not graded: ${why}`
-    : `${gradeLine} | matches ${matches.length}: reached ${reachedCount}${notReachedLine === '' ? '' : `, not reached [${notReachedLine}]`}; ESPN timelines read ${espnOk} of ${reachedCount} reached`;
+    : `${gradeLine} | matches ${matches.length}: reached ${reachedCount}${notReachedLine === '' ? '' : `, not reached [${notReachedLine}]`}; ESPN summaries read ${espnOk} of ${reachedCount} reached (event id matched ${espnRead === null ? 0 : espnRead.ids.matched || 0}, absent ${espnRead === null ? 0 : espnRead.ids.absent || 0}, differing ${espnRead === null ? 0 : espnRead.ids.differs || 0}); reached matches sharing an ESPN id ${sharedIds}`;
 
   Object.assign(out, {
     bsdCallsMade: bsdCalls, stopped: bsdStopped, analysisError, readsMade: reads.size, reachedTarget: complete, notReachedBecause: why,
@@ -158,7 +191,8 @@ async function main() {
       graderSha256: fileSha(path.join(dir, 'bsd-next-goal-grade.mjs')), reachSha256: fileSha(path.join(dir, 'bsd-e2-reach-probe.mjs')) },
     coverageLine, censusCoverageLine: analysis.coverageLine, census: { verdict: census.verdict, gradeable: census.gradeable },
     calls: items.length, matches: matches.length, reachCounts, daysNeeded: dayRead === null ? null : dayRead.dayRows.size, dayReadStatuses: dayRead === null ? null : dayRead.statuses,
-    espnReads: espnRead === null ? null : { made: espnRead.made, statuses: espnRead.statuses, stopped: espnRead.stopped, capped: espnRead.capped, timelinesRead: espnOk },
+    espnReads: espnRead === null ? null : { made: espnRead.made, statuses: espnRead.statuses, eventIds: espnRead.ids, stopped: espnRead.stopped, capped: espnRead.capped, failed: espnRead.failed, summariesRead: espnOk },
+    sharedEspnIds: sharedIds,
     grade, bsdLog: log,
   });
   const body = JSON.stringify(out, null, 2);

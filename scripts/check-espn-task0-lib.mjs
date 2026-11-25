@@ -166,6 +166,10 @@ const hdr = (o = {}) => ({ header: { competitions: [{ details: [{ scoringPlay: t
 eq('summaryToEspn: the rows untouched, the competitors as team id, side and a NUMERIC score', L.summaryToEspn(hdr()), { rows: [{ scoringPlay: true, team: { id: '11' }, clock: { displayValue: "10'" } }, { scoringPlay: false }], competitors: [{ id: '11', homeAway: 'home', score: 2 }, { id: '22', homeAway: 'away', score: 1 }] });
 const badHdr = (mut) => { const j = JSON.parse(JSON.stringify(hdr())); mut(j.header.competitions[0]); return L.summaryToEspn(j); };
 eq('summaryToEspn: not the shape is null', [L.summaryToEspn(null), L.summaryToEspn({}), L.summaryToEspn({ header: { competitions: [] } })], [null, null, null]);
+// ---- summaryEventId: the event a summary says it is for
+eq('summaryEventId: header.id as text, whether ESPN sends a string or a number', [L.summaryEventId({ header: { id: '401234' } }), L.summaryEventId({ header: { id: 401234 } })], ['401234', '401234']);
+eq('summaryEventId: absent, empty, negative, fractional, an object, or not the shape is null', [L.summaryEventId({ header: {} }), L.summaryEventId({ header: { id: '' } }), L.summaryEventId({ header: { id: -1 } }), L.summaryEventId({ header: { id: 1.5 } }), L.summaryEventId({ header: { id: {} } }), L.summaryEventId({}), L.summaryEventId(null), L.summaryEventId({ header: 'x' }), L.summaryEventId({ id: '401234' })], [null, null, null, null, null, null, null, null, null]);
+eq('summaryEventId: zero is an id, not an absence', L.summaryEventId({ header: { id: 0 } }), '0');
 eq('summaryToEspn: details that are not a list', badHdr((c) => { c.details = {}; }), null);
 eq('summaryToEspn: competitors that are not a list', badHdr((c) => { c.competitors = {}; }), null);
 eq('summaryToEspn: a competitor with no team id', badHdr((c) => { delete c.competitors[0].team.id; }), null);

@@ -277,6 +277,17 @@ export function summaryToEspn(json) {
   return { rows: c0.details, competitors };
 }
 
+/**
+ * The event id a summary says it is for: header.id as text, or null when it carries none. The grade asks ESPN for one event by id and compares this with the id it
+ * asked for, so an answer for another event cannot be graded as the match (2026-11-25, the independent reader: nothing recorded whether header.id is present, so the
+ * runner COUNTS matched, absent and differing, and refuses only a differing one).
+ */
+export function summaryEventId(json) {
+  const id = isObj(json) && isObj(json.header) ? json.header.id : null;
+  if (isStr(id) && id !== '') return id;
+  return Number.isInteger(id) && id >= 0 ? String(id) : null;
+}
+
 // ---------------------------------------------------------------- the league slugs, read from the relay's own registry text
 /** { slug: espnLeague } for every registry entry written as  'slug': { sport: 'soccer', espnLeague: '...' */
 export function registryFromSource(text) {

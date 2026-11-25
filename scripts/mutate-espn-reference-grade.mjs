@@ -12,6 +12,12 @@
 //   - encodeURIComponent(m.espnId): ESPN ids are digits; the check's ids contain nothing to encode, so no input of this check can tell.
 //   - `espn: reach[i].reached ? espnRead.byKey.get(m.key) : null`: an unreached match has no entry in byKey, so undefined and null are the
 //     same input to the core (it tests `!espn`).
+//   - `isInt` on `g.matches` and `g.population` separately from their equality with the census numbers: the equality is tested next, so a non-integer fails it too.
+//   - `espnRead.stopped === null` in `complete`: a 403 or 429 is itself a read that is neither 200 nor 404, so it is counted in `failed`, and `failed === 0` is
+//     in the same conjunction; the stop term can differ from it for no input. It stays as the plain statement of the rule (a stop is not a result).
+//   - the `String()` that the event-id comparison once had: lib reachEach builds every ESPN id with String() already, so the runner compares text with text.
+//   - the integer, shape and tie terms that partitionsHold does NOT have: a fractional agree or disagree that is consistent in every sum passes it, and that cannot
+//     come from a core that counts with ++; the census ties (population, matches) are the runner's own explicit checks beside it, each with its own case in the table.
 //   - the redact() on analysisError: no input of this check makes the census analysis throw (its own check covers that); the same helper on
 //     gradeError IS exercised (a core that throws with the token in its message).
 //   - `bsdStopped === null` in `complete`: a BSD 429 or 401 means the request that got it returned no data, and every BSD request the census
@@ -26,7 +32,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 49;
+const MIN_ASSERTIONS = 69;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'espn-reference-grade.mjs');
 const MUT = path.join(dir, '.mutant-espn-reference-grade.mjs');
@@ -56,9 +62,9 @@ const MUTANTS = [
   M('readEspn: the default spacing moved', 'Number(process.env.ESPN_SPACING_MS) : 1000;', 'Number(process.env.ESPN_SPACING_MS) : 100;'),
   M('readEspn: a redirect is followed', "redirect: 'manual', headers: { Accept", "redirect: 'follow', headers: { Accept"),
   M('readEspn: no timeout on the read', "'User-Agent': 'FIELD/1.0' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }", "'User-Agent': 'FIELD/1.0' } }"),
-  M('readEspn: a 200 that is not the summary shape is not named', "if (espn === null && st === '200') st = '200 not the summary shape';", ''),
+  M('readEspn: a 200 that is not the summary shape is not named', "if (espn === null) st = '200 not the summary shape';", 'if (espn === null) st = \'200\';'),
   M('readEspn: a non-JSON 200 is not named', "st = '200 non-JSON';", "st = '200';"),
-  M('readEspn: a directory with no league is still asked', "if (league === undefined) { out.set(m.key, null); bump(statuses, '(no ESPN league for the directory)'); continue; }", ''),
+  M('readEspn: a directory with no league is still asked', "if (league === undefined) { out.set(m.key, null); bump(statuses, '(no ESPN league for the directory)'); failed++; continue; }", ''),
   M('main: every match is asked of the same league', 'leagueOf(m.slug)', "leagueOf('epl')"),
   M('main: matches that were not reached are read too', '.filter((m) => m.reached);', ';'),
   M('main: the ESPN id comes from the wrong match', 'espnId: reach[i].espnId', 'espnId: reach[0].espnId'),
@@ -71,8 +77,7 @@ const MUTANTS = [
   M('main: a missing grade still reaches the target', 'const complete = grade !== null && dayRead !== null', 'const complete = dayRead !== null'),
   M('main: unread days still reach the target', '&& [...dayRead.dayRows.values()].every((v) => v !== null)', ''),
   M('main: a stopped day read still reaches the target', 'dayRead.stopped === null &&', 'true &&'),
-  M('main: an ESPN stop still reaches the target', 'espnRead.stopped === null && espnRead.capped === false', 'espnRead.capped === false'),
-  M('main: a reached ESPN cap still reaches the target', '&& espnRead.capped === false && bsdStopped === null', '&& bsdStopped === null'),
+  M('main: a reached ESPN cap still reaches the target', '&& espnRead.capped === false && espnRead.failed === 0 && bsdStopped === null', '&& espnRead.failed === 0 && bsdStopped === null'),
   M('main: -latest.json always advances', "if (complete) { fs.writeFileSync('outbox/espn-reference-grade-latest.json'", "if (true) { fs.writeFileSync('outbox/espn-reference-grade-latest.json'"),
   M('main: an empty population is searched anyway', "else if (notReached === null && analysisError === null) notReached = 'the census found no gradeable calls';", ''),
   M('main: an empty population reads days', 'analysisError === null && matches.length > 0) {', 'analysisError === null) {'),
@@ -85,10 +90,36 @@ const MUTANTS = [
   M('artifact: the runner does not record itself', 'runnerSha256: fileSha(fileURLToPath(import.meta.url))', "runnerSha256: fileSha(path.join(dir, 'espn-task0-lib.mjs'))"),
   M('artifact: the lib hash is the census hash', "libSha256: fileSha(path.join(dir, 'espn-task0-lib.mjs'))", "libSha256: fileSha(path.join(dir, 'bsd-next-goal-census.mjs'))"),
   M('artifact: the reach probe is not recorded', "reachSha256: fileSha(path.join(dir, 'bsd-e2-reach-probe.mjs'))", 'reachSha256: null'),
-  M('coverage: the denominator of the ESPN reads is the matches, not the reached', 'ESPN timelines read ${espnOk} of ${reachedCount} reached', 'ESPN timelines read ${espnOk} of ${matches.length} reached'),
+  M('coverage: the denominator of the ESPN reads is the matches, not the reached', 'ESPN summaries read ${espnOk} of ${reachedCount} reached', 'ESPN summaries read ${espnOk} of ${matches.length} reached'),
   M('coverage: the matches that were not reached are not listed', ', not reached [${notReachedLine}]', ''),
   M('coverage: the reached count is the match count', '${matches.length}: reached ${reachedCount}', '${matches.length}: reached ${matches.length}'),
   M('artifact: the reach counts are not recorded', 'calls: items.length, matches: matches.length, reachCounts,', 'calls: items.length, matches: matches.length, reachCounts: {},'),
+
+  // ---- the independent reader of 2026-11-25
+  M('readEspn: a summary for another event is graded', "if (idCheck === 'differs') { espn = null; st = '200 other event'; }", ''),
+  M('readEspn: an absent event id is refused', "const idCheck = got === null ? 'absent' :", "const idCheck = got === null ? 'differs' :"),
+  M('readEspn: the event id is compared with another id', "got === m.espnId ? 'matched'", "got === 'x' ? 'matched'"),
+  M('readEspn: the event ids are not counted', 'bump(ids, idCheck);', ''),
+  M('readEspn: any status has its body parsed', 'if (r.status === 200) {\n        let json = null;', 'if (true) {\n        let json = null;'),
+  M('readEspn: a read that did not answer is not counted as failed', "if (st !== '200' && st !== '404') failed++;", ''),
+  M('readEspn: a 404 is a failed read', "if (st !== '200' && st !== '404') failed++;", "if (st !== '200') failed++;"),
+  M('readEspn: a 200 that was refused is not a failed read', "if (st !== '200' && st !== '404') failed++;", "if (!/^[2-4]/.test(st)) failed++;"),
+  M('main: reads that did not answer still reach the target', '&& espnRead.capped === false && espnRead.failed === 0 && bsdStopped === null', '&& espnRead.capped === false && bsdStopped === null'),
+  M('main: the ESPN reads are counted as timelines', 'summariesRead: espnOk }', 'summariesRead: espnOk, timelinesRead: espnOk }'),
+  M('main: the shared ESPN ids are not counted', 'const sharedIds = [...idUse.values()].filter((n) => n > 1).reduce((t, n) => t + n, 0);', 'const sharedIds = 0;'),
+  M('main: a shared ESPN id counts once, not per match', 'const sharedIds = [...idUse.values()].filter((n) => n > 1).reduce((t, n) => t + n, 0);', 'const sharedIds = [...idUse.values()].filter((n) => n > 1).length;'),
+  M('main: an id used by one match is shared', 'const sharedIds = [...idUse.values()].filter((n) => n > 1).reduce((t, n) => t + n, 0);', 'const sharedIds = [...idUse.values()].filter((n) => n > 0).reduce((t, n) => t + n, 0);'),
+  M('main: the numbers the core returned are not added up again', '        if (!partitionsHold(grade)) throw', '        if (false) throw'),
+  M('partitions: graded need not be agree plus disagree', 'g.population === g.graded + g.notApplicable.total && g.graded === g.agree + g.disagree', 'g.population === g.graded + g.notApplicable.total'),
+  M('partitions: the population need not be graded plus not applicable', 'g.population === g.graded + g.notApplicable.total && g.graded === g.agree + g.disagree', 'g.graded === g.agree + g.disagree'),
+  M('partitions: the reasons need not add up', '&& sum(reasons) === g.notApplicable.total', ''),
+  M('partitions: the directories need not add up to the calls', '&& sum(slugs.map((x) => x.calls)) === g.population', ''),
+  M('partitions: the directories need not add up to graded', "&& sum(slugs.map((x) => x.graded)) === g.graded", ''),
+  M('partitions: the directories need not add up to agree', "&& sum(slugs.map((x) => x.agree)) === g.agree\n    && sum(slugs.map((x) => x.disagree))", "\n    && sum(slugs.map((x) => x.disagree))"),
+  M('partitions: the directories need not add up to disagree', "&& sum(slugs.map((x) => x.disagree)) === g.disagree", ''),
+  M('partitions: the directories need not add up to not applicable', "&& sum(slugs.map((x) => x.notApplicable)) === g.notApplicable.total;", ';'),
+  M('partitions: the reason counts need not be whole numbers', 'return reasons.every((x) => Number.isInteger(x) && x >= 0)\n    && g.population', 'return g.population'),
+  M('partitions: the tables need not exist', 'if (!isObj(g) || !isObj(g.notApplicable) || !isObj(g.notApplicable.byReason) || !isObj(g.bySlug)) return false;', ''),
 ];
 
 let bad = 0;

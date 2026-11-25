@@ -25,7 +25,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 78;
+const MIN_ASSERTIONS = 81;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'espn-task0-lib.mjs';
 const CHECK = 'check-espn-task0-lib.mjs';
@@ -107,6 +107,13 @@ const MUTANTS = [
   M('summaryToEspn: a numeric score accepted', '!isStr(c.score) || ', ''),
   M('summaryToEspn: a score with a fraction accepted', "/^\\d{1,3}$/.test(c.score)", "/^[0-9.]{1,5}$/.test(c.score)"),
   M('summaryToEspn: the score left a string', 'score: Number(c.score) });', 'score: c.score });'),
+  M('summaryEventId: the id read from the wrong place', 'json.header.id : null;', 'json.id : null;'),
+  M('summaryEventId: a string id is not accepted', "if (isStr(id) && id !== '') return id;", ''),
+  M('summaryEventId: an empty id is an id', "if (isStr(id) && id !== '') return id;", 'if (isStr(id)) return id;'),
+  M('summaryEventId: a numeric id is not accepted', 'return Number.isInteger(id) && id >= 0 ? String(id) : null;', 'return null;'),
+  M('summaryEventId: a numeric id is kept a number', 'return Number.isInteger(id) && id >= 0 ? String(id) : null;', 'return Number.isInteger(id) && id >= 0 ? id : null;'),
+  M('summaryEventId: zero is an absence', 'return Number.isInteger(id) && id >= 0 ? String(id) : null;', 'return Number.isInteger(id) && id > 0 ? String(id) : null;'),
+  M('summaryEventId: a fraction is an id', 'return Number.isInteger(id) && id >= 0 ? String(id) : null;', 'return typeof id === "number" && id >= 0 ? String(id) : null;'),
   M('summaryToEspn: a payload that is not an object read', 'const c0 = isObj(json) && isObj(json.header)', 'const c0 = isObj(json.header)'),
   M('summaryToEspn: the rows are replaced', 'return { rows: c0.details, competitors };', 'return { rows: [], competitors };'),
   M('registry: every sport accepted', "sport:\\s*'soccer',", "sport:\\s*'[a-z]+',"),
