@@ -4536,7 +4536,9 @@ async function buildAFLJournalismContext(games, year, env, seasons = null) {
     }
     const seasonOf = g => (seasons && seasons.get(String(g.espnEventId))) || null;
     const finals = games.filter(g => seasonOf(g)?.type === 3);
-    const regularGames = games.filter(g => seasonOf(g)?.type !== 3);
+    // A regular game is season.type 2, or a game whose event carries no type. A PRESEASON game (type 1, week 1: late February in 2025 and 2026) is neither: ESPN's week 1 of the
+    // preseason is not Squiggle's round 1, so it is joined to no row and gets no tip.
+    const regularGames = games.filter(g => seasonOf(g)?.type == null || seasonOf(g)?.type === 2);
     const round = regularGames.map(g => g.round).find(r => r !== null && r !== undefined) ?? null;   // the slate's round: the first game that has one (round 0 is one)
     // What a Squiggle row gives each club of the GAME, whichever way round the row lists them.
     const servedSquiggle = (tip, g) => sameAFLClub(tip.hteam, g.home.name)

@@ -406,7 +406,7 @@ export async function _discoverAFLRound(predictedWinner) {
                     // `round` is ESPN's own week for the event. `postseason` says it is a FINAL, whose ESPN week (1-5) is not Squiggle's round (25-29 in 2026):
                     // the caller must not hand it to Squiggle. The year is the event's own season (the clock's when the event carries none).
                     return { round, year: Number.isInteger(ev.season?.year) ? ev.season.year : now.getUTCFullYear(),
-                             postseason: ev.season?.type === 3, start: ev.date || null, home: homeN, away: awayN };
+                             postseason: ev.season?.type === 3, seasonType: ev.season?.type ?? null, start: ev.date || null, home: homeN, away: awayN };
                 }
             }
         } catch (e) {
@@ -453,6 +453,12 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
             const discovered = await _discoverAFLRound(predictedWinner);
             if (!discovered) return null;
             const { round, year } = discovered;
+            // ESPN also serves PRESEASON games (season.type 1, week 1: 2025 and 2026 each had two in late February). Its week 1 is not Squiggle's round 1, which is a March game of
+            // other clubs, so a preseason game has no tip: said and null, never answered through round 1. Only a regular game (type 2, or no type at all) and a final (3) go on.
+            if (discovered.seasonType !== null && discovered.seasonType !== 2 && discovered.seasonType !== 3) {
+                console.warn(`[AFL-ROUND] the game of ${predictedWinner} in the window has season.type ${discovered.seasonType} (not regular season or a final): no Squiggle tip is read for it`);
+                return null;
+            }
             // A final: Squiggle's round for it is found from the game's clubs and kickoff day (src/afl-squiggle.js), and that row's tip is the answer.
             // Kali is not asked: it is offline until 2027 and its finals numbering is unmeasured, so a round handed to it would be a guess.
             if (discovered.postseason) {

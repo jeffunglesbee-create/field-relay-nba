@@ -70,6 +70,8 @@ const DAYS = {
   '20260905': [mk('1133702', 2, 'Sydney Swans', 'Brisbane Lions', POST, '2026-09-05T05:15Z'), mk('1133703', 2, 'Adelaide Crows', 'Western Bulldogs', POST, '2026-09-05T09:35Z')],
   // Synthetic: a final whose ESPN season year is NOT the clock's (the year asked of Squiggle is the event's).
   '20260906': [mk('9000010', 3, 'Collingwood', 'Carlton', { year: 2025, type: 3, slug: 'post-season' }, '2026-09-06T09:35Z')],
+  // PRESEASON: ESPN's season.type 1 / slug 'preseason', week 1 (2026-02-27 had two, read 2026-11-25). Synthetic game: Richmond at Carlton, the clubs of Squiggle's real round-1 game (TIPS[1] below).
+  '20260227': [mk('9000020', 1, 'Carlton', 'Richmond', { year: 2026, type: 1, slug: 'preseason' }, '2026-02-27T08:00Z')],
   '20270311': [mk('y1', 1, 'Carlton', 'Richmond')],                              // 2027, for the instant 2027-03-10: the year asked of Squiggle follows the clock
 };
 const ALL_DAYS = ['20260705','20260706','20260707','20260708','20260709','20260710','20260711','20260712','20260713','20260714'];
@@ -306,6 +308,9 @@ eq('R9 a final whose tip carries no hconfidence (null is 0 to Number()) resolves
 fresh({ squiggle503: true }, FIN);
 eq('R7 Squiggle answering 503 resolves to null with a warning that names the status', [await pick('Adelaide Crows'), log.warns.some(w => /^\[AFL-SQUIGGLE\] Squiggle answered 503 /.test(w))], [null, true]);
 
+fresh({}, '2026-02-26T10:00:00Z');
+eq('R10 a PRESEASON game (season.type 1, ESPN week 1) resolves to null with a warning that names the type, and Squiggle is not asked: its week 1 is not round 1 (Carlton v Richmond is a March game there)',
+   [await pick('Richmond Tigers'), log.squiggle, log.squiggleTeam, log.warns.some(w => /^\[AFL-ROUND\] the game of Richmond Tigers in the window has season\.type 1 /.test(w))], [null, [], [], true]);
 fresh({}, FIN);
 eq('R8 a final\'s year is its event\'s own season year (here 2025, the clock says 2026): Squiggle is asked for 2025', [await pick('Collingwood Magpies'), log.squiggleTeam], [null, ['?q=tips;year=2025;team=4;source=8']]);
 
@@ -339,6 +344,6 @@ ok('S42 a label with a nickname resolves to the same key as the ESPN name (GWS G
 
 console.warn = realWarn;
 globalThis.fetch = realFetch;
-console.log(`COVERAGE: ${total} assertions: the real resolveWinProbability('AFL', ...) over pinned instants (2026-07-08 10:00Z, 23:30Z and 00:00Z, 2027-03-10 10:00Z, and the finals window of 2026-09-04 10:00Z), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number over a conflicting top-level week, and season.type 3 for the 2026 finals as ESPN served them) and two Squiggle stubs (round-keyed for a regular game, team-keyed for a final: rows in Squiggle's shape with decoy sources), plus the 18-club identity table. ESPN team names are the ones the relay served for 2026-07-05..12, one real body (20260709) is replayed as recorded, and Squiggle's are its own; 8 of Kali's 18 names are recorded in outbox and were run through the matcher once by hand, not here. Finals (R1-R9): the final's own tip by clubs and Melbourne day, either side of the game, the year of the event, Kali not asked, no row / a 503 / no hconfidence as null with a warning, and the abort signal on the read. Not covered here: any other real ESPN body (afl-round-live-check.yml and afl-finals-live-check.yml read real ESPN and Squiggle from a runner), the Kali branch (no token in this check except R5), a pick resolved four or more days after its final (the resolver picks the club's earliest game in the window, not the pick's game: docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md), and the live season.`);
+console.log(`COVERAGE: ${total} assertions: the real resolveWinProbability('AFL', ...) over pinned instants (2026-07-08 10:00Z, 23:30Z and 00:00Z, 2027-03-10 10:00Z, and the finals window of 2026-09-04 10:00Z), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number over a conflicting top-level week, and season.type 3 for the 2026 finals as ESPN served them) and two Squiggle stubs (round-keyed for a regular game, team-keyed for a final: rows in Squiggle's shape with decoy sources), plus the 18-club identity table. ESPN team names are the ones the relay served for 2026-07-05..12, one real body (20260709) is replayed as recorded, and Squiggle's are its own; 8 of Kali's 18 names are recorded in outbox and were run through the matcher once by hand, not here. A PRESEASON game (R10, synthetic: season.type 1) is null with a warning and no Squiggle read. Finals (R1-R9): the final's own tip by clubs and Melbourne day, either side of the game, the year of the event, Kali not asked, no row / a 503 / no hconfidence as null with a warning, and the abort signal on the read. Not covered here: any other real ESPN body (afl-round-live-check.yml and afl-finals-live-check.yml read real ESPN and Squiggle from a runner), the Kali branch (no token in this check except R5), a pick resolved four or more days after its final (the resolver picks the club's earliest game in the window, not the pick's game: docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md), and the live season.`);
 console.log(`${passed} of ${total} passed.`);
 process.exit(passed === total ? 0 : 1);

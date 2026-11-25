@@ -76,6 +76,9 @@ const SLATES = {
   '20260830': [ev('8000004', '2026-08-29T09:35Z', 1, 'Carlton', 'Melbourne', POST)],
   // Synthetic: a regular slate whose FIRST game carries no week (ESPN omitted it) and whose second is round 21: the round is the first game that has one.
   '20260801': [ev('9000010', '2026-08-01T03:15Z', null, 'Carlton', 'Hawthorn'), ev('9000011', '2026-08-01T06:15Z', 21, 'Richmond', 'Essendon')],
+  // PRESEASON (ESPN serves season.type 1, slug 'preseason', week 1 in late February: 2026-02-27 had Richmond at Melbourne and Hawthorn at Western Bulldogs, read 2026-11-25).
+  // Synthetic game: Carlton v Richmond, the clubs of Squiggle's real round-1 game, so a preseason week 1 read as round 1 WOULD find a row (70.18 for Carlton).
+  '20260227': [ev('9000020', '2026-02-27T08:00Z', 1, 'Carlton', 'Richmond', { year: 2026, type: 1, slug: 'preseason' })],
   // Synthetic: a regular slate whose only game carries no week: no round to read, no finals, so no journalism at all.
   '20260802': [ev('9000012', '2026-08-02T03:15Z', null, 'Carlton', 'Hawthorn')],
   // Synthetic finals the lookup cannot place: a club the team table does not have, and a final with no kickoff.
@@ -105,7 +108,8 @@ const TIPS = {
               tip(39004, '2026-07-18 14:15:00', 19, 'North Melbourne', 12, 'Geelong', 7, '44.00')],   // North Melbourne's home row against a DIFFERENT opponent, listed after the real one
   // DECOYS: what the round-based route serves for ESPN's finals WEEKS (1, 2, 3, 5): March's rounds. A final answered through ESPN's week reads one of these, so a regression
   // that falls back to the round read fails with the wrong value (round 2 is the real March Adelaide v Western Bulldogs row, 47.29), not merely with a null.
-  '2026:1': [tip(38501, '2026-03-12 19:40:00', 1, 'Western Bulldogs', 18, 'Collingwood', 4, '12.34')],
+  '2026:1': [tip(38501, '2026-03-12 19:40:00', 1, 'Western Bulldogs', 18, 'Collingwood', 4, '12.34'),
+             tip(38490, '2026-03-12 19:40:00', 1, 'Carlton', 3, 'Richmond', 14, '70.18')],   // Carlton v Richmond, round 1: real value (Squiggle, read 2026-11-25), gameid synthetic
   '2026:2': [tip(38509, '2026-03-20 19:40:00', 2, 'Adelaide', 1, 'Western Bulldogs', 18, '47.29'), tip(38601, '2026-03-21 19:40:00', 2, 'Sydney', 16, 'Brisbane Lions', 2, '71.48')],
   '2026:3': [tip(38602, '2026-03-28 19:40:00', 3, 'Geelong', 7, 'Brisbane Lions', 2, '33.00')],
   '2026:5': [tip(38505, '2026-04-10 19:40:00', 5, 'Fremantle', 6, 'Brisbane Lions', 2, '33.33')],
@@ -298,6 +302,8 @@ eq('J15 a slate whose first game carries no week still reads the round of the ga
 
 const j16 = await get('2026-08-02');
 eq('J16 a regular slate whose only game has no week serves no journalism key at all, and asks nobody', [j16.games.length, j16.games.some(g => 'journalism' in g), j16.squiggle, j16.kali], [1, false, [], []]);
+const j18 = await get('2026-02-27');
+eq('J18 a PRESEASON game (season.type 1, ESPN week 1) gets no journalism and asks Squiggle and Kali nothing: its week 1 is not Squiggle\'s round 1, where Carlton v Richmond (70.18) is a March game', [j18.games.length, j18.games.some(g => 'journalism' in g), j18.squiggle, j18.kali], [1, false, [], []]);
 const j17 = await get('2027-03-14');
 eq('J17 the year is the first season ANY event carries (the first game has none, the second says 2027, the clock says 2026): Squiggle is asked for 2027 and Richmond v Hawthorn gets its tip',
    [j17.squiggle, pair(sqOf(byHome(j17, 'Richmond')))], [['?q=tips;year=2027;round=1;source=8'], ['48.00', '52.00']]);
@@ -328,7 +334,7 @@ eq('U3 squiggleConfidenceFor gives the home club the tip, the away club the rest
 const r7 = await get('2026-07-11', { token: false });
 eq('J12 without KALI_AFL_TOKEN no game carries a journalism key and nothing is asked of Kali or Squiggle', [r7.games.some(g => 'journalism' in g), r7.squiggle, r7.kali], [false, [], []]);
 
-console.log(`COVERAGE: ${total} assertions through the real GET /v2/games?sport=afl, with KALI_AFL_TOKEN set (J12 runs it unset), a pinned clock (2026-11-24, 2027-03-13 and the 2025 final's day) and a Map KV. REAL inputs: the 2026-07-11, -07-09 and -03-05 slates as the relay served them (ESPN names), the 2026 finals events as ESPN served them (season.type 3), Squiggle's real Aggregate rows for rounds 0 and 18, for the 2026 finals (rounds 25-29) and for the 2025 round-25 GWS v Hawthorn game. SYNTHETIC inputs: the 07-18, 07-25, 08-01, 08-02, 08-30, 09-06/07/08/09/10 and 2027 slates, every row marked synthetic in SEASON_ROWS and TIPS (including the rounds 1, 2 (its Adelaide row is real), 3 and 5 decoys the round route serves for ESPN's finals weeks), the Kali predictions (names 'Sydney' and 'Carlton' are recorded Kali names, 'Fremantle' is not, every value is invented) and the Squiggle failure modes (503, not JSON, network down, tips not an array, a null row, a row listed twice, no hconfidence). The module's helpers (hconfidence, all 18 team ids, the Melbourne day across both offsets) are asserted on the module under test. A final is asserted to ask Squiggle for its home club's season and Kali for nothing, with the relay's cf options and headers and an abort signal. Not covered here: Kali's FINALS numbering (unmeasured, offline until 2027), the Kali branch's team names beyond 'Sydney' (8 of 18 recorded), ESPN's league-level season block (the stubs omit it), a slate mixing finals and regular games (ESPN's regular season ends before its finals begin), whether Cloudflare's cf cache options take effect on Squiggle's zone (asserted as sent, not as honoured: Node ignores cf) and the client.`);
+console.log(`COVERAGE: ${total} assertions through the real GET /v2/games?sport=afl, with KALI_AFL_TOKEN set (J12 runs it unset), a pinned clock (2026-11-24, 2027-03-13 and the 2025 final's day) and a Map KV. REAL inputs: the 2026-07-11, -07-09 and -03-05 slates as the relay served them (ESPN names), the 2026 finals events as ESPN served them (season.type 3), Squiggle's real Aggregate rows for rounds 0 and 18, for the 2026 finals (rounds 25-29) and for the 2025 round-25 GWS v Hawthorn game. SYNTHETIC inputs: the 02-27 preseason game (J18), the 07-18, 07-25, 08-01, 08-02, 08-30, 09-06/07/08/09/10 and 2027 slates, every row marked synthetic in SEASON_ROWS and TIPS (including the rounds 1, 2 (its Adelaide row is real), 3 and 5 decoys the round route serves for ESPN's finals weeks), the Kali predictions (names 'Sydney' and 'Carlton' are recorded Kali names, 'Fremantle' is not, every value is invented) and the Squiggle failure modes (503, not JSON, network down, tips not an array, a null row, a row listed twice, no hconfidence). The module's helpers (hconfidence, all 18 team ids, the Melbourne day across both offsets) are asserted on the module under test. A final is asserted to ask Squiggle for its home club's season and Kali for nothing, with the relay's cf options and headers and an abort signal. Not covered here: Kali's FINALS numbering (unmeasured, offline until 2027), the Kali branch's team names beyond 'Sydney' (8 of 18 recorded), ESPN's league-level season block (the stubs omit it), a slate mixing finals and regular games (ESPN's regular season ends before its finals begin), whether Cloudflare's cf cache options take effect on Squiggle's zone (asserted as sent, not as honoured: Node ignores cf) and the client.`);
 console.log(`${passed} of ${total} passed.`);
 globalThis.Date = RealDate;
 process.exit(passed === total ? 0 : 1);

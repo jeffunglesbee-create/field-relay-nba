@@ -54,7 +54,7 @@ const YEAR = "const _aflYear  = [...(_aflEventSeasons?.values() || [])].map(x =>
 const SQ_ORIENT = "const servedSquiggle = (tip, g) => sameAFLClub(tip.hteam, g.home.name)";
 const KALI_KEEP = "const keep = sameAFLClub(pred.homeTeam, g.home.name);";
 const FINALS = "const finals = games.filter(g => seasonOf(g)?.type === 3);";
-const REGULAR = "const regularGames = games.filter(g => seasonOf(g)?.type !== 3);";
+const REGULAR = "const regularGames = games.filter(g => seasonOf(g)?.type == null || seasonOf(g)?.type === 2);";
 const FINALS_ONLY = "return finals.length ? ctx : {};";
 const CALLER = "buildAFLJournalismContext(games, _aflYear, env, _aflEventSeasons);";
 const FYEAR = "year: seasonOf(g)?.year ?? year,";
@@ -89,6 +89,7 @@ const MUTANTS = [
   ['B15 the slate\'s round is the first game\'s round only (a weekless first game ends the context)', [[ROUND, "const round = regularGames.length ? (regularGames[0].round ?? null) : null;"]]],
   ['B16 a final\'s Squiggle read has no timeout', [[FSIGNAL, "{ headers: SQUIGGLE_HEADERS });"]]],
   ['B17 a regular row with no usable hconfidence is served (as certainty for one club)', [[REGPCT, ""]]],
+  ['B24 everything that is not a final is a regular game again (a preseason game is joined through ESPN\'s week 1 as Squiggle\'s round 1)', [[REGULAR, "const regularGames = games.filter(g => seasonOf(g)?.type !== 3);"]]],
   ['B18 a regular slate with no round and no finals returns the ctx (a journalism key on every game) instead of nothing', [[FINALS_ONLY, "return ctx;"]]],
   ['B19 the year is the first event\'s season, not the first season that has a year', [[YEAR, "const _aflYear  = [...(_aflEventSeasons?.values() || [])].map(x => x?.year)[0] ?? new Date().getUTCFullYear();"]]],
   ['B20 a final\'s Squiggle read carries no headers', [[FSIGNAL, "{ signal: AbortSignal.timeout(5000) });"]]],
