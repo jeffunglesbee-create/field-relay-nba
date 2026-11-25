@@ -15,7 +15,10 @@
 - **Repo guards** on `431c0cc` and `9953f89` were red at one step, "HANDOFF close-outs name a session doc that exists" (8 without, budget 6); two close-outs of mine said "session doc <path>" with no colon. Fixed in `0240be6` (6 without). Green on `0240be6` and on `d35a69c`.
 - **field-laboratory:** guards red on `b3127b7` and verify red on `49f53f0e` since my ESPN core scripts were not in `docs/unreachable-scripts.txt` (declared, `8be63509`); verify then failed at "The mutate scripts break a copy, never the tracked tree" because two harnesses of mine did not follow the copy protocol (fixed, `bc6059d6`). A red verify skips deploy, so the published build stayed behind and `live-check` failed at "The deploy landed" (45663912109). See the laboratory's session doc.
 
+## Result of the laboratory chain (read from the runs)
+
+verify 45676518707 on `bc6059d6` success; deploy 45678111888 success; live-check on `292c7b9` success; relay Repo guards success on `8fa66ef` (the one red between, on `aa5531b`, was my close-out naming the laboratory's session doc without its repo, fixed in `8fa66ef`). Mirror runs 641 (my dispatch) and 642 (the relay cron's own) both success on `d35a69c`.
+
 ## Not verified
 
-- The laboratory's verify, deploy and live-check on `bc6059d6` (dispatched or pushed after this was written): the laboratory session doc records the result.
 - Whether the ESPN leaderboard keeps omitting `competitors` until the Hero World Challenge's field is published: the rule does not depend on it (a published field is a field).
