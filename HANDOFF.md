@@ -11,7 +11,7 @@
 
 ## SESSION CLOSE-OUT — 2026-11-25 (09:35Z) — the BSD join backfill is DONE for the scheduled scope; the laboratory's reach went from 113 of 238 to 170 of 245 matches
 
-**HEAD:** `f2fd7a9` → the backfill's artifact commits (the workflow's own) · **Branch:** main · no `src/` change, no deploy. **Record:** the "Addendum 2026-11-25" of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`; session doc outbox/cc-session-2026-11-24-bsd-join-backfill.md.
+**HEAD:** `f2fd7a9` → the backfill's artifact commits (the workflow's own) · **Branch:** main · no `src/` change, no deploy. **Record:** the "Addendum 2026-11-25" of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`. **Session doc:** outbox/cc-session-2026-11-24-bsd-join-backfill.md.
 
 - **Done:** 10 real runs, 73 dates, 73 of 73 verified, **635 rows written, 301 BSD pages**, no refusal, no 429, no mismatch; the real marker `outbox/bsd-join-backfill-complete.json` (2026-02-01..2026-10-23, MLS included). Independent D1 read: 934 joined; 42 regular-season rows unjoined (La Liga 9 on 2026-05-24, MLS 33 on 7 dates); 245 tournament rows in `postseason_games` deliberately not attempted.
 - **The schedule fired once in nine hours** (08:51Z). The last four tranches were dispatched by hand; do not count on the schedule for pace.
@@ -35,7 +35,7 @@
 
 ## SESSION CLOSE-OUT — 2026-11-24 (23:50Z) — the BSD join backfill goes faster and starts in February; two defects of mine found and fixed; tournament rows left out on measured evidence
 
-**HEAD:** `eee533b` → `05f5ed0` · **Branch:** main · no `src/` change. **Record:** the "Addendum 2026-11-24 (late)" of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`; session doc outbox/cc-session-2026-11-24-bsd-join-backfill.md.
+**HEAD:** `eee533b` → `05f5ed0` · **Branch:** main · no `src/` change. **Record:** the "Addendum 2026-11-24 (late)" of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`. **Session doc:** outbox/cc-session-2026-11-24-bsd-join-backfill.md.
 
 - **The owner: "faster, with a range that starts earlier."** Schedule `23 */4 * * *`, 10 dates and a 50-page cap a run, range 2026-02-01..2026-10-23, six sports. First 10-date run (run 45511835745): 46 rows written, 10 of 10 verified, 53 pages. BSD serves old dates (92 to 501 events a day); older dates cost about 5.3 pages each. No throttle in about 100 pages.
 - **Tournament rows do not choose a date.** The pre-November `postseason_games` MLS rows are Leagues Cup and CONCACAF Champions Cup matches: 0 of ~297 ever joined (the tick tried them), 0 of 24 matched in the backfill's tests. 47 days / 215 rows counted, not attempted; `include_postseason` = `true` overrides. Not found out: BSD not carrying them, or Liga MX club-name aliases missing.
