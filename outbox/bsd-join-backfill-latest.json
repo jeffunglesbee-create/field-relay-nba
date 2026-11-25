@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-25T23:54:38.303Z",
+  "ts": "2026-11-25T23:59:07.695Z",
   "dryRun": false,
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "from": "2026-05-20",
@@ -13,10 +13,10 @@
     "statuses": {
       "200": 188
     },
-    "daysToAttempt": 24,
-    "rowsToAttempt": 270,
+    "daysToAttempt": 14,
+    "rowsToAttempt": 169,
     "attemptedStillPending": 1,
-    "pendingRowsAllDays": 422,
+    "pendingRowsAllDays": 321,
     "scopeSports": [
       "EPL",
       "La Liga",
@@ -36,108 +36,25 @@
     "outOfScopeRows": 135
   },
   "chosen": [
-    "2026-09-19",
-    "2026-09-20",
-    "2026-10-09",
-    "2026-10-10",
-    "2026-10-11",
-    "2026-10-13",
-    "2026-10-14",
-    "2026-10-15",
-    "2026-10-16",
-    "2026-10-17"
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-24",
+    "2026-10-30",
+    "2026-10-31",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05"
   ],
   "dates": [
     {
-      "date": "2026-09-19",
-      "outcome": "joined",
-      "pendingBefore": 9,
-      "pendingBeforeBySport": {
-        "EFL Championship": 9
-      },
-      "pendingAfter": 0,
-      "verify": {
-        "verified": true,
-        "expected": 0
-      },
-      "response": {
-        "status": 200,
-        "ok": true,
-        "reason": null,
-        "pending": 9,
-        "written": 9,
-        "joined": 9,
-        "ambiguous": 0,
-        "refusedKickoff": 0,
-        "unjudgedKickoff": 0,
-        "eventsRead": 552,
-        "upstreamPages": 12,
-        "cacheHits": 0,
-        "unmatched": []
-      }
-    },
-    {
-      "date": "2026-09-20",
-      "outcome": "joined",
-      "pendingBefore": 2,
-      "pendingBeforeBySport": {
-        "EFL Championship": 2
-      },
-      "pendingAfter": 0,
-      "verify": {
-        "verified": true,
-        "expected": 0
-      },
-      "response": {
-        "status": 200,
-        "ok": true,
-        "reason": null,
-        "pending": 2,
-        "written": 2,
-        "joined": 2,
-        "ambiguous": 0,
-        "refusedKickoff": 0,
-        "unjudgedKickoff": 0,
-        "eventsRead": 252,
-        "upstreamPages": 1,
-        "cacheHits": 5,
-        "unmatched": []
-      }
-    },
-    {
-      "date": "2026-10-09",
-      "outcome": "joined",
-      "pendingBefore": 1,
-      "pendingBeforeBySport": {
-        "EFL Championship": 1
-      },
-      "pendingAfter": 0,
-      "verify": {
-        "verified": true,
-        "expected": 0
-      },
-      "response": {
-        "status": 200,
-        "ok": true,
-        "reason": null,
-        "pending": 1,
-        "written": 1,
-        "joined": 1,
-        "ambiguous": 0,
-        "refusedKickoff": 0,
-        "unjudgedKickoff": 0,
-        "eventsRead": 298,
-        "upstreamPages": 7,
-        "cacheHits": 0,
-        "unmatched": []
-      }
-    },
-    {
-      "date": "2026-10-10",
+      "date": "2026-10-20",
       "outcome": "joined",
       "pendingBefore": 10,
       "pendingBeforeBySport": {
-        "EFL Championship": 10
+        "UEFA Champions League": 9,
+        "EFL Championship": 1
       },
       "pendingAfter": 0,
       "verify": {
@@ -154,14 +71,78 @@
         "ambiguous": 0,
         "refusedKickoff": 0,
         "unjudgedKickoff": 0,
-        "eventsRead": 438,
-        "upstreamPages": 5,
-        "cacheHits": 5,
+        "eventsRead": 97,
+        "upstreamPages": 3,
+        "cacheHits": 0,
         "unmatched": []
       }
     },
     {
-      "date": "2026-10-11",
+      "date": "2026-10-21",
+      "outcome": "joined",
+      "pendingBefore": 11,
+      "pendingBeforeBySport": {
+        "UEFA Champions League": 9,
+        "MLS": 2
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 11,
+        "written": 9,
+        "joined": 9,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 83,
+        "upstreamPages": 1,
+        "cacheHits": 1,
+        "unmatched": [
+          "MLS: CF Montréal v Forge FC",
+          "MLS: Columbus Crew v St. Louis CITY SC"
+        ]
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "outcome": "joined",
+      "pendingBefore": 37,
+      "pendingBeforeBySport": {
+        "UEFA Europa League": 18,
+        "UEFA Europa Conference League": 18,
+        "MLS": 1
+      },
+      "pendingAfter": 1,
+      "verify": {
+        "verified": true,
+        "expected": 1
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 37,
+        "written": 36,
+        "joined": 36,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 125,
+        "upstreamPages": 2,
+        "cacheHits": 1,
+        "unmatched": [
+          "MLS: Columbus Crew v St. Louis CITY SC"
+        ]
+      }
+    },
+    {
+      "date": "2026-10-23",
       "outcome": "joined",
       "pendingBefore": 1,
       "pendingBeforeBySport": {
@@ -182,19 +163,49 @@
         "ambiguous": 0,
         "refusedKickoff": 0,
         "unjudgedKickoff": 0,
-        "eventsRead": 250,
-        "upstreamPages": 1,
-        "cacheHits": 5,
+        "eventsRead": 347,
+        "upstreamPages": 6,
+        "cacheHits": 2,
         "unmatched": []
       }
     },
     {
-      "date": "2026-10-13",
+      "date": "2026-10-24",
       "outcome": "joined",
-      "pendingBefore": 17,
+      "pendingBefore": 12,
       "pendingBeforeBySport": {
-        "UEFA Champions League": 9,
-        "EFL Championship": 8
+        "MLS": 1,
+        "EFL Championship": 11
+      },
+      "pendingAfter": 1,
+      "verify": {
+        "verified": true,
+        "expected": 1
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 12,
+        "written": 11,
+        "joined": 11,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 485,
+        "upstreamPages": 5,
+        "cacheHits": 6,
+        "unmatched": [
+          "MLS: Los Angeles Football Club v LA Galaxy"
+        ]
+      }
+    },
+    {
+      "date": "2026-10-30",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "EFL Championship": 1
       },
       "pendingAfter": 0,
       "verify": {
@@ -205,25 +216,88 @@
         "status": 200,
         "ok": true,
         "reason": null,
-        "pending": 17,
-        "written": 17,
-        "joined": 17,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
         "ambiguous": 0,
         "refusedKickoff": 0,
         "unjudgedKickoff": 0,
-        "eventsRead": 67,
+        "eventsRead": 297,
+        "upstreamPages": 7,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-10-31",
+      "outcome": "joined",
+      "pendingBefore": 14,
+      "pendingBeforeBySport": {
+        "MLS": 3,
+        "EFL Championship": 11
+      },
+      "pendingAfter": 3,
+      "verify": {
+        "verified": true,
+        "expected": 3
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 14,
+        "written": 11,
+        "joined": 11,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 454,
+        "upstreamPages": 5,
+        "cacheHits": 5,
+        "unmatched": [
+          "MLS: Portland Timbers v Houston Dynamo FC",
+          "MLS: New England Revolution v Inter Miami CF",
+          "MLS: Los Angeles Football Club v Minnesota United FC"
+        ]
+      }
+    },
+    {
+      "date": "2026-11-03",
+      "outcome": "joined",
+      "pendingBefore": 18,
+      "pendingBeforeBySport": {
+        "UEFA Champions League": 9,
+        "EFL Championship": 9
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 18,
+        "written": 18,
+        "joined": 18,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 77,
         "upstreamPages": 2,
         "cacheHits": 0,
         "unmatched": []
       }
     },
     {
-      "date": "2026-10-14",
+      "date": "2026-11-04",
       "outcome": "joined",
       "pendingBefore": 13,
       "pendingBeforeBySport": {
         "UEFA Champions League": 9,
-        "EFL Championship": 4
+        "UEFA Europa League": 1,
+        "EFL Championship": 3
       },
       "pendingAfter": 0,
       "verify": {
@@ -240,109 +314,56 @@
         "ambiguous": 0,
         "refusedKickoff": 0,
         "unjudgedKickoff": 0,
-        "eventsRead": 96,
+        "eventsRead": 92,
         "upstreamPages": 2,
         "cacheHits": 1,
         "unmatched": []
       }
     },
     {
-      "date": "2026-10-15",
+      "date": "2026-11-05",
       "outcome": "joined",
       "pendingBefore": 36,
       "pendingBeforeBySport": {
-        "UEFA Europa League": 18,
+        "MLS": 1,
+        "UEFA Europa League": 17,
         "UEFA Europa Conference League": 18
       },
-      "pendingAfter": 0,
+      "pendingAfter": 1,
       "verify": {
         "verified": true,
-        "expected": 0
+        "expected": 1
       },
       "response": {
         "status": 200,
         "ok": true,
         "reason": null,
         "pending": 36,
-        "written": 36,
-        "joined": 36,
+        "written": 35,
+        "joined": 35,
         "ambiguous": 0,
         "refusedKickoff": 0,
         "unjudgedKickoff": 0,
-        "eventsRead": 107,
-        "upstreamPages": 1,
+        "eventsRead": 125,
+        "upstreamPages": 2,
         "cacheHits": 2,
-        "unmatched": []
-      }
-    },
-    {
-      "date": "2026-10-16",
-      "outcome": "joined",
-      "pendingBefore": 1,
-      "pendingBeforeBySport": {
-        "EFL Championship": 1
-      },
-      "pendingAfter": 0,
-      "verify": {
-        "verified": true,
-        "expected": 0
-      },
-      "response": {
-        "status": 200,
-        "ok": true,
-        "reason": null,
-        "pending": 1,
-        "written": 1,
-        "joined": 1,
-        "ambiguous": 0,
-        "refusedKickoff": 0,
-        "unjudgedKickoff": 0,
-        "eventsRead": 312,
-        "upstreamPages": 6,
-        "cacheHits": 1,
-        "unmatched": []
-      }
-    },
-    {
-      "date": "2026-10-17",
-      "outcome": "joined",
-      "pendingBefore": 11,
-      "pendingBeforeBySport": {
-        "EFL Championship": 11
-      },
-      "pendingAfter": 0,
-      "verify": {
-        "verified": true,
-        "expected": 0
-      },
-      "response": {
-        "status": 200,
-        "ok": true,
-        "reason": null,
-        "pending": 11,
-        "written": 11,
-        "joined": 11,
-        "ambiguous": 0,
-        "refusedKickoff": 0,
-        "unjudgedKickoff": 0,
-        "eventsRead": 474,
-        "upstreamPages": 5,
-        "cacheHits": 6,
-        "unmatched": []
+        "unmatched": [
+          "MLS: New York City Football Club v Los Angeles Football Club"
+        ]
       }
     }
   ],
-  "pagesUsed": 42,
-  "written": 101,
+  "pagesUsed": 35,
+  "written": 145,
   "stoppedBecause": null,
-  "remainingToAttempt": 14,
+  "remainingToAttempt": 4,
   "complete": false,
   "runner": {
-    "gitSha": "88b1618e09116b6a6b62b515a482e3f78ea33cdb",
-    "runId": "45724579421",
+    "gitSha": "1bfa653d5f28b2dc1fbbdf58554089c67534295c",
+    "runId": "45725166942",
     "scriptSha256": "85f74020157b36b6ada3e6d398771cb77a73ef0f873b73f1b7ffb3d258ef604d",
     "libSha256": "a551c2d78039168c6e93ca2096c92654b10a11407810df6417c7d455a307425e"
   },
   "rangeComplete": false,
-  "coverageLine": "188 of 188 days read (0 unread) | scope 12 sports (MLS not included), regular-season rows choose a date: to attempt 24 days / 270 rows, 1 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 33 days / 135 rows | this run: 10 dates posted, 101 rows written, 42 upstream pages (cap 50), 10 verified | no stop | remaining to attempt 14"
+  "coverageLine": "188 of 188 days read (0 unread) | scope 12 sports (MLS not included), regular-season rows choose a date: to attempt 14 days / 169 rows, 1 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 33 days / 135 rows | this run: 10 dates posted, 145 rows written, 35 upstream pages (cap 50), 10 verified | no stop | remaining to attempt 4"
 }
