@@ -1,0 +1,66 @@
+name: Archive league history backfill
+
+# Dispatch-only. Writes the archive rows a newly seeded league missed before it was seeded (scripts/run-archive-league-history-backfill.mjs): ESPN's scoreboard for each date, completed
+# events only, POSTed to /archive/game with the cron collector's own field mapping. For the EFL Championship (eng.2), seeded on 2026-11-25 on the owner's "build both next"
+# (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, Addendum 2026-11-25). dry_run defaults to TRUE: it reads ESPN and the archive and writes nothing.
+# A run stops on an ESPN 403 or 429 and on any scoreboard that does not answer 200 (not retried, not skipped), and fails if any write is refused.
+
+on:
+  workflow_dispatch:
+    inputs:
+      league:
+        description: 'ESPN soccer league slug, e.g. eng.2'
+        required: true
+      label:
+        description: 'The archive sport label, exactly as the cron writes it, e.g. EFL Championship'
+        required: true
+      from:
+        description: 'First date, YYYY-MM-DD'
+        required: true
+      to:
+        description: 'Last date, YYYY-MM-DD (at most 366 days from the first)'
+        required: true
+      dry_run:
+        description: 'true (default): read only. false: write.'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archive-league-history-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: The script can still fail (self-test, then its mutation harness)
+        run: |
+          node scripts/run-archive-league-history-backfill.mjs --self-test
+          node scripts/mutate-run-archive-league-history-backfill.mjs
+      - name: Backfill
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+          LEAGUE: ${{ inputs.league }}
+          LABEL: ${{ inputs.label }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          DRY: ${{ inputs.dry_run }}
+        run: |
+          ARGS=(--league "$LEAGUE" --label "$LABEL" --from "$FROM" --to "$TO")
+          if [ "$DRY" != "false" ]; then ARGS+=(--dry-run); fi
+          node scripts/run-archive-league-history-backfill.mjs "${ARGS[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Commit the artifact
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/archive-league-history-backfill-*.json' \
+          bash scripts/probe-commit-retry.sh "data: archive league history backfill artifact"
