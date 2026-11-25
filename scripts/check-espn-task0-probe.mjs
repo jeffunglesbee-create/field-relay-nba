@@ -52,9 +52,11 @@ function espnWorld(over = {}) {
     // ESPN's scoreboard takes ONE day: a range is refused with a 400 (the repo's own measurement), so the stub refuses one too
     const asked = u.searchParams.get('dates');
     if (!/^\d{8}$/.test(String(asked))) return [400, { code: 400, message: 'Failed to get events endpoint.' }];
-    const finished = !noMatch && asked === ymd(new Date(Date.now() - back * 86400000));
+    const mday = over.matchDay;                                                 // an absolute day (YYYYMMDD) for an anchored run
+    const finished = !noMatch && (mday !== undefined ? asked === mday : asked === ymd(new Date(Date.now() - back * 86400000)));
+    const when = mday !== undefined ? `${mday.slice(0, 4)}-${mday.slice(4, 6)}-${mday.slice(6)}T15:00:00Z` : ago(back);
     return [200, { events: finished
-      ? [event('old', ago(9), true, '0', '0', []), event(`E-${slug}`, ago(back), true, '2', '1', rows), event('live', ago(0), false, '1', '0', []), event('noscore', ago(1), true, undefined, undefined, [])]
+      ? [event('old', new Date(Date.parse(when) - 9 * 86400000).toISOString(), true, '0', '0', []), event(`E-${slug}`, when, true, '2', '1', rows), event('live', ago(0), false, '1', '0', []), event('noscore', ago(1), true, undefined, undefined, [])]
       : [event('live', ago(0), false, '0', '0', [])] }, { 'cache-control': 'max-age=60' }];
   };
   const summary = (slug) => {
@@ -78,7 +80,7 @@ async function serve(route, log) {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 }
-async function run({ world = espnWorld(), day = [200, DAYROWS], source = SOURCE, srcIndex = null } = {}) {
+async function run({ world = espnWorld(), day = [200, DAYROWS], source = SOURCE, srcIndex = null, env: extraEnv = {} } = {}) {
   const espnLog = [], relayLog = [];
   const e = await serve((u) => {
     const m = u.pathname.match(/^\/([^/]+)\/(scoreboard|summary)$/);
@@ -95,7 +97,8 @@ async function run({ world = espnWorld(), day = [200, DAYROWS], source = SOURCE,
     fs.copyFileSync(source, script); fs.copyFileSync(LIB, path.join(dir, 'scripts', 'espn-task0-lib.mjs'));
     fs.writeFileSync(path.join(dir, 'src', 'index.js'), srcIndex);
   }
-  const env = { ...process.env, ESPN_BASE: e.base, RELAY_URL: r.base, ESPN_SPACING_MS: '0' };
+  const env = { ...process.env, ESPN_BASE: e.base, RELAY_URL: r.base, ESPN_SPACING_MS: '0', ...extraEnv };
+  if (extraEnv.ANCHOR_DATE === undefined) delete env.ANCHOR_DATE;
   const t0 = new Date();
   const child = spawn(process.execPath, [script], { cwd: dir, env });
   let stdout = '', stderr = '';
@@ -173,6 +176,18 @@ await scenario('a match further back is found by walking, and the walk stops at 
   const r = await run({ world: espnWorld({ daysBack: { epl: 4 } }) });
   eq('epl was read four times and stopped; the others twice: 4 + 8 x 2 = 20 scoreboard reads', [r.art.leagues.epl.scoreboard.reads, r.art.leagues.epl.scoreboard.daysBack, kind(r.espnLog, 'scoreboard').length], [4, 4, 20]);
   eq('and the day it asked for last is four days back', r.espnLog.filter((x) => x.query.length > 0 && x.path.startsWith(`/${REG.epl}/scoreboard`)).map((x) => x.query).length, 4);
+});
+
+await scenario('an anchored run starts at an old day and does not advance -latest.json', async () => {
+  const r = await run({ world: espnWorld({ matchDay: '20260828' }), env: { ANCHOR_DATE: '2026-08-30' } });
+  const first = kind(r.espnLog, 'scoreboard')[0].query;
+  eq('the first read is the anchor day itself, then one day back at a time; a match on 08-28 is found on the third read', [first, r.art.leagues.epl.scoreboard.reads, r.art.leagues.epl.scoreboard.daysBack, r.art.leagues.epl.chosen.date], ['?dates=20260830', 3, 3, '2026-08-28']);
+  eq('the artifact records the anchor, the run reached its target, and -latest.json did NOT advance', [r.art.anchorDate, r.art.reachedTarget, r.latest], ['2026-08-30', true, false]);
+  const plain = await run();
+  eq('an unanchored run records no anchor and does advance -latest.json', [plain.art.anchorDate, plain.latest], [null, true]);
+  const bad = [];
+  for (const a of ['garbage', '2026-02-30', new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10)]) { const x = await run({ env: { ANCHOR_DATE: a } }); bad.push([x.code, x.espnLog.length, /ANCHOR_DATE must be/.test(x.stderr)]); }
+  eq('an anchor that is not a real day, or is later than yesterday, exits 1 with no request', bad, [[1, 0, true], [1, 0, true], [1, 0, true]]);
 });
 
 await scenario('a redirect is read as a status and never followed', async () => {

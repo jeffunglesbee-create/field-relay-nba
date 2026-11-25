@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 37;
+const MIN_ASSERTIONS = 41;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'espn-task0-probe.mjs');
 const MUT = path.join(dir, '.mutant-espn-task0-probe.mjs');
@@ -38,12 +38,16 @@ const MUTANTS = [
   M('reached: fewer than nine leagues is enough', 'probed.length === R2_LEAGUES.length && ', ''),
   M('reached: the relay status is not required', REACH, 'e2a.shapeOk === true'),
   M('reached: the relay shape is not required', REACH, 'e2a.status === 200'),
-  M('main: -latest.json always advances', "if (reached) { fs.writeFileSync('outbox/espn-task0-latest.json'", "if (true) { fs.writeFileSync('outbox/espn-task0-latest.json'"),
+  M('main: -latest.json always advances', "if (reached && ANCHOR_RAW === null) { fs.writeFileSync('outbox/espn-task0-latest.json'", "if (true) { fs.writeFileSync('outbox/espn-task0-latest.json'"),
   M('probeLeague: the first event, not the most recent finished one', 'ev = pickRecentFinished(events);', 'ev = events.length > 0 ? events[0] : null;'),
   M('probeLeague: a league with no finished match is read anyway', 'if (ev === null) { out.chosen = null; return out; }', 'if (ev === null) { out.chosen = null; }'),
   M('probeLeague: the summary of the wrong event', 'summary?event=${encodeURIComponent(String(ev.id))}', 'summary?event=${encodeURIComponent(String(events[0].id))}'),
   M('walk: today instead of yesterday', 'for (let back = 1; back <= MAX_DAYS_BACK && ev === null; back++) {', 'for (let back = 0; back <= MAX_DAYS_BACK && ev === null; back++) {'),
   M('walk: gives up after one day', 'const MAX_DAYS_BACK = 10;', 'const MAX_DAYS_BACK = 1;'),
+  M('the anchor is ignored', 'const day = new Date(anchorMs - (back - 1) * 86400000);', 'const day = new Date(Date.now() - back * 86400000);'),
+  M('the anchor day itself is skipped', 'anchorMs - (back - 1) * 86400000', 'anchorMs - back * 86400000'),
+  M('an anchored run advances -latest.json', 'if (reached && ANCHOR_RAW === null)', 'if (reached)'),
+  M('an anchor in the future is accepted', 'ANCHOR_RAW > ymd(new Date(today.getTime() - 86400000))', "'0' > ymd(new Date(today.getTime() - 86400000))"),
   M('walk: does not stop at the first match', 'for (let back = 1; back <= MAX_DAYS_BACK && ev === null; back++) {', 'for (let back = 1; back <= MAX_DAYS_BACK; back++) {'),
   M('walk: goes on past a failed read', 'if (events === null || out.scoreboard.status !== 200) return out;', ''),
   M('walk: a date range again', 'scoreboard?dates=${ymd(day)}`', 'scoreboard?dates=${ymd(day)}-${ymd(today)}`'),

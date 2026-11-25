@@ -17,7 +17,10 @@
 // read as a status and never followed, every fetch has a timeout (the 2026-11-23 stall finding), and reads are one second apart.
 // The artifact holds field names, counts, statuses and ESPN event ids (public); no team, player or text is copied out of a payload.
 //
-// Usage: node scripts/espn-task0-probe.mjs      (writes outbox/espn-task0-<stamp>.json, and -latest.json when the target was reached)
+// ANCHOR_DATE (YYYY-MM-DD, default: yesterday UTC) is the first day read; the walk goes back from it. Pointed at an old date it answers whether ESPN still carries goal rows
+// for the matches the next-goal grade covers (August to November), which the default run, always the last ten days, cannot. An anchored run does NOT advance -latest.json.
+//
+// Usage: [ANCHOR_DATE=2026-08-30] node scripts/espn-task0-probe.mjs      (writes outbox/espn-task0-<stamp>.json, and -latest.json when the target was reached, unanchored)
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -34,6 +37,7 @@ const SUMMARY = ESPN_OVERRIDE !== null ? ESPN_OVERRIDE : 'https://site.web.api.e
 const RELAY = process.env.RELAY_URL || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const E2A_DAY = '2026-10-25';
 const MAX_DAYS_BACK = 10;
+const ANCHOR_RAW = typeof process.env.ANCHOR_DATE === 'string' && process.env.ANCHOR_DATE !== '' ? process.env.ANCHOR_DATE : null;
 const FETCH_TIMEOUT_MS = 30000;
 const SPACING_MS = /^\d{1,4}$/.test(String(process.env.ESPN_SPACING_MS)) ? Number(process.env.ESPN_SPACING_MS) : 1000;   // the check shortens it; a run does not
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -77,11 +81,11 @@ function listsOf(ev, summary) {
   ];
 }
 
-async function probeLeague(slug, espnLeague, today) {
+async function probeLeague(slug, espnLeague, anchorMs) {
   const out = { espnLeague, scoreboard: null, chosen: null, summary: null, lists: {} };
   let ev = null;
   for (let back = 1; back <= MAX_DAYS_BACK && ev === null; back++) {
-    const day = new Date(today.getTime() - back * 86400000);
+    const day = new Date(anchorMs - (back - 1) * 86400000);
     const sb = await get(`scoreboard ${slug} -${back}d`, `${SCOREBOARD}/${espnLeague}/scoreboard?dates=${ymd(day)}`);
     if (sb.blocked) return out;
     const events = isObj(sb.json) && Array.isArray(sb.json.events) ? sb.json.events : null;
@@ -116,10 +120,12 @@ async function main() {
   if (missing.length > 0) { console.error(`the relay registry text has no soccer entry for: ${missing.join(', ')}`); process.exit(1); }
   const TS = new Date().toISOString();
   const today = new Date(TS);
+  if (ANCHOR_RAW !== null && (!/^\d{4}-\d{2}-\d{2}$/.test(ANCHOR_RAW) || new Date(`${ANCHOR_RAW}T00:00:00Z`).toISOString().slice(0, 10) !== ANCHOR_RAW || ANCHOR_RAW > ymd(new Date(today.getTime() - 86400000)).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'))) { console.error(`ANCHOR_DATE must be a real YYYY-MM-DD day no later than yesterday, got ${JSON.stringify(ANCHOR_RAW)}`); process.exit(1); }
+  const anchorMs = ANCHOR_RAW === null ? today.getTime() - 86400000 : Date.parse(`${ANCHOR_RAW}T00:00:00Z`);
   console.log(`=== espn-task0-probe  utc=${TS}  leagues=${R2_LEAGUES.length}  walk=${MAX_DAYS_BACK} days back  relay=${RELAY} ===`);
 
   const leagues = Object.create(null);
-  for (const slug of R2_LEAGUES) leagues[slug] = await probeLeague(slug, reg[slug], today);
+  for (const slug of R2_LEAGUES) leagues[slug] = await probeLeague(slug, reg[slug], anchorMs);
 
   // ---- E2a
   const ctx = await get(`relay /context/date/${E2A_DAY}`, `${RELAY}/context/date/${E2A_DAY}`, { spaced: false });
@@ -156,7 +162,7 @@ async function main() {
     runner: { gitSha: typeof process.env.GITHUB_SHA === 'string' && process.env.GITHUB_SHA !== '' ? process.env.GITHUB_SHA : null,
       runId: typeof process.env.GITHUB_RUN_ID === 'string' && process.env.GITHUB_RUN_ID !== '' ? process.env.GITHUB_RUN_ID : null,
       probeSha256: fileSha(fileURLToPath(import.meta.url)), libSha256: fileSha(path.join(dir, 'espn-task0-lib.mjs')) },
-    hosts: { scoreboard: 'site.api.espn.com', summary: 'site.web.api.espn.com' }, maxDaysBack: MAX_DAYS_BACK, relay: RELAY, requestCount: requests.length,
+    hosts: { scoreboard: 'site.api.espn.com', summary: 'site.web.api.espn.com' }, maxDaysBack: MAX_DAYS_BACK, anchorDate: ANCHOR_RAW, relay: RELAY, requestCount: requests.length,
     coverageLine, e1: { leaguesProbed: probed.length, leaguesWithAFinishedMatch: withMatch.length, e1HeldOn: e1Leagues, heldOnByList: heldByList, goalRowsEqualFinalTotalOn: equalLeagues, ownGoalSeenOn: ownGoalSeen },
     e2a, leagues, requests,
   };
@@ -165,7 +171,7 @@ async function main() {
   const stamp = TS.replace(/[:.]/g, '-');
   const body = JSON.stringify(out, null, 2);
   fs.writeFileSync(`outbox/espn-task0-${stamp}.json`, body);
-  if (reached) { fs.writeFileSync('outbox/espn-task0-latest.json', body); console.log(`\nwrote outbox/espn-task0-${stamp}.json and -latest.json`); }
+  if (reached && ANCHOR_RAW === null) { fs.writeFileSync('outbox/espn-task0-latest.json', body); console.log(`\nwrote outbox/espn-task0-${stamp}.json and -latest.json`); }
   else console.log(`\nwrote outbox/espn-task0-${stamp}.json; NOT advancing -latest.json (${out.notReachedBecause})`);
 }
 

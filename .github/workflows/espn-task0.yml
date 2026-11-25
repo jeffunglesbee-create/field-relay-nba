@@ -26,6 +26,9 @@ on:
           - all
           - espn
           - reach
+      anchor_date:
+        description: 'ESPN probe only: the first day read, YYYY-MM-DD (default yesterday). An old date tests whether ESPN still carries older goal rows; an anchored run does not advance espn-task0-latest.json.'
+        required: false
       call_budget:
         description: 'Max BSD requests, 1 to 50 (default 16)'
         required: false
@@ -53,10 +56,12 @@ jobs:
           CALL_BUDGET: ${{ inputs.call_budget }}
           READ_CAP: ${{ inputs.read_cap }}
           DAY_CAP: ${{ inputs.day_cap }}
+          ANCHOR_DATE: ${{ inputs.anchor_date }}
         run: |
           [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "dispatch this workflow on main only (the commit job pushes to main); got $GITHUB_REF"; exit 1; }
           if [ -n "$CALL_BUDGET" ]; then [[ "$CALL_BUDGET" =~ ^[1-9][0-9]?$ ]] && [ "$CALL_BUDGET" -le 50 ] || { echo "call_budget must be a whole number from 1 to 50"; exit 1; }; fi
           if [ -n "$READ_CAP" ]; then [[ "$READ_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$READ_CAP" -le 5000 ] || { echo "read_cap must be a whole number from 1 to 5000"; exit 1; }; fi
+          if [ -n "$ANCHOR_DATE" ]; then [[ "$ANCHOR_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "anchor_date must be YYYY-MM-DD"; exit 1; }; fi
           if [ -n "$DAY_CAP" ]; then [[ "$DAY_CAP" =~ ^[1-9][0-9]{0,3}$ ]] && [ "$DAY_CAP" -le 2000 ] || { echo "day_cap must be a whole number from 1 to 2000"; exit 1; }; fi
 
       - uses: actions/checkout@v4
@@ -98,6 +103,8 @@ jobs:
           node-version: '22'
       - name: ESPN shapes and the archive's two ids (no token anywhere in this job)
         timeout-minutes: 10
+        env:
+          ANCHOR_DATE: ${{ inputs.anchor_date }}
         run: node scripts/espn-task0-probe.mjs
       - name: Hand the artifact to the commit job
         if: always()
