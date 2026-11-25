@@ -8724,6 +8724,12 @@ async function handleJournalismCycle(env, opts = {}) {
     // across two id namespaces.
     {sport:'soccer',    league:'eng.league_cup', label:'EFL Cup'},
     {sport:'soccer',    league:'eng.trophy',   label:'EFL Trophy'},
+    // EFL Championship (eng.2) -- the owner's "build both next", 2026-11-25: SEEDED, not excluded (it was UNDECIDED in src/seed-manifest.js since the
+    // seed-coverage CC-CMD). The cups above were seeded and the league tier was not, so the archive held no Championship row, and the BSD next-goal
+    // grade's 25 calls on 19 Championship matches could not reach their ESPN match through it (field-laboratory
+    // docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md, Task 3). Label identical to SOCCER_LEAGUE_LABELS.eflchamp, for the reason on the
+    // EFL Cup row. League One and League Two stay UNDECIDED: nothing here asked for them.
+    {sport:'soccer',    league:'eng.2',        label:'EFL Championship'},
     // FA Cup (CC-CMD-2026-08-08-fa-cup-coverage). label MUST stay identical to SOCCER_LEAGUE_LABELS.facup, for the
     // reason on the EFL Cup row above; 'FA Cup' and not ESPN's "English FA Cup" or a sponsor name, which would enter
     // the archive id.

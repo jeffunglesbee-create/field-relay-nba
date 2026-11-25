@@ -54,15 +54,15 @@ export const UNDECIDED = {
             'would handle it. Seed it, or exclude it for a stated coverage reason?',
         decidedBy: 'a human',
     },
-    eflchamp: {
+    // eflchamp was decided 2026-11-25 (the owner: "build both next"): SEEDED, as a row of the cron's LEAGUES table. The tiers below it are not.
+    eflone: {
         question:
-            'EFL Championship (eng.2). The EFL Cup and EFL Trophy are both seeded; the league ' +
-            'tiers are not. Seed the tiers, or state why the cups are covered and the leagues ' +
-            'are not?',
+            'EFL League One (eng.3). The EFL Cup, the EFL Trophy and the Championship (eng.2, seeded ' +
+            '2026-11-25) are archived; the two lower league tiers are not. Seed them, or state why ' +
+            'the Championship is covered and they are not?',
         decidedBy: 'a human',
     },
-    eflone: { question: 'EFL League One (eng.3) — see eflchamp.', decidedBy: 'a human' },
-    efltwo: { question: 'EFL League Two (eng.4) — see eflchamp.', decidedBy: 'a human' },
+    efltwo: { question: 'EFL League Two (eng.4) — see eflone.', decidedBy: 'a human' },
 }
 
 // The `individual: true` rows in the cron's own LEAGUES table are seeded AND
