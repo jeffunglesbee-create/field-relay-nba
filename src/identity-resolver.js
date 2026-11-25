@@ -537,6 +537,24 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY, AMBIGUOUS_TEAM } = (() => {
         ['Shamrock Rovers',             'Shamrock'],
         ['FC Drita',                    'Drita Gjilan'],
         ['SK Rapid Wien',               'Rapid Vienna'],
+
+        // ── EFL Championship club names (the same Addendum 2026-11-25; the label seeded that day, BSD league 12) ──
+        // 13 archive names read from outbox/fixture-bsd-game-join-eflchamp.json (40 dates, 200 rows, 11561 BSD events) by scripts/measure-bsd-game-join.mjs, each the ONE
+        // unclaimed BSD event whose names look like the row's (both sides), or whose one side does and whose other side the row's name is the only fit for (kickoff gap 0 on all
+        // of them, never what chose). ESPN's short names ('Boro', 'QPR', 'Sheffield Utd', 'West Brom') against BSD's full ones; the canonical is the archive's form.
+        ['Birmingham City',      'Birmingham'],
+        ['Blackburn Rovers',     'Blackburn'],
+        ['Bolton Wanderers',     'Bolton'],
+        ['Middlesbrough',        'Boro'],
+        ['Cardiff City',         'Cardiff'],
+        ['Charlton Athletic',    'Charlton'],
+        ['Derby County',         'Derby'],
+        ['Preston North End',    'Preston'],
+        ['Queens Park Rangers',  'QPR'],
+        ['Sheffield United',     'Sheffield Utd'],
+        ['Stoke City',           'Stoke'],
+        ['Swansea City',         'Swansea'],
+        ['West Bromwich Albion', 'West Brom'],
     ];
     const strip = {};
     const display = {};

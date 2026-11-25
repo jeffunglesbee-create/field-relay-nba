@@ -48,7 +48,8 @@ for (const d of fx.dates) {
 }
 check('every UEFA label is on the join list, once', UEFA.every((l) => BSD_SOCCER_SPORTS.filter((x) => x === l).length === 1), JSON.stringify(BSD_SOCCER_SPORTS));
 check('the six labels the join already covered are still on it', ['MLS', 'EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1'].every((l) => BSD_SOCCER_SPORTS.includes(l)), JSON.stringify(BSD_SOCCER_SPORTS));
-check('the list is exactly those twelve labels and nothing else', BSD_SOCCER_SPORTS.length === 12, String(BSD_SOCCER_SPORTS.length));
+const ALL = ['MLS', 'EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', ...UEFA, 'EFL Championship'];
+check('the list is exactly those thirteen labels (the six leagues, the six UEFA labels, EFL Championship) and nothing else', BSD_SOCCER_SPORTS.length === 13 && JSON.stringify([...BSD_SOCCER_SPORTS].sort()) === JSON.stringify([...ALL].sort()), JSON.stringify(BSD_SOCCER_SPORTS));
 check(`every fixture row is of one of the six labels, and there are 302 of them (${rows} rows, ${events} events read)`, rows === 302 && Object.values(perLabel).reduce((t, x) => t + x.rows, 0) === 302, String(rows));
 for (const l of UEFA) check(`${l}: ${EXPECT[l]} rows, all ${EXPECT[l]} joined`, perLabel[l].rows === EXPECT[l] && perLabel[l].joined === EXPECT[l], `${perLabel[l].joined} of ${perLabel[l].rows}: ${unjoined.filter((u) => u.includes(l.replace(/ /g, '').slice(0, 0))).length}`);
 check('302 of 302 rows are joined', unjoined.length === 0, unjoined.slice(0, 8).join(' | '));
