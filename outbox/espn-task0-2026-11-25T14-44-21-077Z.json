@@ -1,0 +1,4511 @@
+{
+  "ts": "2026-11-25T14:44:21.077Z",
+  "reachedTarget": true,
+  "stopped": null,
+  "notReachedBecause": null,
+  "runner": {
+    "gitSha": "8c6b7961618c3a1b47d60a8908b1d151c51ef41b",
+    "runId": "45637088686",
+    "probeSha256": "3e78b0ccdbf9fdca7f6dfbaef896d2f5ce3b2becae7b36d304c9e11e62970f83",
+    "libSha256": "7ffa358d5599f832baaa8efc29327b4d436c3c212a1cd80b0ddcd7e739a64673"
+  },
+  "hosts": {
+    "scoreboard": "site.api.espn.com",
+    "summary": "site.web.api.espn.com"
+  },
+  "maxDaysBack": 10,
+  "anchorDate": "2026-08-30",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "requestCount": 36,
+  "coverageLine": "ESPN: 9 of 9 league scoreboards answered 200 in the contract shape, 7 had a finished match in the last 10 days (one match each, 7 summaries read) | E1 (every goal row has a clock and a team id that is a competitor) held on 7 of 7 (by list: scoreboard.competitions[0].details 7, summary.header.competitions[0].details 7, summary.keyEvents 7), goal rows equalled the final score on 7 of 7, an own goal was seen in 1 of 7 | relay /context/date/2026-10-25: 200, 57 rows, 23 with BOTH a bsd and an espn id | all requests 200: true",
+  "e1": {
+    "leaguesProbed": 9,
+    "leaguesWithAFinishedMatch": 7,
+    "e1HeldOn": [
+      "epl",
+      "mls",
+      "eflchamp",
+      "laliga",
+      "seriea",
+      "bundesliga",
+      "ligue1"
+    ],
+    "heldOnByList": {
+      "scoreboard.competitions[0].details": [
+        "epl",
+        "mls",
+        "eflchamp",
+        "laliga",
+        "seriea",
+        "bundesliga",
+        "ligue1"
+      ],
+      "summary.header.competitions[0].details": [
+        "epl",
+        "mls",
+        "eflchamp",
+        "laliga",
+        "seriea",
+        "bundesliga",
+        "ligue1"
+      ],
+      "summary.keyEvents": [
+        "epl",
+        "mls",
+        "eflchamp",
+        "laliga",
+        "seriea",
+        "bundesliga",
+        "ligue1"
+      ]
+    },
+    "goalRowsEqualFinalTotalOn": [
+      "epl",
+      "mls",
+      "eflchamp",
+      "laliga",
+      "seriea",
+      "bundesliga",
+      "ligue1"
+    ],
+    "ownGoalSeenOn": [
+      "epl"
+    ]
+  },
+  "e2a": {
+    "status": 200,
+    "shapeOk": true,
+    "rowKeys": {
+      "id": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "sport": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "league": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "date": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "home": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "away": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "home_score": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "number": 50
+        }
+      },
+      "away_score": {
+        "rows": 57,
+        "types": {
+          "null": 9,
+          "number": 48
+        }
+      },
+      "venue": {
+        "rows": 57,
+        "types": {
+          "string": 55,
+          "null": 2
+        }
+      },
+      "streams": {
+        "rows": 57,
+        "types": {
+          "null": 13,
+          "string": 44
+        }
+      },
+      "note": {
+        "rows": 57,
+        "types": {
+          "null": 55,
+          "string": 2
+        }
+      },
+      "tags": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "crew": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "local_note": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "created_at": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "opening_odds": {
+        "rows": 57,
+        "types": {
+          "null": 16,
+          "string": 41
+        }
+      },
+      "closing_odds": {
+        "rows": 57,
+        "types": {
+          "null": 12,
+          "string": 45
+        }
+      },
+      "drama_peak": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "number": 50
+        }
+      },
+      "drama_arc": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "espn_event_id": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "went_to_ot": {
+        "rows": 57,
+        "types": {
+          "null": 38,
+          "number": 19
+        }
+      },
+      "finalized_at": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "start_time": {
+        "rows": 57,
+        "types": {
+          "null": 10,
+          "string": 47
+        }
+      },
+      "importance": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "inplay_odds": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "bsd_event_id": {
+        "rows": 57,
+        "types": {
+          "string": 30,
+          "null": 27
+        }
+      }
+    },
+    "days": 1,
+    "unreadDays": 0,
+    "rows": 57,
+    "noIdRows": 0,
+    "duplicateRows": 0,
+    "byLabel": {
+      "MLS": {
+        "rows": 8,
+        "withBsd": 8,
+        "withEspn": 1,
+        "withBoth": 1
+      },
+      "golf": {
+        "rows": 2,
+        "withBsd": 0,
+        "withEspn": 2,
+        "withBoth": 0
+      },
+      "NBA": {
+        "rows": 7,
+        "withBsd": 0,
+        "withEspn": 7,
+        "withBoth": 0
+      },
+      "NHL": {
+        "rows": 6,
+        "withBsd": 0,
+        "withEspn": 6,
+        "withBoth": 0
+      },
+      "EPL": {
+        "rows": 5,
+        "withBsd": 5,
+        "withEspn": 5,
+        "withBoth": 5
+      },
+      "La Liga": {
+        "rows": 4,
+        "withBsd": 4,
+        "withEspn": 4,
+        "withBoth": 4
+      },
+      "Serie A": {
+        "rows": 5,
+        "withBsd": 5,
+        "withEspn": 5,
+        "withBoth": 5
+      },
+      "Bundesliga": {
+        "rows": 2,
+        "withBsd": 2,
+        "withEspn": 2,
+        "withBoth": 2
+      },
+      "Ligue 1": {
+        "rows": 6,
+        "withBsd": 6,
+        "withEspn": 6,
+        "withBoth": 6
+      },
+      "NFL": {
+        "rows": 12,
+        "withBsd": 0,
+        "withEspn": 12,
+        "withBoth": 0
+      }
+    },
+    "targetLabelRows": {
+      "EFL Championship": 0,
+      "UEFA Champions League": 0,
+      "UEFA Europa League": 0,
+      "UEFA Europa Conference League": 0,
+      "UEFA Champions League Qualifying": 0,
+      "UEFA Europa League Qualifying": 0,
+      "UEFA Europa Conference League Qualifying": 0
+    }
+  },
+  "leagues": {
+    "epl": {
+      "espnLeague": "eng.1",
+      "scoreboard": {
+        "reads": 1,
+        "status": 200,
+        "events": 4,
+        "shapeOk": true,
+        "daysBack": 1
+      },
+      "chosen": {
+        "espnEventId": "401879293",
+        "date": "2026-08-30",
+        "finalTotal": 7,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "article",
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 27,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "goal": 5,
+              "yellow-card": 4,
+              "halftime": 1,
+              "substitution": 10,
+              "start-2nd-half": 1,
+              "own-goal": 1,
+              "start-delay": 1,
+              "end-delay": 1,
+              "penalty---scored": 1,
+              "end-regular-time": 1
+            },
+            "goalRows": 7,
+            "withTeamId": 7,
+            "teamIdIsACompetitor": 7,
+            "withClock": 7,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 7,
+            "finalTotal": 7,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1708,
+                "display": "29'"
+              },
+              {
+                "value": 2383,
+                "display": "40'"
+              },
+              {
+                "value": 3355,
+                "display": "56'"
+              },
+              {
+                "value": 3637,
+                "display": "61'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 5,
+              "Own Goal": 1,
+              "Penalty - Scored": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 7,
+            "paths": {
+              "id": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "type": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "type.id": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "type.text": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "type.type": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "text": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "shortText": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "period": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "period.number": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "clock": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "clock.value": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "clock.displayValue": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "scoringPlay": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "team": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "team.id": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team.displayName": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "participants": {
+                "rows": 7,
+                "types": {
+                  "array": 7
+                }
+              },
+              "source": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "source.id": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "source.description": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "wallclock": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "shootout": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "goalPositionY": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "fieldPositionX": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "fieldPositionY": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 11,
+            "typeVocabulary": {
+              "(other)": 11
+            },
+            "goalRows": 7,
+            "withTeamId": 7,
+            "teamIdIsACompetitor": 7,
+            "withClock": 7,
+            "ownGoalKey": 7,
+            "ownGoalTrue": 1,
+            "penaltyKickKey": 7,
+            "scoringPlayTrue": 7,
+            "finalTotal": 7,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1708,
+                "display": "29'"
+              },
+              {
+                "value": 2383,
+                "display": "40'"
+              },
+              {
+                "value": 3355,
+                "display": "56'"
+              },
+              {
+                "value": 3637,
+                "display": "61'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 5,
+              "Own Goal": 1,
+              "Penalty - Scored": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 7,
+            "paths": {
+              "type": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "type.id": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "type.text": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "clock": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "clock.value": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "clock.displayValue": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "team.id": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "scoreValue": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "scoringPlay": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "redCard": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "yellowCard": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "penaltyKick": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "ownGoal": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "shootout": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "athletesInvolved": {
+                "rows": 7,
+                "types": {
+                  "array": 7
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 7,
+            "typeVocabulary": {
+              "(other)": 7
+            },
+            "goalRows": 7,
+            "withTeamId": 7,
+            "teamIdIsACompetitor": 7,
+            "withClock": 7,
+            "ownGoalKey": 7,
+            "ownGoalTrue": 1,
+            "penaltyKickKey": 7,
+            "scoringPlayTrue": 7,
+            "finalTotal": 7,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1708,
+                "display": "29'"
+              },
+              {
+                "value": 2383,
+                "display": "40'"
+              },
+              {
+                "value": 3355,
+                "display": "56'"
+              },
+              {
+                "value": 3637,
+                "display": "61'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 7
+            }
+          },
+          "goalRowFields": {
+            "rows": 7,
+            "paths": {
+              "clock": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "clock.value": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "clock.displayValue": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "scoringPlay": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "team": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "team.id": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team.uid": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team.location": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team.name": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team.nickname": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team.abbreviation": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "team.displayName": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "participants": {
+                "rows": 7,
+                "types": {
+                  "array": 7
+                }
+              },
+              "addedClock": {
+                "rows": 7,
+                "types": {
+                  "object": 7
+                }
+              },
+              "addedClock.value": {
+                "rows": 7,
+                "types": {
+                  "number": 7
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 7,
+                "types": {
+                  "string": 7
+                }
+              },
+              "redCard": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "penaltyKick": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              },
+              "ownGoal": {
+                "rows": 7,
+                "types": {
+                  "boolean": 7
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    },
+    "mls": {
+      "espnLeague": "usa.1",
+      "scoreboard": {
+        "reads": 1,
+        "status": 200,
+        "events": 2,
+        "shapeOk": true,
+        "daysBack": 1
+      },
+      "chosen": {
+        "espnEventId": "761769",
+        "date": "2026-08-30",
+        "finalTotal": 6,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 37,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "goal": 5,
+              "yellow-card": 3,
+              "start-delay": 8,
+              "end-delay": 8,
+              "halftime": 1,
+              "start-2nd-half": 1,
+              "substitution": 8,
+              "goal---header": 1,
+              "end-regular-time": 1
+            },
+            "goalRows": 6,
+            "withTeamId": 6,
+            "teamIdIsACompetitor": 6,
+            "withClock": 6,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 6,
+            "finalTotal": 6,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 177,
+                "display": "3'"
+              },
+              {
+                "value": 1049,
+                "display": "18'"
+              },
+              {
+                "value": 2530,
+                "display": "43'"
+              },
+              {
+                "value": 3823,
+                "display": "64'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 5,
+              "Goal - Header": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 6,
+            "paths": {
+              "id": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "type": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "type.id": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "type.text": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "type.type": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "text": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "shortText": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "period": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "period.number": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "clock": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "clock.value": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "clock.displayValue": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "scoringPlay": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "team": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "team.id": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "team.displayName": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "participants": {
+                "rows": 6,
+                "types": {
+                  "array": 6
+                }
+              },
+              "source": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "source.id": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "source.description": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "wallclock": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "shootout": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "goalPositionY": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "fieldPositionX": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "fieldPositionY": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 9,
+            "typeVocabulary": {
+              "(other)": 9
+            },
+            "goalRows": 6,
+            "withTeamId": 6,
+            "teamIdIsACompetitor": 6,
+            "withClock": 6,
+            "ownGoalKey": 6,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 6,
+            "scoringPlayTrue": 6,
+            "finalTotal": 6,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 177,
+                "display": "3'"
+              },
+              {
+                "value": 1049,
+                "display": "18'"
+              },
+              {
+                "value": 2530,
+                "display": "43'"
+              },
+              {
+                "value": 3823,
+                "display": "64'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 5,
+              "Goal - Header": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 6,
+            "paths": {
+              "type": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "type.id": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "type.text": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "clock": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "clock.value": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "clock.displayValue": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "team": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "team.id": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "scoreValue": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "scoringPlay": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "redCard": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "yellowCard": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "penaltyKick": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "ownGoal": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "shootout": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "athletesInvolved": {
+                "rows": 6,
+                "types": {
+                  "array": 6
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 6,
+            "typeVocabulary": {
+              "(other)": 6
+            },
+            "goalRows": 6,
+            "withTeamId": 6,
+            "teamIdIsACompetitor": 6,
+            "withClock": 6,
+            "ownGoalKey": 6,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 6,
+            "scoringPlayTrue": 6,
+            "finalTotal": 6,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 177,
+                "display": "3'"
+              },
+              {
+                "value": 1049,
+                "display": "18'"
+              },
+              {
+                "value": 2530,
+                "display": "43'"
+              },
+              {
+                "value": 3823,
+                "display": "64'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 6
+            }
+          },
+          "goalRowFields": {
+            "rows": 6,
+            "paths": {
+              "clock": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "clock.value": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "clock.displayValue": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "scoringPlay": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "team": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "team.id": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "team.uid": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "team.location": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "team.name": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "team.abbreviation": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "team.displayName": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "participants": {
+                "rows": 6,
+                "types": {
+                  "array": 6
+                }
+              },
+              "addedClock": {
+                "rows": 6,
+                "types": {
+                  "object": 6
+                }
+              },
+              "addedClock.value": {
+                "rows": 6,
+                "types": {
+                  "number": 6
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 6,
+                "types": {
+                  "string": 6
+                }
+              },
+              "redCard": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "penaltyKick": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "ownGoal": {
+                "rows": 6,
+                "types": {
+                  "boolean": 6
+                }
+              },
+              "team.nickname": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    },
+    "ucl": {
+      "espnLeague": "uefa.champions",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "eflchamp": {
+      "espnLeague": "eng.2",
+      "scoreboard": {
+        "reads": 2,
+        "status": 200,
+        "events": 11,
+        "shapeOk": true,
+        "daysBack": 2
+      },
+      "chosen": {
+        "espnEventId": "401880316",
+        "date": "2026-08-29",
+        "finalTotal": 3,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 22,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "yellow-card": 5,
+              "halftime": 1,
+              "substitution": 10,
+              "start-2nd-half": 1,
+              "goal": 2,
+              "goal---header": 1,
+              "end-regular-time": 1
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 2930,
+                "display": "49'"
+              },
+              {
+                "value": 3029,
+                "display": "51'"
+              },
+              {
+                "value": 4403,
+                "display": "74'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 2,
+              "Goal - Header": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "type.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.type": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "shortText": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "period": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "period.number": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.displayName": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "participants": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              },
+              "source": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "source.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "source.description": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "wallclock": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "shootout": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "goalPositionY": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPositionX": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPositionY": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 8,
+            "typeVocabulary": {
+              "(other)": 8
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 3,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 3,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 2930,
+                "display": "49'"
+              },
+              {
+                "value": 3029,
+                "display": "51'"
+              },
+              {
+                "value": 4403,
+                "display": "74'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 2,
+              "Goal - Header": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "type": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "type.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoreValue": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "redCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "yellowCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "penaltyKick": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "ownGoal": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "shootout": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "athletesInvolved": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 3,
+            "typeVocabulary": {
+              "(other)": 3
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 3,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 3,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 2930,
+                "display": "49'"
+              },
+              {
+                "value": 3029,
+                "display": "51'"
+              },
+              {
+                "value": 4403,
+                "display": "74'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 3
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.uid": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.location": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.name": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.nickname": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.abbreviation": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.displayName": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "participants": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              },
+              "addedClock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "addedClock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "redCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "penaltyKick": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "ownGoal": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    },
+    "laliga": {
+      "espnLeague": "esp.1",
+      "scoreboard": {
+        "reads": 1,
+        "status": 200,
+        "events": 3,
+        "shapeOk": true,
+        "daysBack": 1
+      },
+      "chosen": {
+        "espnEventId": "401882905",
+        "date": "2026-08-30",
+        "finalTotal": 2,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 19,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "goal": 2,
+              "halftime": 1,
+              "substitution": 10,
+              "start-2nd-half": 1,
+              "yellow-card": 3,
+              "end-regular-time": 1
+            },
+            "goalRows": 2,
+            "withTeamId": 2,
+            "teamIdIsACompetitor": 2,
+            "withClock": 2,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 2,
+            "finalTotal": 2,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1178,
+                "display": "20'"
+              },
+              {
+                "value": 1281,
+                "display": "22'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 2
+            }
+          },
+          "goalRowFields": {
+            "rows": 2,
+            "paths": {
+              "id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "type.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type.text": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type.type": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "text": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "shortText": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "period": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "period.number": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "clock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "scoringPlay": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "team": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "team.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.displayName": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "participants": {
+                "rows": 2,
+                "types": {
+                  "array": 2
+                }
+              },
+              "source": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "source.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "source.description": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "wallclock": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "shootout": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "goalPositionY": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPositionX": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPositionY": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 5,
+            "typeVocabulary": {
+              "(other)": 5
+            },
+            "goalRows": 2,
+            "withTeamId": 2,
+            "teamIdIsACompetitor": 2,
+            "withClock": 2,
+            "ownGoalKey": 2,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 2,
+            "scoringPlayTrue": 2,
+            "finalTotal": 2,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1178,
+                "display": "20'"
+              },
+              {
+                "value": 1281,
+                "display": "22'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 2
+            }
+          },
+          "goalRowFields": {
+            "rows": 2,
+            "paths": {
+              "type": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "type.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type.text": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "clock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "clock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "team.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "scoreValue": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "scoringPlay": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "redCard": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "yellowCard": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "penaltyKick": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "ownGoal": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "shootout": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "athletesInvolved": {
+                "rows": 2,
+                "types": {
+                  "array": 2
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 2,
+            "typeVocabulary": {
+              "(other)": 2
+            },
+            "goalRows": 2,
+            "withTeamId": 2,
+            "teamIdIsACompetitor": 2,
+            "withClock": 2,
+            "ownGoalKey": 2,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 2,
+            "scoringPlayTrue": 2,
+            "finalTotal": 2,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1178,
+                "display": "20'"
+              },
+              {
+                "value": 1281,
+                "display": "22'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 2
+            }
+          },
+          "goalRowFields": {
+            "rows": 2,
+            "paths": {
+              "clock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "clock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "scoringPlay": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "team": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "team.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.uid": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.location": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.name": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.abbreviation": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.displayName": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "participants": {
+                "rows": 2,
+                "types": {
+                  "array": 2
+                }
+              },
+              "addedClock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "addedClock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "redCard": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "penaltyKick": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "ownGoal": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    },
+    "europa": {
+      "espnLeague": "uefa.europa",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "seriea": {
+      "espnLeague": "ita.1",
+      "scoreboard": {
+        "reads": 1,
+        "status": 200,
+        "events": 3,
+        "shapeOk": true,
+        "daysBack": 1
+      },
+      "chosen": {
+        "espnEventId": "401874938",
+        "date": "2026-08-30",
+        "finalTotal": 1,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 26,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "goal": 1,
+              "yellow-card": 3,
+              "start-delay": 4,
+              "end-delay": 4,
+              "halftime": 1,
+              "start-2nd-half": 1,
+              "substitution": 10,
+              "end-regular-time": 1
+            },
+            "goalRows": 1,
+            "withTeamId": 1,
+            "teamIdIsACompetitor": 1,
+            "withClock": 1,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 1,
+            "finalTotal": 1,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 530,
+                "display": "9'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 1,
+            "paths": {
+              "id": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "type": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "type.id": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "type.text": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "type.type": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "text": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "shortText": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "period": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "period.number": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "clock": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "clock.value": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "clock.displayValue": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "scoringPlay": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "team": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "team.id": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "team.displayName": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "participants": {
+                "rows": 1,
+                "types": {
+                  "array": 1
+                }
+              },
+              "source": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "source.id": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "source.description": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "wallclock": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "shootout": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "goalPositionY": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "fieldPositionX": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "fieldPositionY": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 4,
+            "typeVocabulary": {
+              "(other)": 4
+            },
+            "goalRows": 1,
+            "withTeamId": 1,
+            "teamIdIsACompetitor": 1,
+            "withClock": 1,
+            "ownGoalKey": 1,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 1,
+            "scoringPlayTrue": 1,
+            "finalTotal": 1,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 530,
+                "display": "9'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 1,
+            "paths": {
+              "type": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "type.id": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "type.text": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "clock": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "clock.value": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "clock.displayValue": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "team": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "team.id": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "scoreValue": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "scoringPlay": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "redCard": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "yellowCard": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "penaltyKick": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "ownGoal": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "shootout": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "athletesInvolved": {
+                "rows": 1,
+                "types": {
+                  "array": 1
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 1,
+            "typeVocabulary": {
+              "(other)": 1
+            },
+            "goalRows": 1,
+            "withTeamId": 1,
+            "teamIdIsACompetitor": 1,
+            "withClock": 1,
+            "ownGoalKey": 1,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 1,
+            "scoringPlayTrue": 1,
+            "finalTotal": 1,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 530,
+                "display": "9'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 1,
+            "paths": {
+              "clock": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "clock.value": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "clock.displayValue": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "scoringPlay": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "team": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "team.id": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "team.uid": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "team.location": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "team.name": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "team.abbreviation": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "team.displayName": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "participants": {
+                "rows": 1,
+                "types": {
+                  "array": 1
+                }
+              },
+              "addedClock": {
+                "rows": 1,
+                "types": {
+                  "object": 1
+                }
+              },
+              "addedClock.value": {
+                "rows": 1,
+                "types": {
+                  "number": 1
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 1,
+                "types": {
+                  "string": 1
+                }
+              },
+              "redCard": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "penaltyKick": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              },
+              "ownGoal": {
+                "rows": 1,
+                "types": {
+                  "boolean": 1
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    },
+    "bundesliga": {
+      "espnLeague": "ger.1",
+      "scoreboard": {
+        "reads": 1,
+        "status": 200,
+        "events": 2,
+        "shapeOk": true,
+        "daysBack": 1
+      },
+      "chosen": {
+        "espnEventId": "401884813",
+        "date": "2026-08-30",
+        "finalTotal": 3,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 23,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "goal": 3,
+              "yellow-card": 1,
+              "halftime": 1,
+              "start-2nd-half": 1,
+              "substitution": 10,
+              "red-card": 1,
+              "start-delay": 2,
+              "end-delay": 2,
+              "end-regular-time": 1
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1055,
+                "display": "18'"
+              },
+              {
+                "value": 4716,
+                "display": "79'"
+              },
+              {
+                "value": 5400,
+                "display": "90'+2'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 3
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "type.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.type": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "shortText": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "period": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "period.number": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.displayName": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "participants": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              },
+              "source": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "source.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "source.description": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "wallclock": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "shootout": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "goalPositionY": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPositionX": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPositionY": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 5,
+            "typeVocabulary": {
+              "(other)": 5
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 3,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 3,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1055,
+                "display": "18'"
+              },
+              {
+                "value": 4716,
+                "display": "79'"
+              },
+              {
+                "value": 5400,
+                "display": "90'+2'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 3
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "type": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "type.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoreValue": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "redCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "yellowCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "penaltyKick": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "ownGoal": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "shootout": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "athletesInvolved": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 4,
+            "typeVocabulary": {
+              "(other)": 4
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 3,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 3,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 1055,
+                "display": "18'"
+              },
+              {
+                "value": 4716,
+                "display": "79'"
+              },
+              {
+                "value": 5400,
+                "display": "90'+2'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 3
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.uid": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.location": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.name": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.abbreviation": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.displayName": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "participants": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              },
+              "addedClock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "addedClock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "redCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "penaltyKick": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "ownGoal": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    },
+    "ligue1": {
+      "espnLeague": "fra.1",
+      "scoreboard": {
+        "reads": 1,
+        "status": 200,
+        "events": 3,
+        "shapeOk": true,
+        "daysBack": 1
+      },
+      "chosen": {
+        "espnEventId": "401876480",
+        "date": "2026-08-30",
+        "finalTotal": 2,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 43,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "goal---header": 1,
+              "yellow-card": 4,
+              "halftime": 1,
+              "substitution": 9,
+              "start-2nd-half": 1,
+              "start-delay": 12,
+              "end-delay": 12,
+              "goal": 1,
+              "end-regular-time": 1
+            },
+            "goalRows": 2,
+            "withTeamId": 2,
+            "teamIdIsACompetitor": 2,
+            "withClock": 2,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 2,
+            "finalTotal": 2,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 760,
+                "display": "13'"
+              },
+              {
+                "value": 3166,
+                "display": "53'"
+              }
+            ],
+            "typeTexts": {
+              "Goal - Header": 1,
+              "Goal": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 2,
+            "paths": {
+              "id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "type.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type.text": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type.type": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "text": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "shortText": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "period": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "period.number": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "clock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "scoringPlay": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "team": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "team.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.displayName": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "participants": {
+                "rows": 2,
+                "types": {
+                  "array": 2
+                }
+              },
+              "source": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "source.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "source.description": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "wallclock": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "shootout": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "goalPositionY": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPositionX": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPositionY": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 6,
+            "typeVocabulary": {
+              "(other)": 6
+            },
+            "goalRows": 2,
+            "withTeamId": 2,
+            "teamIdIsACompetitor": 2,
+            "withClock": 2,
+            "ownGoalKey": 2,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 2,
+            "scoringPlayTrue": 2,
+            "finalTotal": 2,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 760,
+                "display": "13'"
+              },
+              {
+                "value": 3166,
+                "display": "53'"
+              }
+            ],
+            "typeTexts": {
+              "Goal - Header": 1,
+              "Goal": 1
+            }
+          },
+          "goalRowFields": {
+            "rows": 2,
+            "paths": {
+              "type": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "type.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "type.text": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "clock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "clock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "team.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "scoreValue": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "scoringPlay": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "redCard": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "yellowCard": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "penaltyKick": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "ownGoal": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "shootout": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "athletesInvolved": {
+                "rows": 2,
+                "types": {
+                  "array": 2
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 2,
+            "typeVocabulary": {
+              "(other)": 2
+            },
+            "goalRows": 2,
+            "withTeamId": 2,
+            "teamIdIsACompetitor": 2,
+            "withClock": 2,
+            "ownGoalKey": 2,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 2,
+            "scoringPlayTrue": 2,
+            "finalTotal": 2,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 760,
+                "display": "13'"
+              },
+              {
+                "value": 3166,
+                "display": "53'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 2
+            }
+          },
+          "goalRowFields": {
+            "rows": 2,
+            "paths": {
+              "clock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "clock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "clock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "scoringPlay": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "team": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "team.id": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.uid": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.location": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.name": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.abbreviation": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "team.displayName": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "participants": {
+                "rows": 2,
+                "types": {
+                  "array": 2
+                }
+              },
+              "addedClock": {
+                "rows": 2,
+                "types": {
+                  "object": 2
+                }
+              },
+              "addedClock.value": {
+                "rows": 2,
+                "types": {
+                  "number": 2
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 2,
+                "types": {
+                  "string": 2
+                }
+              },
+              "redCard": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "penaltyKick": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              },
+              "ownGoal": {
+                "rows": 2,
+                "types": {
+                  "boolean": 2
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    }
+  },
+  "requests": [
+    {
+      "label": "scoreboard epl -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 49582,
+      "ms": 254
+    },
+    {
+      "label": "summary epl",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=4",
+      "age": null,
+      "bytes": 443485,
+      "ms": 159
+    },
+    {
+      "label": "scoreboard mls -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 25267,
+      "ms": 61
+    },
+    {
+      "label": "summary mls",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 385779,
+      "ms": 28
+    },
+    {
+      "label": "scoreboard ucl -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=20",
+      "age": null,
+      "bytes": 1786,
+      "ms": 62
+    },
+    {
+      "label": "scoreboard ucl -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=19",
+      "age": null,
+      "bytes": 1786,
+      "ms": 28
+    },
+    {
+      "label": "scoreboard ucl -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=18",
+      "age": null,
+      "bytes": 1786,
+      "ms": 65
+    },
+    {
+      "label": "scoreboard ucl -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=17",
+      "age": null,
+      "bytes": 1786,
+      "ms": 64
+    },
+    {
+      "label": "scoreboard ucl -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=16",
+      "age": null,
+      "bytes": 1786,
+      "ms": 49
+    },
+    {
+      "label": "scoreboard ucl -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=15",
+      "age": null,
+      "bytes": 1786,
+      "ms": 55
+    },
+    {
+      "label": "scoreboard ucl -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=14",
+      "age": null,
+      "bytes": 1786,
+      "ms": 47
+    },
+    {
+      "label": "scoreboard ucl -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=13",
+      "age": null,
+      "bytes": 1786,
+      "ms": 47
+    },
+    {
+      "label": "scoreboard ucl -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=12",
+      "age": null,
+      "bytes": 1786,
+      "ms": 70
+    },
+    {
+      "label": "scoreboard ucl -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=11",
+      "age": null,
+      "bytes": 1786,
+      "ms": 111
+    },
+    {
+      "label": "scoreboard eflchamp -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=149",
+      "age": null,
+      "bytes": 2926,
+      "ms": 69
+    },
+    {
+      "label": "scoreboard eflchamp -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 121525,
+      "ms": 54
+    },
+    {
+      "label": "summary eflchamp",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 400566,
+      "ms": 123
+    },
+    {
+      "label": "scoreboard laliga -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=9",
+      "age": null,
+      "bytes": 42633,
+      "ms": 67
+    },
+    {
+      "label": "summary laliga",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 397481,
+      "ms": 27
+    },
+    {
+      "label": "scoreboard europa -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=59",
+      "age": null,
+      "bytes": 1786,
+      "ms": 54
+    },
+    {
+      "label": "scoreboard europa -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=5",
+      "age": null,
+      "bytes": 1786,
+      "ms": 61
+    },
+    {
+      "label": "scoreboard europa -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=57",
+      "age": null,
+      "bytes": 1786,
+      "ms": 50
+    },
+    {
+      "label": "scoreboard europa -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=2",
+      "age": null,
+      "bytes": 1786,
+      "ms": 68
+    },
+    {
+      "label": "scoreboard europa -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 1786,
+      "ms": 43
+    },
+    {
+      "label": "scoreboard europa -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=54",
+      "age": null,
+      "bytes": 1786,
+      "ms": 45
+    },
+    {
+      "label": "scoreboard europa -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=53",
+      "age": null,
+      "bytes": 1786,
+      "ms": 55
+    },
+    {
+      "label": "scoreboard europa -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=52",
+      "age": null,
+      "bytes": 1786,
+      "ms": 50
+    },
+    {
+      "label": "scoreboard europa -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=50",
+      "age": null,
+      "bytes": 1786,
+      "ms": 43
+    },
+    {
+      "label": "scoreboard europa -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=50",
+      "age": null,
+      "bytes": 1786,
+      "ms": 46
+    },
+    {
+      "label": "scoreboard seriea -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 30004,
+      "ms": 43
+    },
+    {
+      "label": "summary seriea",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 426174,
+      "ms": 198
+    },
+    {
+      "label": "scoreboard bundesliga -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 22663,
+      "ms": 66
+    },
+    {
+      "label": "summary bundesliga",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 388347,
+      "ms": 25
+    },
+    {
+      "label": "scoreboard ligue1 -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 33843,
+      "ms": 47
+    },
+    {
+      "label": "summary ligue1",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 401279,
+      "ms": 26
+    },
+    {
+      "label": "relay /context/date/2026-10-25",
+      "status": 200,
+      "contentType": "application/json",
+      "cacheControl": "public,max-age=300",
+      "age": null,
+      "bytes": 334824,
+      "ms": 356
+    }
+  ]
+}
