@@ -1,0 +1,1712 @@
+{
+  "ts": "2026-11-25T14:47:58.198Z",
+  "reachedTarget": true,
+  "stopped": null,
+  "notReachedBecause": null,
+  "runner": {
+    "gitSha": "c255cbd11a4db9d4743e9eb40cf88280cb29b11f",
+    "runId": "45637664358",
+    "probeSha256": "3e78b0ccdbf9fdca7f6dfbaef896d2f5ce3b2becae7b36d304c9e11e62970f83",
+    "libSha256": "7ffa358d5599f832baaa8efc29327b4d436c3c212a1cd80b0ddcd7e739a64673"
+  },
+  "hosts": {
+    "scoreboard": "site.api.espn.com",
+    "summary": "site.web.api.espn.com"
+  },
+  "maxDaysBack": 10,
+  "anchorDate": "2026-10-02",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "requestCount": 84,
+  "coverageLine": "ESPN: 9 of 9 league scoreboards answered 200 in the contract shape, 1 had a finished match in the last 10 days (one match each, 1 summaries read) | E1 (every goal row has a clock and a team id that is a competitor) held on 1 of 1 (by list: scoreboard.competitions[0].details 1, summary.header.competitions[0].details 1, summary.keyEvents 1), goal rows equalled the final score on 1 of 1, an own goal was seen in 0 of 1 | relay /context/date/2026-10-25: 200, 57 rows, 23 with BOTH a bsd and an espn id | all requests 200: true",
+  "e1": {
+    "leaguesProbed": 9,
+    "leaguesWithAFinishedMatch": 1,
+    "e1HeldOn": [
+      "mls"
+    ],
+    "heldOnByList": {
+      "scoreboard.competitions[0].details": [
+        "mls"
+      ],
+      "summary.header.competitions[0].details": [
+        "mls"
+      ],
+      "summary.keyEvents": [
+        "mls"
+      ]
+    },
+    "goalRowsEqualFinalTotalOn": [
+      "mls"
+    ],
+    "ownGoalSeenOn": []
+  },
+  "e2a": {
+    "status": 200,
+    "shapeOk": true,
+    "rowKeys": {
+      "id": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "sport": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "league": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "date": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "home": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "away": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "home_score": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "number": 50
+        }
+      },
+      "away_score": {
+        "rows": 57,
+        "types": {
+          "null": 9,
+          "number": 48
+        }
+      },
+      "venue": {
+        "rows": 57,
+        "types": {
+          "string": 55,
+          "null": 2
+        }
+      },
+      "streams": {
+        "rows": 57,
+        "types": {
+          "null": 13,
+          "string": 44
+        }
+      },
+      "note": {
+        "rows": 57,
+        "types": {
+          "null": 55,
+          "string": 2
+        }
+      },
+      "tags": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "crew": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "local_note": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "created_at": {
+        "rows": 57,
+        "types": {
+          "string": 57
+        }
+      },
+      "opening_odds": {
+        "rows": 57,
+        "types": {
+          "null": 16,
+          "string": 41
+        }
+      },
+      "closing_odds": {
+        "rows": 57,
+        "types": {
+          "null": 12,
+          "string": 45
+        }
+      },
+      "drama_peak": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "number": 50
+        }
+      },
+      "drama_arc": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "espn_event_id": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "went_to_ot": {
+        "rows": 57,
+        "types": {
+          "null": 38,
+          "number": 19
+        }
+      },
+      "finalized_at": {
+        "rows": 57,
+        "types": {
+          "null": 7,
+          "string": 50
+        }
+      },
+      "start_time": {
+        "rows": 57,
+        "types": {
+          "null": 10,
+          "string": 47
+        }
+      },
+      "importance": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "inplay_odds": {
+        "rows": 57,
+        "types": {
+          "null": 57
+        }
+      },
+      "bsd_event_id": {
+        "rows": 57,
+        "types": {
+          "string": 30,
+          "null": 27
+        }
+      }
+    },
+    "days": 1,
+    "unreadDays": 0,
+    "rows": 57,
+    "noIdRows": 0,
+    "duplicateRows": 0,
+    "byLabel": {
+      "MLS": {
+        "rows": 8,
+        "withBsd": 8,
+        "withEspn": 1,
+        "withBoth": 1
+      },
+      "golf": {
+        "rows": 2,
+        "withBsd": 0,
+        "withEspn": 2,
+        "withBoth": 0
+      },
+      "NBA": {
+        "rows": 7,
+        "withBsd": 0,
+        "withEspn": 7,
+        "withBoth": 0
+      },
+      "NHL": {
+        "rows": 6,
+        "withBsd": 0,
+        "withEspn": 6,
+        "withBoth": 0
+      },
+      "EPL": {
+        "rows": 5,
+        "withBsd": 5,
+        "withEspn": 5,
+        "withBoth": 5
+      },
+      "La Liga": {
+        "rows": 4,
+        "withBsd": 4,
+        "withEspn": 4,
+        "withBoth": 4
+      },
+      "Serie A": {
+        "rows": 5,
+        "withBsd": 5,
+        "withEspn": 5,
+        "withBoth": 5
+      },
+      "Bundesliga": {
+        "rows": 2,
+        "withBsd": 2,
+        "withEspn": 2,
+        "withBoth": 2
+      },
+      "Ligue 1": {
+        "rows": 6,
+        "withBsd": 6,
+        "withEspn": 6,
+        "withBoth": 6
+      },
+      "NFL": {
+        "rows": 12,
+        "withBsd": 0,
+        "withEspn": 12,
+        "withBoth": 0
+      }
+    },
+    "targetLabelRows": {
+      "EFL Championship": 0,
+      "UEFA Champions League": 0,
+      "UEFA Europa League": 0,
+      "UEFA Europa Conference League": 0,
+      "UEFA Champions League Qualifying": 0,
+      "UEFA Europa League Qualifying": 0,
+      "UEFA Europa Conference League Qualifying": 0
+    }
+  },
+  "leagues": {
+    "epl": {
+      "espnLeague": "eng.1",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "mls": {
+      "espnLeague": "usa.1",
+      "scoreboard": {
+        "reads": 2,
+        "status": 200,
+        "events": 1,
+        "shapeOk": true,
+        "daysBack": 2
+      },
+      "chosen": {
+        "espnEventId": "761798",
+        "date": "2026-10-02",
+        "finalTotal": 3,
+        "competitors": 2
+      },
+      "summary": {
+        "status": 200,
+        "shapeOk": true,
+        "topKeys": [
+          "boxscore",
+          "broadcasts",
+          "commentary",
+          "format",
+          "gameInfo",
+          "hasOdds",
+          "header",
+          "keyEvents",
+          "lastFiveGames",
+          "leaders",
+          "meta",
+          "news",
+          "odds",
+          "pickcenter",
+          "rosters",
+          "seasonseries",
+          "standings",
+          "videos",
+          "wallclockAvailable"
+        ]
+      },
+      "lists": {
+        "summary.keyEvents": {
+          "present": true,
+          "shape": {
+            "rows": 22,
+            "typeVocabulary": {
+              "kickoff": 1,
+              "goal": 3,
+              "halftime": 1,
+              "substitution": 9,
+              "start-2nd-half": 1,
+              "yellow-card": 2,
+              "start-delay": 2,
+              "end-delay": 2,
+              "end-regular-time": 1
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 0,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 0,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 2598,
+                "display": "44'"
+              },
+              {
+                "value": 3059,
+                "display": "51'"
+              },
+              {
+                "value": 5397,
+                "display": "90'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 3
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "type.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.type": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "shortText": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "period": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "period.number": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.displayName": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "participants": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              },
+              "source": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "source.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "source.description": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "wallclock": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "shootout": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "goalPositionY": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPositionX": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPositionY": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPosition2X": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "fieldPosition2Y": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "scoreboard.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 5,
+            "typeVocabulary": {
+              "(other)": 5
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 3,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 3,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 2598,
+                "display": "44'"
+              },
+              {
+                "value": 3059,
+                "display": "51'"
+              },
+              {
+                "value": 5397,
+                "display": "90'"
+              }
+            ],
+            "typeTexts": {
+              "Goal": 3
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "type": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "type.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "type.text": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoreValue": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "redCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "yellowCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "penaltyKick": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "ownGoal": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "shootout": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "athletesInvolved": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        },
+        "summary.header.competitions[0].details": {
+          "present": true,
+          "shape": {
+            "rows": 3,
+            "typeVocabulary": {
+              "(other)": 3
+            },
+            "goalRows": 3,
+            "withTeamId": 3,
+            "teamIdIsACompetitor": 3,
+            "withClock": 3,
+            "ownGoalKey": 3,
+            "ownGoalTrue": 0,
+            "penaltyKickKey": 3,
+            "scoringPlayTrue": 3,
+            "finalTotal": 3,
+            "goalRowsEqualFinalTotal": true,
+            "clockSamples": [
+              {
+                "value": 2598,
+                "display": "44'"
+              },
+              {
+                "value": 3059,
+                "display": "51'"
+              },
+              {
+                "value": 5397,
+                "display": "90'"
+              }
+            ],
+            "typeTexts": {
+              "(other)": 3
+            }
+          },
+          "goalRowFields": {
+            "rows": 3,
+            "paths": {
+              "clock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "clock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "clock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "scoringPlay": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "team": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "team.id": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.uid": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.location": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.name": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.nickname": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.abbreviation": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "team.displayName": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "participants": {
+                "rows": 3,
+                "types": {
+                  "array": 3
+                }
+              },
+              "addedClock": {
+                "rows": 3,
+                "types": {
+                  "object": 3
+                }
+              },
+              "addedClock.value": {
+                "rows": 3,
+                "types": {
+                  "number": 3
+                }
+              },
+              "addedClock.displayValue": {
+                "rows": 3,
+                "types": {
+                  "string": 3
+                }
+              },
+              "redCard": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "penaltyKick": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              },
+              "ownGoal": {
+                "rows": 3,
+                "types": {
+                  "boolean": 3
+                }
+              }
+            },
+            "truncated": false,
+            "unsafeKeys": 0
+          }
+        }
+      }
+    },
+    "ucl": {
+      "espnLeague": "uefa.champions",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "eflchamp": {
+      "espnLeague": "eng.2",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "laliga": {
+      "espnLeague": "esp.1",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "europa": {
+      "espnLeague": "uefa.europa",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "seriea": {
+      "espnLeague": "ita.1",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "bundesliga": {
+      "espnLeague": "ger.1",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    },
+    "ligue1": {
+      "espnLeague": "fra.1",
+      "scoreboard": {
+        "reads": 10,
+        "status": 200,
+        "events": 0,
+        "shapeOk": true,
+        "daysBack": null
+      },
+      "chosen": null,
+      "summary": null,
+      "lists": {}
+    }
+  },
+  "requests": [
+    {
+      "label": "scoreboard epl -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=198",
+      "age": null,
+      "bytes": 2623,
+      "ms": 293
+    },
+    {
+      "label": "scoreboard epl -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=197",
+      "age": null,
+      "bytes": 2623,
+      "ms": 99
+    },
+    {
+      "label": "scoreboard epl -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=196",
+      "age": null,
+      "bytes": 2623,
+      "ms": 18
+    },
+    {
+      "label": "scoreboard epl -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=177",
+      "age": null,
+      "bytes": 2623,
+      "ms": 37
+    },
+    {
+      "label": "scoreboard epl -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=30",
+      "age": null,
+      "bytes": 2623,
+      "ms": 37
+    },
+    {
+      "label": "scoreboard epl -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=192",
+      "age": null,
+      "bytes": 2623,
+      "ms": 48
+    },
+    {
+      "label": "scoreboard epl -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=10",
+      "age": null,
+      "bytes": 2623,
+      "ms": 16
+    },
+    {
+      "label": "scoreboard epl -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=190",
+      "age": null,
+      "bytes": 2623,
+      "ms": 18
+    },
+    {
+      "label": "scoreboard epl -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=190",
+      "age": null,
+      "bytes": 2623,
+      "ms": 21
+    },
+    {
+      "label": "scoreboard epl -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=188",
+      "age": null,
+      "bytes": 2623,
+      "ms": 24
+    },
+    {
+      "label": "scoreboard mls -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2460,
+      "ms": 52
+    },
+    {
+      "label": "scoreboard mls -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 12589,
+      "ms": 48
+    },
+    {
+      "label": "summary mls",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 393868,
+      "ms": 136
+    },
+    {
+      "label": "scoreboard ucl -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=394",
+      "age": null,
+      "bytes": 1786,
+      "ms": 42
+    },
+    {
+      "label": "scoreboard ucl -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=393",
+      "age": null,
+      "bytes": 1786,
+      "ms": 52
+    },
+    {
+      "label": "scoreboard ucl -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=391",
+      "age": null,
+      "bytes": 1786,
+      "ms": 58
+    },
+    {
+      "label": "scoreboard ucl -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=21",
+      "age": null,
+      "bytes": 1786,
+      "ms": 80
+    },
+    {
+      "label": "scoreboard ucl -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=389",
+      "age": null,
+      "bytes": 1786,
+      "ms": 37
+    },
+    {
+      "label": "scoreboard ucl -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=388",
+      "age": null,
+      "bytes": 1786,
+      "ms": 34
+    },
+    {
+      "label": "scoreboard ucl -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=387",
+      "age": null,
+      "bytes": 1786,
+      "ms": 43
+    },
+    {
+      "label": "scoreboard ucl -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=15",
+      "age": null,
+      "bytes": 1786,
+      "ms": 40
+    },
+    {
+      "label": "scoreboard ucl -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=385",
+      "age": null,
+      "bytes": 1786,
+      "ms": 55
+    },
+    {
+      "label": "scoreboard ucl -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=384",
+      "age": null,
+      "bytes": 1786,
+      "ms": 39
+    },
+    {
+      "label": "scoreboard eflchamp -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 35
+    },
+    {
+      "label": "scoreboard eflchamp -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 41
+    },
+    {
+      "label": "scoreboard eflchamp -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 88
+    },
+    {
+      "label": "scoreboard eflchamp -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 33
+    },
+    {
+      "label": "scoreboard eflchamp -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 4296
+    },
+    {
+      "label": "scoreboard eflchamp -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 382
+    },
+    {
+      "label": "scoreboard eflchamp -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=512",
+      "age": null,
+      "bytes": 2926,
+      "ms": 37
+    },
+    {
+      "label": "scoreboard eflchamp -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 72
+    },
+    {
+      "label": "scoreboard eflchamp -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 40
+    },
+    {
+      "label": "scoreboard eflchamp -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2926,
+      "ms": 52
+    },
+    {
+      "label": "scoreboard laliga -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=44",
+      "age": null,
+      "bytes": 2727,
+      "ms": 94
+    },
+    {
+      "label": "scoreboard laliga -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2727,
+      "ms": 31
+    },
+    {
+      "label": "scoreboard laliga -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=41",
+      "age": null,
+      "bytes": 2727,
+      "ms": 42
+    },
+    {
+      "label": "scoreboard laliga -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=391",
+      "age": null,
+      "bytes": 2727,
+      "ms": 60
+    },
+    {
+      "label": "scoreboard laliga -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=39",
+      "age": null,
+      "bytes": 2727,
+      "ms": 42
+    },
+    {
+      "label": "scoreboard laliga -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=389",
+      "age": null,
+      "bytes": 2727,
+      "ms": 71
+    },
+    {
+      "label": "scoreboard laliga -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2727,
+      "ms": 43
+    },
+    {
+      "label": "scoreboard laliga -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=35",
+      "age": null,
+      "bytes": 2727,
+      "ms": 37
+    },
+    {
+      "label": "scoreboard laliga -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=80",
+      "age": null,
+      "bytes": 2727,
+      "ms": 35
+    },
+    {
+      "label": "scoreboard laliga -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=79",
+      "age": null,
+      "bytes": 2727,
+      "ms": 40
+    },
+    {
+      "label": "scoreboard europa -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=169",
+      "age": null,
+      "bytes": 1786,
+      "ms": 33
+    },
+    {
+      "label": "scoreboard europa -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=168",
+      "age": null,
+      "bytes": 1786,
+      "ms": 36
+    },
+    {
+      "label": "scoreboard europa -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=167",
+      "age": null,
+      "bytes": 1786,
+      "ms": 31
+    },
+    {
+      "label": "scoreboard europa -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=166",
+      "age": null,
+      "bytes": 1786,
+      "ms": 25
+    },
+    {
+      "label": "scoreboard europa -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=165",
+      "age": null,
+      "bytes": 1786,
+      "ms": 27
+    },
+    {
+      "label": "scoreboard europa -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=163",
+      "age": null,
+      "bytes": 1786,
+      "ms": 25
+    },
+    {
+      "label": "scoreboard europa -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=162",
+      "age": null,
+      "bytes": 1786,
+      "ms": 31
+    },
+    {
+      "label": "scoreboard europa -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=161",
+      "age": null,
+      "bytes": 1786,
+      "ms": 42
+    },
+    {
+      "label": "scoreboard europa -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=161",
+      "age": null,
+      "bytes": 1786,
+      "ms": 42
+    },
+    {
+      "label": "scoreboard europa -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=160",
+      "age": null,
+      "bytes": 1786,
+      "ms": 28
+    },
+    {
+      "label": "scoreboard seriea -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=131",
+      "age": null,
+      "bytes": 2568,
+      "ms": 77
+    },
+    {
+      "label": "scoreboard seriea -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=130",
+      "age": null,
+      "bytes": 2568,
+      "ms": 29
+    },
+    {
+      "label": "scoreboard seriea -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=129",
+      "age": null,
+      "bytes": 2568,
+      "ms": 58
+    },
+    {
+      "label": "scoreboard seriea -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=128",
+      "age": null,
+      "bytes": 2568,
+      "ms": 37
+    },
+    {
+      "label": "scoreboard seriea -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=127",
+      "age": null,
+      "bytes": 2568,
+      "ms": 51
+    },
+    {
+      "label": "scoreboard seriea -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=126",
+      "age": null,
+      "bytes": 2568,
+      "ms": 48
+    },
+    {
+      "label": "scoreboard seriea -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=125",
+      "age": null,
+      "bytes": 2568,
+      "ms": 65
+    },
+    {
+      "label": "scoreboard seriea -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2568,
+      "ms": 51
+    },
+    {
+      "label": "scoreboard seriea -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=123",
+      "age": null,
+      "bytes": 2568,
+      "ms": 45
+    },
+    {
+      "label": "scoreboard seriea -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=121",
+      "age": null,
+      "bytes": 2568,
+      "ms": 65
+    },
+    {
+      "label": "scoreboard bundesliga -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=57",
+      "age": null,
+      "bytes": 2332,
+      "ms": 55
+    },
+    {
+      "label": "scoreboard bundesliga -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=57",
+      "age": null,
+      "bytes": 2332,
+      "ms": 90
+    },
+    {
+      "label": "scoreboard bundesliga -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2332,
+      "ms": 40
+    },
+    {
+      "label": "scoreboard bundesliga -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2332,
+      "ms": 132
+    },
+    {
+      "label": "scoreboard bundesliga -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=55",
+      "age": null,
+      "bytes": 2332,
+      "ms": 46
+    },
+    {
+      "label": "scoreboard bundesliga -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=53",
+      "age": null,
+      "bytes": 2332,
+      "ms": 45
+    },
+    {
+      "label": "scoreboard bundesliga -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=53",
+      "age": null,
+      "bytes": 2332,
+      "ms": 57
+    },
+    {
+      "label": "scoreboard bundesliga -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=51",
+      "age": null,
+      "bytes": 2332,
+      "ms": 105
+    },
+    {
+      "label": "scoreboard bundesliga -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=51",
+      "age": null,
+      "bytes": 2332,
+      "ms": 60
+    },
+    {
+      "label": "scoreboard bundesliga -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=49",
+      "age": null,
+      "bytes": 2332,
+      "ms": 40
+    },
+    {
+      "label": "scoreboard ligue1 -1d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=369",
+      "age": null,
+      "bytes": 2428,
+      "ms": 45
+    },
+    {
+      "label": "scoreboard ligue1 -2d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=368",
+      "age": null,
+      "bytes": 2428,
+      "ms": 31
+    },
+    {
+      "label": "scoreboard ligue1 -3d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=33",
+      "age": null,
+      "bytes": 2428,
+      "ms": 50
+    },
+    {
+      "label": "scoreboard ligue1 -4d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=366",
+      "age": null,
+      "bytes": 2428,
+      "ms": 49
+    },
+    {
+      "label": "scoreboard ligue1 -5d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=365",
+      "age": null,
+      "bytes": 2428,
+      "ms": 78
+    },
+    {
+      "label": "scoreboard ligue1 -6d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=1",
+      "age": null,
+      "bytes": 2428,
+      "ms": 32
+    },
+    {
+      "label": "scoreboard ligue1 -7d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=363",
+      "age": null,
+      "bytes": 2428,
+      "ms": 74
+    },
+    {
+      "label": "scoreboard ligue1 -8d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=362",
+      "age": null,
+      "bytes": 2428,
+      "ms": 44
+    },
+    {
+      "label": "scoreboard ligue1 -9d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=360",
+      "age": null,
+      "bytes": 2428,
+      "ms": 34
+    },
+    {
+      "label": "scoreboard ligue1 -10d",
+      "status": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "cacheControl": "max-age=359",
+      "age": null,
+      "bytes": 2428,
+      "ms": 56
+    },
+    {
+      "label": "relay /context/date/2026-10-25",
+      "status": 200,
+      "contentType": "application/json",
+      "cacheControl": "public,max-age=300",
+      "age": null,
+      "bytes": 334824,
+      "ms": 450
+    }
+  ]
+}
