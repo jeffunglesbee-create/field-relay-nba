@@ -1,0 +1,378 @@
+{
+  "ts": "2026-11-25T09:09:12.599Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-02-01",
+  "to": "2026-10-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 265,
+    "daysRead": 265,
+    "unreadDays": [],
+    "statuses": {
+      "200": 265
+    },
+    "daysToAttempt": 32,
+    "rowsToAttempt": 311,
+    "attemptedStillPending": 5,
+    "pendingRowsAllDays": 578,
+    "scopeSports": [
+      "MLS",
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 54,
+    "outOfScopeRows": 235
+  },
+  "chosen": [
+    "2026-09-04",
+    "2026-09-06",
+    "2026-09-07",
+    "2026-09-09",
+    "2026-09-10",
+    "2026-09-11",
+    "2026-09-12",
+    "2026-09-13",
+    "2026-09-14",
+    "2026-09-15"
+  ],
+  "dates": [
+    {
+      "date": "2026-09-04",
+      "outcome": "joined",
+      "pendingBefore": 22,
+      "pendingBeforeBySport": {
+        "MLS": 16,
+        "EPL": 1,
+        "La Liga": 1,
+        "Serie A": 1,
+        "Bundesliga": 1,
+        "Ligue 1": 2
+      },
+      "pendingAfter": 9,
+      "verify": {
+        "verified": true,
+        "expected": 9
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 22,
+        "written": 13,
+        "joined": 13,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 6,
+        "eventsRead": 417,
+        "upstreamPages": 10,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Vancouver Whitecaps FC v St. Louis CITY SC",
+          "MLS: Seattle Sounders FC v Red Bull New York",
+          "MLS: Real Salt Lake v Los Angeles Football Club",
+          "MLS: Portland Timbers v Minnesota United FC",
+          "MLS: LA Galaxy v New England Revolution",
+          "MLS: FC Dallas v Sporting Kansas City",
+          "MLS: Austin FC v San Jose Earthquakes",
+          "MLS: Inter Miami CF v Atlanta United",
+          "MLS: FC Cincinnati v D.C. United"
+        ]
+      }
+    },
+    {
+      "date": "2026-09-06",
+      "outcome": "joined",
+      "pendingBefore": 23,
+      "pendingBeforeBySport": {
+        "MLS": 8,
+        "EPL": 2,
+        "La Liga": 4,
+        "Serie A": 4,
+        "Bundesliga": 2,
+        "Ligue 1": 3
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 23,
+        "written": 23,
+        "joined": 23,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 8,
+        "eventsRead": 299,
+        "upstreamPages": 7,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-07",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "La Liga": 2,
+        "Serie A": 2
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 121,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-09",
+      "outcome": "joined",
+      "pendingBefore": 21,
+      "pendingBeforeBySport": {
+        "MLS": 21
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 21,
+        "written": 21,
+        "joined": 21,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 7,
+        "eventsRead": 90,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-10",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingBeforeBySport": {
+        "MLS": 9
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 9,
+        "written": 9,
+        "joined": 9,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 9,
+        "eventsRead": 105,
+        "upstreamPages": 2,
+        "cacheHits": 1,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-11",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "La Liga": 1,
+        "Serie A": 1,
+        "Bundesliga": 1,
+        "Ligue 1": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 332,
+        "upstreamPages": 6,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-12",
+      "outcome": "none-matched",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "MLS": 1
+      },
+      "pendingAfter": 1,
+      "verify": {
+        "verified": true,
+        "expected": 1
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 0,
+        "joined": 0,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 494,
+        "upstreamPages": 5,
+        "cacheHits": 6,
+        "unmatched": [
+          "MLS: San Diego FC v Philadelphia Union"
+        ]
+      }
+    },
+    {
+      "date": "2026-09-13",
+      "outcome": "joined",
+      "pendingBefore": 26,
+      "pendingBeforeBySport": {
+        "MLS": 12,
+        "EPL": 2,
+        "La Liga": 4,
+        "Serie A": 3,
+        "Bundesliga": 2,
+        "Ligue 1": 3
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 26,
+        "written": 26,
+        "joined": 26,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 9,
+        "eventsRead": 269,
+        "upstreamPages": 1,
+        "cacheHits": 5,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-14",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "MLS": 1,
+        "EPL": 1,
+        "La Liga": 1,
+        "Serie A": 3
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 6,
+        "joined": 6,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 1,
+        "eventsRead": 98,
+        "upstreamPages": 2,
+        "cacheHits": 1,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-15",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "La Liga": 3,
+        "MLS": 3
+      },
+      "pendingAfter": 3,
+      "verify": {
+        "verified": true,
+        "expected": 3
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 3,
+        "joined": 3,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 124,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": [
+          "MLS: TBC Home v Forge FC",
+          "MLS: Forge FC v FC Supra du Québec",
+          "MLS: CF Montréal v Vancouver Whitecaps FC"
+        ]
+      }
+    }
+  ],
+  "pagesUsed": 40,
+  "written": 109,
+  "stoppedBecause": null,
+  "remainingToAttempt": 22,
+  "complete": false,
+  "runner": {
+    "gitSha": "e4307f515b5c3843d5bfb1a41a35d4a36915f88a",
+    "runId": "45582370581",
+    "scriptSha256": "2374e5347320a4d56a298dcb62a022d811077ba29bfd6c99fa8bfd7f9f2043ef",
+    "libSha256": "7050816e2253604f79096733186f5ddae1ce341c0734ed3acfd4ed686dd79b88"
+  },
+  "rangeComplete": false,
+  "coverageLine": "265 of 265 days read (0 unread) | scope 6 sports (MLS included), regular-season rows choose a date: to attempt 32 days / 311 rows, 5 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 54 days / 235 rows | this run: 10 dates posted, 109 rows written, 40 upstream pages (cap 50), 10 verified | no stop | remaining to attempt 22"
+}

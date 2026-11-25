@@ -411,6 +411,102 @@
       "unmatched": [
         "MLS: Vancouver Whitecaps FC v CF Montréal"
       ]
+    },
+    "2026-09-04": {
+      "at": "2026-11-25T09:09:24.255Z",
+      "outcome": "joined",
+      "pendingBefore": 22,
+      "pendingAfter": 9,
+      "written": 13,
+      "unmatched": [
+        "MLS: Vancouver Whitecaps FC v St. Louis CITY SC",
+        "MLS: Seattle Sounders FC v Red Bull New York",
+        "MLS: Real Salt Lake v Los Angeles Football Club",
+        "MLS: Portland Timbers v Minnesota United FC",
+        "MLS: LA Galaxy v New England Revolution",
+        "MLS: FC Dallas v Sporting Kansas City",
+        "MLS: Austin FC v San Jose Earthquakes",
+        "MLS: Inter Miami CF v Atlanta United",
+        "MLS: FC Cincinnati v D.C. United"
+      ]
+    },
+    "2026-09-06": {
+      "at": "2026-11-25T09:09:27.250Z",
+      "outcome": "joined",
+      "pendingBefore": 23,
+      "pendingAfter": 0,
+      "written": 23,
+      "unmatched": []
+    },
+    "2026-09-07": {
+      "at": "2026-11-25T09:09:28.201Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 0,
+      "written": 4,
+      "unmatched": []
+    },
+    "2026-09-09": {
+      "at": "2026-11-25T09:09:29.616Z",
+      "outcome": "joined",
+      "pendingBefore": 21,
+      "pendingAfter": 0,
+      "written": 21,
+      "unmatched": []
+    },
+    "2026-09-10": {
+      "at": "2026-11-25T09:09:30.689Z",
+      "outcome": "joined",
+      "pendingBefore": 9,
+      "pendingAfter": 0,
+      "written": 9,
+      "unmatched": []
+    },
+    "2026-09-11": {
+      "at": "2026-11-25T09:09:33.043Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 0,
+      "written": 4,
+      "unmatched": []
+    },
+    "2026-09-12": {
+      "at": "2026-11-25T09:09:35.192Z",
+      "outcome": "none-matched",
+      "pendingBefore": 1,
+      "pendingAfter": 1,
+      "written": 0,
+      "unmatched": [
+        "MLS: San Diego FC v Philadelphia Union"
+      ]
+    },
+    "2026-09-13": {
+      "at": "2026-11-25T09:09:35.999Z",
+      "outcome": "joined",
+      "pendingBefore": 26,
+      "pendingAfter": 0,
+      "written": 26,
+      "unmatched": []
+    },
+    "2026-09-14": {
+      "at": "2026-11-25T09:09:36.817Z",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingAfter": 0,
+      "written": 6,
+      "unmatched": []
+    },
+    "2026-09-15": {
+      "at": "2026-11-25T09:09:37.776Z",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingAfter": 3,
+      "written": 3,
+      "unmatched": [
+        "MLS: TBC Home v Forge FC",
+        "MLS: Forge FC v FC Supra du Québec",
+        "MLS: CF Montréal v Vancouver Whitecaps FC"
+      ]
     }
   }
 }
