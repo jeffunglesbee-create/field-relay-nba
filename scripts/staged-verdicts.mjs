@@ -323,26 +323,34 @@ export const aflRoundInSeason = ({ gamesInWindow, expectedRound, discoveredRound
 // Games exist in the window and the resolver finds nothing: the defect the CC-CMD was written for.
 aflRoundInSeason.mustFailOn = { gamesInWindow: 6, expectedRound: 18, discoveredRound: null }
 
-/// Check 12 — AFL finals: the relay serves a FINAL'S OWN Squiggle tip.
+/// Checks 12 and 13 — the relay serves an AFL game its OWN Squiggle tip: a FINAL (12) and a REGULAR-SEASON game (13).
 ///
-/// docs/CC-CMD-2026-11-24-afl-finals-round-and-journalism-club-match.md, Part C. The fix was proven against real ESPN and real Squiggle on the finished 2026 season
-/// (the 2026-09-05 Adelaide v Western Bulldogs final: the relay used to serve March's 47.29 for it; its own tip is 68.60) but a Wildcard Finals week has not
-/// happened since. This says it, on the first day a final is in the window.
+/// docs/CC-CMD-2026-11-24-afl-finals-round-and-journalism-club-match.md, Part C (finals) and docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 5
+/// (the regular season in 2027). Both were proven on the finished 2026 season (the 2026-09-05 Adelaide v Western Bulldogs final: the relay used to serve March's 47.29
+/// for it; its own tip is 68.60); neither has happened since, and a Squiggle numbering that moves in 2027 (its docs: the season starts at round 1 from 2027) would
+/// put every regular tip one round off. These say it, on the first day a game of that kind is in the window.
 ///
-/// THE REFERENCE IS NOT THE CODE UNDER TEST. The relay joins a final to Squiggle by its two clubs and its Melbourne kickoff DAY (src/afl-squiggle.js). The reference
-/// here joins by Squiggle's own `is_final` games list, the EXACT kickoff instant (ESPN's event.date against Squiggle's unixtime) and the clubs, then reads that
-/// game's tip with `?q=tips;game=ID`: another path to the same row. PENDING is the honest state outside the finals: a window with no ESPN event of season.type 3
-/// has nothing to prove, and a final Squiggle has no row for yet (or a relay with no journalism context, which is gated on KALI_AFL_TOKEN) cannot be compared.
-/// Only a served tip that is missing or differs from the reference is a regression.
-export const aflFinalsTip = ({ finalsInWindow, reference, expectedHome, served }) =>
-  finalsInWindow === 0 ? 'PENDING — no AFL final in the ten-day window the relay reads (the finals are in August and September); nothing to read'
-  : reference !== 'found' ? 'PENDING — Squiggle has no tip for ESPN\'s final yet (or the reference could not join it); nothing to compare'
-  : served === 'absent' ? 'PENDING — the relay serves no journalism context for the final (it is gated on KALI_AFL_TOKEN)'
-  : served === null ? `FAIL — Squiggle has a tip for the final (the home club at ${expectedHome}) and the relay served none`
-  : Math.abs(Number(served) - expectedHome) > 0.005 ? `FAIL — the relay served ${served} for the final's home club; Squiggle's own tip for that game is ${expectedHome}`
-  : `PASS — ${finalsInWindow} final(s) in the window; the relay served ${served} for the first, the tip Squiggle gives that game`
+/// THE REFERENCE IS NOT THE CODE UNDER TEST. The relay joins a final to Squiggle by its two clubs and its Melbourne kickoff DAY (src/afl-squiggle.js) and a regular game
+/// through ESPN's week read as Squiggle's round. The reference here joins by Squiggle's own games list, the EXACT kickoff instant (ESPN's event.date against Squiggle's
+/// unixtime) and the clubs, then reads that game's tip with `?q=tips;game=ID`: another path to the same row. PENDING is the honest state when there is nothing to
+/// compare: no game of that kind in the window, no Squiggle tip for ESPN's game yet, or a relay with no journalism context (gated on KALI_AFL_TOKEN). Only a served tip that
+/// is missing or differs from the reference is a regression.
+const aflGameTip = (noun, when) => (counts) => {
+  const { reference, expectedHome, served } = counts;
+  const n = counts[noun === 'final' ? 'finalsInWindow' : 'gamesInWindow'];
+  return n === 0 ? `PENDING — no AFL ${noun} in the ten-day window the relay reads (${when}); nothing to read`
+  : reference !== 'found' ? `PENDING — Squiggle has no tip for ESPN's ${noun} yet (or the reference could not join it); nothing to compare`
+  : served === 'absent' ? `PENDING — the relay serves no journalism context for the ${noun} (it is gated on KALI_AFL_TOKEN)`
+  : served === null ? `FAIL — Squiggle has a tip for the ${noun} (the home club at ${expectedHome}) and the relay served none`
+  : Math.abs(Number(served) - expectedHome) > 0.005 ? `FAIL — the relay served ${served} for the ${noun}'s home club; Squiggle's own tip for that game is ${expectedHome}`
+  : `PASS — ${n} ${noun}(s) in the window; the relay served ${served} for the first, the tip Squiggle gives that game`
+}
+export const aflFinalsTip = aflGameTip('final', 'the finals are in August and September')
 // A final in the window, Squiggle's tip for it known, and the relay serving another game's tip (the March one, the defect this was written for).
 aflFinalsTip.mustFailOn = { finalsInWindow: 3, reference: 'found', expectedHome: 68.6, served: 47.29 }
+export const aflRegularTip = aflGameTip('regular-season game', 'the season is March to August')
+// A regular game in the window and the relay serving the tip of another round (a numbering that moved).
+aflRegularTip.mustFailOn = { gamesInWindow: 6, reference: 'found', expectedHome: 62.49, served: 71.48 }
 
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
@@ -357,4 +365,5 @@ export const VERDICTS = {
   deploy_commit_results: deployCommitResults,
   afl_round_in_season: aflRoundInSeason,
   afl_finals_tip_in_season: aflFinalsTip,
+  afl_regular_tip_in_season: aflRegularTip,
 }

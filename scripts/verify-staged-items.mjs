@@ -43,7 +43,7 @@ import { squiggleConfidenceFor } from '../src/afl-squiggle.js';
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip,
+         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip, aflRegularTip,
          oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
          cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles, deployCommitResults } from './staged-verdicts.mjs';
 
@@ -137,7 +137,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 12;
+const EXPECTED_CHECKS = 13;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -817,60 +817,64 @@ try {
     });
 }
 
-// ── Check 12: AFL finals, the relay serves a final's own Squiggle tip (docs/CC-CMD-2026-11-24-afl-finals-round-and-journalism-club-match.md, Part C) ──
-// ESPN is read directly (a runner reaches it): an event whose own season.type is 3 is a final. The reference joins it to Squiggle by Squiggle's is_final games, the EXACT
-// kickoff instant and the clubs, then reads that game's tip by game id: not the relay's join (clubs and Melbourne kickoff day), so the two cannot share a defect.
-try {
-    const now = new Date();
-    const days = [];
-    for (let k = -AFL_ROUND_DAYS_BACK; k <= AFL_ROUND_DAYS_FORWARD; k++) days.push(new Date(now.getTime() + k * 86400000).toISOString().slice(0, 10));
-    const finals = [];
-    for (const d of days) {
-        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard?dates=${d.replace(/-/g, '')}`, { headers: { 'User-Agent': UA } });
-        if (!r.ok) throw new Error(`ESPN HTTP ${r.status} for ${d}`);
-        const j = await r.json();
-        for (const ev of (j.events || [])) if (ev && ev.season && ev.season.type === 3) finals.push({ ev, day: d });
-    }
-    let reference = 'none', expectedHome = null, served = 'absent', first = null, squiggleGame = null;
-    if (finals.length) {
-        first = finals[0];
-        const comp = first.ev.competitions && first.ev.competitions[0];
-        const cs = (comp && comp.competitors) || [];
-        const homeName = (cs.find(c => c.homeAway === 'home') || {}).team?.displayName || '';
-        const awayName = (cs.find(c => c.homeAway === 'away') || {}).team?.displayName || '';
-        const year = Number.isInteger(first.ev.season.year) ? first.ev.season.year : now.getUTCFullYear();
-        const sq = async (q) => { const r = await fetch(`https://api.squiggle.com.au/?${q}`, { headers: { 'User-Agent': UA } }); if (!r.ok) throw new Error(`Squiggle HTTP ${r.status} for ${q}`); return r.json(); };
-        const games = (await sq(`q=games;year=${year}`)).games || [];
-        const instant = Date.parse(first.ev.date);
-        squiggleGame = games.find(g => g.is_final > 0 && g.unixtime * 1000 === instant
-            && ((sameAFLClub(g.hteam, homeName) && sameAFLClub(g.ateam, awayName)) || (sameAFLClub(g.hteam, awayName) && sameAFLClub(g.ateam, homeName)))) || null;
-        if (squiggleGame) {
-            const tip = ((await sq(`q=tips;year=${year};game=${squiggleGame.id};source=8`)).tips || []).find(t => t.source === 'Aggregate') || null;
-            if (tip) { reference = 'found'; expectedHome = squiggleConfidenceFor(tip, homeName); }
+// ── Checks 12 and 13: the relay serves an AFL game its OWN Squiggle tip, a final (12) and a regular-season game (13) ──
+// docs/CC-CMD-2026-11-24-afl-finals-round-and-journalism-club-match.md, Part C, and docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 5.
+// One body, two kinds of game: the verdict (scripts/staged-verdicts.mjs, aflGameTip) and the way the game is recognised are what differ.
+// ESPN is read directly (a runner reaches it). The reference joins the ESPN event to Squiggle by Squiggle's games list, the EXACT kickoff instant and the clubs, then reads
+// that game's tip by game id: not the relay's join (a final by its clubs and Melbourne kickoff day, a regular game by ESPN's week read as Squiggle's round), so the two
+// cannot share a defect. The relay is read for the day ESPN listed the event under, the day /v2/games itself passes to ESPN.
+async function aflOwnTip({ id, noun, isEvent, isGame, verdict }) {
+    const what = `the relay serves an AFL ${noun} its own Squiggle tip, the one Squiggle gives that game, not the tip of another round`;
+    try {
+        const now = new Date();
+        const days = [];
+        for (let k = -AFL_ROUND_DAYS_BACK; k <= AFL_ROUND_DAYS_FORWARD; k++) days.push(new Date(now.getTime() + k * 86400000).toISOString().slice(0, 10));
+        const found = [];
+        for (const d of days) {
+            const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard?dates=${d.replace(/-/g, '')}`, { headers: { 'User-Agent': UA } });
+            if (!r.ok) throw new Error(`ESPN HTTP ${r.status} for ${d}`);
+            const j = await r.json();
+            for (const ev of (j.events || [])) if (isEvent(ev)) found.push({ ev, day: d });
         }
-        const rel = await get(`/v2/games?sport=afl&date=${first.ev.date.slice(0, 10)}`);
-        const g = (rel.games || []).find(x => String(x.espnEventId) === String(first.ev.id));
-        served = !g || !g.journalism ? 'absent' : (g.journalism.squiggle ? g.journalism.squiggle.homeConfidence : null);
+        let reference = 'none', expectedHome = null, served = 'absent', first = null, squiggleGame = null;
+        if (found.length) {
+            first = found[0];
+            const comp = first.ev.competitions && first.ev.competitions[0];
+            const cs = (comp && comp.competitors) || [];
+            const homeName = (cs.find(c => c.homeAway === 'home') || {}).team?.displayName || '';
+            const awayName = (cs.find(c => c.homeAway === 'away') || {}).team?.displayName || '';
+            const year = Number.isInteger(first.ev.season.year) ? first.ev.season.year : now.getUTCFullYear();
+            const sq = async (q) => { const r = await fetch(`https://api.squiggle.com.au/?${q}`, { headers: { 'User-Agent': UA } }); if (!r.ok) throw new Error(`Squiggle HTTP ${r.status} for ${q}`); return r.json(); };
+            const games = (await sq(`q=games;year=${year}`)).games || [];
+            const instant = Date.parse(first.ev.date);
+            squiggleGame = games.find(g => isGame(g) && g.unixtime * 1000 === instant
+                && ((sameAFLClub(g.hteam, homeName) && sameAFLClub(g.ateam, awayName)) || (sameAFLClub(g.hteam, awayName) && sameAFLClub(g.ateam, homeName)))) || null;
+            if (squiggleGame) {
+                const tip = ((await sq(`q=tips;year=${year};game=${squiggleGame.id};source=8`)).tips || []).find(t => t.source === 'Aggregate') || null;
+                if (tip) { reference = 'found'; expectedHome = squiggleConfidenceFor(tip, homeName); }
+            }
+            const rel = await get(`/v2/games?sport=afl&date=${first.day}`);
+            const g = (rel.games || []).find(x => String(x.espnEventId) === String(first.ev.id));
+            served = !g || !g.journalism ? 'absent' : (g.journalism.squiggle ? g.journalism.squiggle.homeConfidence : null);
+        }
+        add({
+            id, what,
+            qualifying_rows: found.length,
+            espn_event: first ? { id: first.ev.id, name: first.ev.name, date: first.ev.date } : null,
+            squiggle_game: squiggleGame ? { id: squiggleGame.id, round: squiggleGame.round, roundname: squiggleGame.roundname } : null,
+            expected_home_confidence: expectedHome,
+            served_home_confidence: served,
+            coverage: `read ${days.length} day(s) of ESPN's AFL scoreboard, ${found.length} ${noun} event(s); the first one checked`,
+            status: verdict({ finalsInWindow: found.length, gamesInWindow: found.length, reference, expectedHome, served }),
+        });
+    } catch (e) {
+        add({ id, what, qualifying_rows: 0, status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}` });
     }
-    add({
-        id: 'afl_finals_tip_in_season',
-        what: 'the relay serves an AFL final its own Squiggle tip, the one Squiggle gives that game, not the tip of ESPN\'s week read as a Squiggle round',
-        qualifying_rows: finals.length,
-        espn_event: first ? { id: first.ev.id, name: first.ev.name, date: first.ev.date } : null,
-        squiggle_game: squiggleGame ? { id: squiggleGame.id, round: squiggleGame.round, roundname: squiggleGame.roundname } : null,
-        expected_home_confidence: expectedHome,
-        served_home_confidence: served,
-        coverage: `read ${days.length} day(s) of ESPN's AFL scoreboard, ${finals.length} event(s) with season.type 3; the first one checked`,
-        status: aflFinalsTip({ finalsInWindow: finals.length, reference, expectedHome, served }),
-    });
-} catch (e) {
-    add({
-        id: 'afl_finals_tip_in_season',
-        what: 'the relay serves an AFL final its own Squiggle tip, the one Squiggle gives that game, not the tip of ESPN\'s week read as a Squiggle round',
-        qualifying_rows: 0,
-        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
-    });
 }
+// ESPN marks a final on the EVENT (season.type 3, week 1-5 restarting); a regular game is season.type 2 with its week. The league-level season in the same body stays type 2.
+await aflOwnTip({ id: 'afl_finals_tip_in_season', noun: 'final', isEvent: ev => !!ev && !!ev.season && ev.season.type === 3, isGame: g => g.is_final > 0, verdict: aflFinalsTip });
+await aflOwnTip({ id: 'afl_regular_tip_in_season', noun: 'regular-season game',
+    isEvent: ev => !!ev && !!ev.season && ev.season.type === 2 && !!ev.week && Number.isInteger(ev.week.number), isGame: g => !(g.is_final > 0), verdict: aflRegularTip });
 
 m.summary = m.checks.map(c => `${c.id}: ${c.status}`);
 // Named, not a literal. This was `=== 3` and would have silently reported
