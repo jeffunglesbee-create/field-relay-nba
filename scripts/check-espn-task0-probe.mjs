@@ -61,7 +61,7 @@ function espnWorld(over = {}) {
   };
   const summary = (slug) => {
     if (over.summary && over.summary[slug]) return over.summary[slug];
-    return [200, { keyEvents: goalRows(over.rows && over.rows[slug]), header: { competitions: [{ details: [] }] }, boxscore: {} }];
+    return [200, { keyEvents: goalRows(over.rows && over.rows[slug]), header: { competitions: [{ details: [], competitors: [{ id: '11', homeAway: 'home', score: '2', team: { id: '11' } }, { id: '22', homeAway: 'away', score: '1', team: { id: '22' } }] }] }, boxscore: {} }];
   };
   return { scoreboard, summary };
 }
@@ -127,6 +127,7 @@ await scenario('a complete run', async () => {
   const sbq = kind(r.espnLog, 'scoreboard').map((x) => x.query);
   eq('every scoreboard read is ONE day (no range, no limit), and the first is yesterday (UTC)', [sbq.every((x) => /^\?dates=\d{8}$/.test(x)), r.yesterdays.includes(sbq[0].slice(7))], [true, true]);
   eq('the walk found the match two days back in every league, after exactly two reads', [Object.values(a.leagues).map((l) => l.scoreboard.daysBack).join(), Object.values(a.leagues).map((l) => l.scoreboard.reads).join()], ['2,2,2,2,2,2,2,2,2', '2,2,2,2,2,2,2,2,2']);
+  eq("the summary header's competitors are recorded as field names and types, with the sides (no values)", [a.leagues.epl.summary.headerCompetitors.count, a.leagues.epl.summary.headerCompetitors.homeAway, Object.keys(a.leagues.epl.summary.headerCompetitors.fields.paths).sort(), a.leagues.epl.summary.headerCompetitors.fields.paths['team.id'].types], [2, ['home', 'away'], ['homeAway', 'id', 'score', 'team', 'team.id'], { string: 2 }]);
   eq('the manifest keeps the status and the cache header of each read', [a.requests.find((x) => x.label.startsWith('scoreboard epl')).status, a.requests.find((x) => x.label.startsWith('scoreboard epl')).cacheControl], [200, 'max-age=60']);
   eq('the summary read asks for the chosen event, by id', kind(r.espnLog, 'summary')[0].query, '?event=E-epl');
   eq('the most recent finished match WITH a score is chosen, never the older or the unscored one', Object.values(a.leagues).map((l) => l.chosen.espnEventId).sort(), SLUGS.map((s) => `E-${s}`).sort());

@@ -102,6 +102,9 @@ async function probeLeague(slug, espnLeague, anchorMs) {
   const sm = await get(`summary ${slug}`, `${SUMMARY}/${espnLeague}/summary?event=${encodeURIComponent(String(ev.id))}`);
   if (sm.blocked) return out;
   out.summary = { status: sm.rec.status, shapeOk: isObj(sm.json), topKeys: isObj(sm.json) ? Object.keys(sm.json).filter((k) => /^[A-Za-z][A-Za-z0-9_]{0,31}$/.test(k)).sort() : null };
+  // the summary's own header competitors: the reference grade reads a match's two sides from here, so their field names and types are recorded (no values)
+  const hc = isObj(sm.json) && isObj(sm.json.header) && Array.isArray(sm.json.header.competitions) && isObj(sm.json.header.competitions[0]) && Array.isArray(sm.json.header.competitions[0].competitors) ? sm.json.header.competitions[0].competitors : null;
+  out.summary.headerCompetitors = hc === null ? null : { count: hc.length, fields: inventory(hc, { maxDepth: 3, maxPaths: 60 }), homeAway: hc.map((c) => (isObj(c) && (c.homeAway === 'home' || c.homeAway === 'away') ? c.homeAway : null)) };
   const ids = competitors.map((c) => c.id);
   for (const [name, list] of listsOf(ev, sm.json)) {
     if (!Array.isArray(list)) { out.lists[name] = { present: false }; continue; }
