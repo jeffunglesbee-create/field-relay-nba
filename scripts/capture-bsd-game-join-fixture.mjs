@@ -32,6 +32,16 @@ export const KEEP = ['id', 'league_id', 'season_id', 'home_team_id', 'home_team'
 export const DEFAULT_OUT = 'outbox/fixture-bsd-game-join-2026-08-29-09-05.json'
 export const outPathOf = argv => { const i = argv.indexOf('--out'); return i > 0 && argv[i + 1] ? argv[i + 1] : DEFAULT_OUT }
 
+/** Which sport labels to keep from the context rows: the six the join covers, or the ones --labels names (the UEFA competitions, the EFL Championship: a label the join
+ *  does not cover yet is captured here so the join is MEASURED on real rows before the list in src/bsd-game-join.js is changed). */
+export const labelsOf = argv => {
+  const i = argv.indexOf('--labels')
+  if (!(i > 0 && argv[i + 1])) return SOCCER
+  const labels = argv[i + 1].split(',').map(s => s.trim()).filter(Boolean)
+  if (labels.length === 0 || !labels.every(l => /^[A-Za-z0-9 .'-]{1,60}$/.test(l))) throw new Error(`--labels: not a comma-separated list of sport labels: ${JSON.stringify(argv[i + 1])}`)
+  return labels
+}
+
 export const nextDay = date => new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
 
 /** All pages of one UTC day. `getJson` is injected so the loop can be tested with no network. */
@@ -60,10 +70,10 @@ const getJson = async url => {
   return JSON.parse(text)
 }
 
-export async function captureDate(get, date) {
+export async function captureDate(get, date, labels = SOCCER) {
   const ctx = await get(`${RELAY}/context/date/${date}`)
   const all = [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])]
-  const rows = all.filter(g => SOCCER.includes(g.sport))
+  const rows = all.filter(g => labels.includes(g.sport))
   const days = [date, nextDay(date)]
   const events = {}, counts = {}
   for (const day of days) {
@@ -99,14 +109,28 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     check('with no --out the fixture the join checks read is the file written', outPathOf(['node', 'x']) === 'outbox/fixture-bsd-game-join-2026-08-29-09-05.json', outPathOf(['node', 'x']))
     check('--out names another file, so a second capture cannot replace the first', outPathOf(['node', 'x', '--dates', 'a', '--out', 'outbox/other.json']) === 'outbox/other.json')
     check('--out with no value falls back to the default, never to undefined', outPathOf(['node', 'x', '--out']) === DEFAULT_OUT)
-    console.log(`\n${9 - bad}/9 checks passed`)
+    const ctx = { games: { regular: [{ sport: 'EPL', id: 'a' }, { sport: 'UEFA Champions League', id: 'b' }, { sport: 'NBA', id: 'c' }], postseason: [{ sport: 'UEFA Europa League', id: 'd' }] } }
+    const stub = async url => (url.includes('/context/date/') ? ctx : { count: 0, results: [] })
+    const dflt = await captureDate(stub, '2026-09-16')
+    check('with no labels the rows kept are the six the join covers', dflt.rows.map(r => r.id).join() === 'a', dflt.rows.map(r => r.id).join())
+    const uefa = await captureDate(stub, '2026-09-16', ['UEFA Champions League', 'UEFA Europa League'])
+    check('with labels named, those rows are kept from BOTH tables, and the six are not', uefa.rows.map(r => r.id).join() === 'b,d', uefa.rows.map(r => r.id).join())
+    check('labelsOf: no --labels is the six', labelsOf(['node', 'x']) === SOCCER, '')
+    check('labelsOf: --labels names them, trimmed, and an empty entry is dropped', labelsOf(['node', 'x', '--labels', 'UEFA Champions League, EFL Championship,']).join('|') === 'UEFA Champions League|EFL Championship', '')
+    let refused = ''
+    try { labelsOf(['node', 'x', '--labels', "x'; DROP TABLE t; --"]) } catch (e) { refused = e.message }
+    check('labelsOf: a label with a quote or a semicolon is refused', /not a comma-separated list/.test(refused), refused)
+    check('labelsOf: --labels with no value is the six, never an empty list', labelsOf(['node', 'x', '--labels']) === SOCCER, '')
+    const total = 15
+    console.log(`\n${total - bad}/${total} checks passed`)
     process.exit(bad ? 1 : 0)
   }
   const i = process.argv.indexOf('--dates')
   const dates = (i > 0 ? process.argv[i + 1] : '2026-08-29,2026-09-05').split(',')
-  const out = { capturedAt: new Date().toISOString(), relay: RELAY, soccerSports: SOCCER, dates: [] }
+  const labels = labelsOf(process.argv)
+  const out = { capturedAt: new Date().toISOString(), relay: RELAY, soccerSports: labels, dates: [] }
   for (const d of dates) {
-    const r = await captureDate(getJson, d)
+    const r = await captureDate(getJson, d, labels)
     out.dates.push(r)
     const ev = Object.values(r.counts).reduce((n, c) => n + c.fetched, 0), pg = Object.values(r.counts).reduce((n, c) => n + c.pages, 0)
     console.log(`${d}: ${r.rows.length} soccer rows of ${r.contextRows} context rows, ${ev} BSD events in ${pg} pages (${Object.entries(r.counts).map(([k, v]) => `${k} ${v.fetched}${v.truncated ? ' TRUNCATED' : ''}`).join(', ')})`)

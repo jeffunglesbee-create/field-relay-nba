@@ -12,6 +12,12 @@ on:
       dates:
         description: 'Comma-separated YYYY-MM-DD dates.'
         required: true
+      labels:
+        description: 'Optional: comma-separated sport labels to keep (default: the six the join covers). e.g. UEFA Champions League,UEFA Europa League'
+        required: false
+      out_file:
+        description: 'Optional: outbox/fixture-bsd-game-join-<name>.json (default: the more-dates fixture). A second capture names its own file.'
+        required: false
 permissions:
   contents: write
 jobs:
@@ -26,20 +32,33 @@ jobs:
         id: d
         env:
           DISPATCHED: ${{ inputs.dates }}
+          OUT_FILE: ${{ inputs.out_file }}
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then D="$DISPATCHED"
           else D="$(head -n1 outbox/.trigger-bsd-game-join-fixture-dates | tr -d '[:space:]')"; fi
           echo "$D" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}(,[0-9]{4}-[0-9]{2}-[0-9]{2})*$' || { echo "FAIL: '$D' is not a comma-separated list of dates"; exit 1; }
           echo "dates=$D" >> "$GITHUB_OUTPUT"
+          OUT="${OUT_FILE:-outbox/fixture-bsd-game-join-more-dates.json}"
+          [[ "$OUT" =~ ^outbox/fixture-bsd-game-join-[a-z0-9-]+\.json$ ]] || { echo "FAIL: out_file '$OUT' is not outbox/fixture-bsd-game-join-<name>.json"; exit 1; }
+          echo "out=$OUT" >> "$GITHUB_OUTPUT"
       - name: The page loop and the output name, with no network
         run: node scripts/capture-bsd-game-join-fixture.mjs --self-test
       - name: Capture from the deployed relay
-        run: node scripts/capture-bsd-game-join-fixture.mjs --dates "${{ steps.d.outputs.dates }}" --out outbox/fixture-bsd-game-join-more-dates.json | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          LABELS: ${{ inputs.labels }}
+          OUT: ${{ steps.d.outputs.out }}
+        run: |
+          ARGS=(--dates "${{ steps.d.outputs.dates }}" --out "$OUT")
+          if [ -n "$LABELS" ]; then ARGS+=(--labels "$LABELS"); fi
+          node scripts/capture-bsd-game-join-fixture.mjs "${ARGS[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Commit the fixture
         if: always()
+        env:
+          OUT: ${{ steps.d.outputs.out }}
         run: |
           git config user.email "claude@field.dev"; git config user.name "FIELD CI"
-          git add outbox/fixture-bsd-game-join-more-dates.json || true
+          [ -n "$OUT" ] || { echo "no output file was chosen: the dates step failed"; exit 0; }
+          git add "$OUT" || true
           git diff --cached --quiet && exit 0
           git commit -m "data: the BSD game join fixture, more dates"
           for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i*5)); done
