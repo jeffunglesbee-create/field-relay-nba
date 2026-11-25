@@ -1,115 +1,63 @@
 {
-  "ts": "2026-11-25T09:20:26.260Z",
-  "dryRun": false,
+  "ts": "2026-11-25T23:34:54.090Z",
+  "dryRun": true,
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
-  "from": "2026-02-01",
-  "to": "2026-10-23",
+  "from": "2026-05-20",
+  "to": "2026-11-23",
   "maxDates": 10,
   "pageCap": 50,
   "survey": {
-    "daysInRange": 265,
-    "daysRead": 265,
+    "daysInRange": 188,
+    "daysRead": 188,
     "unreadDays": [],
     "statuses": {
-      "200": 265
+      "200": 188
     },
-    "daysToAttempt": 2,
-    "rowsToAttempt": 8,
-    "attemptedStillPending": 8,
-    "pendingRowsAllDays": 295,
+    "daysToAttempt": 54,
+    "rowsToAttempt": 476,
+    "attemptedStillPending": 1,
+    "pendingRowsAllDays": 628,
     "scopeSports": [
-      "MLS",
       "EPL",
       "La Liga",
       "Serie A",
       "Bundesliga",
-      "Ligue 1"
+      "Ligue 1",
+      "UEFA Champions League",
+      "UEFA Europa League",
+      "UEFA Europa Conference League",
+      "UEFA Champions League Qualifying",
+      "UEFA Europa League Qualifying",
+      "UEFA Europa Conference League Qualifying",
+      "EFL Championship"
     ],
     "includePostseason": false,
-    "outOfScopeDays": 57,
-    "outOfScopeRows": 243
+    "outOfScopeDays": 20,
+    "outOfScopeRows": 96
   },
   "chosen": [
-    "2026-10-21",
-    "2026-10-23"
+    "2026-05-20",
+    "2026-05-27",
+    "2026-05-30",
+    "2026-08-14",
+    "2026-08-15",
+    "2026-08-16",
+    "2026-08-17",
+    "2026-08-19",
+    "2026-08-20",
+    "2026-08-22"
   ],
-  "dates": [
-    {
-      "date": "2026-10-21",
-      "outcome": "joined",
-      "pendingBefore": 5,
-      "pendingBeforeBySport": {
-        "MLS": 4,
-        "La Liga": 1
-      },
-      "pendingAfter": 2,
-      "verify": {
-        "verified": true,
-        "expected": 2
-      },
-      "response": {
-        "status": 200,
-        "ok": true,
-        "reason": null,
-        "pending": 5,
-        "written": 3,
-        "joined": 3,
-        "ambiguous": 0,
-        "refusedKickoff": 0,
-        "unjudgedKickoff": 1,
-        "eventsRead": 83,
-        "upstreamPages": 2,
-        "cacheHits": 0,
-        "unmatched": [
-          "MLS: CF Montréal v Forge FC",
-          "MLS: Columbus Crew v St. Louis CITY SC"
-        ]
-      }
-    },
-    {
-      "date": "2026-10-23",
-      "outcome": "joined",
-      "pendingBefore": 5,
-      "pendingBeforeBySport": {
-        "EPL": 1,
-        "La Liga": 1,
-        "Serie A": 1,
-        "Bundesliga": 1,
-        "Ligue 1": 1
-      },
-      "pendingAfter": 0,
-      "verify": {
-        "verified": true,
-        "expected": 0
-      },
-      "response": {
-        "status": 200,
-        "ok": true,
-        "reason": null,
-        "pending": 5,
-        "written": 5,
-        "joined": 5,
-        "ambiguous": 0,
-        "refusedKickoff": 0,
-        "unjudgedKickoff": 0,
-        "eventsRead": 347,
-        "upstreamPages": 8,
-        "cacheHits": 0,
-        "unmatched": []
-      }
-    }
-  ],
-  "pagesUsed": 10,
-  "written": 8,
+  "dates": [],
+  "pagesUsed": 0,
+  "written": 0,
   "stoppedBecause": null,
-  "remainingToAttempt": 0,
-  "complete": true,
+  "remainingToAttempt": 54,
+  "complete": false,
   "runner": {
-    "gitSha": "91f08f4aa13715111849ae8a6a739298e53e562d",
-    "runId": "45584190872",
-    "scriptSha256": "2374e5347320a4d56a298dcb62a022d811077ba29bfd6c99fa8bfd7f9f2043ef",
-    "libSha256": "7050816e2253604f79096733186f5ddae1ce341c0734ed3acfd4ed686dd79b88"
+    "gitSha": "71b147315cdbd9726e90d1e0d4f95ae9314494c4",
+    "runId": "45722117944",
+    "scriptSha256": "85f74020157b36b6ada3e6d398771cb77a73ef0f873b73f1b7ffb3d258ef604d",
+    "libSha256": "a551c2d78039168c6e93ca2096c92654b10a11407810df6417c7d455a307425e"
   },
-  "rangeComplete": true,
-  "coverageLine": "265 of 265 days read (0 unread) | scope 6 sports (MLS included), regular-season rows choose a date: to attempt 2 days / 8 rows, 8 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 57 days / 243 rows | this run: 2 dates posted, 8 rows written, 10 upstream pages (cap 50), 2 verified | no stop | remaining to attempt 0 | COMPLETE"
+  "coverageLine": "DRY RUN: 188 of 188 days read (0 unread) | scope 12 sports (MLS not included), regular-season rows choose a date: to attempt 54 days / 476 rows, 1 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 20 days / 96 rows | this run: 0 dates posted, 0 rows written, 0 upstream pages (cap 50), 0 verified | no stop | remaining to attempt 54"
 }

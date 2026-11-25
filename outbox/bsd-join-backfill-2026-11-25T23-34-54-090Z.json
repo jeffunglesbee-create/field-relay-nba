@@ -1,0 +1,63 @@
+{
+  "ts": "2026-11-25T23:34:54.090Z",
+  "dryRun": true,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-05-20",
+  "to": "2026-11-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 188,
+    "daysRead": 188,
+    "unreadDays": [],
+    "statuses": {
+      "200": 188
+    },
+    "daysToAttempt": 54,
+    "rowsToAttempt": 476,
+    "attemptedStillPending": 1,
+    "pendingRowsAllDays": 628,
+    "scopeSports": [
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1",
+      "UEFA Champions League",
+      "UEFA Europa League",
+      "UEFA Europa Conference League",
+      "UEFA Champions League Qualifying",
+      "UEFA Europa League Qualifying",
+      "UEFA Europa Conference League Qualifying",
+      "EFL Championship"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 20,
+    "outOfScopeRows": 96
+  },
+  "chosen": [
+    "2026-05-20",
+    "2026-05-27",
+    "2026-05-30",
+    "2026-08-14",
+    "2026-08-15",
+    "2026-08-16",
+    "2026-08-17",
+    "2026-08-19",
+    "2026-08-20",
+    "2026-08-22"
+  ],
+  "dates": [],
+  "pagesUsed": 0,
+  "written": 0,
+  "stoppedBecause": null,
+  "remainingToAttempt": 54,
+  "complete": false,
+  "runner": {
+    "gitSha": "71b147315cdbd9726e90d1e0d4f95ae9314494c4",
+    "runId": "45722117944",
+    "scriptSha256": "85f74020157b36b6ada3e6d398771cb77a73ef0f873b73f1b7ffb3d258ef604d",
+    "libSha256": "a551c2d78039168c6e93ca2096c92654b10a11407810df6417c7d455a307425e"
+  },
+  "coverageLine": "DRY RUN: 188 of 188 days read (0 unread) | scope 12 sports (MLS not included), regular-season rows choose a date: to attempt 54 days / 476 rows, 1 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 20 days / 96 rows | this run: 0 dates posted, 0 rows written, 0 upstream pages (cap 50), 0 verified | no stop | remaining to attempt 54"
+}
