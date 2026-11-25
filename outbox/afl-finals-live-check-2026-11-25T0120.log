@@ -1,0 +1,19 @@
+=== afl finals live check, resolver  utc=2026-11-25T01:20:16Z  head=67883c41 ===
+resolver: src/wp-resolver.js
+  2026-09-04  Adelaide Crows     -> null  squiggle ["?q=tips;year=2026;team=1;source=8"]  warns ["[AFL-SQUIGGLE] Squiggle answered 403 for https://api.squiggle.com.au/?q=tips;year=2026;team=1;source=8"]
+FAIL  L1 Adelaide Crows resolves to the 2026-09-05 final's own tip, 68.60 -> 0.686 (not March's round-2 47.29 -> 0.473)
+        got null
+  2026-09-04  Western Bulldogs   -> null  squiggle ["?q=tips;year=2026;team=1;source=8"]  warns ["[AFL-SQUIGGLE] Squiggle answered 403 for https://api.squiggle.com.au/?q=tips;year=2026;team=1;source=8"]
+FAIL  L3 Western Bulldogs, the away club of that final, resolves to the rest: 0.314
+        got null
+  2026-09-04  Fremantle Dockers  -> null  squiggle ["?q=tips;year=2026;team=6;source=8"]  warns ["[AFL-SQUIGGLE] Squiggle answered 403 for https://api.squiggle.com.au/?q=tips;year=2026;team=6;source=8"]
+FAIL  L4 Fremantle Dockers resolves to the 2026-09-03 final (Fremantle v Hawthorn, 66.02): 0.66
+        got null
+  2026-09-25  Brisbane Lions     -> null  squiggle ["?q=tips;year=2026;team=6;source=8"]  warns ["[AFL-SQUIGGLE] Squiggle answered 403 for https://api.squiggle.com.au/?q=tips;year=2026;team=6;source=8"]
+FAIL  L5 the Grand Final (ESPN week 5, Squiggle round 29), Brisbane Lions away: (100 - 48.51) / 100 = 0.515
+        got null
+  2026-08-27  Collingwood Magpies -> null  squiggle ["?q=tips;year=2026;team=18;source=8"]  warns ["[AFL-SQUIGGLE] Squiggle answered 403 for https://api.squiggle.com.au/?q=tips;year=2026;team=18;source=8"]
+FAIL  L6 a Wildcard Final (ESPN week 1, a round that is also March's round 1), Collingwood away at the Western Bulldogs (home 47.20): 0.528
+        got null
+COVERAGE: 6 assertions: the real resolver, real ESPN one-day reads and real Squiggle, five picks across the 2026 finals (a Qualifying and an Elimination week, the Grand Final, the Wildcard week), the clock pinned. Not covered: another season, Kali (not asked for a final), the journalism route (MODE=relay), a final in progress.
+1 of 6 passed.
