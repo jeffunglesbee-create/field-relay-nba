@@ -48,7 +48,8 @@ jobs:
         run: |
           set -o pipefail
           STAMP=$(date -u +%Y-%m-%dT%H%M)
-          FIX=$(git log --format=%H -n1 --grep="an AFL final's Squiggle tip is its own game's")
+          # The OLDEST commit whose subject is the fix's: a later commit that quotes the subject in its own body or message cannot become the "fix" (its parent already has it).
+          FIX=$(git log --format=%H --reverse --grep="^fix: an AFL final's Squiggle tip is its own game's" | head -n1)
           [ -n "$FIX" ] || { echo "the fix commit is not in this checkout's history"; exit 1; }
           git show "$FIX^:src/wp-resolver.js" > src/.prefix-wp-resolver.js
           set +e
