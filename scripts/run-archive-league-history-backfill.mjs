@@ -68,7 +68,8 @@ export function bodyOf(label, date, g) {
 
 async function jget(url, ms = 30000) {
   const r = await fetch(url, { signal: AbortSignal.timeout(ms), redirect: 'manual', headers: { Accept: 'application/json' } });
-  return { status: r.status, json: r.status === 200 ? await r.json().catch(() => null) : null };
+  if (r.status !== 200) return { status: r.status, json: null };
+  try { return { status: 200, json: await r.json() }; } catch (e) { return { status: 200, json: null, error: `not JSON: ${e.message}` }; }
 }
 
 export async function run({ relay, secret, espnBase, league, label, dates, dry, d1, post = null, spacingMs = 400, log = console.log }) {
@@ -106,7 +107,8 @@ async function main() {
   const espnBase = espnBaseFrom(fs.readFileSync(new URL('../src/index.js', import.meta.url), 'utf8'));
   const d1 = async (sql, params) => {
     const r = await fetch(`${RELAY}/d1/execute`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': secret }, body: JSON.stringify({ sql, params }), signal: AbortSignal.timeout(30000), redirect: 'manual' });
-    const b = await r.json().catch(() => null);
+    let b = null;
+    try { b = await r.json(); } catch (e) { throw new Error(`d1 HTTP ${r.status}: the body is not JSON`); }
     if (r.status !== 200 || b === null || b.success === false || !Array.isArray(b.results)) throw new Error(`d1 HTTP ${r.status}`);
     return b.results;
   };
@@ -152,6 +154,7 @@ async function selfTest() {
   const asked = [];
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x'); const day = u.searchParams.get('dates'); asked.push(`${u.pathname}?${day}`);
+    if (day === '20260920') { res.writeHead(200, { 'content-type': 'text/html' }); res.end('<html>maintenance</html>'); return; }
     const b = boards[day]; if (!b) { res.writeHead(404); res.end('{}'); return; }
     res.writeHead(b[0], { 'content-type': 'application/json' }); res.end(JSON.stringify(b[1] ?? {}));
   });
@@ -181,6 +184,8 @@ async function selfTest() {
   eq('run: ESPN 403 STOPS the run too, and nothing after it is read or written', [s.stopped, posts, s.scoreboardsRead], ['ESPN answered 403 on 2026-09-19', [], 0]);
   s = await run({ ...base, dates: ['2026-09-16', '2026-09-12'], dry: false, post: post(200) });
   eq('run: a scoreboard that answers 500 stops the run; the day is never skipped', [s.stopped?.includes('did not answer 200'), s.scoreboardsRead], [true, 0]);
+  s = await run({ ...base, dates: ['2026-09-20', '2026-09-12'], dry: false, post: post(200) });
+  eq('run: a 200 whose body is not JSON stops the run (it is not an empty day)', [s.stopped?.includes('did not answer 200 with JSON'), s.scoreboardsRead], [true, 0]);
   s = await run({ ...base, dates: ['2026-09-17'], dry: false, post: post(200) });
   eq('run: a date ESPN does not know (404) stops the run too', s.stopped?.includes('404'), true);
   posts.length = 0;

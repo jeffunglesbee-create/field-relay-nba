@@ -7,7 +7,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 26;
+const MIN_ASSERTIONS = 27;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'run-archive-league-history-backfill.mjs');
 const MUT = path.join(dir, '.mutant-run-archive-league-history-backfill.mjs');
@@ -39,6 +39,7 @@ const MUTANTS = [
   M('--dry-run writes', 'if (dry) continue;', ''),
   M('a refused write counts as written', 'if (res === 200) sum.written++;', 'if (res >= 200) sum.written++;'),
   M('a failed write is not counted', 'else sum.failedWrites++;', ';'),
+  M('a 200 whose body is not JSON is an empty day', "catch (e) { return { status: 200, json: null, error: `not JSON: ${e.message}` }; }", "catch (e) { return { status: 200, json: { events: [] } }; }"),
   M('the dedup reads the wrong id', '[g.eventId, g.eventId]);', "['0', '0']);"),
   M('every date is asked of the same day', 'dates=${date.replace(/-/g, \'\')}`', 'dates=${dates[0].replace(/-/g, \'\')}`'),
   M('the league is not asked for', '/sports/soccer/${league}/scoreboard', '/sports/soccer/eng.1/scoreboard'),
@@ -69,5 +70,9 @@ try {
   console.log(`\n${caught} of ${MUTANTS.length} mutations caught; control ${clean.status === 0 ? 'ok' : 'FAILED'}; ${MIN_ASSERTIONS} assertions required of the clean copy`);
 } catch (e) {
   if (process.exitCode !== 2) { console.error(e && e.stack ? e.stack : e); process.exitCode = 1; }
-} finally { try { fs.unlinkSync(MUT); } catch (_) { /* never written */ } }
+} finally {
+  try { fs.unlinkSync(MUT); } catch (_) {
+    // catch-ok: the mutant file is absent when the run stopped before it wrote one
+  }
+}
 if (bad) { console.log(problems.join('\n')); process.exitCode = 1; }

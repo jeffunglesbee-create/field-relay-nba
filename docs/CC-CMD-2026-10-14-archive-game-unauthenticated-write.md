@@ -39,6 +39,9 @@ watches read.
   `numeric-espn-upsert-key-verify.mjs`, `cfl-archive-verify.mjs`,
   `probe-missing-start-time.mjs`, `verify-staged-items.mjs`,
   `d1-write-provenance-verify.mjs`, and the workflows that run them; `deploy.yml`.
+  **Added 2026-11-25 (BUILD-ON-A: a new caller belongs in this list, not in a new CC-CMD):** `scripts/run-archive-league-history-backfill.mjs` and
+  `.github/workflows/archive-league-history-backfill.yml` (the EFL Championship's season so far). It already sends `X-FIELD-Relay` from the Actions secret, so
+  gating the route does not break it.
 - **jubilant-bassoon:** `scripts/seed-mls-tournaments-2026.py` (already sends
   the header).
 - **field-laboratory:** `scripts/probe-dash-scheme-writer.mjs`,

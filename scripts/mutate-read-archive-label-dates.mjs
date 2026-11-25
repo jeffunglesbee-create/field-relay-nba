@@ -59,5 +59,9 @@ try {
   console.log(`\n${caught} of ${MUTANTS.length} mutations caught; control ${clean.status === 0 ? 'ok' : 'FAILED'}; ${MIN_ASSERTIONS} assertions required of the clean copy`);
 } catch (e) {
   if (process.exitCode !== 2) { console.error(e && e.stack ? e.stack : e); process.exitCode = 1; }
-} finally { try { fs.unlinkSync(MUT); } catch (_) { /* never written */ } }
+} finally {
+  try { fs.unlinkSync(MUT); } catch (_) {
+    // catch-ok: the mutant file is absent when the run stopped before it wrote one
+  }
+}
 if (bad) { console.log(problems.join('\n')); process.exitCode = 1; }
