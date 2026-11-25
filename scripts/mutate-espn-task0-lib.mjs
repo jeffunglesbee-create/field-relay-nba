@@ -11,6 +11,8 @@
 // A mutant is CAUGHT when the check exits non-zero on it. A crash counts, and is reported as a crash.
 //
 // EQUIVALENT (not mutated, with the reason):
+//   - reachEach's own slug test: the slug reaches only zeroReason, which compares it for equality with three exact names, so a slug that is not safe
+//     and a '(other)' behave alike.
 //   - the `out.zero === reasons` and `out.one === ...` terms of `partitions` are guards that hold by construction of the loop above them,
 //     so no input can make them differ; they are kept as a tripwire against a later edit.
 //   - the `out.one + out.many === out.espnIds...` term of `partitions`: the same kind of guard, true by construction of the block above it.
@@ -23,7 +25,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 59;
+const MIN_ASSERTIONS = 78;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'espn-task0-lib.mjs';
 const CHECK = 'check-espn-task0-lib.mjs';
@@ -50,23 +52,26 @@ const MUTANTS = [
   M('label: any string is a safe label', 'isStr(v) && SAFE_LABEL.test(v) ? v : \'(other)\'', 'isStr(v) ? v : \'(other)\''),
   M('proto: tallies have a prototype', 'const proto = () => Object.create(null);', 'const proto = () => ({});'),
   M('targetLabelRows: absent counts as one', 'byLabel[t] === undefined ? 0 : byLabel[t].rows', 'byLabel[t] === undefined ? 1 : byLabel[t].rows'),
-  M('reachOf: a row on two days counted twice', 'if (seen.has(r.id)) continue; seen.add(r.id); }\n        hits.push(r);', 'seen.add(r.id); }\n        hits.push(r);'),
+  M('hitsFor: a row on two days counted twice', 'if (seen.has(r.id)) continue; seen.add(r.id); }\n      hits.push(r);', 'seen.add(r.id); }\n      hits.push(r);'),
   M('reachOf: ids compared without String()', 'String(r.bsd_event_id) !== m.key', 'r.bsd_event_id !== m.key'),
   M('reachOf: two rows read as one', 'else if (hits.length === 1)', 'else if (hits.length >= 1)'),
-  M('reachOf: the first listed call day decides', 'callDays.slice().sort()[0]', 'callDays[0]'),
+  M('reachOf: the first listed call day decides', 'bump(out.zeroReasons, zeroReason(slug, callDays.slice().sort()[0], boundaryDay))', 'bump(out.zeroReasons, zeroReason(slug, callDays[0], boundaryDay))'),
+  M('reachEach: the first listed call day decides', 'reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay), espnId: null', 'reason: zeroReason(slug, callDays[0], boundaryDay), espnId: null'),
   M('reachOf: the boundary day is early', 'firstCallDay < boundaryDay', 'firstCallDay <= boundaryDay'),
   M('zeroReason: eflchamp not named', "if (slug === 'eflchamp') return REASONS.eflchamp;", ''),
   M('zeroReason: europa not named', "if (slug === 'ucl' || slug === 'europa') return REASONS.uefa;", "if (slug === 'ucl') return REASONS.uefa;"),
-  M('reachOf: an unread day is not noticed', '|| dayRows.get(d) === null', ''),
-  M('reachOf: an absent day is not noticed', '!dayRows.has(d) || ', ''),
+  M('reachOf: an unread day is not noticed', '!dayRows.has(d) || dayRows.get(d) === null)) { out.unread++', '!dayRows.has(d))) { out.unread++'),
+  M('reachEach: an unread day (a null read) is not noticed', '!dayRows.has(d) || dayRows.get(d) === null)) return', '!dayRows.has(d))) return'),
+  M('reachOf: an absent day is not noticed', '!dayRows.has(d) || dayRows.get(d) === null)) { out.unread++', 'dayRows.get(d) === null)) { out.unread++'),
+  M('reachEach: an absent day is not noticed', '!dayRows.has(d) || dayRows.get(d) === null)) return', 'dayRows.get(d) === null)) return'),
   M('reachOf: one-row espn id counts swapped', 'out.oneRow.withEspnId++; else out.oneRow.withoutEspnId++;', 'out.oneRow.withoutEspnId++; else out.oneRow.withEspnId++;'),
-  M('espnIds: rows that agree are a conflict', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => h.id));'),
-  M('espnIds: a null id counts as an id', 'hits.filter((h) => has(h.espn_event_id)).map(', 'hits.map('),
+  M('espnIds: rows that agree are a conflict', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));\n      const k =', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => h.id));\n      const k ='),
+  M('espnIds: a null id counts as an id', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));\n      const k =', 'const ids = new Set(hits.map((h) => String(h.espn_event_id)));\n      const k ='),
   M('espnIds: none and one swapped', "ids.size === 1 ? 'one' : ids.size === 0 ? 'none' : 'conflict'", "ids.size === 1 ? 'none' : ids.size === 0 ? 'one' : 'conflict'"),
   M('espnIds: a conflict is read as one', "ids.size === 1 ? 'one' : ids.size === 0 ? 'none' : 'conflict'", "ids.size >= 1 ? 'one' : 'none'"),
   M('espnIds: not counted by slug', 'out.espnBySlug[slug][k]++;', ''),
-  M('reachOf: a match with no day is a zero', 'if (callDays.length === 0)', 'if (callDays.length === 99)'),
-  M('reachOf: a slug is used as given', "isStr(m.slug) && SAFE_SLUG.test(m.slug) ? m.slug : '(other)'", 'm.slug'),
+  M('reachOf: a match with no day is a zero', 'if (callDays.length === 0) { out.noDay++', 'if (callDays.length === 99) { out.noDay++'),
+  M('reachOf: a slug is used as given', "isStr(m.slug) && SAFE_SLUG.test(m.slug) ? m.slug : '(other)';\n    if (out.bySlug[slug]", "m.slug;\n    if (out.bySlug[slug]"),
   M('reachOf: days needed not collected', 'for (const d of days) allDays.add(d);', ''),
   M('BOUNDARY_DAY moved a day', "export const BOUNDARY_DAY = '2026-10-24';", "export const BOUNDARY_DAY = '2026-10-25';"),
   M('competitorsOf: a numeric team id refused', '(isStr(x.team.id) || Number.isInteger(x.team.id))', '(isStr(x.team.id))'),
@@ -87,6 +92,23 @@ const MUTANTS = [
   M('goalShape: a numeric clock value dropped', "typeof c.value === 'number' && Number.isFinite(c.value) ? c.value : null", 'null'),
   M('goalShape: a display copied out unchecked', "(/^[0-9+' :.]{1,16}$/.test(dsp) ? dsp : '(other)')", 'dsp'),
   M('goalShape: type texts not counted', 'bump(o.typeTexts, label(isObj(r.type) ? r.type.text : undefined));', ''),
+  M('reachEach: a conflict read as reached', "return { reached: false, reason: ids.size === 0 ? UNREACHED.noEspn : UNREACHED.conflict, espnId: null };", "return { reached: true, reason: null, espnId: [...ids][0] };"),
+  M('reachEach: a conflict and no id swapped', 'ids.size === 0 ? UNREACHED.noEspn : UNREACHED.conflict', 'ids.size === 0 ? UNREACHED.conflict : UNREACHED.noEspn'),
+  M('reachEach: more than one id reached', 'if (ids.size === 1) return', 'if (ids.size >= 1) return'),
+  M('reachEach: an unread day read as a missing row', "if (days.some((d) => !dayRows.has(d) || dayRows.get(d) === null)) return { reached: false, reason: UNREACHED.unread, espnId: null };", ''),
+  M('reachEach: a match with no day is reached', "if (callDays.length === 0) return { reached: false, reason: UNREACHED.noDay, espnId: null };", ''),
+  M('reachEach: a null espn id counts as an id', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));\n    if (ids.size === 1) return', 'const ids = new Set(hits.map((h) => String(h.espn_event_id)));\n    if (ids.size === 1) return'),
+  M('reachEach: the id of the wrong type', "return { reached: true, reason: null, espnId: [...ids][0] };", "return { reached: true, reason: null, espnId: null };"),
+  M('reachEach: a missing row has no reason of its own', 'if (hits.length === 0) return { reached: false, reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay), espnId: null };', 'if (hits.length === 0) return { reached: false, reason: UNREACHED.noEspn, espnId: null };'),
+  M('summaryToEspn: the details need not be a list', '!Array.isArray(c0.details) || ', ''),
+  M('summaryToEspn: the competitors need not be a list', ' || !Array.isArray(c0.competitors)) return null;', ') return null;'),
+  M('summaryToEspn: a competitor with no team accepted', '!isObj(c.team) || !isStr(c.team.id) || ', ''),
+  M('summaryToEspn: the competitor id is used, not the team id', 'competitors.push({ id: c.team.id,', 'competitors.push({ id: c.id,'),
+  M('summaryToEspn: a numeric score accepted', '!isStr(c.score) || ', ''),
+  M('summaryToEspn: a score with a fraction accepted', "/^\\d{1,3}$/.test(c.score)", "/^[0-9.]{1,5}$/.test(c.score)"),
+  M('summaryToEspn: the score left a string', 'score: Number(c.score) });', 'score: c.score });'),
+  M('summaryToEspn: a payload that is not an object read', 'const c0 = isObj(json) && isObj(json.header)', 'const c0 = isObj(json.header)'),
+  M('summaryToEspn: the rows are replaced', 'return { rows: c0.details, competitors };', 'return { rows: [], competitors };'),
   M('registry: every sport accepted', "sport:\\s*'soccer',", "sport:\\s*'[a-z]+',"),
   M('registry: last entry wins', 'if (out[m[1]] === undefined) out[m[1]] = m[2];', 'out[m[1]] = m[2];'),
 ];

@@ -39,7 +39,7 @@ export function matchesOf(items) {
   return [...byKey.values()].map((m) => ({ key: m.key, slug: m.slug, callDays: [...m.callDays].sort() }));
 }
 
-async function readDays(days) {
+export async function readDays(days) {
   const dayRows = new Map();
   const statuses = Object.create(null);
   const t0 = Date.now();

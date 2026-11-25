@@ -108,6 +108,20 @@ eq('reachOf: the same by slug', re.espnBySlug, { mls: { one: 3, none: 2, conflic
 eq('reachOf: the espn-id outcomes cover every match that has rows', re.partitions, true);
 eq('reachOf: a match with no row has no espn-id outcome', L.reachOf({ matches: [{ key: '9', slug: 'mls', callDays: ['2026-10-25'] }], dayRows: dayE }).espnIds, { one: 0, none: 0, conflict: 0 });
 
+// ---- reachEach: the same matches, one verdict each, with the ESPN id
+const ee = L.reachEach({ matches, dayRows });
+eq('reachEach: one row with an espn id is reached, and the id comes with it', ee[0], { reached: true, reason: null, espnId: '900' });
+eq('reachEach: a row with a null espn id is not reached, with its own reason', ee[1], { reached: false, reason: L.UNREACHED.noEspn, espnId: null });
+eq('reachEach: two rows that carry no espn id at all', ee[2], { reached: false, reason: L.UNREACHED.noEspn, espnId: null });
+eq('reachEach: no row, by league and date, the same four reasons reachOf counts', ee.slice(3, 8).map((x) => x.reason), [L.REASONS.eflchamp, L.REASONS.uefa, L.REASONS.uefa, L.REASONS.early, L.REASONS.other]);
+eq('reachEach: an unread day is not a missing row, and a match with no day has its own reason', [ee[8].reason, ee[9].reason], [L.UNREACHED.unread, L.UNREACHED.noDay]);
+eq('reachEach: a pooled slug, the boundary day, the earliest call day', ee.slice(10).map((x) => x.reason), [L.REASONS.other, L.REASONS.other, L.REASONS.early]);
+eq('reachEach: nothing reached among them but the first', ee.filter((x) => x.reached).length, 1);
+const eeE = L.reachEach({ matches: mE, dayRows: dayE });
+eq('reachEach: rows that agree on one id are reached; a conflict, and rows with no id or one id and a null, are not or are', eeE.map((x) => [x.reached, x.espnId, x.reason]), [[true, 'X', null], [true, 'X', null], [false, null, L.UNREACHED.conflict], [false, null, L.UNREACHED.noEspn], [false, null, L.UNREACHED.noEspn], [true, 'Z', null]]);
+eq('reachEach: no matches, no verdicts', L.reachEach({ matches: [], dayRows }), []);
+eq('reachEach: a day absent from the map is unread too (not a crash, not a missing row)', L.reachEach({ matches: [{ key: '1', slug: 'epl', callDays: ['2030-01-01'] }], dayRows })[0].reason, L.UNREACHED.unread);
+
 // ---- ESPN's shape
 const ev = (date, a, b, completed) => ({ date, competitions: [{ status: { type: { completed } }, competitors: [{ homeAway: 'home', score: a, team: { id: 11 } }, { homeAway: 'away', score: b, team: { id: '22' } }] }] });
 const E1 = ev('2026-11-22T15:00Z', '2', '1', true);
@@ -146,6 +160,19 @@ eq('goalShape: a display that is not a clock is not copied out (the fifth, past 
 eq('goalShape: the type vocabulary, safe names only', gs.typeVocabulary, { goal: 1, 'goal---header': 1, 'penalty---scored': 1, 'yellow-card': 1 });
 eq('goalShape: no readable final total is never "equal"', L.goalShape(rows, { competitorIds: ['11'], finalTotal: null }).goalRowsEqualFinalTotal, false);
 eq('goalShape: a different count is not equal', L.goalShape(rows, { competitorIds: ['11'], finalTotal: 4 }).goalRowsEqualFinalTotal, false);
+
+// ---- summaryToEspn: ESPN's summary payload as the grade's core reads it
+const hdr = (o = {}) => ({ header: { competitions: [{ details: [{ scoringPlay: true, team: { id: '11' }, clock: { displayValue: "10'" } }, { scoringPlay: false }], competitors: [{ id: '11', homeAway: 'home', score: '2', team: { id: '11', displayName: 'Alpha' } }, { id: '22', homeAway: 'away', score: '1', team: { id: '22', displayName: 'Beta' } }] }], ...o } });
+eq('summaryToEspn: the rows untouched, the competitors as team id, side and a NUMERIC score', L.summaryToEspn(hdr()), { rows: [{ scoringPlay: true, team: { id: '11' }, clock: { displayValue: "10'" } }, { scoringPlay: false }], competitors: [{ id: '11', homeAway: 'home', score: 2 }, { id: '22', homeAway: 'away', score: 1 }] });
+const badHdr = (mut) => { const j = JSON.parse(JSON.stringify(hdr())); mut(j.header.competitions[0]); return L.summaryToEspn(j); };
+eq('summaryToEspn: not the shape is null', [L.summaryToEspn(null), L.summaryToEspn({}), L.summaryToEspn({ header: { competitions: [] } })], [null, null, null]);
+eq('summaryToEspn: details that are not a list', badHdr((c) => { c.details = {}; }), null);
+eq('summaryToEspn: competitors that are not a list', badHdr((c) => { c.competitors = {}; }), null);
+eq('summaryToEspn: a competitor with no team id', badHdr((c) => { delete c.competitors[0].team.id; }), null);
+eq('summaryToEspn: a competitor whose score is a number, not the string ESPN sends', badHdr((c) => { c.competitors[0].score = 2; }), null);
+eq('summaryToEspn: a competitor whose score is not whole digits', badHdr((c) => { c.competitors[0].score = '2.5'; }), null);
+eq('summaryToEspn: a competitor that is not an object', badHdr((c) => { c.competitors[0] = 'x'; }), null);
+eq('summaryToEspn: the id is the team id, never the competitor id', badHdr((c) => { c.competitors[0].id = '999'; }).competitors[0].id, '11');
 
 // ---- the registry, read from text
 const reg = L.registryFromSource("'ucl':        { sport: 'soccer', espnLeague: 'uefa.champions',   bsdLeagueId: 7 },\n'eflchamp':   { sport: 'soccer', espnLeague: 'eng.2', bsdLeagueId: 12 },\n'nfl': { sport: 'football', espnLeague: 'nfl' },\n'ucl': { sport: 'soccer', espnLeague: 'dup.x' }");

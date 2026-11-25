@@ -93,6 +93,48 @@ function zeroReason(slug, firstCallDay, boundaryDay) {
   return REASONS.other;
 }
 
+/** The archive rows that carry the match's BSD id on any of `days` (all of them read), each row once. */
+function hitsFor(m, days, dayRows) {
+  const seen = new Set();
+  const hits = [];
+  for (const d of days) {
+    for (const r of dayRows.get(d)) {
+      if (!isObj(r) || r.bsd_event_id === null || r.bsd_event_id === undefined) continue;
+      if (String(r.bsd_event_id) !== m.key) continue;
+      if (isStr(r.id)) { if (seen.has(r.id)) continue; seen.add(r.id); }
+      hits.push(r);
+    }
+  }
+  return hits;
+}
+
+/** The reasons a match has no ESPN id besides the four a missing archive row can give (REASONS). */
+export const UNREACHED = Object.freeze({
+  noDay: 'no valid call day',
+  unread: 'a day the match needs was not read',
+  noEspn: 'rows carry no ESPN id',
+  conflict: 'rows conflict on the ESPN id',
+});
+
+/**
+ * One entry per match, in order: { reached, reason, espnId }. A match is reached when the rows that carry its BSD id carry exactly ONE distinct
+ * non-null espn_event_id between them (two rows that agree are fine). Everything else is a named reason, and an unread day is never a missing row.
+ */
+export function reachEach({ matches, dayRows, boundaryDay = BOUNDARY_DAY }) {
+  return matches.map((m) => {
+    const slug = isStr(m.slug) && SAFE_SLUG.test(m.slug) ? m.slug : '(other)';
+    const callDays = validDays(m.callDays);
+    if (callDays.length === 0) return { reached: false, reason: UNREACHED.noDay, espnId: null };
+    const days = neededDays(callDays);
+    if (days.some((d) => !dayRows.has(d) || dayRows.get(d) === null)) return { reached: false, reason: UNREACHED.unread, espnId: null };
+    const hits = hitsFor(m, days, dayRows);
+    if (hits.length === 0) return { reached: false, reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay), espnId: null };
+    const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));
+    if (ids.size === 1) return { reached: true, reason: null, espnId: [...ids][0] };
+    return { reached: false, reason: ids.size === 0 ? UNREACHED.noEspn : UNREACHED.conflict, espnId: null };
+  });
+}
+
 /**
  * @param matches  [{ key: string (the BSD event id), slug: string, callDays: ['YYYY-MM-DD', ...] }]  one per distinct match
  * @param dayRows  Map<'YYYY-MM-DD', rows[] | null>  null = that day's read failed
@@ -111,16 +153,7 @@ export function reachOf({ matches, dayRows, boundaryDay = BOUNDARY_DAY }) {
     const days = neededDays(callDays);
     for (const d of days) allDays.add(d);
     if (days.some((d) => !dayRows.has(d) || dayRows.get(d) === null)) { out.unread++; s.unread++; continue; }
-    const seen = new Set();
-    const hits = [];
-    for (const d of days) {
-      for (const r of dayRows.get(d)) {
-        if (!isObj(r) || r.bsd_event_id === null || r.bsd_event_id === undefined) continue;
-        if (String(r.bsd_event_id) !== m.key) continue;
-        if (isStr(r.id)) { if (seen.has(r.id)) continue; seen.add(r.id); }
-        hits.push(r);
-      }
-    }
+    const hits = hitsFor(m, days, dayRows);
     if (hits.length === 0) { out.zero++; s.zero++; bump(out.zeroReasons, zeroReason(slug, callDays.slice().sort()[0], boundaryDay)); }
     else if (hits.length === 1) { out.one++; s.one++; if (has(hits[0].espn_event_id)) out.oneRow.withEspnId++; else out.oneRow.withoutEspnId++; }
     else { out.many++; s.many++; }
@@ -224,6 +257,24 @@ export function goalShape(rows, { competitorIds, finalTotal }) {
   }
   o.goalRowsEqualFinalTotal = finalTotal !== null && o.goalRows === finalTotal;
   return o;
+}
+
+// ---------------------------------------------------------------- ESPN's summary, as the reference grade's core reads it
+/**
+ * { rows, competitors } from summary.header.competitions[0]: the goal-and-card rows (`details`) and the two competitors as { id: team.id, homeAway,
+ * score }, or null when the payload is not that shape. Field names are the ones Task 0 recorded (2026-11-25, summary.header.competitions[0].competitors:
+ * id, homeAway, score (a string), team.id (a string); details: scoringPlay, team.id, clock.displayValue, ownGoal, penaltyKick). The rows are passed on
+ * untouched: the core picks what it needs and returns counts, so no name leaves it.
+ */
+export function summaryToEspn(json) {
+  const c0 = isObj(json) && isObj(json.header) && Array.isArray(json.header.competitions) && isObj(json.header.competitions[0]) ? json.header.competitions[0] : null;
+  if (c0 === null || !Array.isArray(c0.details) || !Array.isArray(c0.competitors)) return null;
+  const competitors = [];
+  for (const c of c0.competitors) {
+    if (!isObj(c) || !isObj(c.team) || !isStr(c.team.id) || !isStr(c.score) || !/^\d{1,3}$/.test(c.score)) return null;
+    competitors.push({ id: c.team.id, homeAway: c.homeAway, score: Number(c.score) });
+  }
+  return { rows: c0.details, competitors };
 }
 
 // ---------------------------------------------------------------- the league slugs, read from the relay's own registry text
