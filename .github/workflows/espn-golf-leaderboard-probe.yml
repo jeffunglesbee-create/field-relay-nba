@@ -1,0 +1,30 @@
+name: ESPN golf leaderboard shape probe
+
+# The ESPN core API mirror has ended red on "event N lists no competitors" in every run since at least 2026-11-25 10:15Z (runs 611 to 639):
+# one golf leaderboard read counted as failed. This reads the same leaderboard from a runner (ESPN is not reachable from the sandbox) and records
+# its SHAPE, so the mirror's rule is changed on what ESPN answers, not on a guess. Dispatch-only: one question, not a monitor.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read the leaderboard
+        run: node scripts/espn-golf-leaderboard-probe.mjs
+      - name: Commit the reading
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          PROBE_PATHS='outbox/espn-golf-leaderboard-shape-*.json' \
+          bash scripts/probe-commit-retry.sh "probe: ESPN golf leaderboard shape"
