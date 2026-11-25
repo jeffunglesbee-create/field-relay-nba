@@ -49,28 +49,41 @@ export function melbourneDay(instantMs) {
     }
 }
 
+// The home club's percentage in a tip row, or null when the row does not carry one. Squiggle serves it as a string ("68.60"). Number(null) and Number('') are 0, which
+// would turn a tip not yet computed into certainty for the away club, so only a non-empty string or a number inside 0..100 counts.
+export function squiggleHomePct(tip) {
+    const raw = tip && tip.hconfidence;
+    if (!((typeof raw === 'string' && raw.trim() !== '') || typeof raw === 'number')) return null;
+    const h = Number(raw);
+    return Number.isFinite(h) && h >= 0 && h <= 100 ? h : null;
+}
+
 // The percentage Squiggle gives `clubName` in a tip row: hconfidence is the HOME club's, so the away club's is the rest.
 export function squiggleConfidenceFor(tip, clubName) {
     const id = squiggleTeamId(clubName);
-    const h = Number(tip && tip.hconfidence);
-    if (id === null || !Number.isFinite(h)) return null;
+    const h = squiggleHomePct(tip);
+    if (id === null || h === null) return null;
     return id === tip.hteamid ? h : id === tip.ateamid ? 100 - h : null;
 }
 
 // { year, kickoff (an ISO instant, ESPN's event.date), home, away (the game's club names, any spelling the AFL identity knows) }
 //   -> the Squiggle Aggregate tip row of THAT game ({ round, gameid, date, hteam, hteamid, ateam, ateamid, hconfidence, ... }) or null.
-// `headers` and `signal` go to the request as given. The reads are edge-cached for an hour (the tips TTL index.js uses), one entry per club and year.
+// `headers` and `signal` go to the request as given. The request carries the same cf options as the relay's other Squiggle reads (an hour, cacheEverything, a key per club
+// and year). UNMEASURED that they take effect: api.squiggle.com.au is another Cloudflare zone, and Cloudflare's docs say such a zone controls its own caching and a Worker cannot
+// override it (cacheKey is Enterprise-only besides). Until a Worker has read cf-cache-status twice, the only caching in front of Squiggle is Squiggle's own.
 export async function squiggleTipForGame({ year, kickoff, home, away }, { headers, signal } = {}) {
     const homeId = squiggleTeamId(home), awayId = squiggleTeamId(away);
     if (homeId === null || awayId === null || homeId === awayId) {
         console.warn(`[AFL-SQUIGGLE] no Squiggle team id for ${JSON.stringify(home)} v ${JSON.stringify(away)}`);
         return null;
     }
-    const day = melbourneDay(Date.parse(kickoff));
-    if (!Number.isInteger(year) || day === null) {
+    const instant = Date.parse(kickoff);
+    if (!Number.isInteger(year) || !Number.isFinite(instant)) {
         console.warn(`[AFL-SQUIGGLE] no year or kickoff for ${home} v ${away} (year ${year}, kickoff ${JSON.stringify(kickoff)})`);
         return null;
     }
+    const day = melbourneDay(instant);
+    if (day === null) return null;   // melbourneDay has said why (no Melbourne zone in this runtime), once: not a second, false, line about the kickoff
     const url = `${SQUIGGLE_BASE}/?q=tips;year=${year};team=${homeId};source=8`;
     let rows;
     try {
@@ -91,6 +104,10 @@ export async function squiggleTipForGame({ year, kickoff, home, away }, { header
         && typeof t.date === 'string' && t.date.slice(0, 10) === day);
     if (found.length !== 1) {
         console.warn(`[AFL-SQUIGGLE] ${found.length ? 'ambiguous' : 'no'} Squiggle tip for ${home} v ${away} on ${day} (year ${year}): ${found.length} row(s)`);
+        return null;
+    }
+    if (squiggleHomePct(found[0]) === null) {
+        console.warn(`[AFL-SQUIGGLE] the Squiggle tip for ${home} v ${away} on ${day} carries no usable hconfidence: ${JSON.stringify(found[0].hconfidence)}`);
         return null;
     }
     return found[0];

@@ -94,6 +94,7 @@ const TIPS = {
        tip(18, 'Melbourne', 'Greater Western Sydney', '87.54'),               // listed before the Bulldogs': 'Greater Western Sydney' must not stand in for 'Western Bulldogs'
        tip(18, 'Geelong', 'Western Bulldogs', '34.80'),                       // the AWAY side is tipped here: confidence 65.20, hconfidence 34.80
        tip(18, 'St Kilda', 'Port Adelaide', '62.10')],
+  2:  [tip(2, 'Adelaide', 'Western Bulldogs', '47.29')],                         // the March round-2 tip (real): what a final answered through ESPN's week 2 would serve
   19: [tip(19, 'Hawthorn', 'Essendon', '40.20')],
   0:  [tip(0, 'West Coast', 'Gold Coast', '31.00')],
   1:  [tip(1, 'Carlton', 'Richmond', '51.00')],
@@ -114,7 +115,7 @@ const RANGE_400_BODY = JSON.stringify({ code: 400, message: 'Failed to get event
 const SCOREBOARD_PATH = '/sports/australian-football/afl/scoreboard';   // the host is not pinned: this module has moved ESPN hosts twice
 const jsonResp = (body, status = 200) => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 let log, behave;
-const fresh = (b = {}, iso = '2026-07-08T10:00:00Z') => { CLOCK = RealDate.parse(iso); log = { espn: [], squiggle: [], squiggleTeam: [], kali: [], warns: [], timeouts: [], inflight: 0, peak: 0 }; behave = b; };
+const fresh = (b = {}, iso = '2026-07-08T10:00:00Z') => { CLOCK = RealDate.parse(iso); log = { espn: [], squiggle: [], squiggleTeam: [], squiggleTeamInit: [], kali: [], warns: [], timeouts: [], inflight: 0, peak: 0 }; behave = b; };
 const realFetch = globalThis.fetch;
 const realTimeout = AbortSignal.timeout.bind(AbortSignal);
 AbortSignal.timeout = (ms) => { if (log) log.timeouts.push(ms); return realTimeout(ms); };
@@ -137,10 +138,11 @@ globalThis.fetch = async (input, init = {}) => {
     } finally { log.inflight--; }
   }
   if (url.startsWith('https://api.squiggle.com.au/') && /;team=(\d+);source=8/.test(url)) {
-    log.squiggleTeam.push(url.slice('https://api.squiggle.com.au/'.length));
+    log.squiggleTeam.push(url.slice('https://api.squiggle.com.au/'.length)); log.squiggleTeamInit.push(init);
     if (behave.squiggle503) return jsonResp('{}', 503);
     const [, year, team] = /year=(\d+);team=(\d+);source=8/.exec(url);
-    return jsonResp({ tips: (behave.noRows ? [] : SEASON_ROWS).filter(r => String(r.year) === year && (r.hteamid === Number(team) || r.ateamid === Number(team))) });
+    const rows = (behave.noRows ? [] : SEASON_ROWS).filter(r => String(r.year) === year && (r.hteamid === Number(team) || r.ateamid === Number(team)));
+    return jsonResp({ tips: behave.noConf ? rows.map(r => ({ ...r, hconfidence: null })) : rows });   // noConf: a tip not yet computed
   }
   if (url.startsWith('https://kaliaflstats.com/')) { log.kali.push(url); return jsonResp('{}', 503); }
   if (url.startsWith('https://api.squiggle.com.au/')) {
@@ -289,6 +291,8 @@ fresh({}, FIN);
 eq('R1 Adelaide Crows (the 2026-09-05 final, ESPN week 2) resolves to the FINAL\'s tip, 68.60 -> 0.686, not the March round-2 tip 47.29 that week 2 would fetch',
    await pick('Adelaide Crows'), WP(0.686));
 eq('R2 ... through one read of the home club\'s season, no round-based read at all, and a 5 s timeout on every read (ten ESPN reads and that one)', [log.squiggleTeam, log.squiggle, log.timeouts.length, log.timeouts.every(x => x === 5000)], [['?q=tips;year=2026;team=1;source=8'], [], 11, true]);
+eq('R2b the Squiggle read carries an abort signal (it is the 11th timeout, not only counted: handed on to the request)', log.squiggleTeamInit.map(i => !!(i && i.signal)), [true]);
+eq('R2c ... and the relay\'s Accept and User-Agent headers', log.squiggleTeamInit.map(i => [i && i.headers && i.headers.Accept, !!(i && i.headers && String(i.headers['User-Agent']).startsWith('FIELD-Global-Sports-Intelligence/'))]), [['application/json', true]]);
 fresh({}, FIN);
 eq('R3 Western Bulldogs (the away club of that final) resolves to the rest, (100 - 68.60) / 100 = 0.314', await pick('Western Bulldogs'), WP(0.314));
 fresh({}, FIN);
@@ -297,6 +301,8 @@ fresh({}, FIN);
 eq('R5 Kali is NOT asked for a final, although a token is set (its finals numbering is unmeasured)', [await pick('Adelaide Crows', { KALI_AFL_TOKEN: 'k' }), log.kali], [WP(0.686), []]);
 fresh({ noRows: true }, FIN);
 eq('R6 a final Squiggle has no row for resolves to null, said with a warning, and is not answered through any other round', [await pick('Adelaide Crows'), log.warns.some(w => /^\[AFL-SQUIGGLE\] no Squiggle tip for Adelaide Crows v Western Bulldogs on 2026-09-05/.test(w)), log.squiggle], [null, true, []]);
+fresh({ noConf: true }, FIN);
+eq('R9 a final whose tip carries no hconfidence (null is 0 to Number()) resolves to null, not to certainty for the away club, and says so', [await pick('Western Bulldogs'), await pick('Adelaide Crows'), log.warns.some(w => /^\[AFL-SQUIGGLE\] the Squiggle tip for Adelaide Crows v Western Bulldogs on 2026-09-05 carries no usable hconfidence: null$/.test(w))], [null, null, true]);
 fresh({ squiggle503: true }, FIN);
 eq('R7 Squiggle answering 503 resolves to null with a warning that names the status', [await pick('Adelaide Crows'), log.warns.some(w => /^\[AFL-SQUIGGLE\] Squiggle answered 503 /.test(w))], [null, true]);
 
@@ -333,6 +339,6 @@ ok('S42 a label with a nickname resolves to the same key as the ESPN name (GWS G
 
 console.warn = realWarn;
 globalThis.fetch = realFetch;
-console.log(`COVERAGE: ${total} assertions: the real resolveWinProbability('AFL', ...) over three pinned instants (2026-07-08 10:00Z, 23:30Z and 00:00Z, and 2027-03-10 10:00Z), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number over a conflicting top-level week) and one Squiggle stub (round-keyed, rows in Squiggle's shape with a decoy source), plus the 18-club identity table. ESPN team names are the ones the relay served for 2026-07-05..12, one real body (20260709) is replayed as recorded, and Squiggle's are its own; 8 of Kali's 18 names are recorded in outbox and were run through the matcher once by hand, not here. Not covered here: Kali for finals (not asked), any other real ESPN body (afl-round-live-check.yml reads four days live), the Kali branch (no token in this check), finals (ESPN numbers them 1-5, Squiggle 25+), and the live season.`);
+console.log(`COVERAGE: ${total} assertions: the real resolveWinProbability('AFL', ...) over pinned instants (2026-07-08 10:00Z, 23:30Z and 00:00Z, 2027-03-10 10:00Z, and the finals window of 2026-09-04 10:00Z), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number over a conflicting top-level week, and season.type 3 for the 2026 finals as ESPN served them) and two Squiggle stubs (round-keyed for a regular game, team-keyed for a final: rows in Squiggle's shape with decoy sources), plus the 18-club identity table. ESPN team names are the ones the relay served for 2026-07-05..12, one real body (20260709) is replayed as recorded, and Squiggle's are its own; 8 of Kali's 18 names are recorded in outbox and were run through the matcher once by hand, not here. Finals (R1-R9): the final's own tip by clubs and Melbourne day, either side of the game, the year of the event, Kali not asked, no row / a 503 / no hconfidence as null with a warning, and the abort signal on the read. Not covered here: any other real ESPN body (afl-round-live-check.yml and afl-finals-live-check.yml read real ESPN and Squiggle from a runner), the Kali branch (no token in this check except R5), a pick resolved four or more days after its final (the resolver picks the club's earliest game in the window, not the pick's game: docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md), and the live season.`);
 console.log(`${passed} of ${total} passed.`);
 process.exit(passed === total ? 0 : 1);

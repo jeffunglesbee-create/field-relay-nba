@@ -131,6 +131,11 @@ const MUTANTS = [
   ['D6 the finals read has no timeout', [["{ headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });\n                const pct", "{ headers: SQUIGGLE_HEADERS });\n                const pct"]]],
   ['D7 a final is resolved for the other side of the game (the confidence is read for the wrong club)', [["return id === tip.hteamid ? h : id === tip.ateamid ? 100 - h : null;", "return id === tip.hteamid ? 100 - h : id === tip.ateamid ? h : null;"], ], 'afl-squiggle.js'],
   ['D8 the round-based Squiggle read asks for every source again', [["const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {", "const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {"]]],
+  ['D12 a final\'s Squiggle read carries no headers (the call site)', [["{ headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });\n                const pct", "{ signal: AbortSignal.timeout(5000) });\n                const pct"]]],
+  ['D13 the Squiggle module drops the headers it is given', [["headers, ...(signal ? { signal } : {}),", "...(signal ? { signal } : {}),"]], 'afl-squiggle.js'],
+  ['D9 the abort signal is not passed on to the Squiggle request', [["headers, ...(signal ? { signal } : {}),", "headers,"]], 'afl-squiggle.js'],
+  ['D10 a final\'s row with no usable hconfidence is returned (and not said)', [["if (squiggleHomePct(found[0]) === null) {", "if (false) {"]], 'afl-squiggle.js'],
+  ['D11 an empty or null hconfidence counts as 0%', [["if (!((typeof raw === 'string' && raw.trim() !== '') || typeof raw === 'number')) return null;\n", ""]], 'afl-squiggle.js'],
   ['A28 an unreadable day body is caught but not warned', [["console.warn(`[AFL-ROUND] ESPN body for ${days[i]} could not be read: ${e && e.message}`);\n", ""]]],
 ];
 

@@ -144,7 +144,7 @@ function mcpBearerMatches(header, env) {
 }
 
 import { stampProvenance } from './provenance-stamp.js';
-import { squiggleTipForGame } from './afl-squiggle.js';
+import { squiggleTipForGame, squiggleHomePct } from './afl-squiggle.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
@@ -1516,7 +1516,8 @@ const V2_LEAGUES = {
     'pga':          { sport: 'golf',       league: 'pga', espnSource: true, leagueId: '1106' },
     // AFL — migrated June 26 2026: API-Sports → ESPN australian-football/afl
     // Three-source architecture: ESPN (scores) + Kali (journalism) + Squiggle (analytics)
-    // ev.week.number from ESPN is the round join key into Kali + Squiggle.
+    // ev.week.number from ESPN is the round join key into Kali + Squiggle for a REGULAR-season game only: a final's week restarts at 1 and is not Squiggle's round, so a
+    // final is joined by its clubs and kickoff day (src/afl-squiggle.js). `season` below is not read for AFL: the year comes from each ESPN event's own season.
     // Squiggle /squiggle route stays active for power rankings + projected ladder.
     // KALI_AFL_TOKEN already deployed. bsdLeagueId: null (AFL not in BSD).
     'afl':          { sport: 'afl', espnLeague: 'afl', espnSport: 'australian-football', season: 2026 },
@@ -4536,17 +4537,17 @@ async function buildAFLJournalismContext(games, year, env, seasons = null) {
     const seasonOf = g => (seasons && seasons.get(String(g.espnEventId))) || null;
     const finals = games.filter(g => seasonOf(g)?.type === 3);
     const regularGames = games.filter(g => seasonOf(g)?.type !== 3);
-    const round = regularGames.length ? (regularGames[0].round ?? null) : null;
+    const round = regularGames.map(g => g.round).find(r => r !== null && r !== undefined) ?? null;   // the slate's round: the first game that has one (round 0 is one)
     // What a Squiggle row gives each club of the GAME, whichever way round the row lists them.
     const servedSquiggle = (tip, g) => sameAFLClub(tip.hteam, g.home.name)
         ? { homeConfidence: tip.hconfidence, awayConfidence: 100 - tip.hconfidence }
         : { homeConfidence: (100 - tip.hconfidence).toFixed(2), awayConfidence: Number(tip.hconfidence) };
     await Promise.all(finals.map(async g => {
         if (!g.espnEventId) return;
-        const tip = await squiggleTipForGame({ year: seasonOf(g)?.year ?? year, kickoff: g.start, home: g.home.name, away: g.away.name }, { headers: SQUIGGLE_HEADERS });
+        const tip = await squiggleTipForGame({ year: seasonOf(g)?.year ?? year, kickoff: g.start, home: g.home.name, away: g.away.name }, { headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });
         if (tip) ctx[g.espnEventId].squiggle = servedSquiggle(tip, g);
     }));
-    // No regular-season round to read (a slate of finals only, or a game with no week): the finals' own rows are all there is, and with none the context is empty.
+    // No regular-season round to read (a slate of finals only, or no game on it carrying a week): the finals' own rows are all there is, and with none the context is empty.
     if (round === null || round === undefined) return finals.length ? ctx : {};
     const findGame = (homeTeam, awayTeam) => regularGames.find(g =>
         (sameAFLClub(homeTeam, g.home.name) && sameAFLClub(awayTeam, g.away.name)) ||
@@ -4608,6 +4609,7 @@ async function buildAFLJournalismContext(games, year, env, seasons = null) {
             for (const tip of aggTips) {
                 const g = findGame(tip.hteam, tip.ateam);
                 if (!g?.espnEventId || !ctx[g.espnEventId]) continue;
+                if (squiggleHomePct(tip) === null) continue;   // a row with no usable hconfidence is no tip (Number(null) is 0: it would serve certainty)
                 // hconfidence is the home side's of SQUIGGLE's home club. When the row lists the clubs the other way round to ESPN's game, the game's home club
                 // takes the other side: serving Squiggle's home value as this game's would put a tip on the wrong club.
                 ctx[g.espnEventId].squiggle = servedSquiggle(tip, g);

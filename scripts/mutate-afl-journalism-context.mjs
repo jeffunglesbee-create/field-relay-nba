@@ -59,6 +59,10 @@ const FINALS_ONLY = "return finals.length ? ctx : {};";
 const CALLER = "buildAFLJournalismContext(games, _aflYear, env, _aflEventSeasons);";
 const FYEAR = "year: seasonOf(g)?.year ?? year,";
 const SEASONS = "if (sport === 'afl') _aflEventSeasons = new Map(";
+const ROUND = "const round = regularGames.map(g => g.round).find(r => r !== null && r !== undefined) ?? null;";
+const FSIGNAL = "{ headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });";
+const REGPCT = "if (squiggleHomePct(tip) === null) continue;";
+const FTIP = "if (tip) ctx[g.espnEventId].squiggle = servedSquiggle(tip, g);";
 
 // Each mutant: [name, [[anchor, replacement], ...]]; every anchor must occur exactly once.
 const MUTANTS = [
@@ -82,6 +86,15 @@ const MUTANTS = [
   ['C5 a final asks Squiggle for the constant 2026', [[FYEAR, "year: 2026,"]]],
   ['B13 the round-based Squiggle read asks for every source again', [["fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {", "fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {"]]],
   ['B14 the round-based read shares the old edge-cache key (entries that hold every source)', [["cacheKey: `squiggle:tips:${year}:${round}:aggregate` },", "cacheKey: `squiggle:tips:${year}:${round}` },"]]],
+  ['B15 the slate\'s round is the first game\'s round only (a weekless first game ends the context)', [[ROUND, "const round = regularGames.length ? (regularGames[0].round ?? null) : null;"]]],
+  ['B16 a final\'s Squiggle read has no timeout', [[FSIGNAL, "{ headers: SQUIGGLE_HEADERS });"]]],
+  ['B17 a regular row with no usable hconfidence is served (as certainty for one club)', [[REGPCT, ""]]],
+  ['B18 a regular slate with no round and no finals returns the ctx (a journalism key on every game) instead of nothing', [[FINALS_ONLY, "return ctx;"]]],
+  ['B19 the year is the first event\'s season, not the first season that has a year', [[YEAR, "const _aflYear  = [...(_aflEventSeasons?.values() || [])].map(x => x?.year)[0] ?? new Date().getUTCFullYear();"]]],
+  ['B20 a final\'s Squiggle read carries no headers', [[FSIGNAL, "{ signal: AbortSignal.timeout(5000) });"]]],
+  ['B21 a final with no tip of its own falls back to the round read at ESPN\'s week (the original defect, as a fallback)', [[FTIP, FTIP + " else { const rr = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${g.round};source=8`, { headers: SQUIGGLE_HEADERS }); const rj = await rr.json(); const rt = rj.tips.find(t => t.source === 'Aggregate' && sameAFLClub(t.hteam, g.home.name)); if (rt) ctx[g.espnEventId].squiggle = servedSquiggle(rt, g); }"]]],
+  ['B22 the round-based read carries no headers', [["            headers: SQUIGGLE_HEADERS,\n            cf: { cacheTtl: squiggleTtl(", "            cf: { cacheTtl: squiggleTtl("]]],
+  ['B23 a final serves Squiggle\'s home value as the game\'s whatever the row\'s orientation', [[FTIP, "if (tip) ctx[g.espnEventId].squiggle = { homeConfidence: tip.hconfidence, awayConfidence: 100 - tip.hconfidence };"]]],
   ['B12 a row from any source is taken, not the Aggregate', [["const aggTips = (sd.tips || []).filter(t => t.source === 'Aggregate');", "const aggTips = (sd.tips || []);"]]],
 ];
 
@@ -98,6 +111,32 @@ const MODULE_MUTANTS = [
   ['S8 the request is not narrowed to the Aggregate source', [[";team=${homeId};source=8`;", ";team=${homeId}`;"]]],
   ['S9 a game with no tip is not said', [["console.warn(`[AFL-SQUIGGLE] ${found.length ? 'ambiguous' : 'no'} Squiggle tip for", "void (`[AFL-SQUIGGLE] ${found.length ? 'ambiguous' : 'no'} Squiggle tip for"]]],
   ['S11 a runtime with no Melbourne zone is not said', [["console.warn(`[AFL-SQUIGGLE] no Melbourne time zone in this runtime: ${e && e.message}`);\n", ""]]],
+  ['S12 a row that lists the clubs the other way round to the game no longer qualifies', [[PAIR, "&& (t.hteamid === homeId && t.ateamid === awayId)"]]],
+  ['S13 an ambiguous pair (two rows) is accepted: the first wins', [["if (found.length !== 1) {", "if (found.length < 1) {"]]],
+  ['S14 a read that fails (not JSON, network down) is a thrown error, not null', [["console.warn(`[AFL-SQUIGGLE] Squiggle read failed for ${url}: ${e && e.message}`);\n        return null;", "throw e;"]]],
+  ['S15 a body whose tips is not an array is not guarded', [["rows = Array.isArray(j && j.tips) ? j.tips : null;", "rows = j.tips;"]]],
+  ['S16 a null entry among the tips is not guarded', [["t && t.source === 'Aggregate' &&", "t.source === 'Aggregate' &&"]]],
+  ['S17 a final\'s row with no usable hconfidence is returned', [["if (squiggleHomePct(found[0]) === null) {", "if (false) {"]]],
+  ['S18 an empty or null hconfidence counts as 0%', [["if (!((typeof raw === 'string' && raw.trim() !== '') || typeof raw === 'number')) return null;\n", ""]]],
+  ['S19 a percentage outside 0..100 is accepted', [["return Number.isFinite(h) && h >= 0 && h <= 100 ? h : null;", "return Number.isFinite(h) ? h : null;"]]],
+  ['S20 the abort signal is not passed on to the request', [["headers, ...(signal ? { signal } : {}),", "headers,"]]],
+  ['S21 Essendon is Squiggle team 6', [["essend: 5,", "essend: 6,"]]],
+  ['S22 North Melbourne is Squiggle team 11', [["northm: 12,", "northm: 11,"]]],
+  ['S23 West Coast is Squiggle team 16', [["westco: 17,", "westco: 16,"]]],
+  ['S24 a tip with no usable hconfidence gives the AWAY club certainty', [["if (id === null || h === null) return null;", "if (id === null) return null;"]]],
+  ['S25 a failed read is an empty answer (no warning that it failed)', [["console.warn(`[AFL-SQUIGGLE] Squiggle read failed for ${url}: ${e && e.message}`);\n        return null;", "rows = [];"]]],
+  ['S26 a failed read is not said', [["console.warn(`[AFL-SQUIGGLE] Squiggle read failed for ${url}: ${e && e.message}`);", "void 0;"]]],
+  ['S27 a club the team table does not have is not said', [["console.warn(`[AFL-SQUIGGLE] no Squiggle team id for", "void (`[AFL-SQUIGGLE] no Squiggle team id for"]]],
+  ['S28 a missing year or kickoff is not said', [["console.warn(`[AFL-SQUIGGLE] no year or kickoff for", "void (`[AFL-SQUIGGLE] no year or kickoff for"]]],
+  ['S29 a body with no tips array is not said', [["console.warn(`[AFL-SQUIGGLE] Squiggle answered no tips array for", "void (`[AFL-SQUIGGLE] Squiggle answered no tips array for"]]],
+  ['S30 the request does not ask for cacheEverything', [["cacheTtl: 3600, cacheEverything: true,", "cacheTtl: 3600,"]]],
+  ['S31 the request asks for a 5 second edge cache', [["cacheTtl: 3600,", "cacheTtl: 5,"]]],
+  ['S32 the request asks for a one-year edge cache', [["cacheTtl: 3600,", "cacheTtl: 31536000,"]]],
+  ['S33 the request carries no headers', [["headers, ...(signal ? { signal } : {}),", "...(signal ? { signal } : {}),"]]],
+  ['S34 the Melbourne day is the UTC day plus a fixed 10 hours', [["return melbourneFormat.format(new Date(instantMs));", "return new Date(instantMs + 36000000).toISOString().slice(0, 10);"]]],
+  ['S35 the zone is Brisbane\'s (no daylight saving)', [["timeZone: 'Australia/Melbourne'", "timeZone: 'Australia/Brisbane'"]]],
+  ['S36 a runtime with no Melbourne zone also says a kickoff is missing', [["if (day === null) return null;", "if (day === null) { console.warn('[AFL-SQUIGGLE] no year or kickoff'); return null; }"]]],
+  ['S37 an ambiguous pair is said as no tip', [["${found.length ? 'ambiguous' : 'no'} Squiggle tip for", "${'no'} Squiggle tip for"]]],
   ['S10 a failed read is a thrown error, not null', [["console.warn(`[AFL-SQUIGGLE] Squiggle answered ${r.status} for ${url}`); return null; }", "throw new Error('squiggle ' + r.status); }"]]],
 ];
 
@@ -121,6 +160,6 @@ for (const [name, edits, file = 'index.js'] of [...MUTANTS, ...MODULE_MUTANTS.ma
 const TOTAL = MUTANTS.length + MODULE_MUTANTS.length;
 const caughtN = TOTAL - missed - nothing - errored;
 console.log(`\nmutations: ${caughtN} of ${TOTAL} caught${missed ? `, ${missed} SURVIVED` : ''}${errored ? `, ${errored} harness error(s)` : ''}${nothing ? `, ${nothing} not applied` : ''}`);
-console.log('COVERAGE: the join (prefix rule restored, a home-club-alone clause, the away club dropped, the reversed clause dropped), the round guard (round 0), the year (the config constant, ignoring the events, a fixed fallback, never capturing them), the orientation of a Squiggle row and of a Kali row, and the Aggregate source filter, mutated in a copy of src/index.js; and, for finals, whether an event is a final, how it is joined (the season type, the caller, the empty context, the year) and, in a copy of src/afl-squiggle.js inside a copy of the rest of src/, the kickoff day (and its zone), the pair of clubs, the source, the team table, the request (year, source, edge-cache key) and the two ways a game with no tip fails.');
-console.log('NOT mutated here: the Kali fetch and its token gate, the Squiggle fetch headers, and handleV2Games outside the AFL block.');
+console.log('COVERAGE: the join (prefix rule restored, a home-club-alone clause, the away club dropped, the reversed clause dropped), the round guard (round 0), the year (the config constant, ignoring the events, a fixed fallback, never capturing them), the orientation of a Squiggle row and of a Kali row, and the Aggregate source filter, mutated in a copy of src/index.js; and, for finals, whether an event is a final, how it is joined (the season type, the caller, the empty context, the year) and, in a copy of src/afl-squiggle.js inside a copy of the rest of src/, the kickoff day (and its zone), the pair of clubs, the source, the team table (three ids by mutation, all 18 by assertion U2), the request (year, source, edge-cache key, abort signal), every way a game with no tip fails (no row, two rows, a failed read, a body that is not JSON or has no tips array, a null row, no hconfidence), the reversed row, and the hconfidence validation, the cf options and headers sent, and the Melbourne day (a fixed offset, Brisbane); and, in index.js, the slate\'s round (the first game that has one), the year (the first season with a year), a final\'s timeout and headers, the fallback of a final to the round read, the orientation of a final\'s tip, the empty context of a slate with no round, and the regular row\'s hconfidence guard. Equivalent (not mutated): Sydney\'s zone for Melbourne\'s (the same offsets and daylight saving rules).');
+console.log('NOT mutated here: the Kali fetch and its token gate, and handleV2Games outside the AFL block.');
 process.exit(missed || nothing || errored ? 1 : 0);
