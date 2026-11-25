@@ -826,9 +826,11 @@ try {
 // to ESPN's event by the exact kickoff instant and the clubs, and its tip is read by game id: not the relay's join (a final by its clubs and Melbourne kickoff day, a regular game
 // by ESPN's week read as Squiggle's round), so the two do not share the join. The club identity (sameAFLClub, squiggleConfidenceFor's team ids) IS shared with the relay:
 // scripts/check-afl-*.mjs assert it against all 18 clubs. The relay is read for the day ESPN listed the event under, the day /v2/games itself passes to ESPN.
-// The relay's own Squiggle identity (src/index.js SQUIGGLE_HEADERS), not the browser string the other reads here send: Squiggle asks a client to identify itself. Whether it also wants a
-// contact address is the owner's decision (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4).
-const SQUIGGLE_UA = 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)';
+// SQUIGGLE IS READ THROUGH THE RELAY, NOT DIRECTLY. A GitHub runner is refused by api.squiggle.com.au with HTTP 403 (measured 2026-11-25 01:20Z, run 45524946667: every `team=` read, with the
+// relay's own User-Agent; Squiggle's changelog warns that clients without a contact address "may now be blocked at edge level (particularly if they run from a server farm)"), while the
+// relay's Cloudflare egress is served, cache-busted queries included (probe_relay_route, 2026-11-25). The relay's /squiggle route forwards the same `?q=` query unchanged
+// (src/index.js, pathname.startsWith('/squiggle')), so the reference still reads Squiggle's own rows by its own query, by another path than the journalism context's code.
+// Whether to put a contact address in the User-Agent is the owner's decision (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4).
 async function aflOwnTip({ id, noun, isGame, verdict }) {
     const what = `the relay serves an AFL ${noun} its own Squiggle tip, the one Squiggle gives that game, not the tip of another round`;
     try {
@@ -843,7 +845,7 @@ async function aflOwnTip({ id, noun, isGame, verdict }) {
             for (const ev of (j.events || [])) if (ev) events.push({ ev, day: d });
         }
         const year = now.getUTCFullYear();
-        const sq = async (q) => { const r = await fetch(`https://api.squiggle.com.au/?${q}`, { headers: { 'User-Agent': SQUIGGLE_UA } }); if (!r.ok) throw new Error(`Squiggle HTTP ${r.status} for ${q}`); return r.json(); };
+        const sq = (q) => get(`/squiggle?${q}`);
         const from = Date.parse(`${days[0]}T00:00:00Z`), to = Date.parse(`${days[days.length - 1]}T00:00:00Z`) + 86400000;
         const inWindow = ((await sq(`q=games;year=${year}`)).games || [])
             .filter(g => isGame(g) && g.unixtime * 1000 >= from && g.unixtime * 1000 < to).sort((a, b) => a.unixtime - b.unixtime);

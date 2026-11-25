@@ -28,7 +28,12 @@ if (MODE === 'resolver') {
   globalThis.Date = PinnedDate;
   const realFetch = globalThis.fetch;
   let urls = [];
-  globalThis.fetch = async (input, init) => { const url = String(typeof input === 'string' ? input : input.url); urls.push(url); return realFetch(url, init); };
+  // Squiggle is reached THROUGH THE RELAY's /squiggle route (a pass-through of the same `?q=` query): a GitHub runner is refused by api.squiggle.com.au with HTTP 403 (this check's
+  // own first run, 2026-11-25 01:20Z, run 45524946667), while the relay's Cloudflare egress is served. The URLs the resolver asks for are recorded BEFORE the rewrite, so L2 still
+  // asserts the exact Squiggle request; only the transport changes. ESPN is read directly.
+  const SQUIGGLE_ORIGIN = 'https://api.squiggle.com.au/';
+  const VIA = (process.env.RELAY || 'https://field-relay-nba.jeffunglesbee.workers.dev') + '/squiggle';
+  globalThis.fetch = async (input, init) => { const url = String(typeof input === 'string' ? input : input.url); urls.push(url); return realFetch(url.startsWith(SQUIGGLE_ORIGIN) ? VIA + url.slice(SQUIGGLE_ORIGIN.length) : url, init); };
   const warns = []; const realWarn = console.warn; console.warn = (...a) => { warns.push(a.map(String).join(' ')); };
   const { resolveWinProbability } = await import(pathToFileURL(resolve(process.env.WP_RESOLVER_SRC || 'src/wp-resolver.js')).href);
   console.log(`resolver: ${process.env.WP_RESOLVER_SRC || 'src/wp-resolver.js'}`);
