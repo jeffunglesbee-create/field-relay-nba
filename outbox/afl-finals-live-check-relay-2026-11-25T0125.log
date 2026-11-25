@@ -1,0 +1,13 @@
+=== afl finals live check, relay  utc=2026-11-25T01:25:01Z  head=eb03f751 ===
+relay: https://field-relay-nba.jeffunglesbee.workers.dev
+  GET /v2/games?sport=afl&date=2026-09-05 -> HTTP 200, 2 game(s)
+  Adelaide Crows: {"homeConfidence":"68.60","awayConfidence":31.400000000000006}
+  Sydney Swans: {"homeConfidence":"50.61","awayConfidence":49.39}
+  GET /v2/games?sport=afl&date=2026-09-26 -> HTTP 200, 1 game(s)
+  GET /v2/games?sport=afl&date=2026-08-28 -> HTTP 200, 1 game(s)
+  GET /v2/games?sport=afl&date=2026-07-11 -> HTTP 200, 4 game(s)
+  GET /v2/games?sport=afl&date=2026-03-05 -> HTTP 200, 1 game(s)
+  GET /v2/games?sport=afl&date=2027-03-18 -> HTTP 200, 1 game(s)
+  Fremantle (2027-03-18): {"homeConfidence":"68.10","awayConfidence":31.900000000000006}
+COVERAGE: 7 assertions against the DEPLOYED relay, five dates of the finished 2026 season and one 2027 date (as "not 2026's tip": a pre-game tip moves). Needs KALI_AFL_TOKEN set in production (the journalism context is gated on it). Not covered: Kali, a game in progress, the preseason, a 2027 final.
+7 of 7 passed.

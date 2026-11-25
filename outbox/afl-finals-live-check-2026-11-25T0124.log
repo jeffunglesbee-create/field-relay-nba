@@ -1,0 +1,9 @@
+=== afl finals live check, resolver  utc=2026-11-25T01:24:58Z  head=eb03f751 ===
+resolver: src/wp-resolver.js
+  2026-09-04  Adelaide Crows     -> {"probability":0.686,"source":"squiggle","label":"Statistical probability"}  squiggle ["?q=tips;year=2026;team=1;source=8"]
+  2026-09-04  Western Bulldogs   -> {"probability":0.314,"source":"squiggle","label":"Statistical probability"}  squiggle ["?q=tips;year=2026;team=1;source=8"]
+  2026-09-04  Fremantle Dockers  -> {"probability":0.66,"source":"squiggle","label":"Statistical probability"}  squiggle ["?q=tips;year=2026;team=6;source=8"]
+  2026-09-25  Brisbane Lions     -> {"probability":0.515,"source":"squiggle","label":"Statistical probability"}  squiggle ["?q=tips;year=2026;team=6;source=8"]
+  2026-08-27  Collingwood Magpies -> {"probability":0.528,"source":"squiggle","label":"Statistical probability"}  squiggle ["?q=tips;year=2026;team=18;source=8"]
+COVERAGE: 6 assertions: the real resolver, real ESPN one-day reads and real Squiggle, five picks across the 2026 finals (a Qualifying and an Elimination week, the Grand Final, the Wildcard week), the clock pinned. Not covered: another season, Kali (not asked for a final), the journalism route (MODE=relay), a final in progress.
+6 of 6 passed.
