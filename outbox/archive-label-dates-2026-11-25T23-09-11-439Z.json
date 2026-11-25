@@ -1,0 +1,309 @@
+{
+  "ts": "2026-11-25T23:09:11.439Z",
+  "likes": [
+    "EFL Championship"
+  ],
+  "tablesRead": [
+    "regular_season_games",
+    "postseason_games"
+  ],
+  "labels": {
+    "EFL Championship": {
+      "rows": 200,
+      "joined": 0,
+      "dates": 40,
+      "firstDate": "2026-08-14",
+      "lastDate": "2026-11-24",
+      "tables": {
+        "regular_season_games": 200
+      }
+    }
+  },
+  "dates": [
+    "2026-08-14",
+    "2026-08-15",
+    "2026-08-16",
+    "2026-08-17",
+    "2026-08-22",
+    "2026-08-23",
+    "2026-08-28",
+    "2026-08-29",
+    "2026-09-01",
+    "2026-09-02",
+    "2026-09-05",
+    "2026-09-06",
+    "2026-09-08",
+    "2026-09-09",
+    "2026-09-11",
+    "2026-09-12",
+    "2026-09-13",
+    "2026-09-15",
+    "2026-09-18",
+    "2026-09-19",
+    "2026-09-20",
+    "2026-10-09",
+    "2026-10-10",
+    "2026-10-11",
+    "2026-10-13",
+    "2026-10-14",
+    "2026-10-16",
+    "2026-10-17",
+    "2026-10-20",
+    "2026-10-23",
+    "2026-10-24",
+    "2026-10-30",
+    "2026-10-31",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-06",
+    "2026-11-07",
+    "2026-11-21",
+    "2026-11-22",
+    "2026-11-24"
+  ],
+  "rowsByTable": {
+    "regular_season_games": [
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-14",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-15",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-16",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-17",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-22",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-23",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-28",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-08-29",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-01",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-02",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-05",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-06",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-08",
+        "n": 6,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-09",
+        "n": 3,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-11",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-12",
+        "n": 10,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-13",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-15",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-18",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-19",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-09-20",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-09",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-10",
+        "n": 10,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-11",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-13",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-14",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-16",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-17",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-20",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-23",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-24",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-30",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-10-31",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-11-03",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-11-04",
+        "n": 3,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-11-06",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-11-07",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-11-21",
+        "n": 11,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-11-22",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "EFL Championship",
+        "date": "2026-11-24",
+        "n": 8,
+        "joined": 0
+      }
+    ],
+    "postseason_games": []
+  }
+}
