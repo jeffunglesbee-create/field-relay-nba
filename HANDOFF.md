@@ -1,5 +1,14 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-25 (late) — "Build task 1": the ESPN reference grade's runner and workflow are built and checked on stubs; not dispatched
+
+**HEAD:** `431c0cc` ← `6d23457` ← `92718a8` · **Branch:** main · no `src/` change, no deploy.
+**Session doc:** outbox/cc-session-2026-11-25-espn-reference-grade-runner.md (task: the owner's "Build task 1"; spec field-laboratory `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, section "Task 1 built")
+
+- **Built:** `scripts/espn-reference-grade.mjs` (loads the laboratory's two cores and shape-checks them before any request; the census's `collect()`; `/context/date` reach; one ESPN summary per reached match, 1 s apart, a 403 or 429 stops it), its run check (3 scenarios, **49 assertions**, real runner against stub BSD, relay and ESPN servers with the real laboratory cores), its mutation harness (**50 of 50 caught**, controls ok), and `.github/workflows/espn-reference-grade.yml` (dispatch-only, main-only, `lab_ref` a full SHA, verify → grade → commit). Laboratory half: `49f53f0e` (core, 84 assertions, 78 of 78 mutants).
+- **Found by the harness:** a core that throws with the token in its message left no artifact; the error text kept in the artifact is now redacted. Five scenarios the first draft lacked (ESPN timeout, spacing, a throttled day with a valid body, empty ledger, core shapes) were added. One term is equivalent and recorded as such.
+- **Not run:** Task 2 (one independent reader), Task 3 (the run, needs the owner's go-ahead), Task 4. STAGED: dispatch `espn-reference-grade.yml` on `main` with `lab_ref` = the laboratory's full SHA; done when `outbox/espn-reference-grade-latest.json` has `reachedTarget` true. ESPN's own-goal convention and a shootout row in the header `details` are unmeasured until then.
+
 ## SESSION CLOSE-OUT — 2026-11-25 (09:35Z) — the BSD join backfill is DONE for the scheduled scope; the laboratory's reach went from 113 of 238 to 170 of 245 matches
 
 **HEAD:** `f2fd7a9` → the backfill's artifact commits (the workflow's own) · **Branch:** main · no `src/` change, no deploy. **Record:** the "Addendum 2026-11-25" of `docs/CC-CMD-2026-10-28-bsd-join-aliases-beyond-the-fixture-dates.md`; session doc outbox/cc-session-2026-11-24-bsd-join-backfill.md.
