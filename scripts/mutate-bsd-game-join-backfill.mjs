@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 50;
+const MIN_ASSERTIONS = 54;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const REAL = path.join(dir, 'bsd-game-join-backfill.mjs');
 const MUT = path.join(dir, '.mutant-bsd-game-join-backfill.mjs');
@@ -38,12 +38,15 @@ const MUTANTS = [
   M('a stop does not stop', 'console.log(`STOP: ${stop}`); break; }', 'console.log(`STOP: ${stop}`); }'),
   M('a failed day is recorded as answered', 'if (ANSWERED.has(outcome)) {', 'if (true) {'),
   M('an answered day is not recorded', "fs.writeFileSync('outbox/bsd-join-backfill-state.json', JSON.stringify(state, null, 2));\n      }", '}'),
-  M('an answered day is asked again', 'state.attempted[d] !== undefined', 'false'),
+  M('an answered day is asked again', 'isStuck(state.attempted[d], v.scopeBySport)', 'false'),
+  M('an attempted day is stuck whatever is pending on it', 'isStuck(state.attempted[d], v.scopeBySport)', 'state.attempted[d] !== undefined'),
+  M('an attempt does not record the sports it asked about', ', sports: BSD_SOCCER_SPORTS.slice() };', ' };'),
+  M('an attempt records no sports but the in-scope ones', 'sports: BSD_SOCCER_SPORTS.slice() };', 'sports: SCOPE_SPORTS.slice() };'),
   M('complete with an unread day', 'plan.unread.length === 0 && days.length > 0;', 'days.length > 0;'),
   M('the marker is not written', "fs.writeFileSync('outbox/bsd-join-backfill-complete.json'", "void ('outbox/bsd-join-backfill-complete.json'"),
   M('remaining ignores the failed days', 'out.remainingToAttempt = plan.pendingDays - attemptedNow;', 'out.remainingToAttempt = plan.remainingAfter;'),
   M('the secret guard is gone', "if (typeof secret === 'string' && secret !== '' && body.includes(secret)) fail('the artifact would contain the relay secret: refusing to write it');", ''),
-  M('the scope is all six sports', 'rd.regular, SCOPE_SPORTS).pending', 'rd.regular, BSD_SOCCER_SPORTS).pending'),
+  M('the scope is all six sports', 'rd.regular, SCOPE_SPORTS);\n      survey.set', 'rd.regular, BSD_SOCCER_SPORTS);\n      survey.set'),
   M('postseason rows choose a date', 'pendingOf(INCLUDE_POSTSEASON ? rd.rows : rd.regular, SCOPE_SPORTS)', 'pendingOf(rd.rows, SCOPE_SPORTS)'),
   M('postseason rows never choose a date', 'pendingOf(INCLUDE_POSTSEASON ? rd.rows : rd.regular, SCOPE_SPORTS)', 'pendingOf(rd.regular, SCOPE_SPORTS)'),
   M('the marker is written for a narrower range', 'out.rangeComplete && FROM <= DEFAULT_FROM && TO >= DEFAULT_TO && INCLUDE_MLS;', 'out.rangeComplete && INCLUDE_MLS;'),

@@ -11,7 +11,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 47;
+const MIN_ASSERTIONS = 56;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'bsd-backfill-lib.mjs', CHECK = 'check-bsd-backfill-lib.mjs';
 const lib = fs.readFileSync(path.join(dir, LIB), 'utf8');
@@ -33,6 +33,14 @@ const MUTANTS = [
   M('pendingOf: an absent id is an id', 'r.bsd_event_id === undefined || ', ''),
   M('pendingOf: a null id is an id', 'r.bsd_event_id === null || ', ''),
   M('pendingOf: soccer rows not counted', '    soccer++;\n', ''),
+  M('isStuck: an attempt is stuck whatever is pending', "return Object.keys(pendingBySport).every((s) => asked.includes(s));", 'return true;'),
+  M('isStuck: some sport asked is enough', "return Object.keys(pendingBySport).every((s) => asked.includes(s));", 'return Object.keys(pendingBySport).some((s) => asked.includes(s));'),
+  M('isStuck: nothing is ever stuck', "return Object.keys(pendingBySport).every((s) => asked.includes(s));", 'return false;'),
+  M('isStuck: an attempt without sports asked about every sport', "Array.isArray(attempt.sports) ? attempt.sports : LEGACY_ATTEMPT_SPORTS;", "Array.isArray(attempt.sports) ? attempt.sports : Object.keys(pendingBySport);"),
+  M('isStuck: a recorded list is added to the legacy one', "Array.isArray(attempt.sports) ? attempt.sports : LEGACY_ATTEMPT_SPORTS;", "Array.isArray(attempt.sports) ? attempt.sports.concat(LEGACY_ATTEMPT_SPORTS) : LEGACY_ATTEMPT_SPORTS;"),
+  M('isStuck: an attempt that is not an object is stuck', "if (!isObj(attempt) || !isObj(pendingBySport)) return false;", "if (!isObj(pendingBySport)) return true;"),
+  M('isStuck: a pending map that is not an object is stuck', "if (!isObj(attempt) || !isObj(pendingBySport)) return false;", "if (!isObj(attempt)) return false;"),
+  M('LEGACY_ATTEMPT_SPORTS: the list follows the join (UEFA added)', "export const LEGACY_ATTEMPT_SPORTS = ['MLS', 'EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1'];", "export const LEGACY_ATTEMPT_SPORTS = ['MLS', 'EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'UEFA Champions League', 'EFL Championship'];"),
   M('planDates: unsorted', '[...survey.keys()].sort()', '[...survey.keys()]'),
   M('planDates: a clean day is chosen', 'survey.get(d).pending > 0)', 'survey.get(d).pending >= 0)'),
   M('planDates: no limit', 'withWork.slice(0, maxDates)', 'withWork'),

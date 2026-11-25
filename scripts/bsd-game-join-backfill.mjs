@@ -14,8 +14,8 @@
 //   - One POST per chosen date; each answer is classified; each is VERIFIED by re-reading /context/date (cache-busted) and checking that
 //     the pending count fell by exactly what the route said it wrote. A mismatch, a refusal, a 429, two failed passes in a row, or the
 //     upstream-page cap stops the run. Nothing after a stop is written.
-//   - A date whose pass ANSWERED but left rows pending (BSD has no event for them, or none matched) is recorded in the state file and is not
-//     asked again: the scheduled run would otherwise re-spend BSD pages on it every day. A date whose pass FAILED is not recorded, so it is retried.
+//   - A date whose pass ANSWERED but left rows pending (BSD has no event for them, or none matched) is recorded in the state file, with the sports the
+//     join covered at the time, and is not asked again unless a sport still pending on it is one the join has learned since (isStuck, 2026-11-25): the scheduled run would otherwise re-spend BSD pages on it every day. A date whose pass FAILED is not recorded, so it is retried.
 //   - Complete when no un-attempted pending day is left and no day is unread: a marker file says so and the workflow stops running.
 //
 // BSD's request budget is unknown (no RateLimit header; its own pages say both 7,500 and 100 a day). MAX_DATES (default 5, about 25 pages) and
@@ -42,7 +42,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { BSD_SOCCER_SPORTS } from '../src/bsd-game-join.js';
-import { daysBetween, splitRows, pendingOf, planDates, outcomeOf, verifyOf, stopAfter } from './bsd-backfill-lib.mjs';
+import { daysBetween, splitRows, pendingOf, planDates, outcomeOf, verifyOf, stopAfter, isStuck } from './bsd-backfill-lib.mjs';
 
 const RELAY = process.env.RELAY_URL || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const DEFAULT_FROM = '2026-02-01';   // the earliest date with an unjoined soccer row in either table (D1, 2026-11-24: February, MLS tournament rows)
@@ -135,14 +135,16 @@ async function main() {
       const rd = await readDay(day, false);
       const k = String(rd.status);
       surveyStatuses[k] = (surveyStatuses[k] === undefined ? 0 : surveyStatuses[k]) + 1;
-      survey.set(day, rd.rows === null ? null : { ...pendingOf(rd.rows, BSD_SOCCER_SPORTS), scope: pendingOf(INCLUDE_POSTSEASON ? rd.rows : rd.regular, SCOPE_SPORTS).pending });
+      const inScope = rd.rows === null ? null : pendingOf(INCLUDE_POSTSEASON ? rd.rows : rd.regular, SCOPE_SPORTS);
+      survey.set(day, rd.rows === null ? null : { ...pendingOf(rd.rows, BSD_SOCCER_SPORTS), scope: inScope.pending, scopeBySport: inScope.bySport });
     }
   }));
-  // a day already attempted whose pass answered is not asked again: it is reported as stuck, not re-planned
+  // a day already attempted whose pass answered is not asked again: it is reported as stuck, not re-planned. Stuck means every sport still pending on it was a sport that
+  // attempt asked about (isStuck): a label the join learned since (2026-11-25: UEFA, EFL Championship) makes the day worth asking again.
   const eligible = new Map();
   const stuck = [];
   for (const [d, v] of survey) {
-    if (v !== null && v.scope > 0 && state.attempted[d] !== undefined) { stuck.push(d); eligible.set(d, { pending: 0 }); } else eligible.set(d, v === null ? null : { pending: v.scope });
+    if (v !== null && v.scope > 0 && isStuck(state.attempted[d], v.scopeBySport)) { stuck.push(d); eligible.set(d, { pending: 0 }); } else eligible.set(d, v === null ? null : { pending: v.scope });
   }
   stuck.sort();
   const plan = planDates({ survey: eligible, maxDates: MAX_DATES });
@@ -185,7 +187,7 @@ async function main() {
       const rec = { date, outcome, pendingBefore: before.pending, pendingBeforeBySport: before.bySport, pendingAfter, verify, response: slim(resp) };
       out.dates.push(rec);
       if (ANSWERED.has(outcome)) {
-        state.attempted[date] = { at: new Date().toISOString(), outcome, pendingBefore: before.pending, pendingAfter, written: written === null ? 0 : written, unmatched: rec.response.unmatched };
+        state.attempted[date] = { at: new Date().toISOString(), outcome, pendingBefore: before.pending, pendingAfter, written: written === null ? 0 : written, unmatched: rec.response.unmatched, sports: BSD_SOCCER_SPORTS.slice() };
         fs.writeFileSync('outbox/bsd-join-backfill-state.json', JSON.stringify(state, null, 2));
       }
       console.log(`${date}  ${outcome}  pending ${before.pending} -> ${pendingAfter === null ? '?' : pendingAfter}  written ${written === null ? '?' : written}  pages ${pages === null ? '?' : pages}  verified ${verify.verified}${verify.verified === false ? ` (${verify.why})` : ''}`);

@@ -51,6 +51,19 @@ export function pendingOf(rows, sports) {
   return { soccer, pending, bySport };
 }
 
+/** The labels the join covered when the state file's older attempts were made (before 2026-11-25). An attempt recorded without a `sports` list asked about these and no
+ *  others. FIXED on purpose: if it followed the join's list, adding a label to that list would un-ask every old attempt for it. */
+export const LEGACY_ATTEMPT_SPORTS = ['MLS', 'EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1'];
+
+/** Is a day already attempted, and still pending, STUCK: not asked again? Only when every sport still pending on it was a sport that attempt asked about. A label the join
+ *  has learned since (UEFA, EFL Championship: 2026-11-25) is a new reason to ask, on a day whose earlier attempt answered for six. Anything unreadable is not stuck:
+ *  the day is asked again, which costs a few BSD pages and never writes a wrong row. */
+export function isStuck(attempt, pendingBySport) {
+  if (!isObj(attempt) || !isObj(pendingBySport)) return false;
+  const asked = Array.isArray(attempt.sports) ? attempt.sports : LEGACY_ATTEMPT_SPORTS;
+  return Object.keys(pendingBySport).every((s) => asked.includes(s));
+}
+
 /**
  * @param survey Map<day, {pending: number} | null>   null = that day was not read
  * Oldest first; days with nothing pending are not chosen; a day that was not read is never counted as clean.

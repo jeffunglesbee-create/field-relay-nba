@@ -14,6 +14,9 @@ const FAIL_FAST = argv.includes('--fail-fast');
 const flag = (name, dflt) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : dflt; };
 const SOURCE = path.resolve(flag('--source', 'scripts/bsd-game-join-backfill.mjs'));
 const SECRET = 'test-secret-0123456789';
+// the join's labels (src/bsd-game-join.js, 13 since 2026-11-25), written out here so the check does not follow the source: MLS is the one the scheduled scope may leave out
+const NOT_MLS = ['EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'UEFA Champions League', 'UEFA Europa League', 'UEFA Europa Conference League', 'UEFA Champions League Qualifying', 'UEFA Europa League Qualifying', 'UEFA Europa Conference League Qualifying', 'EFL Championship'];
+const ALL_LABELS = ['MLS', ...NOT_MLS];
 
 let scenarios = 0, assertions = 0, failed = 0, finished = false;
 process.on('exit', (code) => {
@@ -50,7 +53,7 @@ function relayRoute(w) {
       const date = JSON.parse(body).date;
       const b = w.behave[date] === undefined ? { kind: 'ok', join: 99 } : w.behave[date];
       const rows = w.days.get(date) || [];
-      const pending = rows.filter((r) => ['MLS', 'EPL'].includes(r.sport) && r.bsd_event_id === null);
+      const pending = rows.filter((r) => ['MLS', 'EPL', 'UEFA Champions League'].includes(r.sport) && r.bsd_event_id === null);
       if (b.kind === 'leak') return [502, { ok: false, date, reason: `the route echoed ${SECRET}` }];
       if (b.kind === 'fail') return [502, { ok: false, date, reason: `BSD events for ${date} not fully read; nothing written` }];
       if (b.kind === 'refuse') return [401, 'Unauthorized'];
@@ -113,7 +116,7 @@ await scenario('a dry run', async () => {
 await scenario('MLS-only days are out of scope unless the owner widens it', async () => {
   const w = () => world({ days: { [D.fine]: [{ id: 'm1', sport: 'MLS', bsd_event_id: null }, { id: 'm2', sport: 'MLS', bsd_event_id: null }] } });
   const r = await run({ world: w(), secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5' } });
-  eq('the day with only MLS rows pending is not chosen, and is counted as out of scope with its rows', [r.art.chosen, r.art.survey.outOfScopeDays, r.art.survey.outOfScopeRows, r.art.survey.scopeSports], [[D.a, D.b, D.c], 1, 2, ['EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1']]);
+  eq('the day with only MLS rows pending is not chosen, and is counted as out of scope with its rows', [r.art.chosen, r.art.survey.outOfScopeDays, r.art.survey.outOfScopeRows, r.art.survey.scopeSports], [[D.a, D.b, D.c], 1, 2, NOT_MLS]);
   const wide = await run({ world: w(), secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5', INCLUDE_MLS: 'true' } });
   eq('with INCLUDE_MLS it is chosen, in date order, and nothing is out of scope', [wide.art.chosen, wide.art.survey.outOfScopeDays, wide.art.survey.scopeSports.includes('MLS')], [[D.a, D.fine, D.b, D.c], 0, true]);
 });
@@ -130,7 +133,7 @@ await scenario('a real run: two dates, each verified', async () => {
   eq('totals: 4 written, 10 pages, no stop, one day left to attempt, not complete', [a.written, a.pagesUsed, a.stoppedBecause, a.remainingToAttempt, a.complete], [4, 10, null, 1, false]);
   eq('the state holds both answered days, with what was left pending', [Object.keys(r.state.attempted).sort(), r.state.attempted[D.b].pendingAfter, r.state.attempted[D.a].pendingAfter], [[D.a, D.b], 1, 0]);
   eq('the artifact names, no marker, and the secret is in none of them', [r.names, r.complete, r.raw.includes(SECRET)], [['bsd-join-backfill-2' + a.ts.slice(1).replace(/[:.]/g, '-') + '.json', 'bsd-join-backfill-latest.json', 'bsd-join-backfill-state.json'].sort(), null, false]);
-  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), /scope 5 sports \(MLS not included\), regular-season rows choose a date: to attempt 3 days \/ 4 rows/.test(a.coverageLine), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
+  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), /scope 12 sports \(MLS not included\), regular-season rows choose a date: to attempt 3 days \/ 4 rows/.test(a.coverageLine), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
 });
 
 await scenario('a second run does not ask again about a day it already answered', async () => {
@@ -140,6 +143,22 @@ await scenario('a second run does not ask again about a day it already answered'
   eq('the first run recorded day b as answered with nothing written (none matched)', [first.art.dates[1].outcome, first.art.dates[1].verify.verified], ['none-matched', true]);
   eq('day b still has in-scope rows pending but is reported as attempted, not chosen; the next run takes day c', [posted(second), second.art.survey.attemptedStillPending, second.art.chosen], [[D.c], 1, [D.c]]);
   eq('day c is the last one to attempt, but day six is unread, so the run is NOT complete and writes no marker', [second.art.complete, second.complete, second.art.remainingToAttempt], [false, null, 0]);
+});
+
+await scenario('a day attempted before the join knew a label is asked again for that label, and only for it', async () => {
+  // D.b: an EPL row and a UEFA row pending; D.c: an EPL row pending. Both days were attempted before 2026-11-25, so their state entries carry no `sports` list.
+  const days = { [D.a]: soccer(D.a, 2, true),
+    [D.b]: [{ id: 'b-e', sport: 'EPL', bsd_event_id: null }, { id: 'b-u', sport: 'UEFA Champions League', bsd_event_id: null }],
+    [D.c]: [{ id: 'c-e', sport: 'EPL', bsd_event_id: null }] };
+  const legacy = { attempted: { [D.b]: { at: '2026-11-20T00:00:00.000Z', outcome: 'joined', pendingBefore: 1, pendingAfter: 1, written: 0, unmatched: [] }, [D.c]: { at: '2026-11-20T00:00:00.000Z', outcome: 'none-matched', pendingBefore: 1, pendingAfter: 1, written: 0, unmatched: [] } } };
+  const dry = await run({ world: world({ days }), state: legacy, secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5' } });
+  eq('the plan takes the day whose pending UEFA row the old attempt never asked about, and leaves the day with only an EPL row stuck', [dry.art.chosen, dry.art.survey.attemptedStillPending], [[D.b], 1]);
+  const w = world({ days, behave: { [D.b]: { kind: 'ok', join: 0 } } });
+  const first = await run({ world: w, state: legacy, env: { MAX_DATES: '5' } });
+  eq('a real run posts that one day, and nothing for the stuck one', [posted(first), first.art.dates[0].outcome], [[D.b], 'none-matched']);
+  eq('the new entry records the sports the join covered, all thirteen labels, and the old entry of the stuck day is untouched', [first.state.attempted[D.b].sports, first.state.attempted[D.c].sports], [ALL_LABELS, undefined]);
+  const second = await run({ world: w, state: first.state, secret: null, env: { DRY_RUN: 'true', MAX_DATES: '5' } });
+  eq('the day just attempted is stuck now, UEFA row and all: both days are reported, none is chosen', [second.art.chosen, second.art.survey.attemptedStillPending], [[], 2]);
 });
 
 await scenario('complete when nothing is left and nothing is unread', async () => {

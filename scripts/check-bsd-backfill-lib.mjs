@@ -58,6 +58,19 @@ eq('outcomeOf: a write is a join', L.outcomeOf({ status: 200, ok: true, pending:
 eq('outcomeOf: pending, no write, no events read is BSD having none; an absent count is not events', [L.outcomeOf({ status: 200, ok: true, pending: 5, written: 0, eventsRead: 0 }), L.outcomeOf({ status: 200, ok: true, pending: 5, written: 0 })], ['bsd-has-no-events', 'bsd-has-no-events']);
 eq('outcomeOf: events read and none matched', L.outcomeOf({ status: 200, ok: true, pending: 5, written: 0, eventsRead: 60 }), 'none-matched');
 
+// ---- stuck: a day already attempted is not asked again, unless a sport still pending on it is one that attempt did not ask about
+const BY = (...sp) => Object.fromEntries(sp.map((x) => [x, 1]));
+eq('LEGACY_ATTEMPT_SPORTS: the six the join covered before 2026-11-25, fixed', L.LEGACY_ATTEMPT_SPORTS, ['MLS', 'EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1']);
+eq('isStuck: a day never attempted is not stuck', L.isStuck(undefined, BY('EPL')), false);
+eq('isStuck: an old attempt (no sports list) with only a legacy sport pending is stuck', L.isStuck({ outcome: 'joined' }, BY('EPL')), true);
+eq('isStuck: an old attempt with a UEFA row pending is NOT stuck', L.isStuck({ outcome: 'joined' }, BY('UEFA Champions League')), false);
+eq('isStuck: an old attempt with the EFL Championship pending is NOT stuck', L.isStuck({ outcome: 'joined' }, BY('EFL Championship')), false);
+eq('isStuck: one legacy and one new sport pending is NOT stuck (every sport must have been asked, not some)', L.isStuck({ outcome: 'joined' }, BY('EPL', 'EFL Championship')), false);
+eq('isStuck: an attempt that recorded its sports is stuck for each of them', L.isStuck({ sports: ['EPL', 'EFL Championship'] }, BY('EPL', 'EFL Championship')), true);
+eq('isStuck: and not for one it did not list', L.isStuck({ sports: ['EPL'] }, BY('EPL', 'EFL Championship')), false);
+eq('isStuck: a recorded list REPLACES the legacy one, it does not add to it', L.isStuck({ sports: ['EFL Championship'] }, BY('EPL')), false);
+eq('isStuck: an attempt that is not an object, or a pending map that is not, is not stuck (the day is asked again)', [L.isStuck('x', BY('EPL')), L.isStuck(null, BY('EPL')), L.isStuck({ outcome: 'joined' }, undefined), L.isStuck({ outcome: 'joined' }, ['EPL'])], [false, false, false, false]);
+
 // ---- did the rows change by what the route said
 eq('verifyOf: pending fell by exactly what was written', L.verifyOf({ pendingBefore: 10, pendingAfter: 7, written: 3 }), { verified: true, expected: 7 });
 eq('verifyOf: it fell by less', L.verifyOf({ pendingBefore: 10, pendingAfter: 8, written: 3 }).verified, false);
