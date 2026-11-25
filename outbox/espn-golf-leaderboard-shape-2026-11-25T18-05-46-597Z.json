@@ -1,0 +1,218 @@
+{
+  "ts": "2026-11-25T18:05:46.597Z",
+  "question": "does the leaderboard the mirror reads list a competitors array for its first event, and does the event-specific read the relay uses differ?",
+  "mirrorRead": {
+    "url": "{SITE}/golf/leaderboard?league=pga",
+    "status": 200,
+    "error": null,
+    "contentType": "application/json;charset=UTF-8",
+    "bytes": 3347,
+    "events": [
+      {
+        "id": "401850982",
+        "name": "Hero World Challenge",
+        "keys": [
+          "id",
+          "uid",
+          "date",
+          "endDate",
+          "name",
+          "shortName",
+          "primary",
+          "hasPlayerStats",
+          "hasCourseStats",
+          "purse",
+          "displayPurse",
+          "league",
+          "season",
+          "seasonType",
+          "links",
+          "tournament",
+          "status",
+          "defendingChampion",
+          "playoffType",
+          "competitions",
+          "courses"
+        ],
+        "date": "2026-12-03T05:00Z",
+        "endDate": "2026-12-06T05:00Z",
+        "season": 2026,
+        "statusState": "pre",
+        "statusCompleted": false,
+        "statusDescription": "Scheduled",
+        "tournament": {
+          "keys": [
+            "id",
+            "displayName",
+            "major",
+            "scoringSystem",
+            "numberOfRounds",
+            "cutRound",
+            "cutScore",
+            "cutCount"
+          ],
+          "numberOfRounds": 4
+        },
+        "competitions": "array(1)",
+        "competition0Keys": [
+          "id",
+          "uid",
+          "date",
+          "endDate",
+          "recent",
+          "onWatchESPN",
+          "dataFormat",
+          "status",
+          "broadcasts",
+          "leaders",
+          "holeByHoleSource",
+          "scoringSystem"
+        ],
+        "competitors": "undefined",
+        "competitor0Keys": null,
+        "playersInStates": null
+      }
+    ],
+    "topKeys": [
+      "events"
+    ]
+  },
+  "relayStyleRead": {
+    "url": "{SITE}/golf/leaderboard?league=pga&event=401850982",
+    "status": 200,
+    "error": null,
+    "contentType": "application/json;charset=UTF-8",
+    "bytes": 3357,
+    "events": [
+      {
+        "id": "401850982",
+        "name": "Hero World Challenge",
+        "keys": [
+          "id",
+          "uid",
+          "date",
+          "endDate",
+          "name",
+          "shortName",
+          "primary",
+          "hasPlayerStats",
+          "hasCourseStats",
+          "purse",
+          "displayPurse",
+          "league",
+          "season",
+          "seasonType",
+          "week",
+          "links",
+          "tournament",
+          "status",
+          "defendingChampion",
+          "playoffType",
+          "competitions",
+          "courses"
+        ],
+        "date": "2026-12-03T05:00Z",
+        "endDate": "2026-12-06T05:00Z",
+        "season": 2026,
+        "statusState": "pre",
+        "statusCompleted": false,
+        "statusDescription": "Scheduled",
+        "tournament": {
+          "keys": [
+            "id",
+            "displayName",
+            "major",
+            "scoringSystem",
+            "numberOfRounds",
+            "cutRound",
+            "cutScore",
+            "cutCount"
+          ],
+          "numberOfRounds": 4
+        },
+        "competitions": "array(1)",
+        "competition0Keys": [
+          "id",
+          "uid",
+          "date",
+          "endDate",
+          "recent",
+          "onWatchESPN",
+          "dataFormat",
+          "status",
+          "broadcasts",
+          "leaders",
+          "holeByHoleSource",
+          "scoringSystem"
+        ],
+        "competitors": "undefined",
+        "competitor0Keys": null,
+        "playersInStates": null
+      }
+    ],
+    "topKeys": [
+      "events"
+    ]
+  },
+  "scoreboardRead": {
+    "url": "{SITE}/golf/pga/scoreboard",
+    "status": 200,
+    "error": null,
+    "contentType": "application/json;charset=UTF-8",
+    "bytes": 13884,
+    "events": [
+      {
+        "id": "401850982",
+        "name": "Hero World Challenge",
+        "keys": [
+          "id",
+          "uid",
+          "date",
+          "endDate",
+          "name",
+          "shortName",
+          "season",
+          "competitions",
+          "links",
+          "status"
+        ],
+        "date": "2026-12-03T05:00Z",
+        "endDate": "2026-12-06T05:00Z",
+        "season": 2026,
+        "statusState": "pre",
+        "statusCompleted": false,
+        "statusDescription": "Scheduled",
+        "tournament": null,
+        "competitions": "array(1)",
+        "competition0Keys": [
+          "id",
+          "uid",
+          "date",
+          "endDate",
+          "timeValid",
+          "neutralSite",
+          "conferenceCompetition",
+          "playByPlayAvailable",
+          "recent",
+          "status",
+          "broadcasts",
+          "startDate",
+          "broadcast",
+          "geoBroadcasts",
+          "highlights"
+        ],
+        "competitors": "undefined",
+        "competitor0Keys": null,
+        "playersInStates": null
+      }
+    ],
+    "topKeys": [
+      "leagues",
+      "season",
+      "day",
+      "events",
+      "provider"
+    ]
+  },
+  "firstEventListsCompetitors": false
+}
