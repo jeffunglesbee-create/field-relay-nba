@@ -381,6 +381,10 @@ jobs:
           node scripts/check-bsd-game-join-wiring.mjs
           node scripts/mutate-bsd-game-join.mjs
           node scripts/check-bsd-game-join-live.mjs --self-test
+          # 2026-11-25: the UEFA labels and their 64 club aliases, the join over outbox/fixture-bsd-game-join-uefa.json (302 of 302), and a mutation
+          # harness that deletes each alias and each label in turn and breaks the join's own rule (74 mutations, each of which must turn the check red).
+          node scripts/check-bsd-uefa-join.mjs
+          node scripts/mutate-bsd-uefa-join.mjs
           # 2026-11-06: how long a day's games wait for their join. The real marker logic against simulated days: rows
           # created at 10:00Z (and off the hour) must be joined by the first cycle after one marker hour, not at the next
           # midnight UTC (it was 855 minutes, the cause of "No lineup source for this game" on a finished game), at every
