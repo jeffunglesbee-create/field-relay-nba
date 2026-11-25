@@ -1,47 +1,122 @@
 {
   "attempted": {
     "2026-08-15": {
-      "at": "2026-11-24T20:45:36.674Z",
+      "at": "2026-11-25T23:39:58.733Z",
       "outcome": "joined",
-      "pendingBefore": 22,
+      "pendingBefore": 10,
       "pendingAfter": 2,
-      "written": 20,
+      "written": 8,
       "unmatched": [
         "MLS: Seattle Sounders FC v Vancouver Whitecaps FC",
         "MLS: Austin FC v FC Dallas"
+      ],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
       ]
     },
     "2026-08-16": {
-      "at": "2026-11-24T20:45:37.530Z",
+      "at": "2026-11-25T23:39:59.279Z",
       "outcome": "joined",
-      "pendingBefore": 14,
+      "pendingBefore": 2,
       "pendingAfter": 0,
-      "written": 14,
-      "unmatched": []
+      "written": 2,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
     },
     "2026-08-17": {
-      "at": "2026-11-24T20:45:38.220Z",
+      "at": "2026-11-25T23:39:59.817Z",
       "outcome": "joined",
-      "pendingBefore": 3,
+      "pendingBefore": 1,
       "pendingAfter": 0,
-      "written": 3,
-      "unmatched": []
+      "written": 1,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
     },
     "2026-08-19": {
-      "at": "2026-11-24T20:45:40.978Z",
+      "at": "2026-11-25T23:40:01.445Z",
       "outcome": "joined",
-      "pendingBefore": 23,
+      "pendingBefore": 4,
       "pendingAfter": 0,
-      "written": 23,
-      "unmatched": []
+      "written": 4,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
     },
     "2026-08-20": {
-      "at": "2026-11-24T20:45:41.894Z",
+      "at": "2026-11-25T23:40:02.959Z",
       "outcome": "joined",
-      "pendingBefore": 9,
+      "pendingBefore": 36,
       "pendingAfter": 0,
-      "written": 9,
-      "unmatched": []
+      "written": 36,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
     },
     "2026-02-04": {
       "at": "2026-11-24T23:29:20.391Z",
@@ -321,12 +396,27 @@
       "unmatched": []
     },
     "2026-08-22": {
-      "at": "2026-11-25T09:04:58.141Z",
+      "at": "2026-11-25T23:40:09.692Z",
       "outcome": "joined",
-      "pendingBefore": 38,
+      "pendingBefore": 11,
       "pendingAfter": 0,
-      "written": 38,
-      "unmatched": []
+      "written": 11,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
     },
     "2026-08-23": {
       "at": "2026-11-25T09:04:59.391Z",
@@ -704,6 +794,107 @@
       "pendingAfter": 0,
       "written": 5,
       "unmatched": []
+    },
+    "2026-05-20": {
+      "at": "2026-11-25T23:39:52.512Z",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingAfter": 4,
+      "written": 1,
+      "unmatched": [
+        "MLS: St. Louis CITY SC v Houston Dynamo FC",
+        "MLS: Columbus Crew v New York City Football Club",
+        "MLS: St. Louis CITY SC v Houston Dynamo FC",
+        "MLS: Columbus Crew v New York City Football Club"
+      ],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
+    },
+    "2026-05-27": {
+      "at": "2026-11-25T23:39:53.235Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
+    },
+    "2026-05-30": {
+      "at": "2026-11-25T23:39:54.920Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
+    },
+    "2026-08-14": {
+      "at": "2026-11-25T23:39:57.233Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 3,
+      "written": 1,
+      "unmatched": [
+        "MLS: Portland Timbers v Club Tijuana",
+        "MLS: Club América v Austin FC",
+        "MLS: Cruz Azul v Chicago Fire FC"
+      ],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
     }
   }
 }
