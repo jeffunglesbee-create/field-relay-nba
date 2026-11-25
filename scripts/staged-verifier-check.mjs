@@ -71,6 +71,7 @@ const IS_MAIN = import.meta.url === pathToFileURL(process.argv[1] ?? '').href
 const DOCS = 'docs'
 const LOCAL_REGISTRY = 'scripts/staged-verdicts.mjs'
 const WORKFLOWS = '.github/workflows'
+const EXECUTOR = 'scripts/verify-staged-items.mjs'
 
 /// A live staged claim: the word STAGED in a heading or bolded assertion, as
 /// opposed to prose ABOUT staging. Deliberately narrow — this fires on the
@@ -93,6 +94,13 @@ export const VERIFIER_TAG = /\(verifier:\s*([a-z0-9_-]+)\s*@\s*([a-z]+)\/([A-Za-
 
 /// Split a document into live staged claims and their tags. Returns one entry
 /// per claim so a file with two staged items cannot be satisfied by one tag.
+// A verdict in the registry that nothing REPORTS is a verdict nobody runs. The staged item's verifier is the script the scheduled workflow executes, so the id has to
+// appear in it as a string literal (an `id: '...'`). Found by the review of the AFL finals build: deleting the call that reports a verdict, and its EXPECTED_CHECKS, left every
+// gate green while the claim still named the id.
+export function executorCalls(executorSource, id) {
+  return executorSource.includes(`'${id}'`)
+}
+
 export function claimsIn(text) {
   const out = []
   for (const m of text.matchAll(STAGED_CLAIM)) {
@@ -136,6 +144,9 @@ if (IS_MAIN && process.argv.includes('--self-test')) {
     claimsIn('**Staged verification (Rule 74).** That the alias fix raises soccer opening coverage is *staged*, blocked by a soccer slate.').length === 1)
   t('and it reads as an orphan until tagged',
     claimsIn('**Staged verification (Rule 74).** blocked by a soccer slate.')[0].id === null)
+  t('an id the executor reports is called', executorCalls("add({ id: 'afl_finals_tip_in_season', status })", 'afl_finals_tip_in_season'))
+  t('an id the executor does not name is not called', !executorCalls("add({ id: 'afl_round_in_season', status })", 'afl_finals_tip_in_season'))
+  t('an id that is only the prefix of another is not called', !executorCalls("add({ id: 'afl_round_in_season_2' })", 'afl_round_in_season'))
   t('a malformed tag does not count as tagged',
     claimsIn('**STAGED** (verifier: no_workflow_named)')[0].id === null)
 
@@ -150,6 +161,7 @@ const files = existsSync(DOCS)
   : []
 
 const registry = existsSync(LOCAL_REGISTRY) ? readFileSync(LOCAL_REGISTRY, 'utf8') : ''
+const executor = existsSync(EXECUTOR) ? readFileSync(EXECUTOR, 'utf8') : ''
 const scheduled = f => {
   const p = join(WORKFLOWS, f)
   return existsSync(p) && /^\s*schedule:/m.test(readFileSync(p, 'utf8'))
@@ -163,6 +175,7 @@ for (const f of files) {
     if (!c.id) { orphans.push(where); continue }
     if (c.repo !== 'relay') { crossRepo.push(`${f}: ${c.id} @ ${c.repo}/${c.workflow}`); continue }
     if (!registry.includes(c.id)) { unresolved.push(`${where}\n      id "${c.id}" is not a verdict in ${LOCAL_REGISTRY}`); continue }
+    if (!executorCalls(executor, c.id)) { unresolved.push(`${where}\n      id "${c.id}" is a verdict but ${EXECUTOR} never reports it: nothing runs it`); continue }
     if (!scheduled(c.workflow)) { unresolved.push(`${where}\n      ${c.workflow} has no schedule: — a verifier nobody runs is the defect`); continue }
     ok.push(`${f}: ${c.id} @ ${c.workflow}`)
   }
