@@ -78,7 +78,14 @@ if (MODE === 'resolver') {
   ok('R4 GWS GIANTS v Geelong Cats (the old relay served null) is served Squiggle\'s Greater Western Sydney tip 42.16', (sq(g1, 'GWS GIANTS') || {}).homeConfidence === '42.16', 'got ' + JSON.stringify(sq(g1, 'GWS GIANTS')));
   const o1 = await games('2026-03-05');
   ok('R5 the Opening Round games (round 0; the old relay served no journalism key) carry a journalism key with Squiggle\'s tip', o1.length > 0 && o1.every(g => g.journalism && g.journalism.squiggle), 'got ' + JSON.stringify(o1.map(g => g.journalism)));
-  console.log(`COVERAGE: ${total} assertions against the DEPLOYED relay, five dates of the finished 2026 season. Needs KALI_AFL_TOKEN set in production (the journalism context is gated on it). Not covered: Kali, a game in progress, 2027.`);
+  // The year (Part D). The journalism year was the constant `season: 2026`, so any 2027 date was served 2026's round-1 tip: the scheduled 2027-03-18 Fremantle v Western Bulldogs game
+  // carried 71.48, 2026's Western Bulldogs v GWS (read 2026-11-25; Squiggle's own tip for the 2027 game was 68.10 that day). A pre-game tip moves until kickoff, so this asserts what is
+  // stable: a number, and not the 2026 one.
+  const y1 = await games('2027-03-18');
+  const y = sq(y1, 'Fremantle');
+  console.log(`  Fremantle (2027-03-18): ${JSON.stringify(y)}`);
+  ok('R6 a 2027 game is served a 2027 tip, not 2026\'s round-1 tip: Fremantle v Western Bulldogs (2027-03-18) carries a number that is not 71.48', !!y && typeof y === 'object' && /^\d+(\.\d+)?$/.test(String(y.homeConfidence)) && y.homeConfidence !== '71.48', 'got ' + JSON.stringify(y));
+  console.log(`COVERAGE: ${total} assertions against the DEPLOYED relay, five dates of the finished 2026 season and one 2027 date (as "not 2026's tip": a pre-game tip moves). Needs KALI_AFL_TOKEN set in production (the journalism context is gated on it). Not covered: Kali, a game in progress, the preseason, a 2027 final.`);
 }
 console.log(`${passed} of ${total} passed.`);
 process.exit(passed === total ? 0 : 1);
