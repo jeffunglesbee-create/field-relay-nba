@@ -180,5 +180,21 @@ for (const [id, payload] of Object.entries(CAN_PASS)) {
   ok('artifact selection: the experiment\'s own filename shape, sorted', JSON.stringify(cflAbortArtifactFiles(['cfl-abort-experiment-20261110T120000Z.json', 'cfl-abort-experiment-20261101T135557Z.json', 'cfl-abort-local-workerd-20261101.txt', 'cfl-abort-experiment-20261101T135557Z.json.bak', 'cfl-abort-experiment-2026.json'])), JSON.stringify(['cfl-abort-experiment-20261101T135557Z.json', 'cfl-abort-experiment-20261110T120000Z.json']))
 }
 
+// ── afl_finals_tip_in_season and afl_regular_tip_in_season: the branches the generic mustFailOn / CAN_PASS pair cannot see ──
+// `Math.abs(Number(served) - expectedHome) > 0.005` is false for NaN, so a relay that served no number (a renamed or dropped field, a non-numeric value) PASSED. Each case below
+// is a payload a real regression could produce, and the verdict must say FAIL or PENDING, never PASS.
+for (const [id, countKey] of [['afl_finals_tip_in_season', 'finalsInWindow'], ['afl_regular_tip_in_season', 'gamesInWindow']]) {
+  const v = VERDICTS[id]
+  const base = { [countKey]: 3, reference: 'found', expectedHome: 68.6, served: '68.60' }
+  const say = (o) => String(v({ ...base, ...o }))
+  check(`${id}: the tip served as a string or a number, equal to the reference, is PASS`, say({}).startsWith('PASS') && say({ served: 68.6 }).startsWith('PASS'), say({}))
+  for (const [what, served] of [['undefined (the field is gone)', undefined], ['NaN', NaN], ['text', 'abc'], ['an object', {}], ['an empty string', ''], ['blanks', '  ']])
+    check(`${id}: a served value that is ${what} is FAIL, not PASS`, say({ served }).startsWith('FAIL'), say({ served }))
+  check(`${id}: null served (the relay gave no tip) is FAIL`, say({ served: null }).startsWith('FAIL'), say({ served: null }))
+  check(`${id}: a served tip that differs from the reference by more than 0.005 is FAIL, 0.004 is PASS`, say({ served: '68.61' }).startsWith('FAIL') && say({ served: '68.604' }).startsWith('PASS'), `${say({ served: '68.61' })} / ${say({ served: '68.604' })}`)
+  for (const [what, o] of [['no game of the kind in the window', { [countKey]: 0 }], ['no reference found', { reference: 'none' }], ['a reference with no number', { expectedHome: null }], ['a reference that is NaN', { expectedHome: NaN }], ['the relay serving no journalism context', { served: 'absent' }]])
+    check(`${id}: ${what} is PENDING, not PASS or FAIL`, say(o).startsWith('PENDING'), say(o))
+}
+
 console.log(fail ? `\n${fail} failed` : `\n${pass} passed`)
 process.exit(fail ? 1 : 0)

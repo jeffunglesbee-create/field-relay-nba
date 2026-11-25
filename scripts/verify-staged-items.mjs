@@ -822,7 +822,11 @@ try {
 // One body, two kinds of game: the verdict (scripts/staged-verdicts.mjs, aflGameTip) and the way the game is recognised are what differ.
 // ESPN is read directly (a runner reaches it). The reference joins the ESPN event to Squiggle by Squiggle's games list, the EXACT kickoff instant and the clubs, then reads
 // that game's tip by game id: not the relay's join (a final by its clubs and Melbourne kickoff day, a regular game by ESPN's week read as Squiggle's round), so the two
-// cannot share a defect. The relay is read for the day ESPN listed the event under, the day /v2/games itself passes to ESPN.
+// do not share the join. The club identity (sameAFLClub, squiggleConfidenceFor's team ids) IS shared with the relay: scripts/check-afl-*.mjs assert it against all 18 clubs.
+// The relay is read for the day ESPN listed the event under, the day /v2/games itself passes to ESPN.
+// The relay's own Squiggle identity (src/index.js SQUIGGLE_HEADERS), not the browser string the other reads here send: Squiggle asks a client to identify itself. Whether it also wants a
+// contact address is the owner's decision (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4).
+const SQUIGGLE_UA = 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)';
 async function aflOwnTip({ id, noun, isEvent, isGame, verdict }) {
     const what = `the relay serves an AFL ${noun} its own Squiggle tip, the one Squiggle gives that game, not the tip of another round`;
     try {
@@ -844,7 +848,7 @@ async function aflOwnTip({ id, noun, isEvent, isGame, verdict }) {
             const homeName = (cs.find(c => c.homeAway === 'home') || {}).team?.displayName || '';
             const awayName = (cs.find(c => c.homeAway === 'away') || {}).team?.displayName || '';
             const year = Number.isInteger(first.ev.season.year) ? first.ev.season.year : now.getUTCFullYear();
-            const sq = async (q) => { const r = await fetch(`https://api.squiggle.com.au/?${q}`, { headers: { 'User-Agent': UA } }); if (!r.ok) throw new Error(`Squiggle HTTP ${r.status} for ${q}`); return r.json(); };
+            const sq = async (q) => { const r = await fetch(`https://api.squiggle.com.au/?${q}`, { headers: { 'User-Agent': SQUIGGLE_UA } }); if (!r.ok) throw new Error(`Squiggle HTTP ${r.status} for ${q}`); return r.json(); };
             const games = (await sq(`q=games;year=${year}`)).games || [];
             const instant = Date.parse(first.ev.date);
             squiggleGame = games.find(g => isGame(g) && g.unixtime * 1000 === instant

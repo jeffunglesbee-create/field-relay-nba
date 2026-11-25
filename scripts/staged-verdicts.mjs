@@ -332,17 +332,24 @@ aflRoundInSeason.mustFailOn = { gamesInWindow: 6, expectedRound: 18, discoveredR
 ///
 /// THE REFERENCE IS NOT THE CODE UNDER TEST. The relay joins a final to Squiggle by its two clubs and its Melbourne kickoff DAY (src/afl-squiggle.js) and a regular game
 /// through ESPN's week read as Squiggle's round. The reference here joins by Squiggle's own games list, the EXACT kickoff instant (ESPN's event.date against Squiggle's
-/// unixtime) and the clubs, then reads that game's tip with `?q=tips;game=ID`: another path to the same row. PENDING is the honest state when there is nothing to
+/// unixtime) and the clubs, then reads that game's tip with `?q=tips;game=ID`: another path to the same row. The join KEY and the READ are independent; the club identity
+/// (sameAFLClub, the team ids behind squiggleConfidenceFor) is shared with the relay, so a defect in the identity itself would not show here (scripts/check-afl-*.mjs
+/// assert it against all 18 clubs). PENDING is the honest state when there is nothing to
 /// compare: no game of that kind in the window, no Squiggle tip for ESPN's game yet, or a relay with no journalism context (gated on KALI_AFL_TOKEN). Only a served tip that
 /// is missing or differs from the reference is a regression.
 const aflGameTip = (noun, when) => (counts) => {
   const { reference, expectedHome, served } = counts;
   const n = counts[noun === 'final' ? 'finalsInWindow' : 'gamesInWindow'];
+  // Number(undefined), Number('abc') and Number({}) are NaN, and `NaN > 0.005` is false: a comparison alone would PASS a relay that serves no number at all. Number(null) and
+  // Number('') are 0, which would be a tip of nothing: only a number, or a non-empty string of one, is a tip.
+  const asNumber = x => (typeof x === 'number' || (typeof x === 'string' && x.trim() !== '')) ? Number(x) : NaN
+  const servedN = asNumber(served)
   return n === 0 ? `PENDING — no AFL ${noun} in the ten-day window the relay reads (${when}); nothing to read`
-  : reference !== 'found' ? `PENDING — Squiggle has no tip for ESPN's ${noun} yet (or the reference could not join it); nothing to compare`
+  : reference !== 'found' || !Number.isFinite(expectedHome) ? `PENDING — Squiggle has no usable tip for ESPN's ${noun} yet (or the reference could not join it); nothing to compare`
   : served === 'absent' ? `PENDING — the relay serves no journalism context for the ${noun} (it is gated on KALI_AFL_TOKEN)`
   : served === null ? `FAIL — Squiggle has a tip for the ${noun} (the home club at ${expectedHome}) and the relay served none`
-  : Math.abs(Number(served) - expectedHome) > 0.005 ? `FAIL — the relay served ${served} for the ${noun}'s home club; Squiggle's own tip for that game is ${expectedHome}`
+  : !Number.isFinite(servedN) ? `FAIL — the relay served ${JSON.stringify(served) ?? 'no homeConfidence'} for the ${noun}'s home club, which is not a number; Squiggle's own tip for that game is ${expectedHome}`
+  : Math.abs(servedN - expectedHome) > 0.005 ? `FAIL — the relay served ${served} for the ${noun}'s home club; Squiggle's own tip for that game is ${expectedHome}`
   : `PASS — ${n} ${noun}(s) in the window; the relay served ${served} for the first, the tip Squiggle gives that game`
 }
 export const aflFinalsTip = aflGameTip('final', 'the finals are in August and September')
