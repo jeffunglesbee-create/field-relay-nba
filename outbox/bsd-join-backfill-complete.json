@@ -1,0 +1,254 @@
+{
+  "at": "2026-11-25T09:20:26.260Z",
+  "from": "2026-02-01",
+  "to": "2026-10-23",
+  "attempted": 73,
+  "stillPending": [
+    {
+      "date": "2026-08-15",
+      "rows": 2,
+      "unmatched": [
+        "MLS: Seattle Sounders FC v Vancouver Whitecaps FC",
+        "MLS: Austin FC v FC Dallas"
+      ]
+    },
+    {
+      "date": "2026-02-04",
+      "rows": 2,
+      "unmatched": [
+        "MLS: San Diego FC v Pumas",
+        "MLS: San Diego FC v Pumas"
+      ]
+    },
+    {
+      "date": "2026-02-11",
+      "rows": 2,
+      "unmatched": [
+        "MLS: Pumas v San Diego FC",
+        "MLS: Pumas v San Diego FC"
+      ]
+    },
+    {
+      "date": "2026-02-18",
+      "rows": 6,
+      "unmatched": [
+        "MLS: Defence Force Football Club v Philadelphia Union",
+        "MLS: Real Club Deportivo España v Los Angeles Football Club",
+        "MLS: Atlético Ottawa v Nashville SC",
+        "MLS: Defence Force Football Club v Philadelphia Union",
+        "MLS: Real Club Deportivo España v Los Angeles Football Club",
+        "MLS: Atlético Ottawa v Nashville SC"
+      ]
+    },
+    {
+      "date": "2026-08-04",
+      "rows": 2,
+      "unmatched": [
+        "MLS: FC Cincinnati v Club de Fútbol Pachuca",
+        "MLS: Columbus Crew v Atlas FC"
+      ]
+    },
+    {
+      "date": "2026-08-05",
+      "rows": 6,
+      "unmatched": [
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City",
+        "MLS: Inter Miami CF v Atlético de San Luis",
+        "MLS: Vancouver Whitecaps FC v Atlante FC",
+        "MLS: Club Tigres v Real Salt Lake",
+        "MLS: Minnesota United FC v FC Juárez",
+        "MLS: Charlotte FC v Pumas"
+      ]
+    },
+    {
+      "date": "2026-08-06",
+      "rows": 6,
+      "unmatched": [
+        "MLS: New York City Football Club v Club Santos Laguna",
+        "MLS: Los Angeles Football Club v Chivas de Guadalajara",
+        "MLS: Toluca FC v Seattle Sounders FC",
+        "MLS: FC Dallas v Club Querétaro",
+        "MLS: Nashville SC v Club León",
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Orlando City"
+      ]
+    },
+    {
+      "date": "2026-04-11",
+      "rows": 1,
+      "unmatched": [
+        "MLS: Seattle Sounders FC v Real Salt Lake"
+      ]
+    },
+    {
+      "date": "2026-05-09",
+      "rows": 4,
+      "unmatched": [
+        "MLS: Forge FC v HFX Wanderers FC",
+        "MLS: Pacific FC v Cavalry FC",
+        "MLS: Forge FC v HFX Wanderers FC",
+        "MLS: Pacific FC v Cavalry FC"
+      ]
+    },
+    {
+      "date": "2026-05-10",
+      "rows": 4,
+      "unmatched": [
+        "MLS: Inter Toronto FC v CS Saint-Laurent",
+        "MLS: Vancouver FC v Langley United",
+        "MLS: Inter Toronto FC v CS Saint-Laurent",
+        "MLS: Vancouver FC v Langley United"
+      ]
+    },
+    {
+      "date": "2026-05-24",
+      "rows": 9,
+      "unmatched": [
+        "La Liga: Girona v Elche",
+        "La Liga: Mallorca v Real Oviedo",
+        "La Liga: Valencia v Barcelona",
+        "La Liga: Real Madrid v Athletic Club",
+        "La Liga: Real Sociedad v Getafe",
+        "La Liga: Rayo Vallecano v Español",
+        "La Liga: Sevilla v Alavés",
+        "La Liga: Osasuna v Celta Vigo",
+        "La Liga: Real Betis v Levante"
+      ]
+    },
+    {
+      "date": "2026-07-29",
+      "rows": 1,
+      "unmatched": [
+        "MLS: MLS All-Stars v Liga MX All-Stars"
+      ]
+    },
+    {
+      "date": "2026-07-31",
+      "rows": 9,
+      "unmatched": [
+        "MLS: St. Louis CITY SC v Real Salt Lake",
+        "MLS: Portland Timbers v Seattle Sounders FC",
+        "MLS: Minnesota United FC v San Diego FC",
+        "MLS: LA Galaxy v FC Dallas",
+        "MLS: Sporting Kansas City v Houston Dynamo FC",
+        "MLS: Colorado Rapids v Austin FC",
+        "MLS: Chicago Fire FC v Charlotte FC",
+        "MLS: Inter Miami CF v Columbus Crew",
+        "MLS: FC Cincinnati v San Jose Earthquakes"
+      ]
+    },
+    {
+      "date": "2026-08-08",
+      "rows": 4,
+      "unmatched": [
+        "MLS: Orlando City v Club León",
+        "MLS: Vancouver Whitecaps FC v FC Juárez",
+        "MLS: Club Tigres v Minnesota United FC",
+        "MLS: FC Cincinnati v Pumas"
+      ]
+    },
+    {
+      "date": "2026-08-25",
+      "rows": 1,
+      "unmatched": [
+        "MLS: Club León v Real Salt Lake"
+      ]
+    },
+    {
+      "date": "2026-08-26",
+      "rows": 3,
+      "unmatched": [
+        "MLS: Toluca FC v Austin FC",
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Chicago Fire FC",
+        "MLS: Club León v Real Salt Lake"
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "rows": 3,
+      "unmatched": [
+        "MLS: Club América v Columbus Crew",
+        "MLS: Club de Fútbol Monterrey Rayados, A.C. v Chicago Fire FC",
+        "MLS: Toluca FC v Austin FC"
+      ]
+    },
+    {
+      "date": "2026-09-03",
+      "rows": 1,
+      "unmatched": [
+        "MLS: Vancouver Whitecaps FC v CF Montréal"
+      ]
+    },
+    {
+      "date": "2026-09-04",
+      "rows": 9,
+      "unmatched": [
+        "MLS: Vancouver Whitecaps FC v St. Louis CITY SC",
+        "MLS: Seattle Sounders FC v Red Bull New York",
+        "MLS: Real Salt Lake v Los Angeles Football Club",
+        "MLS: Portland Timbers v Minnesota United FC",
+        "MLS: LA Galaxy v New England Revolution",
+        "MLS: FC Dallas v Sporting Kansas City",
+        "MLS: Austin FC v San Jose Earthquakes",
+        "MLS: Inter Miami CF v Atlanta United",
+        "MLS: FC Cincinnati v D.C. United"
+      ]
+    },
+    {
+      "date": "2026-09-12",
+      "rows": 1,
+      "unmatched": [
+        "MLS: San Diego FC v Philadelphia Union"
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "rows": 3,
+      "unmatched": [
+        "MLS: TBC Home v Forge FC",
+        "MLS: Forge FC v FC Supra du Québec",
+        "MLS: CF Montréal v Vancouver Whitecaps FC"
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "rows": 3,
+      "unmatched": [
+        "MLS: Columbus Crew v Orlando City",
+        "MLS: Inter Miami CF v Cruz Azul",
+        "MLS: CF Montréal v Vancouver Whitecaps FC"
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "rows": 2,
+      "unmatched": [
+        "MLS: Colorado Rapids v St. Louis CITY SC",
+        "MLS: Inter Miami CF v Cruz Azul"
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "rows": 10,
+      "unmatched": [
+        "MLS: Inter Miami CF v San Diego FC",
+        "MLS: St. Louis CITY SC v Toronto FC",
+        "MLS: Real Salt Lake v Vancouver Whitecaps FC",
+        "MLS: Portland Timbers v Atlanta United",
+        "MLS: Nashville SC v Chicago Fire FC",
+        "MLS: Minnesota United FC v LA Galaxy",
+        "MLS: Sporting Kansas City v Philadelphia Union",
+        "MLS: Houston Dynamo FC v FC Cincinnati",
+        "MLS: FC Dallas v Austin FC",
+        "MLS: Colorado Rapids v Seattle Sounders FC"
+      ]
+    },
+    {
+      "date": "2026-10-21",
+      "rows": 2,
+      "unmatched": [
+        "MLS: CF Montréal v Forge FC",
+        "MLS: Columbus Crew v St. Louis CITY SC"
+      ]
+    }
+  ]
+}

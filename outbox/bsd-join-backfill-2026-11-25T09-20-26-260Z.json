@@ -1,0 +1,115 @@
+{
+  "ts": "2026-11-25T09:20:26.260Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-02-01",
+  "to": "2026-10-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 265,
+    "daysRead": 265,
+    "unreadDays": [],
+    "statuses": {
+      "200": 265
+    },
+    "daysToAttempt": 2,
+    "rowsToAttempt": 8,
+    "attemptedStillPending": 8,
+    "pendingRowsAllDays": 295,
+    "scopeSports": [
+      "MLS",
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 57,
+    "outOfScopeRows": 243
+  },
+  "chosen": [
+    "2026-10-21",
+    "2026-10-23"
+  ],
+  "dates": [
+    {
+      "date": "2026-10-21",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "MLS": 4,
+        "La Liga": 1
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 3,
+        "joined": 3,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 1,
+        "eventsRead": 83,
+        "upstreamPages": 2,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: CF Montréal v Forge FC",
+          "MLS: Columbus Crew v St. Louis CITY SC"
+        ]
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "EPL": 1,
+        "La Liga": 1,
+        "Serie A": 1,
+        "Bundesliga": 1,
+        "Ligue 1": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 5,
+        "joined": 5,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 347,
+        "upstreamPages": 8,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    }
+  ],
+  "pagesUsed": 10,
+  "written": 8,
+  "stoppedBecause": null,
+  "remainingToAttempt": 0,
+  "complete": true,
+  "runner": {
+    "gitSha": "91f08f4aa13715111849ae8a6a739298e53e562d",
+    "runId": "45584190872",
+    "scriptSha256": "2374e5347320a4d56a298dcb62a022d811077ba29bfd6c99fa8bfd7f9f2043ef",
+    "libSha256": "7050816e2253604f79096733186f5ddae1ce341c0734ed3acfd4ed686dd79b88"
+  },
+  "rangeComplete": true,
+  "coverageLine": "265 of 265 days read (0 unread) | scope 6 sports (MLS included), regular-season rows choose a date: to attempt 2 days / 8 rows, 8 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 57 days / 243 rows | this run: 2 dates posted, 8 rows written, 10 upstream pages (cap 50), 2 verified | no stop | remaining to attempt 0 | COMPLETE"
+}
