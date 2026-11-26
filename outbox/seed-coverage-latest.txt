@@ -2,38 +2,33 @@
   PASS  V2_LEAGUES parsed to real rows
   PASS  the two tables are not the same table
 
-  27 fetchable competition(s): 22 seeded, 2 excluded, 3 undecided
+  27 fetchable competition(s): 24 seeded, 2 excluded, 1 undecided
 
-    UNDECIDED  eflone (eng.3)
-    UNDECIDED  efltwo (eng.4)
     UNDECIDED  afl (afl)
 
   PASS  no competition is fetchable and declared nowhere
   PASS  no manifest entry names a competition the relay cannot fetch
   PASS  every exclusion states a reason
   PASS  every undecided entry states the question that decides it
-  /integrity/games covers 7 of 24 seeded competition(s).
-  Blind to 17: La Liga, Serie A, Bundesliga, Ligue 1, EFL Cup, EFL Trophy, EFL Championship, FA Cup, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League, UEFA Champions League Qualifying, UEFA Europa League Qualifying, UEFA Europa Conference League Qualifying, NFL, CFB, PGA Tour
+  /integrity/games covers 7 of 26 seeded competition(s).
+  Blind to 19: La Liga, Serie A, Bundesliga, Ligue 1, EFL Cup, EFL Trophy, EFL Championship, EFL League One, EFL League Two, FA Cup, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League, UEFA Champions League Qualifying, UEFA Europa League Qualifying, UEFA Europa Conference League Qualifying, NFL, CFB, PGA Tour
   Tracked by CC-CMD-2026-08-27-integrity-leagues-drift. Not failed here.
 
   PASS  LEAGUES_LOCAL contains nothing the cron does not seed
 
-  Live half, 2026-11-22 (4 day(s) ago)
+  Live half, 2026-11-23 (4 day(s) ago)
 
   PASS  the archive answers for that date
   PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
-  NBA                       7        7
-  NHL                       5        6
-  EPL                       2        2
-  MLS                       3        5
-  La Liga                   4        4
-  Serie A                   5        5
-  Bundesliga                2        2
-  Ligue 1                   3        3
-  EFL Championship          1        1
-  NFL                      11       11
-  PGA Tour                  1        1
+  NBA                      10       10
+  NHL                       7        7
+  EPL                       1        1
+  MLS                       1        2
+  La Liga                   1        1
+  Serie A                   1        1
+  NFL                       1        1
+  PGA Tour                  1        2
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
   PASS  the archive returned rows for that date
