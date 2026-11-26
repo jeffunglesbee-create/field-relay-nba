@@ -109,7 +109,7 @@ const MUTATIONS = [
     catches: 'a cron that rots tomorrow is filed as already-known and never reported' },
 
   { name: 'D14 a fix turns the run RED',
-    anchor: "    resolved:   [...base ].filter(k => !found.has(k)).sort(),",
+    anchor: "    resolved:   [...base ].filter(k => !found.has(k) && !unread.has(k)).sort(),",
     replace: '    resolved:   [],',
     catches: 'the stale-baseline signal disappears, so a fixed entry is carried forever' },
 
@@ -221,6 +221,245 @@ const MUTATIONS = [
     anchor: '    if (outcome !== null) {',
     replace: '    if (outcome !== undefined) {',
     catches: 'null !== undefined is true, so a healthy workflow is reported dead' },
+
+  // ── 2026-11-26: ONE GitHub 502 aborted the run and took the day's log with it ──
+  // Each of these restores a way the fix could silently come undone. `case` names the self-test
+  // case(s) that must go red for it: red for any other reason (a crash, an unrelated case) does
+  // not count, so a guard cannot be credited for a catch it did not make.
+  // ── the transport ──
+  { name: 'G1 every 4xx is retried',
+    anchor: 'export const retryableStatus = (s) => s >= 500 && s <= 599;',
+    replace: 'export const retryableStatus = (s) => s >= 400 && s <= 599;',
+    case: ['T4', 'T5', 'T11'],
+    catches: 'a 404 or a rate limit is hammered four times; the quota a 429 reports is spent retrying it' },
+
+  { name: 'G2 a 5xx is no longer retried',
+    anchor: 'export const retryableStatus = (s) => s >= 500 && s <= 599;',
+    replace: 'export const retryableStatus = () => false;',
+    case: ['T1', 'T2', 'T3'],
+    catches: 'the 2026-11-25 defect itself: one 502 ends the run' },
+
+  { name: 'G3 the 5xx boundary moves up by one',
+    anchor: 'export const retryableStatus = (s) => s >= 500 && s <= 599;',
+    replace: 'export const retryableStatus = (s) => s > 500 && s <= 599;',
+    case: ['T11'],
+    catches: 'a plain 500 stops being retried while every other 5xx still is' },
+
+  { name: 'G40 only a 429 is retried besides the 5xx',
+    anchor: 'export const retryableStatus = (s) => s >= 500 && s <= 599;',
+    replace: 'export const retryableStatus = (s) => (s >= 500 && s <= 599) || s === 429;',
+    case: ['T5'],
+    catches: 'the rate limit is retried into the quota it reports' },
+
+  { name: 'G4 a transport error is no longer retried',
+    anchor: '      retry = true;',
+    replace: '      retry = false;',
+    case: ['T6', 'T7', 'T8', 'T9a'],
+    catches: 'a reset connection, an aborted attempt or a cut body ends the run' },
+
+  { name: 'G5 the retry count stops bounding the loop',
+    anchor: '    if (!retry || attempt > retries) throw failure;',
+    replace: '    if (!retry) throw failure;',
+    case: ['T3', 'T7'],
+    catches: 'a persistent 502 is retried until the budget runs out instead of giving up' },
+
+  { name: 'G6 the backoff is zero',
+    anchor: '    const wait = backoff(attempt - 1);',
+    replace: '    const wait = 0;',
+    case: ['T1', 'T2'],
+    catches: 'the retries are fired back to back at a server that just said it was struggling' },
+
+  { name: 'G7 the default retry count is widened until nothing can fail',
+    anchor: 'process.env.DEAD_CRON_RETRIES || 3',
+    replace: 'process.env.DEAD_CRON_RETRIES || 100000',
+    case: ['T12a'],
+    catches: 'the way a bound ends quietly: raised, with no case aimed at the default' },
+
+  { name: 'G8 the retry budget stops being enforced',
+    anchor: '    if (budget.left < wait) throw failure;\n',
+    replace: '',
+    case: ['T10a', 'T10b'],
+    catches: 'an outage multiplies every failed read by its full backoff, which is hours' },
+
+  { name: 'G9 the default retry budget is widened until nothing can fail',
+    anchor: 'process.env.DEAD_CRON_RETRY_BUDGET_MS || 120000',
+    replace: 'process.env.DEAD_CRON_RETRY_BUDGET_MS || 1e12',
+    case: ['T12b'],
+    catches: 'the budget becomes decoration' },
+
+  { name: 'G10 a body cut off mid-read escapes the retry loop',
+    anchor: '      if (res.ok) return await res.json();',
+    replace: '      if (res.ok) return res.json();',
+    case: ['T8', 'E2E-11'],
+    catches: 'the un-awaited rejection leaves the try, so a truncated body ends the run as an unrelated TypeError' },
+
+  { name: 'G11 the per-attempt timeout is removed',
+    anchor: ', signal: AbortSignal.timeout(timeoutMs)',
+    replace: '',
+    case: ['T9b', 'E2E-12'],
+    catches: 'one hung socket holds the runner for hours, which today has no limit at all' },
+
+  { name: 'G28 the default attempt timeout is widened until nothing can fail',
+    anchor: 'process.env.DEAD_CRON_TIMEOUT_MS || 20000',
+    // The value must stay INSIDE AbortSignal.timeout's range (2^31-1 ms) or it is not a widening
+    // but a break: 1e12 throws and 4e9 silently becomes a 1 ms timeout, and the first version
+    // of this mutant (1e12) was "caught" by 35 cases that had nothing to do with it.
+    replace: 'process.env.DEAD_CRON_TIMEOUT_MS || 2000000000',
+    case: ['T12c'],
+    catches: 'a timeout that exists and never fires' },
+
+  { name: 'G29 the default backoff is zero',
+    anchor: 'process.env.DEAD_CRON_BACKOFF_MS || 1000',
+    replace: 'process.env.DEAD_CRON_BACKOFF_MS || 0',
+    case: ['T2', 'T12d'],
+    catches: 'every retry is immediate' },
+
+  { name: 'G30 the backoff stops growing',
+    anchor: '|| 1000) * 2 ** i;',
+    replace: '|| 1000) * 1;',
+    case: ['T2', 'T12d'],
+    catches: 'a struggling server is asked at a constant rate' },
+
+  { name: 'G12 the error text drifts',
+    anchor: '`GitHub ${res.status} on ${path}: ${await bodyText(res)}`',
+    replace: '`GitHub error ${res.status} on ${path}: ${await bodyText(res)}`',
+    case: ['T13', 'T4'],
+    catches: 'the first FAIL line stops matching two months of committed logs' },
+
+  { name: 'G13 the attempt count is not reported',
+    anchor: '    failure.attempts = attempt;',
+    replace: '    failure.attempts = 1;',
+    case: ['T3', 'E2E-2d'],
+    catches: 'the log says one attempt was made when four were' },
+
+  { name: 'G31 the GitHub request id is dropped',
+    anchor: "requestId: res.headers.get('x-github-request-id') }",
+    replace: 'requestId: null }',
+    case: ['T14'],
+    catches: 'a future 5xx cannot be reported to GitHub, which is where gh() started' },
+
+  // ── UNREAD ──
+  { name: 'G14 a failed contents read is swallowed into "no schedule" again',
+    anchor: '  const body = await read(`/repos/${repo}/contents/${path}`);',
+    replace: '  let body; try { body = await read(`/repos/${repo}/contents/${path}`); } catch (_) { return null; }',
+    case: ['S2b', 'E2E-8a', 'E2E-8b'],
+    catches: 'about 408 failed reads a run read as "nothing to judge" — the fallback this fix removes' },
+
+  { name: 'G15 an exhausted read is counted healthy',
+    anchor: '      unread.push({ repo, name: w.name, path: w.path, status: e.status, attempts: e.attempts, requestId: e.requestId, why: e.message });',
+    replace: '      healthy.push(w.name);',
+    case: ['S1a', 'S1b', 'E2E-2d'],
+    catches: 'a workflow nobody could read reports green' },
+
+  { name: 'G43 the unread entry loses its status',
+    anchor: 'unread.push({ repo, name: w.name, path: w.path, status: e.status,',
+    replace: 'unread.push({ repo, name: w.name, path: w.path, status: null,',
+    case: ['S1c'],
+    catches: 'the report cannot say what GitHub answered' },
+
+  { name: 'G16 a code error is filed as UNREAD',
+    anchor: '      if (!(e instanceof GhError)) throw e;\n      unread.push({',
+    replace: '      unread.push({',
+    case: ['S3'],
+    catches: 'a bug in the survey reads as an unread workflow and the run carries on' },
+
+  { name: 'G17 a code error is filed as an unread repo',
+    anchor: '      if (!(e instanceof GhError)) throw e;\n      out.push({',
+    replace: '      out.push({',
+    case: ['A2'],
+    catches: 'a bug in a survey is contained instead of stopping the run' },
+
+  { name: 'G18 one repo\'s failed listing aborts every repo after it',
+    anchor: '      if (!(e instanceof GhError)) throw e;\n      out.push({',
+    replace: '      throw e;\n      out.push({',
+    case: ['A1a', 'A1b', 'E2E-3a', 'E2E-3b'],
+    catches: 'the 2026-11-25 shape one level up: a repo\'s failure discards the others\' readings' },
+
+  { name: 'G27 a short listing is a plain Error again',
+    anchor: "throw new GhError(`${short} on ${path}`, { path, kind: 'short-read' })",
+    replace: 'throw new Error(`${short} on ${path}`)',
+    case: ['E2E-13a'],
+    catches: 'a truncated listing aborts every repo instead of marking one repo unread' },
+
+  { name: 'G42 the unread repo loses its attempt count',
+    anchor: 'unreadRepo: { status: e.status, attempts: e.attempts,',
+    replace: 'unreadRepo: { status: e.status, attempts: 1,',
+    case: ['A1b'],
+    catches: 'the log says one attempt when the listing was tried four times' },
+
+  // ── the ratchet ──
+  { name: 'G19 an unread admitted key reads as "fixed or gone"',
+    anchor: '    resolved:   [...base ].filter(k => !found.has(k) && !unread.has(k)).sort(),',
+    replace: '    resolved:   [...base ].filter(k => !found.has(k)).sort(),',
+    case: ['R1a', 'E2E-5a'],
+    catches: 'the one baselined workflow is reported "remove it" on any day its read failed' },
+
+  { name: 'G20 a wholly unread repo covers no baseline key',
+    anchor: '  ? baselineKeys.filter(k => k.startsWith(`${s.repo}:`))',
+    replace: '  ? []',
+    case: ['R2', 'E2E-5c'],
+    catches: 'every admitted key under a repo whose listing failed reads as fixed' },
+
+  { name: 'G21 a repo prefix matches its namesake',
+    anchor: '  ? baselineKeys.filter(k => k.startsWith(`${s.repo}:`))',
+    replace: '  ? baselineKeys.filter(k => k.startsWith(s.repo))',
+    case: ['R2'],
+    catches: 'o/r covers o/r2\'s keys, which were read' },
+
+  { name: 'G33 the ratchet is not told what was unread',
+    anchor: 'unreadKeys(surveys, Object.keys(baseline)))',
+    replace: '[])',
+    case: ['E2E-5a', 'E2E-5b', 'E2E-5c'],
+    catches: 'the unit is right and the call site does not use it — the shape that hid the EPA probe' },
+
+  { name: 'G34 the ratchet does not print what was unread',
+    anchor: '  say(`    UNREAD today, admitted keys not judged : ${r.unread.length}`);\n',
+    replace: '',
+    case: ['E2E-5b', 'E2E-5c'],
+    catches: 'an admitted key goes unjudged and nothing in the log says so' },
+
+  // ── the colour, the report and the log ──
+  { name: 'G22 a watch that could not read reports green',
+    anchor: '  if (unreadAll.length) {\n    failed = true;',
+    replace: '  if (unreadAll.length) {\n    failed = failed;',
+    case: ['E2E-2a', 'E2E-3a', 'E2E-4', 'E2E-2f'],
+    catches: 'an incomplete reading passes as a complete one' },
+
+  { name: 'G35 a wholly unread repo does not turn the run red',
+    anchor: '  ? [`${s.repo} (the whole repo: its workflow listing could not be read)`]',
+    replace: '  ? []',
+    case: ['E2E-3a'],
+    catches: 'a repo nobody could list reports green' },
+
+  { name: 'G23 COVERAGE stops stating the UNREAD count',
+    anchor: '  say(`    UNREAD (could not be read after retries, NOT judged; the run is RED for it): ${unreadN} workflow(s), ${unreadRepos} whole repo(s)`);\n',
+    replace: '',
+    case: ['E2E-6a', 'E2E-6c', 'E2E-6d'],
+    catches: 'Rule 91: a JUDGED figure with its denominator out of sight claims the whole' },
+
+  { name: 'G38 an unread workflow is counted as JUDGED',
+    anchor: 'n + r.healthy.length + r.dead.length + r.detectors.length, 0);',
+    replace: 'n + r.healthy.length + r.dead.length + r.detectors.length + r.unread.length, 0);',
+    case: ['E2E-6b'],
+    catches: 'the numerator claims a workflow nobody read' },
+
+  { name: 'G24 an unread repo is reported as read, with zero workflows',
+    anchor: "      continue;\n    }\n    say(`    ${r.total} workflow(s), ${r.active} active  (all pages read)`);",
+    replace: "    }\n    say(`    ${r.total} workflow(s), ${r.active} active  (all pages read)`);",
+    case: ['E2E-3c'],
+    catches: '"0 workflow(s), (all pages read)" for a repo whose listing failed: absence read as a fact' },
+
+  { name: 'G26 the unread workflows are counted but not named',
+    anchor: '    for (const u of r.unread) say(',
+    replace: '    for (const u of []) say(',
+    case: ['E2E-2d', 'E2E-4', 'E2E-8a'],
+    catches: 'the log says one read failed and not which' },
+
+  { name: 'G25 an aborted run leaves no log',
+    anchor: 'function writeAbortLog(e) {\n  try {',
+    replace: 'function writeAbortLog(e) {\n  return; try {',
+    case: ['E2E-7'],
+    catches: 'the other way to lose the day: a missing baseline, a parse error or a bug throws before the write' },
 ];
 
 /** Is this red a CATCH? Not every red is. A mutant that stays green is missed; one that
@@ -271,12 +510,16 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: the PURE predicates — page loop, short-read assertion, grace,`);
-console.log(`the repo list, detector-key qualification, cron extraction and the RATCHET`);
-console.log(`(new decay, a fix never failing, count-vs-key, review_by expiry), plus the`);
-console.log(`dead-window definition and the per-repo survey run against a fake of the API`);
-console.log(`(E1-E15). It does NOT exercise the real GitHub API, the report loop or the`);
-console.log(`exit path: the sandbox token is a proxy placeholder and RELAY_GH_PAT exists`);
-console.log(`only in CI, so those are verified by dispatching the workflow and reading`);
-console.log(`its committed log.`);
+console.log(`COVERAGE: ${MUTATIONS.length} mutations, ${MUTATIONS.filter(x => x.case !== undefined).length} of them (G1-G43) with the case(s) that must catch them named and checked.`);
+console.log(`D1-E15 mutate the PURE predicates — page loop, short-read assertion, grace, the repo`);
+console.log(`list, detector-key qualification, cron extraction, the RATCHET and the dead-window`);
+console.log(`definition — and are judged by the self-test going red. G1-G43 mutate the transport`);
+console.log(`(retry, backoff, budget, timeout, cut-off body), UNREAD, the ratchet's unread bucket,`);
+console.log(`COVERAGE, the exit colour and the abort log, and are judged by the NAMED case failing.`);
+console.log(`Since 2026-11-26 the self-test also runs the WHOLE script as a child process against a`);
+console.log(`local fake of the GitHub REST API, so the real fetch, the report loop, the log write`);
+console.log(`and the exit path ARE exercised. NOT exercised: the real GitHub API — the sandbox token`);
+console.log(`is a proxy placeholder and RELAY_GH_PAT exists only in CI, and a live 502 cannot be`);
+console.log(`forced — so the live half is verified by dispatching the workflow and reading its`);
+console.log(`committed log.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);
