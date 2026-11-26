@@ -1,0 +1,106 @@
+name: BSD frame census
+
+# The live half of the BSD frame check, on a schedule instead of on every push.
+# docs/CC-CMD-2026-11-23-bsd-frame-census-ceiling.md, Task 2, option D.
+#
+# WHAT IT DOES. Re-measures every pitch frame /bsd/contract declares against the R2
+# captures (scripts/check-bsd-frame-contract.mjs): split by side, own goals excluded,
+# a side with too few records INSUFFICIENT rather than agreement, and INSUFFICIENT too
+# when the reads cannot cover every capture. The declaration is read from src/index.js
+# of the commit this runs on; the captures are the relay's /bsd/r2/* routes, which a
+# sandbox cannot reach and a runner can.
+#
+# WHY IT IS NOT A STEP IN guards.yml. That is where it ran, on every push, until
+# 2026-11-26, and the shape was wrong in two ways that were measured, not argued:
+#   1. It is a monitor of EXTERNAL DATA, not a gate on a commit. Captures drift on
+#      the vendor's schedule, so when its read cap was outgrown (2026-11-22, 16:21Z)
+#      every unrelated push to this repository went red for 13 hours with every
+#      declared frame agreeing.
+#   2. Cost. guards.yml ran 30 times a day on average (100 runs over 80 hours, 2026-11-22
+#      to 2026-11-26; 22 to 33 on the three full days), each making about 2.5 thousand
+#      reads against the production relay: about 76 thousand requests a day, from CI,
+#      for one check of data that changes slowly. Four runs a day is about 85% less.
+#      Repo guards itself still runs as often as before; only the reads left it.
+# The code half stays in guards.yml, on every push that touches a file outside src/**,
+# wrangler.toml and workers/** (its paths-ignore): the check's self-test, which drives
+# the whole run over a bucket in memory (exit codes and printed lines included, and the
+# declaration in src/index.js read for real), and its 30 mutations. A change to the
+# census script, or to this file, also runs the census here at once.
+#
+# WHAT A DECLARATION EDIT GETS. The declared frames live in src/index.js, which this
+# workflow's push trigger does not watch: adding it would run the census on about six
+# commits a day and give back most of the saving. A declaration edit is pinned offline
+# by the self-test on any push that is not src-only, and read against the captures at
+# the next tick: six hours plus whatever lateness GitHub adds. A src-only push runs the
+# self-test nowhere (deploy.yml does not carry it): that hole is not new, and is
+# recorded in docs/CC-CMD-2026-10-19-guards-only-src-readers.md.
+#
+# WHAT IT DOES NOT DO. It does not read the DEPLOYED /bsd/contract (the script's
+# --contract=live mode); it reads the source declaration, as the guard did. And it does
+# not commit anything: the reading is the run's log and its step summary. Red means a
+# declared frame disagrees with the captures, or the census could not read them all
+# (exit 1 or 3).
+#
+# WHO READS A RED. Nobody is pushed to by it any more, which the per-push step did. The
+# repo's silently-dead-crons watch (daily, scripts/watch-silently-dead-crons.mjs) lists a
+# scheduled workflow whose last three scheduled runs all failed as NEW decay and goes red
+# itself, and that watch is on the owner's daily read. This workflow is deliberately NOT
+# in docs/declared-detectors.json: declaring it there would silence exactly that. The
+# lag is three ticks, about 18 hours, plus the watch's own day.
+#
+# Cadence: every six hours, off the hour. Capture drift is slow, and a scheduled tick
+# can arrive hours late, so a finer cron buys nothing.
+
+on:
+  schedule:
+    - cron: '23 1,7,13,19 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/check-bsd-frame-contract.mjs'
+      - '.github/workflows/bsd-frame-census.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bsd-frame-census
+  cancel-in-progress: false
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # If the check cannot fail, nothing below means anything (Rule 90).
+      - name: The census can still fail
+        run: node scripts/check-bsd-frame-contract.mjs --self-test
+
+      # The exit code is kept in a variable, not carried through a pipe: a pipe into tee
+      # would need `set -o pipefail`, which no check here would notice missing. The step
+      # limit is shorter than the job's so that a stalled relay ends as a failed step,
+      # which the dead-cron watch counts, and not as a cancelled job, which it does not.
+      - name: Every declared frame agrees with every capture
+        timeout-minutes: 10
+        run: |
+          rc=0
+          node scripts/check-bsd-frame-contract.mjs > census.txt 2>&1 || rc=$?
+          cat census.txt
+          exit "$rc"
+
+      - name: Say what was read
+        if: always()
+        run: |
+          {
+            echo '### BSD frame census'
+            echo '```'
+            if [ -f census.txt ]; then cat census.txt; else echo 'the census did not run: an earlier step failed'; fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

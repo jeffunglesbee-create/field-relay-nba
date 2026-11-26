@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-26 (03:45Z) — AFLW is on the board, in the archive and on the lab page (stage 1); Kali's HTML 200 is not cached as data; the BSD frame census runs on a schedule, not on every push
+
+**HEAD:** `9ef280d` (the AFLW feed) ← `d002716` (the archive step) ← `db92f6f` (the census plans its reads) ← the commit that moves the live census to `bsd-frame-census.yml`; this entry is part of it · **Branch:** main
+**Session doc:** outbox/cc-session-2026-11-23-bsd-frame-census-ceiling.md (the AFLW and Kali work: outbox/cc-session-2026-11-22-aflw-kali-source-read.md; task: the owner's "Go with claude's best recommendations", 2026-11-22 to 2026-11-26)
+
+- **AFLW (Part A of `docs/CC-CMD-2026-11-22-aflw-live-source.md`):** G0 is A, `aflapi.afl.com.au` (competition 3), pull-only, two stages, ruled by the owner's delegation. `/v2/games?sport=aflw` serves scheduled (`pre`) and concluded (`final`) matches and a named 502 for any other status; `seedAflwArchive` writes the archive rows; D2b was read 2026-11-24T12:01Z (the Grand Final row `AFLW_2026-11-27_northmelbourne_melbourne` is on `/context/date/2026-11-27`) and the laboratory page showed it as an AFLW card at 12:03Z. **STAGED:** stage 2 (the live status spelling, period and clock) and D3 (an AFLW card in its window or in play) wait on the seven Grand Final reads armed for 2026-11-27 08:40Z to 11:30Z; the match is 08:45Z; otherwise August 2027.
+- **Kali:** it shut down 2026-09-23 and answers HTTP 200 with an HTML page; `relayFetchKV` no longer stores a non-JSON body (`isJsonBody`, a short negative marker). `docs/CC-CMD-2026-11-22-kali-shut-down.md`, DONE.
+- **BSD frame census:** Repo guards step "every BSD frame..." was INSUFFICIENT from 2026-11-22T16:21Z because the census stopped at a fixed 2500 reads; `db92f6f` plans its reads (`plannedReads`, ceiling 10000) and the step went green (2531 of 2531). Then, measured at 30 guards runs a day and a monitor of external data gating every unrelated push, the live census moved to `.github/workflows/bsd-frame-census.yml` (every six hours, dispatch, and a push to the census script); `guards.yml` keeps the self-test and the mutations. `docs/CC-CMD-2026-11-23-bsd-frame-census-ceiling.md` Task 2; Task 3 (the cost growing with history) is filed with its trigger, planned reads of 7000 or more.
+- **A red census is read by the dead-cron watch, not by a push:** the workflow is deliberately not in `docs/declared-detectors.json`; three failed scheduled runs make the watch list it as new decay.
+- **Open, the owner's:** the Rule 45 read of the AFL, Champion Data and Disney-ESPN terms quoted in `outbox/aflw-source-read-20261122.md` (no legal assessment was made); adding the offline BSD self-test to `deploy.yml` (a note in `docs/CC-CMD-2026-10-19-guards-only-src-readers.md`).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-11-26 (02:45Z) — Item 4 decided: the relay sends a contact address in its Squiggle User-Agent, from a Worker secret the owner sets; five-lens review closed; the NFL R2 regression read recorded
 
 **HEAD:** `b300686b` (the NFL read) ← `bc6b8aad` (Item 4, Item 8, CONTRACTS) ← `769cca18` (check 14) ← `343461ce` (the feature); this close-out is the next commit. `src/afl-squiggle.js`, `src/index.js` and `src/wp-resolver.js` changed, so it deploys: Deploy RELAY Worker run `45745322586` on `2b66d6e9`: success (started 02:52:52Z, finished 03:07:22Z).

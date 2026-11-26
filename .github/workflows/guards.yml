@@ -492,18 +492,25 @@ jobs:
 
       # /bsd/contract declared incidents[].sequence[].pos per-team from ONE away
       # goal, and for the away side the two candidate frames predict identical
-      # numbers. This re-measures every declared frame against the R2 captures,
-      # split by side, own goals excluded, and treats a side with too few
-      # records as INSUFFICIENT (exit 3) rather than as agreement. Unlike most
-      # steps here it reaches the relay: the measurement is the captures, and
-      # a copy of them would be the substitution this repo's rules prohibit.
+      # numbers. The check re-measures every declared frame against the R2
+      # captures, split by side, own goals excluded, and treats a side with too
+      # few records as INSUFFICIENT (exit 3) rather than as agreement.
       # docs/CC-CMD-2026-10-16-bsd-list-and-contract.md.
-      - name: every BSD frame the contract declares matches the captures
+      #
+      # ONLY ITS CODE HALF RUNS HERE. The read of the captures (which reaches the
+      # production relay, about 2.5 thousand reads a run) moved on 2026-11-26 to
+      # bsd-frame-census.yml, on a schedule: it monitors external data, so gating
+      # every push on it turned unrelated pushes red when the data outgrew a read cap,
+      # and it ran 30 times a day. Here, on every push this workflow runs for (not a
+      # src-only push: see paths-ignore above): the check's self-test (it drives the
+      # whole run over a bucket in memory, so the live path is exercised without the
+      # network, and it reads the declaration in src/index.js for real) and its
+      # mutations. docs/CC-CMD-2026-11-23-bsd-frame-census-ceiling.md, Task 2.
+      - name: the BSD frame check's self-test and mutations pass (the census itself runs in bsd-frame-census.yml)
         if: always()
         run: |
           node scripts/check-bsd-frame-contract.mjs --self-test
           node scripts/mutate-bsd-frame-contract.mjs
-          node scripts/check-bsd-frame-contract.mjs
 
       # The BSD WebSocket recorder/analyzer behind bsd-ws-capture.yml. The recorder
       # keeps every frame whatever its type, and the analyzer's verdict decides

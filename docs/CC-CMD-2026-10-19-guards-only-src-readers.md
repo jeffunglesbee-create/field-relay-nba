@@ -49,6 +49,8 @@ The six left are:
 | The hockey WP scorer still refuses what it cannot read | check-hockey-wp.mjs and four companions | read the probe and train scripts for network use before copying |
 | every BSD frame the contract declares matches the captures | check-bsd-frame-contract.mjs, mutate-bsd-frame-contract.mjs | its live part fetches a list (HTTP 0 in the sandbox, green on the runner); decide whether the deploy should depend on that host |
 
+**Note 2026-11-26 (BUILD-ON-A, from `docs/CC-CMD-2026-11-23-bsd-frame-census-ceiling.md`, Task 2).** The last row's live part (the read of the BSD captures) moved out of `guards.yml` to `bsd-frame-census.yml`, which runs on a schedule. The step now runs only the self-test and the mutations, both offline (a review measured the self-test at about 0.06 s and the mutation harness at about 60 s), so the objection in that row, that the deploy would depend on the relay host, no longer applies to what remains. The same review ran three mutations of the declaration in `src/index.js` against the self-test (restoring the 2026-10-10 frame, changing a frame, renaming a key) and each turned it red, so the self-test pins the declaration; it recommended copying it into `deploy.yml` before the deploy step, so that a src-only push, the only push that edits the declaration and runs neither `guards.yml` nor the census at once, is pinned too. Nothing was built; the choice is TASK 1's.
+
 ## TASK 0 — probe each before copying (Rule 100)
 
 1. Re-run the census at HEAD; the list may have changed.
