@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-26T00:10:03.036Z",
+  "ts": "2026-11-26T00:36:53.934Z",
   "base": "https://sports.bzzoiro.com",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "tokenPresent": true,
@@ -14,14 +14,14 @@
   "reachedTarget": true,
   "notReachedBecause": null,
   "runner": {
-    "gitSha": "e0b7721b47922838fd07e91da4950e708ad35441",
-    "runId": "45726587782",
+    "gitSha": "0a26c173d1af5442e3b42fc1d75c993609a6237f",
+    "runId": "45729798975",
     "probeSha256": "de6672cd926095bd0d794096fe5787ed25431f9eb8bb711e1effad552f2ef7e4",
-    "libSha256": "ac34f77a080fdd728187366c08dfdf04c5b3b3be7a95339fb4f583e6c0941a90",
+    "libSha256": "f9b321959b8df4dbcc8e8ce44a998ed9cd5c516ce7348076f2bbc196ee821452",
     "censusSha256": "466cf30f43e7f004a533805a04ba1139e16a80cb137d1f3e8b639cca91855f4f",
     "graderSha256": "e54c384633ad304839d16e9b8b6ee7e5b461404c38d9e67404d7633bc5531c21"
   },
-  "coverageLine": "387 gradeable calls on 250 distinct matches | archive rows carrying the match's bsd id: one 209 (with an espn id 209, without 0), two or more 37, none 4 [eflchamp: no archive rows 0; ucl or europa: archive rows, outside the join's sports 4; before 2026-10-24, no joined row that day 0; other unjoined 0], ESPN id on the rows of the 246 matches that have rows: exactly one distinct 246, none 0, conflicting 0, unread 0, no valid call day 0 | days read 80 of 80 needed (cap 300) | rows read 3994 (target-label rows: EFL Championship 190, UEFA Champions League 90, UEFA Europa League 72, UEFA Europa Conference League 54, UEFA Champions League Qualifying 11, UEFA Europa League Qualifying 24, UEFA Europa Conference League Qualifying 48)",
+  "coverageLine": "387 gradeable calls on 250 distinct matches | archive rows carrying the match's bsd id: one 209 (with an espn id 209, without 0), two or more 37, none 4 [eflchamp: no archive row of the league on the call days 0; eflchamp: archive rows of the league on the call days, none carries the match's bsd id 0; ucl or europa: no archive row of its labels on the call days 4; ucl or europa: archive rows of its labels on the call days, none carries the match's bsd id 0; before 2026-10-24, no joined row that day 0; other unjoined 0], ESPN id on the rows of the 246 matches that have rows: exactly one distinct 246, none 0, conflicting 0, unread 0, no valid call day 0 | days read 80 of 80 needed (cap 300) | rows read 3994 (target-label rows: EFL Championship 190, UEFA Champions League 90, UEFA Europa League 72, UEFA Europa Conference League 54, UEFA Champions League Qualifying 11, UEFA Europa League Qualifying 24, UEFA Europa Conference League Qualifying 48)",
   "censusCoverageLine": "ledger: 1776 unique calls (COMPLETE, reported 1776 then 1776, 9 pages, 0 duplicates) | R2: 2939 keys, 1396 events with incidents.json (COMPLETE) | reads: 261 parsed of 261 attempted | calls: 387 gradeable of 1776 (409 in a tracked league, 409 with an incidents.json, 18 with a full-time capture) | BSD calls 11/16",
   "census": {
     "verdict": "ANSWERED",
@@ -34,7 +34,7 @@
   "dayReadStatuses": {
     "200": 80
   },
-  "dayReadSeconds": 3.2,
+  "dayReadSeconds": 3.7,
   "dayReadStopped": null,
   "reach": {
     "matches": 250,
@@ -118,7 +118,7 @@
       }
     },
     "zeroReasons": {
-      "ucl or europa: archive rows, outside the join's sports": 4
+      "ucl or europa: no archive row of its labels on the call days": 4
     },
     "oneRow": {
       "withEspnId": 209,
@@ -198,12 +198,6 @@
         "withEspn": 85,
         "withBoth": 0
       },
-      "EFL Cup": {
-        "rows": 48,
-        "withBsd": 0,
-        "withEspn": 48,
-        "withBoth": 0
-      },
       "MLS": {
         "rows": 640,
         "withBsd": 566,
@@ -246,6 +240,12 @@
         "withEspn": 190,
         "withBoth": 190
       },
+      "EFL Cup": {
+        "rows": 48,
+        "withBsd": 0,
+        "withEspn": 48,
+        "withBoth": 0
+      },
       "EFL Trophy": {
         "rows": 35,
         "withBsd": 0,
@@ -270,6 +270,12 @@
         "withEspn": 99,
         "withBoth": 99
       },
+      "Serie A": {
+        "rows": 118,
+        "withBsd": 118,
+        "withEspn": 118,
+        "withBoth": 118
+      },
       "PGA Tour": {
         "rows": 12,
         "withBsd": 0,
@@ -287,12 +293,6 @@
         "withBsd": 48,
         "withEspn": 48,
         "withBoth": 48
-      },
-      "Serie A": {
-        "rows": 118,
-        "withBsd": 118,
-        "withEspn": 118,
-        "withBoth": 118
       },
       "Bundesliga": {
         "rows": 90,
@@ -357,57 +357,57 @@
     {
       "key": "count_first",
       "status": 200,
-      "ms": 352
+      "ms": 637
     },
     {
       "key": "page_0",
       "status": 200,
-      "ms": 651
+      "ms": 704
     },
     {
       "key": "page_1",
       "status": 200,
-      "ms": 764
+      "ms": 666
     },
     {
       "key": "page_2",
       "status": 200,
-      "ms": 1143
+      "ms": 523
     },
     {
       "key": "page_3",
       "status": 200,
-      "ms": 591
+      "ms": 704
     },
     {
       "key": "page_4",
       "status": 200,
-      "ms": 600
+      "ms": 811
     },
     {
       "key": "page_5",
       "status": 200,
-      "ms": 799
+      "ms": 575
     },
     {
       "key": "page_6",
       "status": 200,
-      "ms": 1457
+      "ms": 556
     },
     {
       "key": "page_7",
       "status": 200,
-      "ms": 1130
+      "ms": 567
     },
     {
       "key": "page_8",
       "status": 200,
-      "ms": 651
+      "ms": 629
     },
     {
       "key": "count_last",
       "status": 200,
-      "ms": 283
+      "ms": 191
     }
   ]
 }
