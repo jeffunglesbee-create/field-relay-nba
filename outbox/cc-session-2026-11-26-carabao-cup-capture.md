@@ -17,7 +17,7 @@ Checks run on the change: five census and probe checks (241 + 102 + 96 + 66 asse
 
 ## Verified end to end (Rule 61), and what is not
 
-- **Deploy:** run `45830221347` on `12c1785` (result recorded below once it concludes).
+- **Deploy:** run `45830221347` on `12c1785`, success (including the new gate step); Repo guards runs `45830221393` (`12c1785`) and `45830447374` (`92a9af8`), success.
 - **Verified offline on the real code:** the ten-league map with `40: eflcup`; a Cup match at 85' and one on the fallback written under `bsd/eflcup/`; finished, early, untracked and out-of-window matches not; MLS unchanged; 3 requests per captured match, 13 for four plus the live read.
 - **STAGED:** a real Cup match captured to R2. Blocked: no Cup match has been live since the id was set; the next round (quarter-finals) is not in this repo's data. Also unverified until then: that BSD's `/events/live/` lists Cup matches at all. Unblocked when a Cup match reaches minute 80; verify with the census dispatch and `a.analysis.r2.eventsPerSlug.eflcup >= 1` (exact commands in the addendum). Follow-up scheduled for 2026-12-19.
 

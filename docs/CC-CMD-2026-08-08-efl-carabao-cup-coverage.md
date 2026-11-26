@@ -123,7 +123,7 @@ relay deploy run ID, the client smoke count, and the Task 4 artifacts.
 ### Done conditions (Rule 89, artifacts)
 
 1. **The map and the behavior, offline, on the real code:** `scripts/check-bsd-club-capture-leagues.mjs` cuts `V2_LEAGUES`, `BSD_LEAGUE_ID_TO_SLUG`, `captureWithRetry`, `_bsdCaptureStatsWithAvgPositions` and `runBSDClubLeagueEndgameCapture` out of `src/index.js` and runs them against a scripted live feed and a recording R2: the ten-league map (`40: 'eflcup'`), a Cup match at 85' and one on the not-started fallback written under `bsd/eflcup/<id>/`, finished, early, untracked and out-of-window matches not, MLS unchanged, **3 requests per captured match and 13 for four matches plus the live read**. Against the old registry it failed 8 of 12 assertions; with the id it passes 12 of 12. `scripts/mutate-bsd-club-capture-leagues.mjs`: **17 of 17 mutations caught**, controls ok.
-2. **Deploy:** run recorded in the session doc `outbox/cc-session-2026-11-26-carabao-cup-capture.md`.
+2. **Deploy:** Deploy RELAY Worker run `45830221347` on `12c1785`, success, with the new check and harness as a gate step; Repo guards `45830221393` and `45830447374`, success.
 
 ### STAGED (Rule 74): the live capture of a real Cup match
 
