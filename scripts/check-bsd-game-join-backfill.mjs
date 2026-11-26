@@ -14,8 +14,11 @@ const FAIL_FAST = argv.includes('--fail-fast');
 const flag = (name, dflt) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : dflt; };
 const SOURCE = path.resolve(flag('--source', 'scripts/bsd-game-join-backfill.mjs'));
 const SECRET = 'test-secret-0123456789';
-// the join's labels (src/bsd-game-join.js, 13 since 2026-11-25), written out here so the check does not follow the source: MLS is the one the scheduled scope may leave out
-const NOT_MLS = ['EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'UEFA Champions League', 'UEFA Europa League', 'UEFA Europa Conference League', 'UEFA Champions League Qualifying', 'UEFA Europa League Qualifying', 'UEFA Europa Conference League Qualifying', 'EFL Championship'];
+// the join's labels, read from src/bsd-game-join.js. They were written out here twice (2026-11-25, 2026-11-26) and every label added to the join turned this check red for a reason
+// that was not the script's: the list is pinned ONCE, in check-bsd-uefa-join.mjs (exactly fourteen, named). What this check owns is the SCOPE rule: MLS is the one label the
+// scheduled scope may leave out, and an attempt records every label the join covered, whichever they are. MLS is still hard-wired below, so a script that dropped or kept it wrongly is caught.
+import { BSD_SOCCER_SPORTS } from '../src/bsd-game-join.js';
+const NOT_MLS = BSD_SOCCER_SPORTS.filter((s) => s !== 'MLS');
 const ALL_LABELS = ['MLS', ...NOT_MLS];
 
 let scenarios = 0, assertions = 0, failed = 0, finished = false;
@@ -133,7 +136,7 @@ await scenario('a real run: two dates, each verified', async () => {
   eq('totals: 4 written, 10 pages, no stop, one day left to attempt, not complete', [a.written, a.pagesUsed, a.stoppedBecause, a.remainingToAttempt, a.complete], [4, 10, null, 1, false]);
   eq('the state holds both answered days, with what was left pending', [Object.keys(r.state.attempted).sort(), r.state.attempted[D.b].pendingAfter, r.state.attempted[D.a].pendingAfter], [[D.a, D.b], 1, 0]);
   eq('the artifact names, no marker, and the secret is in none of them', [r.names, r.complete, r.raw.includes(SECRET)], [['bsd-join-backfill-2' + a.ts.slice(1).replace(/[:.]/g, '-') + '.json', 'bsd-join-backfill-latest.json', 'bsd-join-backfill-state.json'].sort(), null, false]);
-  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), /scope 12 sports \(MLS not included\), regular-season rows choose a date: to attempt 3 days \/ 4 rows/.test(a.coverageLine), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
+  eq('the coverage line carries every denominator', [/5 of 6 days read \(1 unread\)/.test(a.coverageLine), a.coverageLine.includes(`scope ${NOT_MLS.length} sports (MLS not included), regular-season rows choose a date: to attempt 3 days / 4 rows`), /2 dates posted, 4 rows written, 10 upstream pages \(cap 40\), 2 verified/.test(a.coverageLine), /remaining to attempt 1/.test(a.coverageLine)], [true, true, true, true]);
 });
 
 await scenario('a second run does not ask again about a day it already answered', async () => {
