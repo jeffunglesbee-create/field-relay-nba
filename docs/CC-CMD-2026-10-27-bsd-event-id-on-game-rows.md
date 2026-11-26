@@ -349,7 +349,7 @@ unblocked when this one is DONE.
 5. **The EFL Championship history is backfilled** for the season so far (`.github/workflows/archive-league-history-backfill.yml`, `scripts/run-archive-league-history-backfill.mjs`: ESPN's scoreboard per date, completed events only, `POST /archive/game`, dry-run by default). 200 rows were written, 0 failed. The script sends `X-FIELD-Relay` although the route is open today; it is listed as a caller in `docs/CC-CMD-2026-10-14-archive-game-unauthenticated-write.md` so that gating the route (ruled, blocked on secret rotation) breaks nothing.
 6. **The join backfill's "stuck" rule is corrected** (`isStuck` in `scripts/bsd-backfill-lib.mjs`). A date attempted before 2026-11-25 had answered for six labels; 29 of the 56 dates holding UEFA and EFL rows were in that state and would have been called stuck and never attempted. A day is stuck only when every sport still pending on it was a sport that attempt asked about; an entry without a `sports` list asked about the six legacy labels (a fixed list, not the join's); new entries record the join's labels. Ruling kept: an answered date that still has rows pending is not re-spent on.
 7. **The production join backfill ran over 2026-05-20 to 2026-11-23** (not the schedule's default end of 2026-10-23, which would have left 31 days of rows unjoined, since the scheduled tick reaches only yesterday and the next days). It fills `bsd_event_id` where NULL, never overwrites, one `change_log` row per write, the same function the tick runs. The completion marker `outbox/bsd-join-backfill-complete.json` is untouched: this run was range-complete, not the scheduled scope.
-8. **`EFL Cup` (81 archive rows) and `EFL Trophy` (98) are not on the join.** They exist in the archive with no `bsd_event_id` and nobody has asked for them; recorded, not built.
+8. **`EFL Cup` (81 archive rows) and `EFL Trophy` (98) are not on the join.** They exist in the archive with no `bsd_event_id` and nobody has asked for them; recorded, not built. *(Superseded the next day: the owner asked, and the EFL Cup is on the join; see "Addendum 2026-11-26" below. The EFL Trophy is not, and why is measured there.)*
 
 ### Measurements (every number from a command; the fixtures are committed)
 
@@ -368,3 +368,35 @@ No BSD event joined to two rows in either fixture, and every pair is inside the 
 4. **The laboratory's consumer** (`field-laboratory` `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, "UEFA and EFL Championship result"): the reach probe and the grade re-run on the new joins; their numbers are recorded there, with the run ids.
 
 **What this does not prove, stated where it is read:** the 302 and 200 are the archive rows of the dates and labels read, not a season of every competition; the aliases are the clubs those rows named, so a club that first appears in a later UEFA round without an alias will be `unmatched` (counted, never guessed) until one is added; the scheduled tick's own join of a fresh UEFA or EFL row is exercised only for the rows of 2026-11-25 it joined since the deploy (a date outside the backfill's range), not for a whole matchday.
+
+## Addendum 2026-11-26 — the EFL Cup is on the join; the EFL Trophy is not, because BSD has none of its matches (measured; built on the owner's "join EFL Cup and Trophy")
+
+**Why this is here (BUILD-ON-A).** Decision 8 of the 2026-11-25 addendum left both off and said nobody had asked; the owner asked. Nothing above is undone: the join's rule is untouched, only the label list and the alias table grew, and no CC-CMD held a ruling on either competition (`docs/CC-CMD-2026-08-08-efl-carabao-cup-coverage.md` made them ESPN-archived, with `bsdLeagueId: null` for the reason "no BSD id was verified", which was true on 2026-08-08). **Outcome of this addendum:** done 2026-11-26; Cup joined in production, Trophy left off with the measurement that says it cannot join.
+
+### The premise that did not hold, found by the probe before the build
+
+The ask named two competitions as if one answer served both. The relay's registry (`src/index.js`, `eflcup` and `efltrophy`) carries `bsdLeagueId: null` for both. BSD's own league list (`outbox/bsd-leagues-2026-11-04T16-25-21-491Z.json`, 98 football leagues) holds **`Carabao Cup (England)` as league 40 and no Trophy**. The fixture then showed what each is worth.
+
+### Measurements (the fixture is committed: `outbox/fixture-bsd-game-join-eflcups.json`, 27 dates, 179 archive rows, 3720 BSD events, captured on a runner)
+
+| | rows | on the list alone | with aliases |
+|---|---|---|---|
+| EFL Cup | 81 (15 dates, 2026-08-07 to 2026-10-29) | 43 of 81 | **81 of 81** (29 aliases) |
+| EFL Trophy | 98 (16 dates, 2026-08-18 to 2026-11-25) | 0 of 98 | 0 of 98: 97 have no BSD event at all, 1 a one-sided look-alike |
+
+The 38 Cup rows the join left unmatched were 36 with one candidate whose two names both looked like the row's and 2 with one side looking like it; the 29 aliases are the clubs behind them (ESPN's short names for the lower-league sides the cup draws: `Wimbledon`, `Oxford Utd`, `MK Dons`, `Sheffield Wed` against BSD's full ones), none read from a kickoff. The Trophy rows were also run **relabelled to a label that is on the list**: none joined, so the label being off the list is not what keeps them unjoined; BSD does not carry them. `scripts/check-bsd-eflcup-join.mjs` pins both halves (15 checks, 81 of 81, Trophy not on the list, relabelled Trophy 0 of 98); the shared harness `scripts/mutate-bsd-uefa-join.mjs` now covers three blocks, **127 of 127 caught**, including a copy with EFL Trophy put on the list. The identity checks pass (481 pairs, 1 colliding key, already recorded; 43 of 43; the five in-place harnesses on a clean tree).
+
+### Decisions taken (each with its reason)
+
+1. **EFL Cup on the join, 29 aliases, per-club, never fuzzy** (same rule as the 2026-11-25 blocks).
+2. **EFL Trophy NOT on the join.** A label on the list makes the scheduled tick and the backfill select its pending rows and fetch BSD pages for them; 97 of 98 have no event to find. It stays `archived, unjoined`, which is what it was.
+3. **`bsdLeagueId` for `eflcup` stays `null`.** The registry comment said no BSD id was verified; it now says league 40 exists (`src/index.js`, comment only). Setting the id would turn on the BSD endgame capture for the competition (BSD requests and R2 writes through `BSD_LEAGUE_ID_TO_SLUG`), a decision of its own and not part of a join. **Unblocked when** the owner says to capture the Carabao Cup. **Verify with** `grep -n "eflcup" src/index.js` showing `bsdLeagueId: 40` and the next BSD capture listing an `eflcup` directory.
+4. **The backfill check reads the join's label list** instead of pinning it (`scripts/check-bsd-game-join-backfill.mjs`). It had pinned the list twice, and adding a label to the join turned it red both times (the first dry run of this addendum failed in its `verify` job, run `45738302213`, for exactly that). The exact list is pinned once, in `scripts/check-bsd-uefa-join.mjs` (fourteen, named). The harness is unchanged and still 39 of 39 on the new check.
+
+### Done conditions (Rule 89, artifacts)
+
+1. **Deploy green with the label, the aliases and the comment:** Deploy RELAY Worker run `45736596584` on `ad78c6b`, success.
+2. **Production join, dry run then real:** dry run `45739021423` read 109 of 109 days (0 unread) and planned 15 days / 81 rows (0 attempted before and still pending); the real runs `45739449236` and `45739985721` posted 10 and 5 dates, wrote 68 and 13 rows (81), **15 of 15 dates verified** by a cache-busted re-read, 44 upstream pages, no stop. Artifacts `outbox/bsd-join-backfill-2026-11-26T02-0*.json` and `bsd-join-backfill-latest.json`.
+3. **The archive says so** (run `45740510062`, `outbox/archive-label-dates-2026-11-26T02-09-41-342Z.json`, rows / joined): **EFL Cup 81 / 81**, EFL Trophy 98 / 0 (as decided), EFL Championship 204 / 204 (unchanged).
+
+**What this does not prove, stated where it is read:** the 81 are the Cup rows of 15 dates, 2026-08-07 to 2026-10-29; rows of later rounds are joined by the scheduled tick, which visits yesterday and the next three days (not exercised for the Cup yet); a club first drawn in a later round without an alias is `unmatched`, counted and never guessed, until one is added; the Trophy finding is a measurement of 27 dates, and a later BSD change would need a new capture.

@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-26 (02:30Z) — the EFL Cup is on the BSD game join (81 of 81 in production); the EFL Trophy is not, because BSD has none of its matches
+
+**HEAD:** `ad78c6b` (the label, 29 aliases, check, harness) ← `ee66c26` (the backfill check); this entry's commit follows · **Branch:** main · deploy run 45736596584 success.
+**Session doc:** outbox/cc-session-2026-11-26-efl-cup-join.md (task: the owner's "join EFL Cup and Trophy"; spec `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-26")
+
+- **Found first:** BSD's league list has Carabao Cup (league 40) and no Trophy. EFL Cup 43 of 81 on the label alone, 81 of 81 with 29 aliases; EFL Trophy 0 of 98 even relabelled, 97 with no BSD event at all.
+- **Built:** `'EFL Cup'` on the list (fourteen labels), 29 aliases, `check-bsd-eflcup-join.mjs` (Cup 81 of 81, Trophy off the list), the shared harness at 127 of 127, the backfill check reading the list instead of pinning it.
+- **Production:** join backfill over 2026-08-07 to 2026-11-23, 15 of 15 dates verified, 81 rows written; the archive reader says EFL Cup 81 / 81, EFL Trophy 98 / 0, EFL Championship 204 / 204.
+- **Decisions on the owner's word:** the Trophy stays off the join (nothing to join); `bsdLeagueId` for `eflcup` stays `null` (setting it turns on the endgame capture, its own decision).
+- **Open, none blocking:** `bsdLeagueId: 40` for the Carabao Cup (the owner's call); the 4 UEFA matches the grade could not reach (re-check scheduled for 2026-11-27 00:42Z).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-11-26 (00:40Z) — the UEFA labels and the EFL Championship are on the BSD game join: UEFA 302 of 302, EFL Championship 204 of 204 in production
 
 **HEAD:** `23d729d` (the CC-CMD addendum) ← `a3daf52` ← `4816483`; this entry's commit follows · **Branch:** main · deploy run 45720223494 success (the EFL label, 13 aliases and the UEFA labels and 64 aliases).
