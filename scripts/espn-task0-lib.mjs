@@ -18,9 +18,13 @@ const SAFE_KEY = /^[A-Za-z][A-Za-z0-9_]{0,31}$/;
 const label = (v) => (isStr(v) && SAFE_LABEL.test(v) ? v : '(other)');
 
 export const BOUNDARY_DAY = '2026-10-24';
+// A match no archive row carries the BSD id of. The reasons for the three leagues the join learned in 2026-11 (the EFL Championship and the UEFA labels) are MEASURED from the
+// rows read, not asserted: the 2026-11-25 text said "outside the join's sports" for every ucl or europa zero, and after the join covered them that was false for the 4 left.
 export const REASONS = Object.freeze({
-  eflchamp: 'eflchamp: no archive rows',
-  uefa: "ucl or europa: archive rows, outside the join's sports",
+  eflchamp: 'eflchamp: no archive row of the league on the call days',
+  eflchampUnjoined: "eflchamp: archive rows of the league on the call days, none carries the match's bsd id",
+  uefa: 'ucl or europa: no archive row of its labels on the call days',
+  uefaUnjoined: "ucl or europa: archive rows of its labels on the call days, none carries the match's bsd id",
   early: 'before 2026-10-24, no joined row that day',
   other: 'other unjoined',
 });
@@ -86,9 +90,19 @@ export function labelStats(dayRows) {
 }
 
 // ---------------------------------------------------------------- E2: where does each graded match land
-function zeroReason(slug, firstCallDay, boundaryDay) {
-  if (slug === 'eflchamp') return REASONS.eflchamp;
-  if (slug === 'ucl' || slug === 'europa') return REASONS.uefa;
+// The archive labels each R2 directory's matches are filed under (the cron's LEAGUES rows; BSD league 7 is shared by ucl and its qualifying, 8 by europa, conference and their qualifying).
+const SLUG_LABELS = Object.freeze({
+  eflchamp: Object.freeze(['EFL Championship']),
+  ucl: Object.freeze(['UEFA Champions League', 'UEFA Champions League Qualifying']),
+  europa: Object.freeze(['UEFA Europa League', 'UEFA Europa Conference League', 'UEFA Europa League Qualifying', 'UEFA Europa Conference League Qualifying']),
+});
+/** Does ANY archive row of the slug's labels sit on the days read? Every day is read when this is asked (an unread day never reaches a zero). */
+function hasLeagueRows(slug, days, dayRows) {
+  return days.some((d) => dayRows.get(d).some((r) => isObj(r) && SLUG_LABELS[slug].includes(r.sport)));
+}
+function zeroReason(slug, firstCallDay, boundaryDay, days, dayRows) {
+  if (slug === 'eflchamp') return hasLeagueRows(slug, days, dayRows) ? REASONS.eflchampUnjoined : REASONS.eflchamp;
+  if (slug === 'ucl' || slug === 'europa') return hasLeagueRows(slug, days, dayRows) ? REASONS.uefaUnjoined : REASONS.uefa;
   if (firstCallDay < boundaryDay) return REASONS.early;
   return REASONS.other;
 }
@@ -128,7 +142,7 @@ export function reachEach({ matches, dayRows, boundaryDay = BOUNDARY_DAY }) {
     const days = neededDays(callDays);
     if (days.some((d) => !dayRows.has(d) || dayRows.get(d) === null)) return { reached: false, reason: UNREACHED.unread, espnId: null };
     const hits = hitsFor(m, days, dayRows);
-    if (hits.length === 0) return { reached: false, reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay), espnId: null };
+    if (hits.length === 0) return { reached: false, reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay, days, dayRows), espnId: null };
     const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));
     if (ids.size === 1) return { reached: true, reason: null, espnId: [...ids][0] };
     return { reached: false, reason: ids.size === 0 ? UNREACHED.noEspn : UNREACHED.conflict, espnId: null };
@@ -154,7 +168,7 @@ export function reachOf({ matches, dayRows, boundaryDay = BOUNDARY_DAY }) {
     for (const d of days) allDays.add(d);
     if (days.some((d) => !dayRows.has(d) || dayRows.get(d) === null)) { out.unread++; s.unread++; continue; }
     const hits = hitsFor(m, days, dayRows);
-    if (hits.length === 0) { out.zero++; s.zero++; bump(out.zeroReasons, zeroReason(slug, callDays.slice().sort()[0], boundaryDay)); }
+    if (hits.length === 0) { out.zero++; s.zero++; bump(out.zeroReasons, zeroReason(slug, callDays.slice().sort()[0], boundaryDay, days, dayRows)); }
     else if (hits.length === 1) { out.one++; s.one++; if (has(hits[0].espn_event_id)) out.oneRow.withEspnId++; else out.oneRow.withoutEspnId++; }
     else { out.many++; s.many++; }
     if (hits.length >= 1) {

@@ -8,8 +8,9 @@
 - **Built:** six UEFA labels + 64 club aliases, `EFL Championship` seeded (`eng.2`) with its 200-row history, the label + 13 aliases on the join; `isStuck` so the join backfill re-asks about a day whose pending rows are of a label learned since. Offline: 302 of 302 and 200 of 200 on the committed fixtures, 92 of 92 mutations caught.
 - **Production:** join backfill over 2026-05-20 to 2026-11-23, 54 of 54 dates verified, 476 rows written; the archive reader says UEFA 302 of 302 and EFL Championship 204 of 204.
 - **Laboratory reach (run 45726587782):** `eflchamp` 19 of 19 matches reached (was 0 of 19), `ucl` 36 of 39, `europa` 21 of 22; matches with no joined archive row 75 -> 4.
+- **ESPN reference grade re-run (run 45726584274):** graded 382 of 387 calls on 250 matches, 382 agree, 0 disagree (was 268 of 382 on 246); 246 of 250 matches with a usable ESPN timeline (was 170). E5 unchanged: step A shows no difference, so independence is not shown.
 - **Decisions taken on the owner's word (listed in the addendum):** seed the Championship only; all six UEFA labels; per-club aliases, no fuzzy matching; `EFL Cup` and `EFL Trophy` left off the join.
-- **Open, none blocking:** the 4 unreached matches (counts-only artifact); the ESPN reference grade re-run (run 45726584274); a club first seen in a later UEFA round needs an alias; `/archive/game` still unauthenticated (ruled, blocked on secret rotation).
+- **Open, none blocking:** the 4 unreached matches (the reach reasons are measured now, not asserted; the next reach run names them); a club first seen in a later UEFA round needs an alias; `/archive/game` still unauthenticated (ruled, blocked on secret rotation).
 
 ---
 

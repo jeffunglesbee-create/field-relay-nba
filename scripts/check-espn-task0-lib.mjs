@@ -108,6 +108,33 @@ eq('reachOf: the same by slug', re.espnBySlug, { mls: { one: 3, none: 2, conflic
 eq('reachOf: the espn-id outcomes cover every match that has rows', re.partitions, true);
 eq('reachOf: a match with no row has no espn-id outcome', L.reachOf({ matches: [{ key: '9', slug: 'mls', callDays: ['2026-10-25'] }], dayRows: dayE }).espnIds, { one: 0, none: 0, conflict: 0 });
 
+// ---- the zero reasons for the leagues the join learned are MEASURED: rows of the league's own labels on the call days, none carrying the match's id, is not "no rows"
+const rowU = (id, sport, bsd = null) => ({ id, sport, bsd_event_id: bsd, espn_event_id: null });
+const dayU = new Map([
+  ['2026-10-23', []], ['2026-10-24', []], ['2026-10-25', [rowU('u1', 'UEFA Champions League'), rowU('u2', 'UEFA Europa League', '77'), rowU('u3', 'EFL Championship')]],
+  ['2026-11-02', []], ['2026-11-03', [rowU('u4', 'UEFA Champions League')]],
+  ['2026-11-30', []], ['2026-12-01', [rowU('u5', 'EFL Cup'), rowU('u6', 'EFL Trophy')]],
+  ['2026-12-04', []], ['2026-12-05', [rowU('u7', 'UEFA Champions League Qualifying'), rowU('u8', 'UEFA Europa Conference League Qualifying')]],
+  ['2026-12-09', []], ['2026-12-10', [rowU('u9', 'UEFA Europa League', '5')]],
+]);
+const mU = [
+  { key: '1', slug: 'ucl', callDays: ['2026-10-25'] },        // a Champions League row is there, another match's: unjoined
+  { key: '2', slug: 'europa', callDays: ['2026-10-25'] },     // a Europa League row is there (bsd id 77, not 2): unjoined
+  { key: '3', slug: 'eflchamp', callDays: ['2026-10-25'] },   // an EFL Championship row is there: unjoined
+  { key: '4', slug: 'europa', callDays: ['2026-11-03'] },     // the only UEFA row is a CHAMPIONS League one: europa has no row of its labels
+  { key: '5', slug: 'eflchamp', callDays: ['2026-12-01'] },   // EFL Cup and EFL Trophy rows are not the Championship
+  { key: '6', slug: 'ucl', callDays: ['2026-12-05'] },        // a Qualifying row is a Champions League label
+  { key: '7', slug: 'europa', callDays: ['2026-12-05'] },     // so is a Conference League Qualifying row a europa label
+  { key: '8', slug: 'ucl', callDays: ['2026-12-10'] },        // the only UEFA row is a Europa one: ucl has no row of its labels
+  { key: '9', slug: 'ucl', callDays: ['2026-10-24'] },        // the day before the rows (neededDays reads the day and the one before): empty both days
+];
+const rU = L.reachOf({ matches: mU, dayRows: dayU });
+eq('zero reasons by measurement: totals, every match a zero with one reason', [rU.matches, rU.zero, rU.partitions], [9, 9, true]);
+eq('zero reasons by measurement: the counts', rU.zeroReasons, { [L.REASONS.uefaUnjoined]: 4, [L.REASONS.eflchampUnjoined]: 1, [L.REASONS.uefa]: 3, [L.REASONS.eflchamp]: 1 });
+eq('zero reasons by measurement: reachEach gives the same reason per match, in order', L.reachEach({ matches: mU, dayRows: dayU }).map((x) => x.reason),
+  [L.REASONS.uefaUnjoined, L.REASONS.uefaUnjoined, L.REASONS.eflchampUnjoined, L.REASONS.uefa, L.REASONS.eflchamp, L.REASONS.uefaUnjoined, L.REASONS.uefaUnjoined, L.REASONS.uefa, L.REASONS.uefa]);
+eq('zero reasons: the four reason texts name what was measured, and none says the join excludes a league', Object.values(L.REASONS).filter((t) => /join's sports/.test(t)), []);
+
 // ---- reachEach: the same matches, one verdict each, with the ESPN id
 const ee = L.reachEach({ matches, dayRows });
 eq('reachEach: one row with an espn id is reached, and the id comes with it', ee[0], { reached: true, reason: null, espnId: '900' });

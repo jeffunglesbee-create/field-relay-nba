@@ -25,7 +25,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const MIN_ASSERTIONS = 81;
+const MIN_ASSERTIONS = 85;
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const LIB = 'espn-task0-lib.mjs';
 const CHECK = 'check-espn-task0-lib.mjs';
@@ -55,11 +55,21 @@ const MUTANTS = [
   M('hitsFor: a row on two days counted twice', 'if (seen.has(r.id)) continue; seen.add(r.id); }\n      hits.push(r);', 'seen.add(r.id); }\n      hits.push(r);'),
   M('reachOf: ids compared without String()', 'String(r.bsd_event_id) !== m.key', 'r.bsd_event_id !== m.key'),
   M('reachOf: two rows read as one', 'else if (hits.length === 1)', 'else if (hits.length >= 1)'),
-  M('reachOf: the first listed call day decides', 'bump(out.zeroReasons, zeroReason(slug, callDays.slice().sort()[0], boundaryDay))', 'bump(out.zeroReasons, zeroReason(slug, callDays[0], boundaryDay))'),
-  M('reachEach: the first listed call day decides', 'reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay), espnId: null', 'reason: zeroReason(slug, callDays[0], boundaryDay), espnId: null'),
+  M('reachOf: the first listed call day decides', 'bump(out.zeroReasons, zeroReason(slug, callDays.slice().sort()[0], boundaryDay, days, dayRows))', 'bump(out.zeroReasons, zeroReason(slug, callDays[0], boundaryDay, days, dayRows))'),
+  M('reachEach: the first listed call day decides', 'reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay, days, dayRows), espnId: null', 'reason: zeroReason(slug, callDays[0], boundaryDay, days, dayRows), espnId: null'),
   M('reachOf: the boundary day is early', 'firstCallDay < boundaryDay', 'firstCallDay <= boundaryDay'),
-  M('zeroReason: eflchamp not named', "if (slug === 'eflchamp') return REASONS.eflchamp;", ''),
-  M('zeroReason: europa not named', "if (slug === 'ucl' || slug === 'europa') return REASONS.uefa;", "if (slug === 'ucl') return REASONS.uefa;"),
+  M('zeroReason: eflchamp not named', "if (slug === 'eflchamp') return hasLeagueRows(slug, days, dayRows) ? REASONS.eflchampUnjoined : REASONS.eflchamp;", ''),
+  M('zeroReason: europa not named', "if (slug === 'ucl' || slug === 'europa') return hasLeagueRows(slug, days, dayRows) ? REASONS.uefaUnjoined : REASONS.uefa;", "if (slug === 'ucl') return hasLeagueRows(slug, days, dayRows) ? REASONS.uefaUnjoined : REASONS.uefa;"),
+  M('zeroReason: an eflchamp zero is never "unjoined"', "return hasLeagueRows(slug, days, dayRows) ? REASONS.eflchampUnjoined : REASONS.eflchamp;", 'return REASONS.eflchamp;'),
+  M('zeroReason: a ucl or europa zero is never "unjoined"', "return hasLeagueRows(slug, days, dayRows) ? REASONS.uefaUnjoined : REASONS.uefa;", 'return REASONS.uefa;'),
+  M('zeroReason: a ucl or europa zero is always "unjoined"', "return hasLeagueRows(slug, days, dayRows) ? REASONS.uefaUnjoined : REASONS.uefa;", 'return REASONS.uefaUnjoined;'),
+  M('zeroReason: an eflchamp zero is always "unjoined"', "return hasLeagueRows(slug, days, dayRows) ? REASONS.eflchampUnjoined : REASONS.eflchamp;", 'return REASONS.eflchampUnjoined;'),
+  M('hasLeagueRows: any row on the days counts, whatever its label', 'isObj(r) && SLUG_LABELS[slug].includes(r.sport)', 'isObj(r)'),
+  M('hasLeagueRows: only the first day is looked at', 'return days.some((d) => dayRows.get(d).some(', 'return [days[0]].some((d) => dayRows.get(d).some('),
+  M('SLUG_LABELS: the Qualifying label of ucl is not one', "'UEFA Champions League', 'UEFA Champions League Qualifying'", "'UEFA Champions League'"),
+  M('SLUG_LABELS: the Conference Qualifying label of europa is not one', ", 'UEFA Europa Conference League Qualifying']", "]"),
+  M('SLUG_LABELS: ucl takes the Europa label too', "ucl: Object.freeze(['UEFA Champions League', 'UEFA Champions League Qualifying']),", "ucl: Object.freeze(['UEFA Champions League', 'UEFA Champions League Qualifying', 'UEFA Europa League']),"),
+  M('SLUG_LABELS: eflchamp takes the EFL Cup label too', "eflchamp: Object.freeze(['EFL Championship']),", "eflchamp: Object.freeze(['EFL Championship', 'EFL Cup']),"),
   M('reachOf: an unread day is not noticed', '!dayRows.has(d) || dayRows.get(d) === null)) { out.unread++', '!dayRows.has(d))) { out.unread++'),
   M('reachEach: an unread day (a null read) is not noticed', '!dayRows.has(d) || dayRows.get(d) === null)) return', '!dayRows.has(d))) return'),
   M('reachOf: an absent day is not noticed', '!dayRows.has(d) || dayRows.get(d) === null)) { out.unread++', 'dayRows.get(d) === null)) { out.unread++'),
@@ -99,7 +109,7 @@ const MUTANTS = [
   M('reachEach: a match with no day is reached', "if (callDays.length === 0) return { reached: false, reason: UNREACHED.noDay, espnId: null };", ''),
   M('reachEach: a null espn id counts as an id', 'const ids = new Set(hits.filter((h) => has(h.espn_event_id)).map((h) => String(h.espn_event_id)));\n    if (ids.size === 1) return', 'const ids = new Set(hits.map((h) => String(h.espn_event_id)));\n    if (ids.size === 1) return'),
   M('reachEach: the id of the wrong type', "return { reached: true, reason: null, espnId: [...ids][0] };", "return { reached: true, reason: null, espnId: null };"),
-  M('reachEach: a missing row has no reason of its own', 'if (hits.length === 0) return { reached: false, reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay), espnId: null };', 'if (hits.length === 0) return { reached: false, reason: UNREACHED.noEspn, espnId: null };'),
+  M('reachEach: a missing row has no reason of its own', 'if (hits.length === 0) return { reached: false, reason: zeroReason(slug, callDays.slice().sort()[0], boundaryDay, days, dayRows), espnId: null };', 'if (hits.length === 0) return { reached: false, reason: UNREACHED.noEspn, espnId: null };'),
   M('summaryToEspn: the details need not be a list', '!Array.isArray(c0.details) || ', ''),
   M('summaryToEspn: the competitors need not be a list', ' || !Array.isArray(c0.competitors)) return null;', ') return null;'),
   M('summaryToEspn: a competitor with no team accepted', '!isObj(c.team) || !isStr(c.team.id) || ', ''),
