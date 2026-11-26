@@ -33,5 +33,5 @@ The armed one-shot `trig_01RwwGVVt1uHQg4NXEvXc6Df` (2026-11-24T17:30Z, into `ses
 
 ## Residual
 
-- The regression read (armed). If a bucket appears between 12:00 and 16:00 UTC the Wednesday call is gone, so something else is killing the Worker: investigate first.
+- The regression read ran 2026-11-26 (`worker-cpu-read.yml` run `45739610443`): `NOTHING MEASURED: no exceededMemory invocation of field-relay-nba in 1 day(s). Not a pass.` No bucket between 12:00 and 16:00 UTC on 2026-11-25; the runner's scheduled run fired late (21:58Z) and wrote and served the file. Recorded in the CC-CMD's Results. Nothing to investigate.
 - Owner's call, not done: remove `POST /nfl-r2-update`, the `import` and `src/nfl-r2.js`.
