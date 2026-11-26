@@ -1,0 +1,24 @@
+{
+  "ts": "2026-11-26T16:44:08.787Z",
+  "league": "eng.3",
+  "label": "EFL League One",
+  "from": "2026-08-01",
+  "to": "2026-11-25",
+  "dry": true,
+  "dates": 117,
+  "scoreboardsRead": 117,
+  "completed": 179,
+  "alreadyArchived": 0,
+  "written": 0,
+  "failedWrites": 0,
+  "noEventId": 0,
+  "stopped": null,
+  "statuses": {
+    "200": 117
+  },
+  "archiveAfter": {
+    "n": 0,
+    "scored": 0,
+    "joined": 0
+  }
+}
