@@ -8,7 +8,7 @@
 // If a constant changes in index.js, update it here too.
 
 import { resolveTeamKey, sameAFLClub } from './identity-resolver.js';
-import { squiggleTipForGame, squiggleConfidenceFor } from './afl-squiggle.js';
+import { squiggleTipForGame, squiggleConfidenceFor, squiggleHeaders } from './afl-squiggle.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 import { chargeOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
@@ -33,10 +33,7 @@ const ESPN_SUMMARY_HEADERS = {
 
 // ── Squiggle (AFL) (keep in sync with index.js) ────────────────────────────
 const SQUIGGLE_BASE    = 'https://api.squiggle.com.au';
-const SQUIGGLE_HEADERS = {
-    'Accept':     'application/json',
-    'User-Agent': 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)',
-};
+// SQUIGGLE_HEADERS is squiggleHeaders(env) (src/afl-squiggle.js): the User-Agent carries the owner's contact address from the Worker secret SQUIGGLE_CONTACT, which needs env.
 
 // ── Kali AFL Stats (keep in sync with index.js) ────────────────────────────
 const KALI_BASE = 'https://kaliaflstats.com/api/afl/v1';
@@ -463,7 +460,7 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
             // Kali is not asked: it is offline until 2027 and its finals numbering is unmeasured, so a round handed to it would be a guess.
             if (discovered.postseason) {
                 const tip = await squiggleTipForGame({ year, kickoff: discovered.start, home: discovered.home, away: discovered.away },
-                    { headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });
+                    { headers: squiggleHeaders(env), signal: AbortSignal.timeout(5000) });
                 const pct = tip ? squiggleConfidenceFor(tip, predictedWinner) : null;
                 return pct === null ? null : { probability: Math.round(pct / 100 * 1000) / 1000, source: 'squiggle', label: 'Statistical probability' };
             }
@@ -512,7 +509,7 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
             // ("avoid fetching more data than you need"). The Aggregate guard below stays: a changed source id then answers null, not another source's tip.
             try {
                 const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {
-                    headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000),
+                    headers: squiggleHeaders(env), signal: AbortSignal.timeout(5000),
                 });
                 if (r.ok) {
                     const sd = await r.json();

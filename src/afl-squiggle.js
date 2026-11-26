@@ -21,6 +21,39 @@ import { resolveAFLTeamKey } from './identity-resolver.js';
 
 const SQUIGGLE_BASE = 'https://api.squiggle.com.au';
 
+// THE HEADERS OF EVERY REQUEST THIS RELAY MAKES TO SQUIGGLE: src/index.js and src/wp-resolver.js build theirs here, so there is one User-Agent and not two.
+// Squiggle's Requirements, item 1 (https://api.squiggle.com.au/, v1.14.0, read 2026-11-26): "Set your bot's UserAgent to something that identifies it and contains a contact email,
+// e.g. "Dan's Tipping Comp - dan@example.com"". Its changelog, 1.13.0 (Apr 2026): "Requests from bots that fail to comply with the UserAgent requirement may now be blocked at edge level
+// (particularly if they run from a server farm) and won't receive a nice explanation why", and a GitHub runner without a contact address was answered HTTP 403 on 2026-11-25
+// (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4: the owner decided on 2026-11-26 that the relay sends one). The format follows Squiggle's own example:
+// the name, then " - ", then the address as the last token.
+// THE ADDRESS IS NOT IN THE SOURCE. It is the Worker secret SQUIGGLE_CONTACT, set by the owner (a secret does not pass through a deploy and does not enter the git history). Per request,
+// as every other secret in this codebase is read (env is passed down), and because this module is also imported by the Node-side checks, where `cloudflare:workers` does not resolve
+// (Cloudflare does allow `import { env } from 'cloudflare:workers'` at module scope). Unset or not one plain address (the shape below) = no contact in the User-Agent, said once per isolate, and the request is
+// still made with the User-Agent this relay sent before: a missing secret degrades to the state before this and nothing breaks.
+const SQUIGGLE_AGENT = 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)';
+// One plain address: a local part of RFC 5322 atext characters with dots only between them, an @, and a dotted domain of letters, digits and hyphens; at most 254 characters (the lookahead,
+// which also bounds the matching work). Printable ASCII by construction: control characters make a Worker's Headers throw ("Invalid header value": measured in workerd on 2026-11-25),
+// a character outside ASCII is sent as UTF-8 there but is not a plain address, and no space, parenthesis, semicolon, comma, angle bracket, quote or backslash can occur.
+const CONTACT_SHAPE = /^(?=.{3,254}$)[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+let warnedContact = false;
+export function _resetContactWarning() { warnedContact = false; }   // for the checks: the warning is once per isolate
+const contactOf = (env) => (env && typeof env.SQUIGGLE_CONTACT === 'string' ? env.SQUIGGLE_CONTACT.trim() : '');
+// 'set' (one plain address, used), 'unset' (the owner has not set the secret) or 'invalid' (set, but not one plain address: not used). Never the address itself: the /squiggle route
+// reports this word in a response header so the owner's step is visible and a typo is not silent (scripts/verify-staged-items.mjs, check 14).
+export function squiggleContactState(env) {
+    const raw = contactOf(env);
+    return raw === '' ? 'unset' : CONTACT_SHAPE.test(raw) ? 'set' : 'invalid';
+}
+export function squiggleHeaders(env) {
+    const state = squiggleContactState(env);
+    if (state !== 'set' && !warnedContact) {
+        warnedContact = true;
+        console.warn(`[AFL-SQUIGGLE] SQUIGGLE_CONTACT ${state === 'invalid' ? 'is not one plain email address' : 'is not set'}: requests to Squiggle carry no contact address, which Squiggle requires (it may refuse them)`);
+    }
+    return { 'Accept': 'application/json', 'User-Agent': state === 'set' ? `${SQUIGGLE_AGENT} - ${contactOf(env)}` : SQUIGGLE_AGENT };
+}
+
 // Squiggle's team id by AFL identity key (resolveAFLTeamKey). ?q=teams read 2026-11-24: Adelaide 1, Brisbane Lions 2, Carlton 3, Collingwood 4,
 // Essendon 5, Fremantle 6, Geelong 7, Gold Coast 8, Greater Western Sydney 9, Hawthorn 10, Melbourne 11, North Melbourne 12, Port Adelaide 13,
 // Richmond 14, St Kilda 15, Sydney 16, West Coast 17, Western Bulldogs 18.

@@ -180,9 +180,15 @@ let squiggleMode = 'ok';
 const kv = () => { const m = new Map(); return { get: async k => (m.has(k) ? m.get(k) : null), put: async (k, v) => { m.set(k, v); } }; };
 
 // GET /v2/games?sport=afl&date=D through the real worker. `kali`: 'holding' (the page Kali's host serves now), 'json' (predictions served).
-async function get(date, { token = true, kali = 'holding', clock = '2026-11-24T12:00:00Z', squiggle = 'ok' } = {}) {
+// The contact address is the Worker secret SQUIGGLE_CONTACT; this fake one is never a real address. `contact: null` leaves it unset.
+const CONTACT = 'ops@example.invalid';
+// The User-Agent with no contact is the one this relay sent before the contact was added; with one it is that, then ' - ', then the address (Squiggle's own example: "Dan's Tipping Comp - dan@example.com").
+const BASE_UA = 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)';
+const withContact = (a) => `${BASE_UA} - ${a}`;
+const resetWarn = () => { if (typeof squiggleModule._resetContactWarning === 'function') squiggleModule._resetContactWarning(); };   // guarded: against the source before the change the assertions below fail, they do not crash
+async function get(date, { token = true, kali = 'holding', clock = '2026-11-24T12:00:00Z', squiggle = 'ok', contact = CONTACT } = {}) {
   seen = []; warns = []; kaliMode = kali; squiggleMode = squiggle; CLOCK = RealDate.parse(clock);
-  const env = { ...(token ? { KALI_AFL_TOKEN: 'k', KALI_CACHE: kv() } : {}) };
+  const env = { ...(token ? { KALI_AFL_TOKEN: 'k', KALI_CACHE: kv() } : {}), ...(contact === null ? {} : { SQUIGGLE_CONTACT: contact }) };
   const waits = [];
   const r = await worker.fetch(new Request(`http://relay.test/v2/games?sport=afl&date=${date}`), env, { waitUntil: p => waits.push(p), passThroughOnException() {} });
   await Promise.allSettled(waits);
@@ -193,7 +199,7 @@ async function get(date, { token = true, kali = 'holding', clock = '2026-11-24T1
   const signals = seen.filter(s => s.url.startsWith('https://api.squiggle.com.au/') && /;team=\d+/.test(s.url)).map(s => !!(s.init && s.init.signal));
   const sqReads = seen.filter(s => s.url.startsWith('https://api.squiggle.com.au/'));
   const cf = sqReads.map(s => [s.init?.cf?.cacheTtl, s.init?.cf?.cacheEverything]);
-  const ua = sqReads.map(s => [s.init?.headers?.Accept, String(s.init?.headers?.['User-Agent']).startsWith('FIELD-Global-Sports-Intelligence/')]);
+  const ua = sqReads.map(s => [s.init?.headers?.Accept, s.init?.headers?.['User-Agent']]);
   return { status: r.status, body, squiggle: sq, kali: ka, games: body?.games ?? [], warns: [...warns], cacheKeys, signals, cf, ua };
 }
 const byHome = (res, home) => res.games.find(g => g.home.name === home) || null;
@@ -218,7 +224,73 @@ eq('J3 the other three games get their own tips', [pair(sqOf(byHome(r1, 'St Kild
    [['62.49', '37.51'], ['39.14', '60.86'], ['72.30', '27.70']]);
 eq('J4 one Squiggle read, for 2026 round 18, and one Kali read for the same year and round', [r1.squiggle, r1.kali], [['?q=tips;year=2026;round=18;source=8'], ['/predictions?year=2026&round=18']]);
 eq('J4b the round-based Squiggle read asks for the Aggregate source alone (3 KB, not 104 KB) and is edge-cached under its own key', r1.cacheKeys, ['squiggle:tips:2026:18:aggregate']);
-eq('J4c the round-based read carries the relay\'s Accept and User-Agent', r1.ua, [['application/json', true]]);
+eq('J4c the round-based read carries the relay\'s Accept and a User-Agent that identifies the bot and gives the contact address from SQUIGGLE_CONTACT (Squiggle\'s requirement)', r1.ua, [['application/json', withContact(CONTACT)]]);
+// The contact is a Worker secret read per request. Unset, or not one plain address, it is left out, said ONCE per isolate, and the request is still made.
+resetWarn();
+const c1 = await get('2026-07-11', { contact: null });
+eq('C1 with SQUIGGLE_CONTACT unset the User-Agent has no contact, the tips are still served, and the missing secret is said once', [c1.ua, pair(sqOf(byHome(c1, 'St Kilda'))), c1.warns.filter(w => /^\[AFL-SQUIGGLE\] SQUIGGLE_CONTACT is not set: /.test(w)).length], [[['application/json', BASE_UA]], ['62.49', '37.51'], 1]);
+const c1b = await get('2026-07-11', { contact: null });
+eq('C1b ... and not again for the next request in the same isolate', c1b.warns.filter(w => /SQUIGGLE_CONTACT/.test(w)).length, 0);
+for (const [what, bad] of [['whitespace inside', 'ops @example.invalid'], ['a header break', 'ops@example.invalid\r\nX-Injected: 1'], ['angle brackets', '<ops@example.invalid>'], ['parentheses', 'ops@example.invalid)'], ['a semicolon', 'ops@example.invalid;x'], ['no @', 'ops.example.invalid'], ['two @', 'a@b@example.invalid'], ['no dot in the domain', 'ops@localhost'], ['a letter outside ASCII', 'ops@ex\u00e4mple.invalid'], ['a dash above U+00FF', 'ops@example\u2014mail.invalid'], ['a control character', 'ops@example.invalid\u0001'], ['DEL', 'ops@example.invalid\u007f'], ['a comma', 'a,b@example.invalid'], ['a double quote', '"ops"@example.invalid'], ['a backslash', 'ops@example.invalid\\'], ['two dots in a row', 'ops@example..invalid'], ['a leading dot', '.ops@example.invalid'], ['a trailing dot in the local part', 'ops.@example.invalid'], ['a trailing dot after the domain', 'ops@example.invalid.'], ['a label starting with a hyphen', 'ops@-example.invalid'], ['a label ending with a hyphen', 'ops@example-.invalid'], ['an @ inside the domain', 'ops@example.in@valid'], ['a mailto: prefix', 'mailto:ops@example.invalid'], ['a path after the domain', 'ops@example.invalid/x'], ['more than 254 characters', `${'a'.repeat(200)}@${'b'.repeat(60)}.invalid`], ['a dot-only domain', 'a@...'], ['a backslash in the local part', 'o\\ps@example.invalid'], ['parentheses in the local part', 'o(ps)@example.invalid'], ['a letter outside ASCII in the local part', '\u00f6ps@example.invalid'], ['two dots in a row in the local part', 'o..ps@example.invalid'], ['a number', 42], ['blank', '   ']]) {
+  resetWarn();
+  const cb = await get('2026-07-11', { contact: bad });
+  eq(`C2 SQUIGGLE_CONTACT with ${what} is left out of the User-Agent (no header injection), still served`, [cb.ua, pair(sqOf(byHome(cb, 'St Kilda')))], [[['application/json', BASE_UA]], ['62.49', '37.51']]);
+}
+resetWarn();
+const c2w = await get('2026-07-11', { contact: 'ops @example.invalid' });
+eq('C2b an address that is set but wrong is said as that, not as unset', c2w.warns.filter(w => /^\[AFL-SQUIGGLE\] SQUIGGLE_CONTACT is not one plain email address: /.test(w)).length, 1);
+const c3 = await get('2026-07-11', { contact: `  ${CONTACT}  ` });
+eq('C3 surrounding whitespace is trimmed', c3.ua, [['application/json', withContact(CONTACT)]]);
+eq('C3b no warning for a good address, and no warning anywhere names an address, wrong or right', [c3.warns.some(w => /SQUIGGLE_CONTACT/.test(w)), [...c1.warns, ...c2w.warns, ...c3.warns].some(w => w.includes('example.invalid'))], [false, false]);
+// An address that is not a plain one is said as such, once per isolate, however many requests follow (the unset case is asserted above; this is the malformed one).
+resetWarn();
+await get('2026-07-11', { contact: 'ops @example.invalid' });
+const c2c = await get('2026-07-11', { contact: 'ops @example.invalid' });
+eq('C2c ... and not again for the second request in the same isolate', c2c.warns.filter(w => /SQUIGGLE_CONTACT/.test(w)).length, 0);
+// A realistic address is sent exactly as given (trimmed): capitals, digits, a plus tag, an underscore, an apostrophe, hyphenated multi-label domains, 60 + 60 characters.
+for (const good of ['First.Last+tag@Sub-Domain.Example-Mail.invalid', 'a_b-9@example.co.invalid', "o'brien@example.invalid", 'x@y.z', `${'a'.repeat(60)}@${'b'.repeat(60)}.invalid`]) {
+  const cg = await get('2026-07-11', { contact: good });
+  eq(`C5 a plain address (${good.length > 40 ? `${good.length} characters` : good}) is sent as given and is not rewritten`, cg.ua, [['application/json', withContact(good)]]);
+}
+// The /squiggle route forwards the same query to Squiggle with the same headers, and reports the contact state in a response header (a word, never the address).
+{
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };   // Workers' cache API, which relayFetch reads and Node does not have
+  const routeRead = async (env) => {
+    seen = []; warns = []; kaliMode = 'holding'; squiggleMode = 'ok'; CLOCK = RealDate.parse('2026-11-24T12:00:00Z');
+    const waits = [];
+    const r = await worker.fetch(new Request('http://relay.test/squiggle?q=tips;year=2026;round=18;source=8'), env, { waitUntil: p => waits.push(p), passThroughOnException() {} });
+    await Promise.allSettled(waits);
+    return [r.status, r.headers.get('X-FIELD-Squiggle-Contact'), seen.filter(s => s.url.startsWith('https://api.squiggle.com.au/')).map(s => [s.url.slice('https://api.squiggle.com.au/'.length), s.init?.headers?.['User-Agent']])];
+  };
+  resetWarn();
+  eq('C4 the /squiggle pass-through reads Squiggle with the contact address too, and says so in X-FIELD-Squiggle-Contact', await routeRead({ SQUIGGLE_CONTACT: CONTACT }), [200, 'set', [['?q=tips;year=2026;round=18;source=8', withContact(CONTACT)]]]);
+  eq('C4b ... says unset when the owner has not set the secret (the request is still made, with no contact)', await routeRead({}), [200, 'unset', [['?q=tips;year=2026;round=18;source=8', BASE_UA]]]);
+  eq('C4c ... says invalid for an address that is set but wrong, and sends none', await routeRead({ SQUIGGLE_CONTACT: 'ops @example.invalid' }), [200, 'invalid', [['?q=tips;year=2026;round=18;source=8', BASE_UA]]]);
+  eq('C4d ... and the state is a word: it never carries the address', [String((await routeRead({ SQUIGGLE_CONTACT: CONTACT }))[1]).includes('example.invalid'), String((await routeRead({ SQUIGGLE_CONTACT: 'ops @example.invalid' }))[1]).includes('example.invalid')], [false, false]);
+  // The wrapper `new Response(upstream.body, upstream)` exists to keep the answer as it was and add one header: the upstream status, the relay's CORS and proxy headers, the body, and a CACHE HIT
+  // (a cached Response's headers are immutable in Workers, so the header cannot be set on it: the wrapper builds a new one).
+  const routeFull = async (env, mode, q = 'q=tips;year=2026;round=18;source=8') => {
+    seen = []; warns = []; kaliMode = 'holding'; squiggleMode = mode; CLOCK = RealDate.parse('2026-11-24T12:00:00Z');
+    const waits = [];
+    const r = await worker.fetch(new Request(`http://relay.test/squiggle?${q}`), env, { waitUntil: p => waits.push(p), passThroughOnException() {} });
+    await Promise.allSettled(waits);
+    return { status: r.status, contact: r.headers.get('X-FIELD-Squiggle-Contact'), cors: r.headers.get('Access-Control-Allow-Origin'), proxy: r.headers.get('X-FIELD-Proxy'), relayError: r.headers.get('X-RELAY-Error'), body: await r.text() };
+  };
+  const ok200 = await routeFull({ SQUIGGLE_CONTACT: CONTACT }, 'ok');
+  eq('C4e a forwarded answer keeps its 200, its body and the relay\'s CORS and proxy headers, and gains the contact state', [ok200.status, ok200.contact, ok200.cors, ok200.proxy, JSON.parse(ok200.body).tips.length > 0], [200, 'set', '*', 'relay-squiggle', true]);
+  const refused = await routeFull({ SQUIGGLE_CONTACT: CONTACT }, '503', 'q=tips;year=2026;team=1;source=8');
+  eq('C4f an upstream refusal keeps its status and its X-RELAY-Error (a 503 stays a 503, not a 200) and still reports the contact state', [refused.status, refused.relayError, refused.contact, refused.cors], [503, 'squiggle-503', 'set', '*']);
+  const cached = new Response('{"tips":["from the edge cache"]}', { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+  cached.headers.set = () => { throw new TypeError('immutable headers (a cache hit in Workers)'); };   // what a cache hit's headers do
+  globalThis.caches = { default: { match: async () => cached, put: async () => {} } };
+  const hit = await routeFull({}, 'ok').catch(e => ({ status: `threw: ${e.message}`, contact: null, body: null }));   // a throw is a failed assertion, not a crashed check
+  eq('C4g a CACHE HIT (immutable headers) is still answered, with its body, and says unset', [hit.status, hit.contact, hit.body], [200, 'unset', '{"tips":["from the edge cache"]}']);
+  eq('C4h ... and a cache hit makes no request to Squiggle', seen.filter(s => s.url.startsWith('https://api.squiggle.com.au/')).length, 0);
+  const noQ = await worker.fetch(new Request('http://relay.test/squiggle'), { SQUIGGLE_CONTACT: CONTACT }, { waitUntil() {}, passThroughOnException() {} });
+  eq('C4i the route\'s own 400 for a missing q= carries no contact header (it answers before anything is forwarded)', [noQ.status, noQ.headers.get('X-FIELD-Squiggle-Contact')], [400, null]);
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+  delete globalThis.caches;
+}
 eq('J5 Kali answering with its holding page leaves kali null and Squiggle served (the state of the world now)', byHome(r1, 'St Kilda')?.journalism?.kali, null);
 
 // A row joins a game only when BOTH clubs are the game's clubs: Squiggle's list also has Collingwood v Geelong and North Melbourne v Geelong, and the slate has North Melbourne v Collingwood.
@@ -262,7 +334,7 @@ eq('F1 the 2026-09-05 finals (ESPN week 2): Adelaide v Western Bulldogs gets the
    [pair(sqOf(byHome(f1, 'Adelaide Crows'))), pair(sqOf(byHome(f1, 'Sydney Swans')))], [['68.60', '31.40'], ['50.61', '49.39']]);
 eq('F2 each final asks Squiggle for its HOME club\'s season, and nothing else: no round read, and Kali (served here) is not asked',
    [[...f1.squiggle].sort(), f1.kali], [['?q=tips;year=2026;team=16;source=8', '?q=tips;year=2026;team=1;source=8'], []]);
-eq('F2c each final\'s read asks for the edge cache the way the relay\'s other Squiggle reads do (an hour, cacheEverything: Rule 78) and carries the relay\'s Accept and User-Agent', [f1.cf, f1.ua], [[[3600, true], [3600, true]], [['application/json', true], ['application/json', true]]]);
+eq('F2c each final\'s read asks for the edge cache the way the relay\'s other Squiggle reads do (an hour, cacheEverything: Rule 78) and carries the relay\'s Accept and the User-Agent with the contact address', [f1.cf, f1.ua], [[[3600, true], [3600, true]], [['application/json', withContact(CONTACT)], ['application/json', withContact(CONTACT)]]]);
 eq('F2b the two edge-cache keys are different: one entry per club and year, never one shared entry', [new Set(f1.cacheKeys).size, f1.cacheKeys.every(k => /^squiggle:tips:2026:team:\d+:aggregate$/.test(k))], [2, true]);
 eq('F3 the Grand Final (ESPN week 5; the relay served it null) gets Squiggle\'s round-29 tip 48.51', pair(sqOf(byHome(await get('2026-09-26'), 'Fremantle'))), ['48.51', '51.49']);
 eq('F4 a Wildcard Final (ESPN week 1, a round that is also March\'s round 1) gets its own tip 47.20', pair(sqOf(byHome(await get('2026-08-28'), 'Western Bulldogs'))), ['47.20', '52.80']);
@@ -330,11 +402,17 @@ const T = { hteamid: 3, ateamid: 14, hconfidence: '60.00' };
 eq('U3 squiggleConfidenceFor gives the home club the tip, the away club the rest, and a club not in the row (or a row with no tip) nothing',
    [squiggleConfidenceFor(T, 'Carlton'), squiggleConfidenceFor(T, 'Richmond'), squiggleConfidenceFor(T, 'Geelong'), squiggleConfidenceFor({ ...T, hconfidence: null }, 'Carlton'), squiggleConfidenceFor({ ...T, hconfidence: null }, 'Richmond'), squiggleConfidenceFor(T, 'Nobody FC')], [60, 40, null, null, null, null]);
 
+// The FINALS read (src/index.js buildAFLJournalismContext) builds its own headers: unset and malformed reach it too, and the tip is still served.
+for (const [what, contact, want] of [['unset', null, BASE_UA], ['malformed', 'ops @example.invalid', BASE_UA], ['set', CONTACT, withContact(CONTACT)]]) {
+  resetWarn();
+  const cf = await get('2026-09-05', { contact });
+  eq(`C6 the finals reads with SQUIGGLE_CONTACT ${what} send ${what === 'set' ? 'the contact' : 'no contact'}, and both finals are still served`, [cf.ua.map(x => x[1]), pair(sqOf(byHome(cf, 'Adelaide Crows')))], [[want, want], ['68.60', '31.40']]);
+}
 // The gate is unchanged: no Kali token, no journalism context and no Kali or Squiggle read.
 const r7 = await get('2026-07-11', { token: false });
 eq('J12 without KALI_AFL_TOKEN no game carries a journalism key and nothing is asked of Kali or Squiggle', [r7.games.some(g => 'journalism' in g), r7.squiggle, r7.kali], [false, [], []]);
 
-console.log(`COVERAGE: ${total} assertions through the real GET /v2/games?sport=afl, with KALI_AFL_TOKEN set (J12 runs it unset), a pinned clock (2026-11-24, 2027-03-13 and the 2025 final's day) and a Map KV. REAL inputs: the 2026-07-11, -07-09 and -03-05 slates as the relay served them (ESPN names), the 2026 finals events as ESPN served them (season.type 3), Squiggle's real Aggregate rows for rounds 0 and 18, for the 2026 finals (rounds 25-29) and for the 2025 round-25 GWS v Hawthorn game. SYNTHETIC inputs: the 02-27 preseason game (J18), the 07-18, 07-25, 08-01, 08-02, 08-30, 09-06/07/08/09/10 and 2027 slates, every row marked synthetic in SEASON_ROWS and TIPS (including the rounds 1, 2 (its Adelaide row is real), 3 and 5 decoys the round route serves for ESPN's finals weeks), the Kali predictions (names 'Sydney' and 'Carlton' are recorded Kali names, 'Fremantle' is not, every value is invented) and the Squiggle failure modes (503, not JSON, network down, tips not an array, a null row, a row listed twice, no hconfidence). The module's helpers (hconfidence, all 18 team ids, the Melbourne day across both offsets) are asserted on the module under test. A final is asserted to ask Squiggle for its home club's season and Kali for nothing, with the relay's cf options and headers and an abort signal. Not covered here: Kali's FINALS numbering (unmeasured, offline until 2027), the Kali branch's team names beyond 'Sydney' (8 of 18 recorded), ESPN's league-level season block (the stubs omit it), a slate mixing finals and regular games (ESPN's regular season ends before its finals begin), whether Cloudflare's cf cache options take effect on Squiggle's zone (asserted as sent, not as honoured: Node ignores cf) and the client.`);
+console.log(`COVERAGE: ${total} assertions through the real GET /v2/games?sport=afl, with KALI_AFL_TOKEN set (J12 runs it unset), a pinned clock (2026-11-24, 2027-03-13 and the 2025 final's day) and a Map KV. REAL inputs: the 2026-07-11, -07-09 and -03-05 slates as the relay served them (ESPN names), the 2026 finals events as ESPN served them (season.type 3), Squiggle's real Aggregate rows for rounds 0 and 18, for the 2026 finals (rounds 25-29) and for the 2025 round-25 GWS v Hawthorn game. SYNTHETIC inputs: the 02-27 preseason game (J18), the 07-18, 07-25, 08-01, 08-02, 08-30, 09-06/07/08/09/10 and 2027 slates, every row marked synthetic in SEASON_ROWS and TIPS (including the rounds 1, 2 (its Adelaide row is real), 3 and 5 decoys the round route serves for ESPN's finals weeks), the Kali predictions (names 'Sydney' and 'Carlton' are recorded Kali names, 'Fremantle' is not, every value is invented) and the Squiggle failure modes (503, not JSON, network down, tips not an array, a null row, a row listed twice, no hconfidence). The module's helpers (hconfidence, all 18 team ids, the Melbourne day across both offsets) are asserted on the module under test. A final is asserted to ask Squiggle for its home club's season and Kali for nothing, with the relay's cf options and headers and an abort signal. The User-Agent's contact address comes from the Worker secret SQUIGGLE_CONTACT (a fake example.invalid address here): sent as given and trimmed (five realistic addresses: capitals, digits, a plus tag, an underscore, an apostrophe, hyphenated multi-label domains, 60 + 60 characters), left out when unset or malformed (32 shapes: a header break, non-ASCII, a control character, DEL, quotes, brackets, commas, semicolons, backslashes, spaces, stray dots and hyphens, a second @, over 254 characters), said once per isolate whether unset or malformed, and never naming an address; on the round read, on the finals reads (set, unset, malformed) and on the /squiggle route (set, unset, malformed), where the answer keeps the upstream status (a 503 stays a 503), body and the relay's CORS and proxy headers, a cache hit with immutable headers is still answered without a request to Squiggle, and X-FIELD-Squiggle-Contact says set, unset or invalid (a word, never the address; the 400 for a missing q= carries none: C4i). Not covered here: the real Cloudflare cache and Headers (Node's stand in), Squiggle's own reaction to the User-Agent. Not covered here: Kali's FINALS numbering (unmeasured, offline until 2027), the Kali branch's team names beyond 'Sydney' (8 of 18 recorded), ESPN's league-level season block (the stubs omit it), a slate mixing finals and regular games (ESPN's regular season ends before its finals begin), whether Cloudflare's cf cache options take effect on Squiggle's zone (asserted as sent, not as honoured: Node ignores cf) and the client.`);
 console.log(`${passed} of ${total} passed.`);
 globalThis.Date = RealDate;
 process.exit(passed === total ? 0 : 1);

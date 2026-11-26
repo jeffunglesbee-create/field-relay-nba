@@ -149,7 +149,7 @@ globalThis.fetch = async (input, init = {}) => {
   if (url.startsWith('https://kaliaflstats.com/')) { log.kali.push(url); return jsonResp('{}', 503); }
   if (url.startsWith('https://api.squiggle.com.au/')) {
     const m = /year=(\d+);round=(\d+)/.exec(url);
-    log.squiggle.push({ url, year: m && Number(m[1]), round: m && Number(m[2]) });
+    log.squiggle.push({ url, year: m && Number(m[1]), round: m && Number(m[2]), headers: init && init.headers });
     return jsonResp({ tips: (m && TIPS[Number(m[2])]) || [] });
   }
   throw new Error('check: an unexpected fetch to ' + url + ' (the live network is not reachable from this check)');
@@ -160,7 +160,14 @@ console.warn = (...a) => { if (log) log.warns.push(a.map(String).join(' ')); };
 const SRC = resolve(process.env.WP_RESOLVER_SRC || 'src/wp-resolver.js');
 const { resolveWinProbability } = await import(pathToFileURL(SRC).href);
 const { resolveAFLTeamKey } = await import(new URL('../src/identity-resolver.js', import.meta.url).href);
-const pick = (winner, env = {}) => resolveWinProbability('AFL', { gameId: 'espn:401', predictedWinner: winner }, env);
+// The contact address is the Worker secret SQUIGGLE_CONTACT; this fake one is never a real address.
+const CONTACT = 'ops@example.invalid';
+// The User-Agent with no contact is the one this relay sent before the contact was added; with one it is that, then ' - ', then the address (Squiggle's own example: "Dan's Tipping Comp - dan@example.com").
+const BASE_UA = 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)';
+const withContact = (a) => `${BASE_UA} - ${a}`;
+const resetWarn = () => { if (typeof squiggleModule._resetContactWarning === 'function') squiggleModule._resetContactWarning(); };   // guarded: against the source before the change the assertions fail, they do not crash
+const squiggleModule = await import(new URL('afl-squiggle.js', pathToFileURL(SRC)).href);   // the module next to the resolver under test (a mutant tree has its own)
+const pick = (winner, env = {}) => resolveWinProbability('AFL', { gameId: 'espn:401', predictedWinner: winner }, { SQUIGGLE_CONTACT: CONTACT, ...env });
 
 // ── assertions ──────────────────────────────────────────────────────────────────────────────────────────────────────
 let passed = 0, total = 0;
@@ -179,6 +186,7 @@ fresh();
 eq('S1 Fremantle (home, label "Fremantle Dockers", ESPN "Fremantle") on +1d resolves through round 18 to the Aggregate row, 62.49 -> 0.625, although every body says week 17 at the top level and a decoy source says 99', await pick('Fremantle Dockers'), WP(0.625));
 eq('S2 the Squiggle read is for 2026 round 18 exactly once', log.squiggle.map(s => [s.year, s.round]), [[2026, 18]]);
 eq('S2b ... and asks for the Aggregate source alone (3 KB for a round, not 104 KB)', log.squiggle.map(s => s.url.endsWith(';source=8')), [true]);
+eq('S2c ... with a User-Agent that identifies the bot and gives the contact address from SQUIGGLE_CONTACT (Squiggle\'s requirement)', log.squiggle.map(s => s.headers && s.headers['User-Agent']), [withContact(CONTACT)]);
 const espn1 = log.espn.map(e => e.dates);
 ok('S3 no ESPN request carries a date RANGE (a dash in dates= is answered 400)', espn1.every(d => /^\d{8}$/.test(d || '')), 'dates sent: ' + JSON.stringify(espn1));
 eq('S4 exactly the ten days -3d..+6d were read, once each', [...espn1].sort(), ALL_DAYS);
@@ -294,7 +302,20 @@ eq('R1 Adelaide Crows (the 2026-09-05 final, ESPN week 2) resolves to the FINAL\
    await pick('Adelaide Crows'), WP(0.686));
 eq('R2 ... through one read of the home club\'s season, no round-based read at all, and a 5 s timeout on every read (ten ESPN reads and that one)', [log.squiggleTeam, log.squiggle, log.timeouts.length, log.timeouts.every(x => x === 5000)], [['?q=tips;year=2026;team=1;source=8'], [], 11, true]);
 eq('R2b the Squiggle read carries an abort signal (it is the 11th timeout, not only counted: handed on to the request)', log.squiggleTeamInit.map(i => !!(i && i.signal)), [true]);
-eq('R2c ... and the relay\'s Accept and User-Agent headers', log.squiggleTeamInit.map(i => [i && i.headers && i.headers.Accept, !!(i && i.headers && String(i.headers['User-Agent']).startsWith('FIELD-Global-Sports-Intelligence/'))]), [['application/json', true]]);
+eq('R2c ... and the relay\'s Accept and a User-Agent that identifies the bot and gives the contact address', log.squiggleTeamInit.map(i => [i && i.headers && i.headers.Accept, i && i.headers && i.headers['User-Agent']]), [['application/json', withContact(CONTACT)]]);
+// Unset, or not one plain address: left out of the User-Agent, said once, and the tip is still read.
+resetWarn();
+fresh({}, FIN);
+eq('R11 a final with SQUIGGLE_CONTACT unset is still resolved (68.60 -> 0.686), its User-Agent has no contact, and the missing secret is said once',
+   [await pick('Adelaide Crows', { SQUIGGLE_CONTACT: undefined }), log.squiggleTeamInit.map(i => i.headers && i.headers['User-Agent']), log.warns.filter(w => /^\[AFL-SQUIGGLE\] SQUIGGLE_CONTACT is not set: /.test(w)).length], [WP(0.686), [BASE_UA], 1]);
+await pick('Adelaide Crows', { SQUIGGLE_CONTACT: undefined });
+eq('R11b ... not again for the next read in the same isolate', log.warns.filter(w => /SQUIGGLE_CONTACT/.test(w)).length, 1);
+resetWarn();
+fresh({}, '2026-07-08T10:00:00Z');
+eq('R12 a regular-season read with a malformed SQUIGGLE_CONTACT (a header break) leaves the contact out, still answers, and says the address is wrong',
+   [(await pick('Fremantle Dockers', { SQUIGGLE_CONTACT: 'ops@example.invalid\r\nX-Injected: 1' }))?.probability, log.squiggle.map(s => s.headers && s.headers['User-Agent']), log.warns.filter(w => /^\[AFL-SQUIGGLE\] SQUIGGLE_CONTACT is not one plain email address: /.test(w)).length], [0.625, [BASE_UA], 1]);
+eq('R12b nothing the resolver warns names the address, wrong or right', log.warns.some(w => w.includes('example.invalid')), false);
+fresh({}, FIN);
 fresh({}, FIN);
 eq('R3 Western Bulldogs (the away club of that final) resolves to the rest, (100 - 68.60) / 100 = 0.314', await pick('Western Bulldogs'), WP(0.314));
 fresh({}, FIN);
@@ -344,6 +365,6 @@ ok('S42 a label with a nickname resolves to the same key as the ESPN name (GWS G
 
 console.warn = realWarn;
 globalThis.fetch = realFetch;
-console.log(`COVERAGE: ${total} assertions: the real resolveWinProbability('AFL', ...) over pinned instants (2026-07-08 10:00Z, 23:30Z and 00:00Z, 2027-03-10 10:00Z, and the finals window of 2026-09-04 10:00Z), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number over a conflicting top-level week, and season.type 3 for the 2026 finals as ESPN served them) and two Squiggle stubs (round-keyed for a regular game, team-keyed for a final: rows in Squiggle's shape with decoy sources), plus the 18-club identity table. ESPN team names are the ones the relay served for 2026-07-05..12, one real body (20260709) is replayed as recorded, and Squiggle's are its own; 8 of Kali's 18 names are recorded in outbox and were run through the matcher once by hand, not here. A PRESEASON game (R10, synthetic: season.type 1) is null with a warning and no Squiggle read. Finals (R1-R9): the final's own tip by clubs and Melbourne day, either side of the game, the year of the event, Kali not asked, no row / a 503 / no hconfidence as null with a warning, and the abort signal on the read. Not covered here: any other real ESPN body (afl-round-live-check.yml and afl-finals-live-check.yml read real ESPN and Squiggle from a runner), the Kali branch (no token in this check except R5), a pick resolved four or more days after its final (the resolver picks the club's earliest game in the window, not the pick's game: docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md), and the live season.`);
+console.log(`COVERAGE: ${total} assertions: the real resolveWinProbability('AFL', ...) over pinned instants (2026-07-08 10:00Z, 23:30Z and 00:00Z, 2027-03-10 10:00Z, and the finals window of 2026-09-04 10:00Z), one ESPN stub (range -> 400 with the measured body; single day -> events with week.number over a conflicting top-level week, and season.type 3 for the 2026 finals as ESPN served them) and two Squiggle stubs (round-keyed for a regular game, team-keyed for a final: rows in Squiggle's shape with decoy sources), plus the 18-club identity table. ESPN team names are the ones the relay served for 2026-07-05..12, one real body (20260709) is replayed as recorded, and Squiggle's are its own; 8 of Kali's 18 names are recorded in outbox and were run through the matcher once by hand, not here. A PRESEASON game (R10, synthetic: season.type 1) is null with a warning and no Squiggle read. Finals (R1-R9): the final's own tip by clubs and Melbourne day, either side of the game, the year of the event, Kali not asked, no row / a 503 / no hconfidence as null with a warning, and the abort signal on the read. The contact address in the User-Agent (S2c, R2c, R11, R12: set, unset, a header break) comes from the Worker secret SQUIGGLE_CONTACT through the env the resolver is given. Not covered here: any other real ESPN body (afl-round-live-check.yml and afl-finals-live-check.yml read real ESPN and Squiggle from a runner), the Kali branch (no token in this check except R5), a pick resolved four or more days after its final (the resolver picks the club's earliest game in the window, not the pick's game: docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md), and the live season.`);
 console.log(`${passed} of ${total} passed.`);
 process.exit(passed === total ? 0 : 1);

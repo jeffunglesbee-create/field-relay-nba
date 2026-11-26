@@ -144,7 +144,7 @@ function mcpBearerMatches(header, env) {
 }
 
 import { stampProvenance } from './provenance-stamp.js';
-import { squiggleTipForGame, squiggleHomePct } from './afl-squiggle.js';
+import { squiggleTipForGame, squiggleHomePct, squiggleHeaders, squiggleContactState } from './afl-squiggle.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
@@ -579,10 +579,7 @@ const SQUIGGLE_BASE         = 'https://api.squiggle.com.au';
 const SQUIGGLE_TTL_LIVE     = 30;    // incomplete games — update frequently
 const SQUIGGLE_TTL_STANDING = 120;   // standings — stable within a round
 const SQUIGGLE_TTL_TIPS     = 3600;  // tips/power — once per round
-const SQUIGGLE_HEADERS = {
-    'Accept':     'application/json',
-    'User-Agent': 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)',
-};
+// SQUIGGLE_HEADERS is squiggleHeaders(env) (src/afl-squiggle.js): the User-Agent carries the owner's contact address from the Worker secret SQUIGGLE_CONTACT, which needs env.
 // ── Kali AFL Stats — free, key-auth, 5,000 req/day ──────────────────────────
 // Verified 2026-06-26: /predictions, /tips, /player-stats, /player-stats-advanced,
 // /standings, /leaderboards, /head-to-head, /teams, /matches
@@ -4551,7 +4548,7 @@ async function buildAFLJournalismContext(games, year, env, seasons = null) {
         : { homeConfidence: (100 - tip.hconfidence).toFixed(2), awayConfidence: Number(tip.hconfidence) };
     await Promise.all(finals.map(async g => {
         if (!g.espnEventId) return;
-        const tip = await squiggleTipForGame({ year: seasonOf(g)?.year ?? year, kickoff: g.start, home: g.home.name, away: g.away.name }, { headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) });
+        const tip = await squiggleTipForGame({ year: seasonOf(g)?.year ?? year, kickoff: g.start, home: g.home.name, away: g.away.name }, { headers: squiggleHeaders(env), signal: AbortSignal.timeout(5000) });
         if (tip) ctx[g.espnEventId].squiggle = servedSquiggle(tip, g);
     }));
     // No regular-season round to read (a slate of finals only, or no game on it carrying a week): the finals' own rows are all there is, and with none the context is empty.
@@ -4579,7 +4576,7 @@ async function buildAFLJournalismContext(games, year, env, seasons = null) {
                 3600, 'kali-journalism', env.KALI_CACHE)
             : Promise.reject(new Error('KALI_AFL_TOKEN not set')),
         fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round};source=8`, {
-            headers: SQUIGGLE_HEADERS,
+            headers: squiggleHeaders(env),
             cf: { cacheTtl: squiggleTtl(`q=tips;year=${year};round=${round}`),
                   cacheEverything: true,
                   cacheKey: `squiggle:tips:${year}:${round}:aggregate` },
@@ -17562,7 +17559,12 @@ export default {
         if (pathname.startsWith('/squiggle')) {
             if (!url.search || !url.search.includes('q='))
                 return new Response('Squiggle ?q= param required', { status: 400, headers: { 'X-RELAY-Error': 'squiggle-missing-q', ...CORS } });
-            return relayFetch(`${SQUIGGLE_BASE}/${url.search}`, SQUIGGLE_HEADERS, squiggleTtl(url.search), 'squiggle', ctx);
+            const upstream = await relayFetch(`${SQUIGGLE_BASE}/${url.search}`, squiggleHeaders(env), squiggleTtl(url.search), 'squiggle', ctx);
+            // Whether the owner's Worker secret SQUIGGLE_CONTACT reaches Squiggle's User-Agent, as one word (never the address), on every answer, cached or not: the one way to see that the
+            // secret is set and well formed. A rebuilt Response because a cache hit's headers are immutable. Read by check 14 of scripts/verify-staged-items.mjs.
+            const reported = new Response(upstream.body, upstream);
+            reported.headers.set('X-FIELD-Squiggle-Contact', squiggleContactState(env));
+            return reported;
         }
 
         // /apisports/* — REMOVED 2026-06-30 (api-sports.io subscription lapsed). See HANDOFF.
