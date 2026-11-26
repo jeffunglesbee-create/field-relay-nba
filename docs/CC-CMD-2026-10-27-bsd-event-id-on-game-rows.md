@@ -338,7 +338,7 @@ unblocked when this one is DONE.
 
 **Why this is here (BUILD-ON-A).** The 2026-11-24 addendum above recorded the UEFA labels as an owner decision with its own measurement. The owner said "build both next" (the UEFA join, and the EFL Championship seed) and, mid-turn, "any other outstanding decisions, go with Claude's best recommendations and state what they are". Nothing in the rulings above is undone: the join's rule (`src/bsd-game-join.js`: soccer label only, both sides through `resolveTeamKey` in one orientation, exactly one candidate, kickoff may refuse and never choose) is untouched; only the label list and the alias table grew.
 
-**Status:** DONE 2026-11-25. Both halves built, deployed and run in production; every done condition below is an artifact.
+**Outcome of this addendum:** done 2026-11-25. Both halves built, deployed and run in production; every done condition below is an artifact. (The document's one Status line is at the top; a second would be read as overriding it.)
 
 ### Decisions taken (Claude's recommendation, each with its reason)
 
