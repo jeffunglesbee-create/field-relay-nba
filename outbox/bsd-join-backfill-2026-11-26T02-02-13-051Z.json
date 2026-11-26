@@ -1,0 +1,395 @@
+{
+  "ts": "2026-11-26T02:02:13.051Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-08-07",
+  "to": "2026-11-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 109,
+    "daysRead": 109,
+    "unreadDays": [],
+    "statuses": {
+      "200": 109
+    },
+    "daysToAttempt": 15,
+    "rowsToAttempt": 81,
+    "attemptedStillPending": 0,
+    "pendingRowsAllDays": 180,
+    "scopeSports": [
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1",
+      "UEFA Champions League",
+      "UEFA Europa League",
+      "UEFA Europa Conference League",
+      "UEFA Champions League Qualifying",
+      "UEFA Europa League Qualifying",
+      "UEFA Europa Conference League Qualifying",
+      "EFL Championship",
+      "EFL Cup"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 17,
+    "outOfScopeRows": 61
+  },
+  "chosen": [
+    "2026-08-07",
+    "2026-08-08",
+    "2026-08-09",
+    "2026-08-10",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27",
+    "2026-09-08",
+    "2026-09-09",
+    "2026-09-15"
+  ],
+  "dates": [
+    {
+      "date": "2026-08-07",
+      "outcome": "joined",
+      "pendingBefore": 10,
+      "pendingBeforeBySport": {
+        "EFL Cup": 3,
+        "MLS": 7
+      },
+      "pendingAfter": 7,
+      "verify": {
+        "verified": true,
+        "expected": 7
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 10,
+        "written": 3,
+        "joined": 3,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 379,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Columbus Crew v Club de Fútbol Pachuca",
+          "MLS: Charlotte FC v Atlas FC",
+          "MLS: Portland Timbers v Club Puebla",
+          "MLS: Club América v San Diego FC",
+          "MLS: Austin FC v Club Tijuana",
+          "MLS: Cruz Azul v Philadelphia Union",
+          "MLS: Chicago Fire FC v Club Necaxa"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-08",
+      "outcome": "joined",
+      "pendingBefore": 33,
+      "pendingBeforeBySport": {
+        "EFL Cup": 29,
+        "MLS": 4
+      },
+      "pendingAfter": 4,
+      "verify": {
+        "verified": true,
+        "expected": 4
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 33,
+        "written": 29,
+        "joined": 29,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 454,
+        "upstreamPages": 3,
+        "cacheHits": 7,
+        "unmatched": [
+          "MLS: Orlando City v Club León",
+          "MLS: Vancouver Whitecaps FC v FC Juárez",
+          "MLS: Club Tigres v Minnesota United FC",
+          "MLS: FC Cincinnati v Pumas"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-09",
+      "outcome": "joined",
+      "pendingBefore": 8,
+      "pendingBeforeBySport": {
+        "EFL Cup": 1,
+        "MLS": 7
+      },
+      "pendingAfter": 7,
+      "verify": {
+        "verified": true,
+        "expected": 7
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 8,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 169,
+        "upstreamPages": 1,
+        "cacheHits": 3,
+        "unmatched": [
+          "MLS: Seattle Sounders FC v Club Querétaro",
+          "MLS: Cruz Azul v New York City Football Club",
+          "MLS: Philadelphia Union v Club Necaxa",
+          "MLS: Toluca FC v Los Angeles Football Club",
+          "MLS: Chivas de Guadalajara v FC Dallas",
+          "MLS: Inter Miami CF v Club de Fútbol Monterrey Rayados, A.C.",
+          "MLS: Real Salt Lake v Atlante FC"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-10",
+      "outcome": "joined",
+      "pendingBefore": 6,
+      "pendingBeforeBySport": {
+        "EFL Cup": 1,
+        "MLS": 5
+      },
+      "pendingAfter": 5,
+      "verify": {
+        "verified": true,
+        "expected": 5
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 6,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 61,
+        "upstreamPages": 1,
+        "cacheHits": 1,
+        "unmatched": [
+          "MLS: San Diego FC v Club Tijuana",
+          "MLS: Club América v Portland Timbers",
+          "MLS: Austin FC v Club Puebla",
+          "MLS: Nashville SC v Atlético de San Luis",
+          "MLS: Chicago Fire FC v Club Santos Laguna"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-25",
+      "outcome": "joined",
+      "pendingBefore": 18,
+      "pendingBeforeBySport": {
+        "EFL Cup": 17,
+        "MLS": 1
+      },
+      "pendingAfter": 1,
+      "verify": {
+        "verified": true,
+        "expected": 1
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 18,
+        "written": 17,
+        "joined": 17,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 112,
+        "upstreamPages": 3,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Club León v Real Salt Lake"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-26",
+      "outcome": "joined",
+      "pendingBefore": 7,
+      "pendingBeforeBySport": {
+        "EFL Cup": 4,
+        "MLS": 3
+      },
+      "pendingAfter": 3,
+      "verify": {
+        "verified": true,
+        "expected": 3
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 7,
+        "written": 4,
+        "joined": 4,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 127,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": [
+          "MLS: Toluca FC v Austin FC",
+          "MLS: Club de Fútbol Monterrey Rayados, A.C. v Chicago Fire FC",
+          "MLS: Club León v Real Salt Lake"
+        ]
+      }
+    },
+    {
+      "date": "2026-08-27",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "EFL Cup": 2,
+        "MLS": 3
+      },
+      "pendingAfter": 3,
+      "verify": {
+        "verified": true,
+        "expected": 3
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 2,
+        "joined": 2,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 143,
+        "upstreamPages": 2,
+        "cacheHits": 2,
+        "unmatched": [
+          "MLS: Club América v Columbus Crew",
+          "MLS: Club de Fútbol Monterrey Rayados, A.C. v Chicago Fire FC",
+          "MLS: Toluca FC v Austin FC"
+        ]
+      }
+    },
+    {
+      "date": "2026-09-08",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "EFL Cup": 5
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 5,
+        "joined": 5,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 120,
+        "upstreamPages": 4,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-09",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "EFL Cup": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 90,
+        "upstreamPages": 1,
+        "cacheHits": 2,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-09-15",
+      "outcome": "joined",
+      "pendingBefore": 8,
+      "pendingBeforeBySport": {
+        "EFL Cup": 5,
+        "MLS": 3
+      },
+      "pendingAfter": 3,
+      "verify": {
+        "verified": true,
+        "expected": 3
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 8,
+        "written": 5,
+        "joined": 5,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 124,
+        "upstreamPages": 4,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: TBC Home v Forge FC",
+          "MLS: Forge FC v FC Supra du Québec",
+          "MLS: CF Montréal v Vancouver Whitecaps FC"
+        ]
+      }
+    }
+  ],
+  "pagesUsed": 30,
+  "written": 68,
+  "stoppedBecause": null,
+  "remainingToAttempt": 5,
+  "complete": false,
+  "runner": {
+    "gitSha": "7a0f0d79dae4e8e9c44d53ae9a1a97c8311aaa1e",
+    "runId": "45739449236",
+    "scriptSha256": "85f74020157b36b6ada3e6d398771cb77a73ef0f873b73f1b7ffb3d258ef604d",
+    "libSha256": "a551c2d78039168c6e93ca2096c92654b10a11407810df6417c7d455a307425e"
+  },
+  "rangeComplete": false,
+  "coverageLine": "109 of 109 days read (0 unread) | scope 13 sports (MLS not included), regular-season rows choose a date: to attempt 15 days / 81 rows, 0 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 17 days / 61 rows | this run: 10 dates posted, 68 rows written, 30 upstream pages (cap 50), 10 verified | no stop | remaining to attempt 5"
+}
