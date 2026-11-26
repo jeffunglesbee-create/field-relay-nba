@@ -1,0 +1,24 @@
+{
+  "ts": "2026-11-26T16:52:16.161Z",
+  "league": "eng.4",
+  "label": "EFL League Two",
+  "from": "2026-08-01",
+  "to": "2026-11-25",
+  "dry": false,
+  "dates": 117,
+  "scoreboardsRead": 117,
+  "completed": 188,
+  "alreadyArchived": 0,
+  "written": 188,
+  "failedWrites": 0,
+  "noEventId": 0,
+  "stopped": null,
+  "statuses": {
+    "200": 117
+  },
+  "archiveAfter": {
+    "n": 188,
+    "scored": 188,
+    "joined": 0
+  }
+}
