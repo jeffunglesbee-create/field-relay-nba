@@ -427,7 +427,7 @@ The Trophy stays archived (98 rows) and unjoined (BSD holds none of its matches:
 
 1. **History, dry run then real**, `archive-league-history-backfill.yml`: dry runs `45861264126` and `45861270864` read 117 of 117 scoreboards for each (HTTP 200), 179 completed League One matches and 188 League Two, 0 archived; real runs `45862012111` (League One) and `45862018532` (League Two) wrote **179 and 188 rows, 0 failed**, and the artifacts' `archiveAfter` say 179 and 188 scored. `outbox/archive-league-history-backfill-efl-league-{one,two}-2026-11-26T16-*.json`.
 2. **The archive says so** (reader run `45862908281`, artifact `outbox/archive-label-dates-2026-11-26T16-53-49-531Z.json`, rows / joined): **EFL League One 179 / 0** (30 dates, 2026-08-15 to 2026-11-24), **EFL League Two 188 / 0** (21 dates, same span), EFL Championship 204 / 204 (unchanged), EFL Trophy 98 / 0 (as decided).
-3. **Deploy:** Deploy RELAY Worker run `45861985679` on `efa06fa`; result in the session doc `outbox/cc-session-2026-11-26-efl-league-one-two.md`.
+3. **Deploy:** Deploy RELAY Worker run `45861985679` on `efa06fa`, success, with `check-archive-date-keying.mjs` run against the new rows; Repo guards `45861985700`, success.
 
 ### Found, not in scope (and filed, Rule 87.4)
 

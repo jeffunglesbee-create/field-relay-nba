@@ -20,6 +20,7 @@
 
 - **Archive** (reader run `45862908281`, `outbox/archive-label-dates-2026-11-26T16-53-49-531Z.json`): EFL League One 179 rows (30 dates, 2026-08-15 to 2026-11-24), EFL League Two 188 (21 dates), joined 0 and 0 as decided; EFL Championship 204 / 204 unchanged; EFL Trophy 98 / 0.
 - **Checks on the change:** seed coverage 8 of 8, seeded labels 2 of 2, LEAGUES count 26, label contract, brace, doc citations, KV and route provenance, empty-catch baseline 112, `mutate-seed-coverage` 6 mutations, the five in-place identity harnesses (clean tree).
+- **Deploy:** Deploy RELAY Worker run `45861985679` on `efa06fa`, success (it includes `check-archive-date-keying.mjs` against the new rows); Repo guards `45861985700`, success.
 - **Not run here, runner-only:** `check-archive-date-keying.mjs` needs `RELAY_SHARED_SECRET`; it is in the deploy job and runs against the new rows there.
 - **STAGED (Rule 74):** the cron's yesterday catch-up writing a League One or Two final on its own, and the cron's briefs for them. Blocked: no League One or Two match has been played since the deploy. Unblocked at the next English midweek or Saturday slate. Verify: the next `read-archive-label-dates.yml` run with `like` = `EFL League%` shows a `lastDate` after 2026-11-24 and `/archive/query?sport=EFL%20League%20One&source=cron` a non-zero `total`.
 
