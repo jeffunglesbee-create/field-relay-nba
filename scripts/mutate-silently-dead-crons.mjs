@@ -14,6 +14,20 @@ import fs from 'node:fs';
 
 const WATCH = 'scripts/watch-silently-dead-crons.mjs';
 const SELF  = [WATCH, '--self-test'];
+// A self-test run takes seconds. The ceiling only has to be FINITE: a mutant
+// that makes the file hang (a missing request timeout is exactly that) must
+// read as a defect of the run, not stall the harness. A timeout is never a catch.
+const RUN_TIMEOUT_MS = 180000;
+
+/** One self-test run, with its stdout kept. It used to be `stdio: 'ignore'`, so
+ *  the harness could say THAT a mutant went red and never WHY: a parse error, a
+ *  crash and a failed assertion all looked alike. */
+const selfTest = () => {
+  const r = spawnSync('node', SELF, { encoding: 'utf8', timeout: RUN_TIMEOUT_MS, maxBuffer: 32 * 1024 * 1024 });
+  return { code: r.status, timedOut: r.error?.code === 'ETIMEDOUT', stdout: r.stdout || '' };
+};
+/** The labels of the cases that went red: `  FAIL  <label>: got ... want ...`. */
+const failedLabels = (stdout) => [...stdout.matchAll(/^ {2}FAIL {2}(.*?): got /gm)].map(m => m[1]);
 
 // `git diff --quiet`, not `git status --porcelain`: the latter reports a STAGED
 // change too, so it refused to run on a file that had just been staged for
@@ -25,7 +39,7 @@ for (const f of [WATCH]) {
     process.exit(1);
   }
 }
-if (spawnSync('node', SELF, { stdio: 'ignore' }).status !== 0) {
+if (selfTest().code !== 0) {
   console.log(`FAIL — ${WATCH} --self-test is already red on clean source.`);
   process.exit(1);
 }
@@ -56,8 +70,11 @@ const MUTATIONS = [
 
   // ── the 2026-09-17 widening: one repo watched, three red ones invisible ──
   { name: 'D8 the watch narrows back to one repo',
-    anchor: "export const REPOS = (process.env.DEAD_CRON_REPOS || [",
-    replace: "export const REPOS = (process.env.DEAD_CRON_REPOS || [ 'jeffunglesbee-create/field-relay-nba' ].concat([",
+    // The first version of this mutant did not parse (its `.concat([` swallowed the
+    // closing paren), so the self-test went red from the PARSER and it read CAUGHT for
+    // two months without ever having been a mutation. `node --check` below found it.
+    anchor: "].join(',')).split(',').map(r => r.trim()).filter(Boolean);",
+    replace: "].slice(0, 1).join(',')).split(',').map(r => r.trim()).filter(Boolean);",
     catches: 'the shape that reported 0 dead crons while two other repos were multi-day red' },
 
   { name: 'D9 the laboratory and playground are dropped',
@@ -206,6 +223,23 @@ const MUTATIONS = [
     catches: 'null !== undefined is true, so a healthy workflow is reported dead' },
 ];
 
+/** Is this red a CATCH? Not every red is. A mutant that stays green is missed; one that
+ *  hangs proves nothing; and a mutant that names the case that must catch it
+ *  (`case`, a label prefix or a list of them) is caught only if THOSE cases went
+ *  red — a crash, or some other case failing, would otherwise credit a guard that
+ *  never fired. `case` is optional, so D1-E15 keep the judgement they were written under. */
+const judge = (mut, run) => {
+  if (run.timedOut) return { caught: false, note: `TIMED OUT after ${RUN_TIMEOUT_MS} ms — a hang is not a catch` };
+  if (run.code === 0) return { caught: false, note: 'the self-test stayed green' };
+  const labels = failedLabels(run.stdout);
+  const want = mut.case === undefined ? [] : [].concat(mut.case);
+  const missing = want.filter(c => !labels.some(l => l === c || l.startsWith(`${c} `)));
+  if (missing.length) {
+    return { caught: false, note: `red, but NOT by ${missing.join(', ')} — red by: ${labels.join(' | ') || '(no FAIL line: a crash, not an assertion)'}` };
+  }
+  return { caught: true, note: `by: ${labels.slice(0, 4).join(' | ') || '(no FAIL line: a crash, not an assertion)'}${labels.length > 4 ? ` | +${labels.length - 4} more` : ''}` };
+};
+
 let caught = 0;
 for (const mut of MUTATIONS) {
   const original = fs.readFileSync(WATCH, 'utf8');
@@ -214,15 +248,26 @@ for (const mut of MUTATIONS) {
     console.log(`FAIL       ${mut.name}\n            anchor matched ${hits} times, expected 1 — NOTHING MUTATED.`);
     continue;
   }
-  fs.writeFileSync(WATCH, original.replace(mut.anchor, mut.replace));
-  if (fs.readFileSync(WATCH, 'utf8') === original) {
+  const mutated = original.replace(mut.anchor, () => mut.replace);
+  if (mutated === original) {
     console.log(`FAIL       ${mut.name}\n            file unchanged — NOTHING MUTATED.`);
     continue;
   }
-  const red = spawnSync('node', SELF, { stdio: 'ignore' }).status !== 0;
-  fs.writeFileSync(WATCH, original);
-  console.log(`${red ? 'CAUGHT    ' : 'NOT CAUGHT'} ${mut.name}\n            (${mut.catches})`);
-  if (red) caught++;
+  let verdict;
+  try {
+    fs.writeFileSync(WATCH, mutated);
+    // A mutant that does not PARSE makes the self-test red for the wrong reason: the
+    // parser caught it, not the guard (outbox/cc-session-2026-10-05-dead-cron-self-
+    // reference.md, S2). That is not a mutation, so it is not a catch.
+    const parse = spawnSync('node', ['--check', WATCH], { encoding: 'utf8', timeout: RUN_TIMEOUT_MS });
+    verdict = parse.status !== 0
+      ? { caught: false, note: `NOT A MUTATION — the mutated file does not parse: ${String(parse.stderr).split('\n').find(l => /Error/.test(l)) || 'node --check failed'}` }
+      : judge(mut, selfTest());
+  } finally {
+    fs.writeFileSync(WATCH, original);
+  }
+  console.log(`${verdict.caught ? 'CAUGHT    ' : 'NOT CAUGHT'} ${mut.name}\n            ${verdict.note}\n            (${mut.catches})`);
+  if (verdict.caught) caught++;
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
