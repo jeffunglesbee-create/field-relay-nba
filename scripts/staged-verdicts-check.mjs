@@ -23,7 +23,7 @@
 // A MISSING mustFailOn IS ITSELF A FAILURE. Optional would make it the field
 // nobody fills in, which is how Rule 89's "specify an artifact" became prose.
 
-import { VERDICTS, vendorWatchPayload, vendorWatchLogFiles, VENDOR_WATCH_REFUSALS, VENDOR_WATCH_JUDGED, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs'
+import { VERDICTS, squiggleContactSet, squiggleContactStateOf, vendorWatchPayload, vendorWatchLogFiles, VENDOR_WATCH_REFUSALS, VENDOR_WATCH_JUDGED, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs'
 import { readFileSync as _readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0
@@ -82,6 +82,7 @@ const CAN_PASS = {
   afl_round_in_season: { gamesInWindow: 6, expectedRound: 18, discoveredRound: 18 },
   afl_finals_tip_in_season: { finalsInWindow: 3, reference: 'found', expectedHome: 68.6, served: '68.60' },
   afl_regular_tip_in_season: { gamesInWindow: 6, reference: 'found', expectedHome: 62.49, served: '62.49' },
+  squiggle_contact_set: { state: 'set', httpStatus: 200 },
   d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true },
 }
 // EVERY REGISTERED VERDICT NEEDS A CLEAN PAYLOAD, not just the ones someone
@@ -196,5 +197,45 @@ for (const [id, countKey] of [['afl_finals_tip_in_season', 'finalsInWindow'], ['
     check(`${id}: ${what} is PENDING, not PASS or FAIL`, say(o).startsWith('PENDING'), say(o))
 }
 
+// ── squiggle_contact_set: each state the relay can report, the header's mapping, and the executor block itself ──
+{
+  const v = VERDICTS.squiggle_contact_set
+  for (const [state, want] of [['invalid', 'FAIL'], ['unrecognised', 'FAIL'], ['unset', 'PENDING'], [undefined, 'PENDING'], [null, 'PENDING']])
+    check(`squiggle_contact_set: a state of ${JSON.stringify(state)} is ${want}`, String(v({ state, httpStatus: 200 })).startsWith(want), String(v({ state, httpStatus: 200 })))
+  for (const [httpStatus, want] of [[200, 'PASS'], [403, 'FAIL'], [502, 'PENDING'], [503, 'PENDING'], [429, 'PENDING'], [404, 'PENDING'], [undefined, 'PENDING']])
+    check(`squiggle_contact_set: a set contact whose own read answered ${httpStatus === undefined ? 'no status' : httpStatus} is ${want}`, String(v({ state: 'set', httpStatus })).startsWith(want), String(v({ state: 'set', httpStatus })))
+  check('squiggle_contact_set: an unset contact with a 403 stays PENDING (the owner\'s step is not done: that is the news)', String(v({ state: 'unset', httpStatus: 403 })).startsWith('PENDING'), String(v({ state: 'unset', httpStatus: 403 })))
+  check('squiggle_contact_set: nothing it says could carry an address (it never receives one)', !/[\w.+-]+@[\w-]+\.[\w.-]+/.test(['set', 'invalid', 'unrecognised', 'unset', null].map(state => v({ state })).join('\n')), '')
+  // The header is mapped to a word before anything sees it: a present value outside the three words is 'unrecognised' (a broken contract), a missing one is null (not reported).
+  const hdr = (value) => new Headers(value === undefined ? {} : { 'X-FIELD-Squiggle-Contact': value })
+  for (const [raw, want] of [['set', 'set'], ['unset', 'unset'], ['invalid', 'invalid'], ['  set  ', 'set'], ['Set', 'unrecognised'], ['SET', 'unrecognised'], ['set, set', 'unrecognised'], ['', 'unrecognised'], ['true', 'unrecognised'], ['ops@example.invalid', 'unrecognised'], [undefined, null]])
+    check(`squiggle_contact_set: the header ${JSON.stringify(raw)} reads as ${JSON.stringify(want)}`, squiggleContactStateOf(hdr(raw)) === want, JSON.stringify(squiggleContactStateOf(hdr(raw))))
+  check('squiggle_contact_set: an address in the header is a FAIL that does not print it', (() => { const s = String(v({ state: squiggleContactStateOf(hdr('ops@example.invalid')) })); return s.startsWith('FAIL') && !s.includes('example.invalid') })(), '')
+  // THE EXECUTOR: the real block of scripts/verify-staged-items.mjs run against a stubbed relay, because nothing else runs it before the daily workflow does. A wrong header name, a lost
+  // import or a hard-coded state would otherwise leave every other gate green and show only in the first live run.
+  const src = _readFileSync('scripts/verify-staged-items.mjs', 'utf8')
+  const i0 = src.indexOf('// ── Check 14'), j0 = src.indexOf('m.summary = ')
+  check('squiggle_contact_set: the executor block is found', i0 > 0 && j0 > i0, `markers ${i0} ${j0}`)
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+  const runBlock = async (respond) => {
+    const checks = [], urls = []
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async (u) => { urls.push(String(u)); return respond(String(u)) }
+    try { await (new AsyncFunction('add', 'RELAY', 'UA', 'squiggleContactSet', 'squiggleContactStateOf', src.slice(i0, j0)))(c => checks.push(c), 'https://relay.invalid', 'ua', squiggleContactSet, squiggleContactStateOf) }
+    finally { globalThis.fetch = realFetch }
+    return { c: checks[0], n: checks.length, urls }
+  }
+  const resp = (value, status = 200) => async () => new Response('{}', { status, headers: value === undefined ? {} : { 'X-FIELD-Squiggle-Contact': value } })
+  for (const [name, respond, status, state, rows] of [['set', resp('set'), 'PASS', 'set', 1], ['invalid', resp('invalid'), 'FAIL', 'invalid', 1], ['unset', resp('unset'), 'PENDING', 'unset', 1],
+      ['no header', resp(undefined), 'PENDING', null, 0], ['a 403 that still reports set', resp('set', 403), 'FAIL', 'set', 1], ['a 502 that reports set', resp('set', 502), 'PENDING', 'set', 1], ['an address in the header', resp('ops@example.invalid'), 'FAIL', 'unrecognised', 1]]) {
+    const { c, n } = await runBlock(respond)
+    check(`squiggle_contact_set executor: ${name} -> ${status}, state ${JSON.stringify(state)}, ${rows} row(s), one check added`, n === 1 && c.id === 'squiggle_contact_set' && String(c.status).startsWith(status) && c.contact_state === state && c.qualifying_rows === rows, JSON.stringify(c))
+  }
+  const leak = await runBlock(resp('ops@example.invalid'))
+  check('squiggle_contact_set executor: nothing it records (manifest row, status, coverage) carries an address from the header', !JSON.stringify(leak.c).includes('example.invalid'), JSON.stringify(leak.c))
+  const down = await runBlock(async () => { throw new TypeError('network down') })
+  check('squiggle_contact_set executor: a network failure is PENDING "could not read" with no rows', down.c.id === 'squiggle_contact_set' && /^PENDING — could not read: network down/.test(down.c.status) && down.c.qualifying_rows === 0, JSON.stringify(down.c))
+  check('squiggle_contact_set executor: it reads the relay\'s /squiggle?q=teams, once', JSON.stringify((await runBlock(resp('set'))).urls) === JSON.stringify(['https://relay.invalid/squiggle?q=teams']), '')
+}
 console.log(fail ? `\n${fail} failed` : `\n${pass} passed`)
 process.exit(fail ? 1 : 0)

@@ -43,7 +43,7 @@ import { squiggleConfidenceFor } from '../src/afl-squiggle.js';
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip, aflRegularTip,
+         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip, aflRegularTip, squiggleContactSet, squiggleContactStateOf,
          oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
          cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles, deployCommitResults } from './staged-verdicts.mjs';
 
@@ -137,7 +137,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 13;
+const EXPECTED_CHECKS = 14;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -830,7 +830,7 @@ try {
 // relay's own User-Agent; Squiggle's changelog warns that clients without a contact address "may now be blocked at edge level (particularly if they run from a server farm)"), while the
 // relay's Cloudflare egress is served, cache-busted queries included (probe_relay_route, 2026-11-25). The relay's /squiggle route forwards the same `?q=` query unchanged
 // (src/index.js, pathname.startsWith('/squiggle')), so the reference still reads Squiggle's own rows by its own query, by another path than the journalism context's code.
-// Whether to put a contact address in the User-Agent is the owner's decision (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4).
+// The relay's User-Agent carries the owner's contact address from the Worker secret SQUIGGLE_CONTACT (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4; check 14 below).
 async function aflOwnTip({ id, noun, isGame, verdict }) {
     const what = `the relay serves an AFL ${noun} its own Squiggle tip, the one Squiggle gives that game, not the tip of another round`;
     try {
@@ -884,6 +884,29 @@ async function aflOwnTip({ id, noun, isGame, verdict }) {
 // A final is a Squiggle game with is_final > 0 (codes 2-7), a regular game is_final 0. ESPN's own type is recorded in the manifest (espn_event.season_type) so a final typed 2 shows.
 await aflOwnTip({ id: 'afl_finals_tip_in_season', noun: 'final', isGame: g => g.is_final > 0, verdict: aflFinalsTip });
 await aflOwnTip({ id: 'afl_regular_tip_in_season', noun: 'regular-season game', isGame: g => !(g.is_final > 0), verdict: aflRegularTip });
+
+// ── Check 14: the owner's Worker secret SQUIGGLE_CONTACT reaches Squiggle's User-Agent (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4) ──
+// The relay says what it will send, as one word, in the X-FIELD-Squiggle-Contact header of every /squiggle answer (src/index.js); it never says the address. One read of the route.
+try {
+    const r = await fetch(`${RELAY}/squiggle?q=teams`, { headers: { 'User-Agent': UA } });
+    const state = squiggleContactStateOf(r.headers);   // one of set | unset | invalid | unrecognised | null: never the raw header, so a leak could not reach the manifest
+    add({
+        id: 'squiggle_contact_set',
+        what: "the relay sends the owner's contact address in its Squiggle User-Agent (the Worker secret SQUIGGLE_CONTACT is set and is one plain address)",
+        qualifying_rows: state === null ? 0 : 1,
+        http_status: r.status,
+        contact_state: state,
+        coverage: `one read of the relay's /squiggle?q=teams and its X-FIELD-Squiggle-Contact header (the /squiggle route's own report; the finals, round and resolver reads use the same squiggleHeaders(env), asserted by scripts/check-afl-*.mjs); the address is never reported or read`,
+        status: squiggleContactSet({ state, httpStatus: r.status }),
+    });
+} catch (e) {
+    add({
+        id: 'squiggle_contact_set',
+        what: "the relay sends the owner's contact address in its Squiggle User-Agent (the Worker secret SQUIGGLE_CONTACT is set and is one plain address)",
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
 
 m.summary = m.checks.map(c => `${c.id}: ${c.status}`);
 // Named, not a literal. This was `=== 3` and would have silently reported

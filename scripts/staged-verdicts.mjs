@@ -359,6 +359,32 @@ export const aflRegularTip = aflGameTip('regular-season game', 'the season is Ma
 // A regular game in the window and the relay serving the tip of another round (a numbering that moved).
 aflRegularTip.mustFailOn = { gamesInWindow: 6, reference: 'found', expectedHome: 62.49, served: 71.48 }
 
+/// Check 14 — the owner's Worker secret SQUIGGLE_CONTACT reaches Squiggle's User-Agent (docs/CC-CMD-2026-11-24-afl-squiggle-reads-and-the-round-label.md, Item 4).
+/// Squiggle requires a contact address in the User-Agent and a GitHub runner without one was refused (HTTP 403, 2026-11-25). The owner decided on 2026-11-26 that the relay sends one;
+/// it is a secret the owner sets, so the relay reports its STATE, as one word and never the address, in the X-FIELD-Squiggle-Contact header of every /squiggle answer. The reference is
+/// the relay's own report of what it will send, not a read of Squiggle, which cannot show the header it received. PENDING is the honest state while the owner's step is not done
+/// (`unset`), or while the relay has not been deployed with the header; only a secret that is SET but is not one plain address (`invalid`: the relay then sends none) is a failure.
+/// The state comes from squiggleContactStateOf, never the raw header: a header that is present but is not one of the three words is a broken contract, FAIL, and is never printed.
+/// What `set` covers: the relay's /squiggle route's own report. The finals read, the round read and the resolver's two reads build their headers from the same squiggleHeaders(env)
+/// (scripts/check-afl-*.mjs assert each), so they are not observed here.
+export const SQUIGGLE_CONTACT_HEADER = 'x-field-squiggle-contact'
+export const squiggleContactStateOf = (headers) => {
+  const v = headers.get(SQUIGGLE_CONTACT_HEADER)
+  return v === null ? null : ['set', 'unset', 'invalid'].includes(v.trim()) ? v.trim() : 'unrecognised'
+}
+/// `set` is judged together with the HTTP status of the read that carried the report: Squiggle answering 403 to the relay's own read after the owner's step is the signal that the
+/// contact did not help (Item 4's untested premise) and is a FAIL; any other non-200 is PENDING (a transient upstream error says nothing about the contact).
+export const squiggleContactSet = ({ state, httpStatus }) =>
+  state === 'set' && httpStatus === 403 ? 'FAIL — the relay sends the owner\'s contact address but Squiggle answered HTTP 403 to its own read: the contact did not buy access, so Item 4\'s premise that it would is refuted; see Squiggle\'s requirements and changelog 1.13.0'
+  : state === 'set' && httpStatus !== 200 ? `PENDING — the relay sends the owner\'s contact address but its read of Squiggle answered ${httpStatus === undefined ? 'no status' : `HTTP ${httpStatus}`}: nothing to judge about the contact`
+  : state === 'set' ? 'PASS — the relay sends the owner\'s contact address in its Squiggle User-Agent (SQUIGGLE_CONTACT is set and is one plain address) and Squiggle answered 200; this is the /squiggle route\'s report, the other Squiggle reads use the same headers by construction'
+  : state === 'invalid' ? 'FAIL — SQUIGGLE_CONTACT is set but is not one plain email address (printable ASCII, a local part, one @, a dotted domain, at most 254 characters; no spaces, quotes, brackets, commas, semicolons or backslashes): the relay sends no contact; set the secret again'
+  : state === 'unrecognised' ? 'FAIL — the relay reported a contact state this verifier does not know (the header is not set, unset or invalid): the contract between src/index.js and this check is broken; the value is not printed'
+  : state === 'unset' ? 'PENDING — the owner has not set the Worker secret SQUIGGLE_CONTACT: the relay sends no contact address, which Squiggle requires (Item 4)'
+  : 'PENDING — the relay did not report its contact state (not deployed with the header yet, or the route could not be read); nothing to judge'
+// A secret that is set but malformed: the relay sends no contact and the owner thinks it does.
+squiggleContactSet.mustFailOn = { state: 'invalid' }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
@@ -373,4 +399,5 @@ export const VERDICTS = {
   afl_round_in_season: aflRoundInSeason,
   afl_finals_tip_in_season: aflFinalsTip,
   afl_regular_tip_in_season: aflRegularTip,
+  squiggle_contact_set: squiggleContactSet,
 }
