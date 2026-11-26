@@ -41,15 +41,5 @@
     "by": "silently-dead-crons run 35237724585, the first across four repos",
     "surveyed": "4 repos, 388 workflows, 388 active, 92 judged"
   },
-  "entries": {
-    "jeffunglesbee-create/jubilant-bassoon:.github/workflows/nba-clutch-update.yml": {
-      "kind": "dead",
-      "first_seen": "2026-09-17",
-      "red_since": "2026-07-25",
-      "note": "Also has not produced ANY scheduled run since 2026-07-31 — failing AND stopped firing, 48 days. The two facts may have one cause or two; neither has been read.",
-      "unblocked_by": "read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing",
-      "review_by": "2027-05-15",
-      "reviewed_2026_10_17": "Read; two causes, both established. STOPPED FIRING by design: its cron is '0 6 */3 6,7 *', months 6 and 7 only, so after 2026-07-31 it has no slot until 2027-06-01. FAILING on all 18 runs ever: the failed step is 'Commit outbox fallback', git exit 128. scripts/nba-clutch-update.py writes outbox/nba/ only after a successful stats.nba.com fetch and swallows a fetch error with exit 0, and outbox/nba/ has never been tracked in jubilant-bassoon's history, so `git add outbox/nba/` has nothing to match. That the fetch failed every time is an inference from those two facts: the job logs are served from a host this sandbox does not reach. Re-dated to two weeks before the next window, so it is fixed before it can fire again."
-    }
-  }
+  "entries": {}
 }
