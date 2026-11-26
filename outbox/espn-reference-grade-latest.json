@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-25T20:00:34.834Z",
+  "ts": "2026-11-26T00:15:45.620Z",
   "base": "https://sports.bzzoiro.com",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "tokenPresent": true,
@@ -10,88 +10,86 @@
   "bsdCallsMade": 11,
   "stopped": null,
   "analysisError": null,
-  "readsMade": 257,
+  "readsMade": 261,
   "reachedTarget": true,
   "notReachedBecause": null,
   "cores": {
-    "labSha": "af3500da353d8bc0fba26398d595e8b97c65365b",
+    "labSha": "b1f6bcad9785bb7d6e976c8191d298f898de7619",
     "bsdCoreSha256": "3d428dc26b57f516a90a50bc7e455e7c90dae7411a694f562a75fa4dc8fc145b",
     "bsdCoreRule": "2026-11-23.3",
     "espnCoreSha256": "a1863e3ef1e897469e4419ed1606741d0f2d6fd6853cfe1d80934255b95111d2",
     "espnCoreRule": "2026-11-25.2"
   },
   "runner": {
-    "gitSha": "5e2e62a15b33d64265e7f1051c5aed94b97daea6",
-    "runId": "45689623116",
+    "gitSha": "e0b7721b47922838fd07e91da4950e708ad35441",
+    "runId": "45726584274",
     "runnerSha256": "a9c41d25af3207e8cabf804ecd8419f47b7dccf1168525f9b6d91e0a200b37fb",
     "libSha256": "ac34f77a080fdd728187366c08dfdf04c5b3b3be7a95339fb4f583e6c0941a90",
     "censusSha256": "466cf30f43e7f004a533805a04ba1139e16a80cb137d1f3e8b639cca91855f4f",
     "graderSha256": "e54c384633ad304839d16e9b8b6ee7e5b461404c38d9e67404d7633bc5531c21",
     "reachSha256": "de6672cd926095bd0d794096fe5787ed25431f9eb8bb711e1effad552f2ef7e4"
   },
-  "coverageLine": "graded 268 of 382 calls on 246 matches (agree 268, disagree 0, not applicable 114 [no ESPN id for the match: ucl or europa: archive rows, outside the join's sports: 89; no ESPN id for the match: eflchamp: no archive rows: 25]) | 170 of 246 matches with a usable ESPN timeline | graded calls rest on 264 distinct goals, 0 with a disagreement | final-score guard [equal: 9; no full-time row, not ahead of ESPN: 161] | step A on 170 matches: identical 148, cut short 22, cut short with no goals 0, different in number 0, in order 0, in minute 0 | rule 2026-11-25.2 | matches 246: reached 170, not reached [ucl or europa: archive rows, outside the join's sports 57; eflchamp: no archive rows 19]; ESPN summaries read 170 of 170 reached (event id matched 170, absent 0, differing 0); reached matches sharing an ESPN id 0",
-  "censusCoverageLine": "ledger: 1770 unique calls (COMPLETE, reported 1770 then 1770, 9 pages, 0 duplicates) | R2: 2917 keys, 1385 events with incidents.json (COMPLETE) | reads: 257 parsed of 257 attempted | calls: 382 gradeable of 1770 (403 in a tracked league, 403 with an incidents.json, 17 with a full-time capture) | BSD calls 11/16",
+  "coverageLine": "graded 382 of 387 calls on 250 matches (agree 382, disagree 0, not applicable 5 [no ESPN id for the match: ucl or europa: archive rows, outside the join's sports: 5]) | 246 of 250 matches with a usable ESPN timeline | graded calls rest on 377 distinct goals, 0 with a disagreement | final-score guard [no full-time row, not ahead of ESPN: 233; equal: 13] | step A on 246 matches: identical 217, cut short 29, cut short with no goals 0, different in number 0, in order 0, in minute 0 | rule 2026-11-25.2 | matches 250: reached 246, not reached [ucl or europa: archive rows, outside the join's sports 4]; ESPN summaries read 246 of 246 reached (event id matched 246, absent 0, differing 0); reached matches sharing an ESPN id 0",
+  "censusCoverageLine": "ledger: 1776 unique calls (COMPLETE, reported 1776 then 1776, 9 pages, 0 duplicates) | R2: 2939 keys, 1396 events with incidents.json (COMPLETE) | reads: 261 parsed of 261 attempted | calls: 387 gradeable of 1776 (409 in a tracked league, 409 with an incidents.json, 18 with a full-time capture) | BSD calls 11/16",
   "census": {
     "verdict": "ANSWERED",
-    "gradeable": 382
+    "gradeable": 387
   },
-  "calls": 382,
-  "matches": 246,
+  "calls": 387,
+  "matches": 250,
   "reachCounts": {
-    "ucl or europa: archive rows, outside the join's sports": 57,
-    "eflchamp: no archive rows": 19,
-    "reached": 170
+    "reached": 246,
+    "ucl or europa: archive rows, outside the join's sports": 4
   },
   "daysNeeded": 80,
   "dayReadStatuses": {
     "200": 80
   },
   "espnReads": {
-    "made": 170,
+    "made": 246,
     "statuses": {
-      "200": 170
+      "200": 246
     },
     "eventIds": {
-      "matched": 170
+      "matched": 246
     },
     "stopped": null,
     "capped": false,
     "failed": 0,
-    "summariesRead": 170
+    "summariesRead": 246
   },
   "sharedEspnIds": 0,
   "grade": {
     "ruleVersion": "2026-11-25.2",
-    "matches": 246,
-    "population": 382,
-    "graded": 268,
-    "agree": 268,
+    "matches": 250,
+    "population": 387,
+    "graded": 382,
+    "agree": 382,
     "disagree": 0,
     "notApplicable": {
-      "total": 114,
+      "total": 5,
       "byReason": {
-        "no ESPN id for the match: ucl or europa: archive rows, outside the join's sports": 89,
-        "no ESPN id for the match: eflchamp: no archive rows": 25
+        "no ESPN id for the match: ucl or europa: archive rows, outside the join's sports": 5
       }
     },
     "matchesByOutcome": {
-      "no ESPN id for the match": 76,
-      "timeline usable": 170
+      "timeline usable": 246,
+      "no ESPN id for the match": 4
     },
     "bySlug": {
       "ucl": {
-        "calls": 59,
-        "graded": 0,
-        "agree": 0,
+        "calls": 64,
+        "graded": 60,
+        "agree": 60,
         "disagree": 0,
-        "notApplicable": 59
+        "notApplicable": 4
       },
       "eflchamp": {
         "calls": 25,
-        "graded": 0,
-        "agree": 0,
+        "graded": 25,
+        "agree": 25,
         "disagree": 0,
-        "notApplicable": 25
+        "notApplicable": 0
       },
       "mls": {
         "calls": 59,
@@ -137,41 +135,41 @@
       },
       "europa": {
         "calls": 30,
-        "graded": 0,
-        "agree": 0,
+        "graded": 29,
+        "agree": 29,
         "disagree": 0,
-        "notApplicable": 30
+        "notApplicable": 1
       }
     },
     "distance": {
-      "agree @ 0": 267,
+      "agree @ 0": 381,
       "agree @ 1": 1
     },
     "agreeByBsdOnGoal": {
-      "agree / BSD agrees with ESPN": 268
+      "agree / BSD agrees with ESPN": 382
     },
     "conventions": {
-      "none": 150,
-      "same": 20
+      "none": 216,
+      "same": 30
     },
     "finalGuard": {
-      "equal": 9,
-      "no full-time row, not ahead of ESPN": 161
+      "no full-time row, not ahead of ESPN": 233,
+      "equal": 13
     },
     "stepA": {
-      "matchesCompared": 170,
-      "identical": 148,
-      "cutShort": 22,
+      "matchesCompared": 246,
+      "identical": 217,
+      "cutShort": 29,
       "cutShortNoGoals": 0,
       "differentInNumber": 0,
       "differentInOrder": 0,
       "differentInMinute": 0,
       "ownGoalRowTeam": {
-        "is the side BSD credits": 21
+        "is the side BSD credits": 31
       }
     },
     "goals": {
-      "graded": 264,
+      "graded": 377,
       "withDisagreement": 0
     },
     "partitions": true
@@ -180,57 +178,57 @@
     {
       "key": "count_first",
       "status": 200,
-      "ms": 347
+      "ms": 302
     },
     {
       "key": "page_0",
       "status": 200,
-      "ms": 748
+      "ms": 469
     },
     {
       "key": "page_1",
       "status": 200,
-      "ms": 560
+      "ms": 513
     },
     {
       "key": "page_2",
       "status": 200,
-      "ms": 537
+      "ms": 361
     },
     {
       "key": "page_3",
       "status": 200,
-      "ms": 485
+      "ms": 444
     },
     {
       "key": "page_4",
       "status": 200,
-      "ms": 657
+      "ms": 353
     },
     {
       "key": "page_5",
       "status": 200,
-      "ms": 671
+      "ms": 395
     },
     {
       "key": "page_6",
       "status": 200,
-      "ms": 676
+      "ms": 353
     },
     {
       "key": "page_7",
       "status": 200,
-      "ms": 469
+      "ms": 358
     },
     {
       "key": "page_8",
       "status": 200,
-      "ms": 535
+      "ms": 326
     },
     {
       "key": "count_last",
       "status": 200,
-      "ms": 209
+      "ms": 166
     }
   ]
 }
