@@ -1,5 +1,19 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-26 (17:00Z) — EFL League One and League Two are seeded (179 and 188 rows in the archive); the EFL Trophy stays archived and unjoined
+
+**HEAD:** `efa06fa` (the two `LEAGUES` rows) ← `575f5cc` (artifacts); this entry's commit follows · **Branch:** main · deploy run 45861985679 (result in the session doc).
+**Session doc:** outbox/cc-session-2026-11-26-efl-league-one-two.md (task: the owner's "go with Claude's best recommendations" on the two open items; spec `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-26, part 2"; client CC-CMD jubilant-bassoon `docs/CC-CMD-2026-11-26-night-owl-soccer-margin-unit.md`)
+
+- **Decided: seed League One and League Two.** The product already wrote 208 and 94 briefs for their games with no game row; labels, V2 routes, morning-report family and `LOWER_SOCCER` already carried both; cost is one scoreboard read a day plus about two short Haiku briefs per game after the seed. History backfilled: 179 and 188 rows, 0 failed; the archive reader says 179 / 0 and 188 / 0 (rows / joined, joined none by design).
+- **Decided: no BSD id, no BSD join for either** (BSD holds leagues 86 and 87; nothing reads a `bsd_event_id` on them, and an id turns on the endgame capture). Unblocked when a consumer asks.
+- **Decided: EFL Trophy unchanged.** BSD has none of its matches (0 of 98); the monthly `bsd-leagues-baseline.yml` diff is the detector, the verify command is in the addendum.
+- **Found and filed, not patched:** the client's Night Owl wording for soccer ("4-points margin" for a 4-0 league match, "series record" in league fixtures). Cause read in the code, `_sport` strings unmeasured; the client CC-CMD's Task 0 measures them first.
+- **STAGED:** the cron writing a League One or Two final on its own (none played since the deploy).
+- **Open, none blocking:** the 4 UEFA matches the grade could not reach (re-check scheduled for 2026-11-27 00:42Z); the Carabao Cup live proof (scheduled 2026-12-19); `/archive/game` still unauthenticated (ruled, blocked on secret rotation).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-11-26 (13:40Z) — the Carabao Cup is on the BSD club-league endgame capture (`bsdLeagueId` 40); the live proof is STAGED until a Cup match
 
 **HEAD:** `12c1785` (the id, the check, the harness, the deploy gate); this entry's commit follows · **Branch:** main.
