@@ -402,6 +402,13 @@ jobs:
           node scripts/check-bsd-join-window-timing.mjs --self-test
           node scripts/check-bsd-join-window-timing.mjs
 
+      # docs/CC-CMD-2026-08-08-efl-carabao-cup-coverage.md, "Addendum 2026-11-26": which BSD leagues the club-league endgame capture reaches (the Carabao Cup, league 40, since that day)
+      # and what a match costs. The real functions are cut out of src/index.js and run against a scripted live feed and a recording R2; 17 mutations, each of which must turn it red.
+      - name: The BSD club-league capture reaches the leagues it should, at the cost it should
+        run: |
+          node scripts/check-bsd-club-capture-leagues.mjs
+          node scripts/mutate-bsd-club-capture-leagues.mjs
+
       # docs/CC-CMD-2026-11-16-golf-tee-times.md, Task 2: a golf round's start is the
       # earliest teeTime of its in-round competitors, held against the real probe read.
       - name: Golf round tee times summarise the real read

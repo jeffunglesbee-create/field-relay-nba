@@ -1487,18 +1487,20 @@ const V2_LEAGUES = {
     'eflone':     { sport: 'soccer', espnLeague: 'eng.3',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
     'efltwo':     { sport: 'soccer', espnLeague: 'eng.4',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
     // EFL Cup (Carabao) — CC-CMD-2026-08-08-efl-carabao-cup-coverage.
-    // bsdLeagueId null: no BSD id for this competition was verified when this was
-    // written (2026-08-08), and inventing one would be a Rule 2 violation. ESPN only,
-    // same as eng.3/4. UPDATE 2026-11-26: BSD's league list (outbox/bsd-leagues-2026-11-04*.json)
-    // holds "Carabao Cup (England)" as league 40, and the BSD game join covers the 'EFL Cup'
-    // label by team names (Addendum 2026-11-26 of docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md).
-    // The null stays: a bsdLeagueId turns on the BSD endgame capture for the league (BSD requests,
-    // R2 writes), which is a decision of its own, not part of the join. The EFL Trophy has no BSD league.
+    // bsdLeagueId was null here: no BSD id for this competition was verified when this
+    // was written (2026-08-08), and inventing one would be a Rule 2 violation.
+    // 2026-11-26: BSD's league list (outbox/bsd-leagues-2026-11-04*.json) holds "Carabao Cup
+    // (England)" as league 40, so it is 40 now, on the owner's "capture the Carabao Cup": the BSD
+    // club-league endgame capture (runBSDClubLeagueEndgameCapture, via BSD_LEAGUE_ID_TO_SLUG)
+    // writes momentum, incidents and stats of a match in its 80-120 minute window to R2 under
+    // bsd/eflcup/<bsd event id>/, three BSD requests per match per */5 tick (the one /live/ read
+    // is made anyway). The EFL Trophy has no BSD league. docs/CC-CMD-2026-08-08-efl-carabao-cup-coverage.md,
+    // "Addendum 2026-11-26"; scripts/check-bsd-club-capture-leagues.mjs pins the map and the cost.
     // Cup caveat: ties for round N+1 do not exist in ESPN until round N
     // resolves (probed 2026-08-08 -- the Aug 26-Sep 2 window returned
     // events:[] while Round 1 was still being played), so an empty result
     // here is often correct rather than a fault.
-    'eflcup':     { sport: 'soccer', espnLeague: 'eng.league_cup',    bsdLeagueId: null, season: '2026-27' }, // ESPN only
+    'eflcup':     { sport: 'soccer', espnLeague: 'eng.league_cup',    bsdLeagueId: 40,   season: '2026-27' },
     // EFL Trophy -- ESPN slug eng.trophy, id 18481, probed 2026-08-08 via
     // CF-Worker egress: season object reports 2026-27 Group Stage with live
     // fixtures from Aug 18. Same ESPN-only, null-BSD shape as eflcup.
