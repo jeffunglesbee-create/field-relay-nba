@@ -1,5 +1,17 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-26 (13:40Z) — the Carabao Cup is on the BSD club-league endgame capture (`bsdLeagueId` 40); the live proof is STAGED until a Cup match
+
+**HEAD:** `12c1785` (the id, the check, the harness, the deploy gate); this entry's commit follows · **Branch:** main.
+**Session doc:** outbox/cc-session-2026-11-26-carabao-cup-capture.md (task: the owner's "Capture the carabao cup"; spec `docs/CC-CMD-2026-08-08-efl-carabao-cup-coverage.md`, "Addendum 2026-11-26")
+
+- **Built:** `V2_LEAGUES.eflcup.bsdLeagueId` 40. The `*/5` club-league capture, which reads `/events/live/` for every league already, now writes a Cup match's momentum, incidents and stats to R2 under `bsd/eflcup/<id>/`: 3 BSD requests per match per tick, at most 27 per match, at most about 243 for the rest of the season.
+- **Offline proof, on the real functions cut out of `src/index.js`:** the ten-league map, the window and filters, MLS unchanged, 3 requests per match; it failed 8 of 12 against the old registry; 17 of 17 mutations caught.
+- **STAGED:** a real Cup match captured. Blocked: none live yet, and whether BSD's `/events/live/` lists cups is unverified. Verify: dispatch `bsd-next-goal-census.yml`, `analysis.r2.eventsPerSlug.eflcup >= 1`. Follow-up scheduled 2026-12-19.
+- **Open, none blocking:** the 4 UEFA matches the grade could not reach (re-check scheduled for 2026-11-27 00:42Z).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-11-26 (03:45Z) — AFLW is on the board, in the archive and on the lab page (stage 1); Kali's HTML 200 is not cached as data; the BSD frame census runs on a schedule, not on every push
 
 **HEAD:** `9ef280d` (the AFLW feed) ← `d002716` (the archive step) ← `db92f6f` (the census plans its reads) ← the commit that moves the live census to `bsd-frame-census.yml`; this entry is part of it · **Branch:** main
