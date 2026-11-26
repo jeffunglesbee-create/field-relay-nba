@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Mutation harness for scripts/check-bsd-uefa-join.mjs and scripts/check-bsd-eflchamp-join.mjs (CLAUDE.md Rule 90). Each check, the join module, the resolver and its
+// Mutation harness for scripts/check-bsd-uefa-join.mjs, scripts/check-bsd-eflchamp-join.mjs and scripts/check-bsd-eflcup-join.mjs (CLAUDE.md Rule 90). Each check, the join module, the resolver and its
 // fixture are copied into a temp directory (the tracked src/ is only read); each mutant breaks the COPY of the resolver or the join and must turn that check red:
 //   - each club alias of the check's block, deleted in turn (every one of them was derived from a row the join left unmatched, so every one is needed by a row),
 //   - each of the check's labels, taken off the join list,
@@ -29,7 +29,14 @@ const CASES = [
   {
     check: 'check-bsd-eflchamp-join.mjs', fixture: 'fixture-bsd-game-join-eflchamp.json', minChecks: 11,
     startMark: "        // ── EFL Championship club names (the same Addendum 2026-11-25",
-    labelLines: ["'EFL Championship'];"],
+    labelLines: [{ anchor: "'EFL Championship',", replacement: '' }],
+  },
+  {
+    check: 'check-bsd-eflcup-join.mjs', fixture: 'fixture-bsd-game-join-eflcups.json', minChecks: 15,
+    startMark: "        // ── EFL Cup club names (2026-11-26",
+    labelLines: [{ anchor: ", 'EFL Cup'];", replacement: '];' }],
+    // the label that must stay OFF: putting EFL Trophy on the list is a break the check has to see
+    extra: [{ name: 'EFL Trophy put on the list', anchor: ", 'EFL Cup'];", replacement: ", 'EFL Cup', 'EFL Trophy'];" }],
   },
 ];
 const BLOCK_START = '\n        // ── ';   // the next block's comment line, or the end of the table, ends a block
@@ -70,11 +77,15 @@ for (const cs of CASES) {
     if (c !== 1) { console.error(`ANCHOR for "${name}" occurs ${c} times, not once`); process.exit(2); }
     mutants.push({ name, res: resolver, jn: join.replace(anchor, () => replacement) });
   };
-  for (const l of cs.labelLines) {
+  for (const lab of cs.labelLines) {
+    // a label is a plain anchor string (removed, or the closing bracket kept when it ends the list), or { anchor, replacement } when the list's shape needs the exact text
+    const l = typeof lab === 'string' ? lab : lab.anchor;
+    const repl = typeof lab === 'string' ? (l.endsWith('];') ? '];' : '') : lab.replacement;
     const c = join.split(l).length - 1;
     if (c !== 1) { console.error(`label anchor ${l} occurs ${c} times`); process.exit(2); }
-    mutants.push({ name: `label off the list: ${l.replace(/[',;\]]/g, '')}`, res: resolver, jn: join.replace(l, l.endsWith('];') ? '];' : '') });
+    mutants.push({ name: `label off the list: ${l.replace(/[',;\]]/g, '')}`, res: resolver, jn: join.replace(l, () => repl) });
   }
+  for (const x of cs.extra ?? []) M(x.name, x.anchor, x.replacement);
   M('the join takes the first of several candidates', "if (candidates.length > 1) return { bsd_event_id: null, how: 'ambiguous', candidates: candidates.length };", "if (candidates.length > 1) return { bsd_event_id: String(candidates[0].id), how: 'joined', kickoff: 'unjudged', candidates: candidates.length };");
   M('the join ignores orientation', "resolveTeamKey(nameOf(e.home_team)) === h && resolveTeamKey(nameOf(e.away_team)) === a);", "(resolveTeamKey(nameOf(e.home_team)) === h && resolveTeamKey(nameOf(e.away_team)) === a) || (resolveTeamKey(nameOf(e.home_team)) === a && resolveTeamKey(nameOf(e.away_team)) === h));");
   M('the join accepts a side that matches alone', "resolveTeamKey(nameOf(e.home_team)) === h && resolveTeamKey(nameOf(e.away_team)) === a);", "resolveTeamKey(nameOf(e.home_team)) === h || resolveTeamKey(nameOf(e.away_team)) === a);");

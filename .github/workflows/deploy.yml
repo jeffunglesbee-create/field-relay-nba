@@ -384,8 +384,11 @@ jobs:
           # 2026-11-25: the UEFA labels and their 64 club aliases, the join over outbox/fixture-bsd-game-join-uefa.json (302 of 302), and a mutation
           # harness that deletes each alias and each label in turn and breaks the join's own rule (74 mutations, each of which must turn the check red).
           # The same day, EFL Championship: its 13 club aliases, the join over outbox/fixture-bsd-game-join-eflchamp.json (200 of 200), the same harness (92 mutations in all).
+          # 2026-11-26: EFL Cup, its 29 club aliases, the join over outbox/fixture-bsd-game-join-eflcups.json (81 of 81), and the check that EFL Trophy stays off the list
+          # (its 98 rows, relabelled to a label that is on it, join 0: BSD holds no Trophy event). The harness covers all three blocks (127 mutations).
           node scripts/check-bsd-uefa-join.mjs
           node scripts/check-bsd-eflchamp-join.mjs
+          node scripts/check-bsd-eflcup-join.mjs
           node scripts/mutate-bsd-uefa-join.mjs
           # 2026-11-06: how long a day's games wait for their join. The real marker logic against simulated days: rows
           # created at 10:00Z (and off the hour) must be joined by the first cycle after one marker hour, not at the next

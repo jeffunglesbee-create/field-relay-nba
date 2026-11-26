@@ -555,6 +555,40 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY, AMBIGUOUS_TEAM } = (() => {
         ['Stoke City',           'Stoke'],
         ['Swansea City',         'Swansea'],
         ['West Bromwich Albion', 'West Brom'],
+
+        // ── EFL Cup club names (2026-11-26, the owner's "join EFL Cup and Trophy"; BSD league 40 "Carabao Cup") ──
+        // 29 archive names read from outbox/fixture-bsd-game-join-eflcups.json (27 dates, 81 EFL Cup rows, 3720 BSD events) by scripts/measure-bsd-game-join.mjs: 38 rows the join left
+        // unmatched, each the ONE unclaimed BSD event whose names look like the row's (both sides), or whose one side does and whose other side the row's name is the only fit for
+        // (kickoff gap 0 on all of them, never what chose). The cup draws the clubs of the lower leagues, ESPN's short names ('Wimbledon', 'Oxford Utd', 'MK Dons') against BSD's full ones.
+        ['Accrington Stanley',  'Accrington'],
+        ['Bradford City',       'Bradford'],
+        ['Cambridge United',    'Cambridge'],
+        ['Cheltenham Town',     'Cheltenham'],
+        ['Colchester United',   'Colchester'],
+        ['Crawley Town',        'Crawley'],
+        ['Crewe Alexandra',     'Crewe'],
+        ['Doncaster Rovers',    'Doncaster'],
+        ['Exeter City',         'Exeter'],
+        ['Grimsby Town',        'Grimsby'],
+        ['Huddersfield Town',   'Huddersfield'],
+        ['Leicester City',      'Leicester'],
+        ['Luton Town',          'Luton'],
+        ['Mansfield Town',      'Mansfield'],
+        ['Milton Keynes Dons',  'MK Dons'],
+        ['Newport County',      'Newport'],
+        ['Northampton Town',    'Northampton'],
+        ['Oldham Athletic',     'Oldham'],
+        ['Oxford United',       'Oxford Utd'],
+        ['Peterborough United', 'Peterborough'],
+        ['Plymouth Argyle',     'Plymouth'],
+        ['Rotherham United',    'Rotherham'],
+        ['Sheffield Wednesday', 'Sheffield Wed'],
+        ['Shrewsbury Town',     'Shrewsbury'],
+        ['Stockport County',    'Stockport'],
+        ['Swindon Town',        'Swindon'],
+        ['Wigan Athletic',      'Wigan'],
+        ['AFC Wimbledon',       'Wimbledon'],
+        ['Wycombe Wanderers',   'Wycombe'],
     ];
     const strip = {};
     const display = {};

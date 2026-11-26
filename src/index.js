@@ -1490,8 +1490,13 @@ const V2_LEAGUES = {
     'eflone':     { sport: 'soccer', espnLeague: 'eng.3',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
     'efltwo':     { sport: 'soccer', espnLeague: 'eng.4',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
     // EFL Cup (Carabao) — CC-CMD-2026-08-08-efl-carabao-cup-coverage.
-    // bsdLeagueId null: no BSD id for this competition was verified, and
-    // inventing one would be a Rule 2 violation. ESPN only, same as eng.3/4.
+    // bsdLeagueId null: no BSD id for this competition was verified when this was
+    // written (2026-08-08), and inventing one would be a Rule 2 violation. ESPN only,
+    // same as eng.3/4. UPDATE 2026-11-26: BSD's league list (outbox/bsd-leagues-2026-11-04*.json)
+    // holds "Carabao Cup (England)" as league 40, and the BSD game join covers the 'EFL Cup'
+    // label by team names (Addendum 2026-11-26 of docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md).
+    // The null stays: a bsdLeagueId turns on the BSD endgame capture for the league (BSD requests,
+    // R2 writes), which is a decision of its own, not part of the join. The EFL Trophy has no BSD league.
     // Cup caveat: ties for round N+1 do not exist in ESPN until round N
     // resolves (probed 2026-08-08 -- the Aug 26-Sep 2 window returned
     // events:[] while Round 1 was still being played), so an empty result

@@ -24,10 +24,12 @@ import { resolveTeamKey } from './identity-resolver.js';
 // The six UEFA labels are the archive's own (the journalism cron's LEAGUES rows, verbatim). Added 2026-11-25 on the owner's "build both next", after the fixture
 // outbox/fixture-bsd-game-join-uefa.json measured the join on their real rows (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, Addendum 2026-11-25).
 // 'EFL Championship' (seeded the same day, BSD league 12) was added after outbox/fixture-bsd-game-join-eflchamp.json measured it the same way.
+// 'EFL Cup' (BSD league 40, 'Carabao Cup') was added 2026-11-26 after outbox/fixture-bsd-game-join-eflcups.json measured it. 'EFL Trophy' is NOT on the list: of its 98 archive rows 97 have no
+// BSD event at all and 1 has a one-sided look-alike (the same fixture; BSD's league list holds no Trophy), so a label on the list would only spend BSD pages on rows nothing can join.
 export const BSD_SOCCER_SPORTS = ['MLS', 'EPL', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1',
   'UEFA Champions League', 'UEFA Europa League', 'UEFA Europa Conference League',
   'UEFA Champions League Qualifying', 'UEFA Europa League Qualifying', 'UEFA Europa Conference League Qualifying',
-  'EFL Championship'];
+  'EFL Championship', 'EFL Cup'];
 export const BSD_KICKOFF_REFUSE_MINUTES = 180;
 
 /** The BSD events to fetch for an archive date: that UTC day AND the next. BSD's `date` is a UTC day, and a late US
