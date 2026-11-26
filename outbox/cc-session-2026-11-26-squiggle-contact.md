@@ -37,7 +37,9 @@ The commits were re-authored as `Claude <noreply@anthropic.com>` before the push
 - **INTEGRATION STATUS: STAGED.** Blocked by: the owner's step. Unblocked when: `GET /squiggle?q=teams` answers `set`. Verify: `staged-verification.yml` (daily 06:00 UTC) check 14, or a dispatch of it.
 - **Known mismatches:** none new. Item 8 (the open forwarder now signs its traffic with the owner's address; the client's Squiggle year is the constant 2026) is for the owner.
 
-{{LIVE}}
+## Live (2026-11-26)
+
+After the deploy, read through `probe_relay_route` on 2026-11-26 (after the 03:07Z finish of the deploy): `/squiggle?q=games;year=2026;round=1` answered HTTP 200 with 9 real round-1 games (4142 bytes), and `/v2/games?sport=afl&date=2026-09-05` answered HTTP 200 with the finals' own Squiggle tips unchanged from before the change (Adelaide v Western Bulldogs 68.60, Sydney v Brisbane Lions 50.61), so the finals read, which now builds its headers with `squiggleHeaders(env)`, still gets served by Squiggle from the relay's egress. `staged-verification.yml` was dispatched at 03:11Z (run 45747256485, manifest `outbox/staged-verification-20261126T031107Z.json`, committed as `7d25484c`): 14 checks (13 before), none failed, and check 14 `squiggle_contact_set` read PENDING with `http_status` 200 and `contact_state` `unset`. That is the intended state before the owner's step: the deployed relay carries the new route header and reports the secret absent. Coverage, stated as such: two relay routes read after the deploy plus one verifier read of `/squiggle?q=teams`; the round read and the resolver's two reads are not exercised live (the AFL season is over, and check 11-13 read PENDING for that reason), and the address-set branch is proven only offline, against a stub, until the owner sets the secret.
 
 ## The owner's step (nobody else can do it; about a minute)
 
@@ -45,7 +47,7 @@ Cloudflare dashboard -> Workers & Pages -> `field-relay-nba` -> Settings -> Vari
 
 ## Gates
 
-{{GATES}}
+Local sweep of every `run:` step of `deploy.yml` (127 ok, 5 skipped, 0 failed) and `guards.yml` (62 ok, 1 skipped, 2 failed) in a clean worktree of the five commits. The two guards failures were read, not assumed: step 45 (`every BSD frame the contract declares matches the captures`) printed `list page 1 failed: HTTP 0` (no network from this sandbox) and step 54 (`Every archived game is dated on the ET day of its own kickoff`) printed `RELAY_SHARED_SECRET must be set; a guard that cannot read does not pass` (no secret in this sandbox). Neither touches the Squiggle code. On the pushed commit the same `Repo guards` workflow, which has both, finished `success` (run `45745322519`, 02:52:52Z to 03:04:19Z); its per-step results were not read, only the run's conclusion. `check-commit-skip-prose.mjs origin/main..HEAD`: 5 commits, none suppresses CI.
 
 ## Residual (genuine, not deferred work; each has a CC-CMD item)
 
