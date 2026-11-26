@@ -1465,7 +1465,8 @@ const V2_LEAGUES = {
     // Club soccer — migrated June 26 2026: API-Sports → ESPN + BSD
     // espnLeague: ESPN scoreboard slug. bsdLeagueId: BSD analytics (null = ESPN only).
     // Season: '2026-27' for Aug-start leagues, '2026' for MLS calendar year.
-    // eflone/efltwo have no BSD coverage — Phase 12 alerts excluded by LOWER_SOCCER.
+    // eflone/efltwo: BSD's league list (outbox/bsd-leagues-2026-11-04*.json) holds League One (86) and League Two (87), so "no BSD coverage" was stale on 2026-11-26. bsdLeagueId
+    // stays null on purpose: an id turns on the BSD endgame capture (BSD requests, R2 writes), and nothing consumes a League One or Two capture. Phase 12 alerts stay excluded by LOWER_SOCCER.
     'epl':        { sport: 'soccer', espnLeague: 'eng.1',            bsdLeagueId: 1,    season: '2026-27' },
     'mls':        { sport: 'soccer', espnLeague: 'usa.1',            bsdLeagueId: 18,   season: '2026'    },
     'ucl':        { sport: 'soccer', espnLeague: 'uefa.champions',   bsdLeagueId: 7,    season: '2026-27' },
@@ -8734,6 +8735,14 @@ async function handleJournalismCycle(env, opts = {}) {
     // docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md, Task 3). Label identical to SOCCER_LEAGUE_LABELS.eflchamp, for the reason on the
     // EFL Cup row. League One and League Two stay UNDECIDED: nothing here asked for them.
     {sport:'soccer',    league:'eng.2',        label:'EFL Championship'},
+    // EFL League One (eng.3) and EFL League Two (eng.4) -- decided 2026-11-26, on the owner's "go with Claude's best recommendations": SEEDED, no longer UNDECIDED in
+    // src/seed-manifest.js. The evidence (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, "Addendum 2026-11-26, part 2"): the product already writes briefs for these games
+    // (/archive/query?sport=EFL League One held 208 and EFL League Two 94, all source 'client', 2026-11-26) while no game row existed, so the archive held the briefs and not the games;
+    // the V2 routes, SOCCER_LEAGUE_LABELS and the morning report's soccer family already carry both labels; the cost of a seeded league is one scoreboard read a day plus about two
+    // short Haiku briefs per game played after the seed. Labels identical to SOCCER_LEAGUE_LABELS.eflone / .efltwo, for the reason on the EFL Cup row. LOWER_SOCCER still keeps both
+    // out of the Phase 12 quality alerts (no analytics layer: bsdLeagueId stays null).
+    {sport:'soccer',    league:'eng.3',        label:'EFL League One'},
+    {sport:'soccer',    league:'eng.4',        label:'EFL League Two'},
     // FA Cup (CC-CMD-2026-08-08-fa-cup-coverage). label MUST stay identical to SOCCER_LEAGUE_LABELS.facup, for the
     // reason on the EFL Cup row above; 'FA Cup' and not ESPN's "English FA Cup" or a sponsor name, which would enter
     // the archive id.

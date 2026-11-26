@@ -40,9 +40,7 @@ const src = readFileSync(SRC, 'utf8');
 // Shrink this set when coverage is added; never grow it to silence a failure
 // without saying why in the same commit.
 const UNCOVERED_BY_DESIGN = new Set([
-    'eflchamp', // EFL Championship  -- no LEAGUES row; BSD lid 12 exists but archive coverage never added
-    'eflone',   // EFL League One    -- ESPN only (bsdLeagueId null), excluded from Phase 12 via LOWER_SOCCER
-    'efltwo',   // EFL League Two    -- ESPN only (bsdLeagueId null), excluded from Phase 12 via LOWER_SOCCER
+    // empty since 2026-11-26: the EFL Championship (2026-11-25), League One and League Two (2026-11-26) each gained a LEAGUES row.
 ]);
 
 function fail(msg) { console.error(`FAIL: ${msg}`); process.exitCode = 1; }

@@ -231,7 +231,7 @@ if (!rows || !rows.length) process.exit(1);
 // 22 -> 23 on 2026-11-06: FA Cup (eng.fa) added, CC-CMD-2026-08-08-fa-cup-coverage. Also a team
 // sport with no `individual` flag; the ratchet fired on the count alone again.
 // 23 -> 24 on 2026-11-25: EFL Championship (eng.2) seeded, the `eflchamp` UNDECIDED entry decided (the owner: "build both next"). A team sport, no `individual` flag.
-const EXPECTED = 24;
+const EXPECTED = 26;
 check(`the table still has ${EXPECTED} entries`,
   rows.length === EXPECTED,
   `${rows.length} entries — if this is a deliberate add or removal, update EXPECTED in the same commit`);

@@ -54,15 +54,9 @@ export const UNDECIDED = {
             'would handle it. Seed it, or exclude it for a stated coverage reason?',
         decidedBy: 'a human',
     },
-    // eflchamp was decided 2026-11-25 (the owner: "build both next"): SEEDED, as a row of the cron's LEAGUES table. The tiers below it are not.
-    eflone: {
-        question:
-            'EFL League One (eng.3). The EFL Cup, the EFL Trophy and the Championship (eng.2, seeded ' +
-            '2026-11-25) are archived; the two lower league tiers are not. Seed them, or state why ' +
-            'the Championship is covered and they are not?',
-        decidedBy: 'a human',
-    },
-    efltwo: { question: 'EFL League Two (eng.4) — see eflone.', decidedBy: 'a human' },
+    // eflchamp was decided 2026-11-25 (the owner: "build both next"): SEEDED, as a row of the cron's LEAGUES table. eflone and efltwo were decided 2026-11-26 (the owner: "go with
+    // Claude's best recommendations"): SEEDED the same way, because the product already wrote briefs for their games with no game row to hold them (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md,
+    // "Addendum 2026-11-26, part 2"). Nothing in the EFL pyramid is UNDECIDED now.
 }
 
 // The `individual: true` rows in the cron's own LEAGUES table are seeded AND
