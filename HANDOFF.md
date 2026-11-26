@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-26 (00:40Z) — the UEFA labels and the EFL Championship are on the BSD game join: UEFA 302 of 302, EFL Championship 204 of 204 in production
+
+**HEAD:** `23d729d` (the CC-CMD addendum) ← `a3daf52` ← `4816483`; this entry's commit follows · **Branch:** main · deploy run 45720223494 success (the EFL label, 13 aliases and the UEFA labels and 64 aliases).
+**Session doc:** outbox/cc-session-2026-11-25-uefa-efl-join.md (task: the owner's "build both next" and "go with Claude's best recommendations"; spec `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-25"; laboratory half field-laboratory/outbox/cc-session-2026-11-26-uefa-efl-reach.md)
+
+- **Built:** six UEFA labels + 64 club aliases, `EFL Championship` seeded (`eng.2`) with its 200-row history, the label + 13 aliases on the join; `isStuck` so the join backfill re-asks about a day whose pending rows are of a label learned since. Offline: 302 of 302 and 200 of 200 on the committed fixtures, 92 of 92 mutations caught.
+- **Production:** join backfill over 2026-05-20 to 2026-11-23, 54 of 54 dates verified, 476 rows written; the archive reader says UEFA 302 of 302 and EFL Championship 204 of 204.
+- **Laboratory reach (run 45726587782):** `eflchamp` 19 of 19 matches reached (was 0 of 19), `ucl` 36 of 39, `europa` 21 of 22; matches with no joined archive row 75 -> 4.
+- **Decisions taken on the owner's word (listed in the addendum):** seed the Championship only; all six UEFA labels; per-club aliases, no fuzzy matching; `EFL Cup` and `EFL Trophy` left off the join.
+- **Open, none blocking:** the 4 unreached matches (counts-only artifact); the ESPN reference grade re-run (run 45726584274); a club first seen in a later UEFA round needs an alias; `/archive/game` still unauthenticated (ruled, blocked on secret rotation).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-11-25 (20:30Z) — the ESPN reference grade: Task 2 (one independent reader) done, Task 3 ran: 268 of 382 calls graded, 268 agree, 0 disagree
 
 **HEAD:** `5e2e62a` (the runner after the reader) ← `d35a69c`; the run's own artifact commit follows it · **Branch:** main · no `src/` change, no deploy.
