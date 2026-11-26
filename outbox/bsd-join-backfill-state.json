@@ -1647,6 +1647,98 @@
         "UEFA Europa Conference League Qualifying",
         "EFL Championship"
       ]
+    },
+    "2026-11-06": {
+      "at": "2026-11-26T00:04:17.702Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
+    },
+    "2026-11-07": {
+      "at": "2026-11-26T00:04:19.215Z",
+      "outcome": "joined",
+      "pendingBefore": 11,
+      "pendingAfter": 0,
+      "written": 11,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
+    },
+    "2026-11-21": {
+      "at": "2026-11-26T00:04:21.812Z",
+      "outcome": "joined",
+      "pendingBefore": 11,
+      "pendingAfter": 0,
+      "written": 11,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
+    },
+    "2026-11-22": {
+      "at": "2026-11-26T00:04:22.239Z",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingAfter": 0,
+      "written": 1,
+      "unmatched": [],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship"
+      ]
     }
   }
 }

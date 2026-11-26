@@ -1,0 +1,171 @@
+{
+  "ts": "2026-11-26T00:04:11.937Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-05-20",
+  "to": "2026-11-23",
+  "maxDates": 10,
+  "pageCap": 50,
+  "survey": {
+    "daysInRange": 188,
+    "daysRead": 188,
+    "unreadDays": [],
+    "statuses": {
+      "200": 188
+    },
+    "daysToAttempt": 4,
+    "rowsToAttempt": 24,
+    "attemptedStillPending": 1,
+    "pendingRowsAllDays": 176,
+    "scopeSports": [
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1",
+      "UEFA Champions League",
+      "UEFA Europa League",
+      "UEFA Europa Conference League",
+      "UEFA Champions League Qualifying",
+      "UEFA Europa League Qualifying",
+      "UEFA Europa Conference League Qualifying",
+      "EFL Championship"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 38,
+    "outOfScopeRows": 143
+  },
+  "chosen": [
+    "2026-11-06",
+    "2026-11-07",
+    "2026-11-21",
+    "2026-11-22"
+  ],
+  "dates": [
+    {
+      "date": "2026-11-06",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "EFL Championship": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 316,
+        "upstreamPages": 7,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-11-07",
+      "outcome": "joined",
+      "pendingBefore": 11,
+      "pendingBeforeBySport": {
+        "EFL Championship": 11
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 11,
+        "written": 11,
+        "joined": 11,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 494,
+        "upstreamPages": 5,
+        "cacheHits": 5,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-11-21",
+      "outcome": "joined",
+      "pendingBefore": 11,
+      "pendingBeforeBySport": {
+        "EFL Championship": 11
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 11,
+        "written": 11,
+        "joined": 11,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 391,
+        "upstreamPages": 9,
+        "cacheHits": 0,
+        "unmatched": []
+      }
+    },
+    {
+      "date": "2026-11-22",
+      "outcome": "joined",
+      "pendingBefore": 1,
+      "pendingBeforeBySport": {
+        "EFL Championship": 1
+      },
+      "pendingAfter": 0,
+      "verify": {
+        "verified": true,
+        "expected": 0
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 1,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 187,
+        "upstreamPages": 1,
+        "cacheHits": 4,
+        "unmatched": []
+      }
+    }
+  ],
+  "pagesUsed": 22,
+  "written": 24,
+  "stoppedBecause": null,
+  "remainingToAttempt": 0,
+  "complete": false,
+  "runner": {
+    "gitSha": "92bf3560e521588e7044ced2a6a66ddeafb15f53",
+    "runId": "45725759174",
+    "scriptSha256": "85f74020157b36b6ada3e6d398771cb77a73ef0f873b73f1b7ffb3d258ef604d",
+    "libSha256": "a551c2d78039168c6e93ca2096c92654b10a11407810df6417c7d455a307425e"
+  },
+  "rangeComplete": true,
+  "coverageLine": "188 of 188 days read (0 unread) | scope 12 sports (MLS not included), regular-season rows choose a date: to attempt 4 days / 24 rows, 1 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 38 days / 143 rows | this run: 4 dates posted, 24 rows written, 22 upstream pages (cap 50), 4 verified | no stop | remaining to attempt 0 | range complete, not the scheduled scope"
+}
