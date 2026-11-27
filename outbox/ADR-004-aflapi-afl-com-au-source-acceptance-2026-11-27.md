@@ -1,6 +1,6 @@
 # ADR-004: aflapi.afl.com.au source acceptance (AFLW), 2026-11-27
 
-**Status:** ACCEPTED by the owner's reply "Accept", 2026-11-27 (see "The decision and how it was reached"). **The written scope limits and triggers below were written after the reply and are awaiting the owner's confirmation**; until confirmed, the scope is exactly what was deployed on 2026-11-27 and nothing wider.
+**Status:** ACCEPTED by the owner's reply "Accept", 2026-11-27 (see "The decision and how it was reached"), and **the written scope limits and triggers CONFIRMED by the owner's reply "Confirm. Optional choice approved", 2026-11-27** (see "The owner's confirmation and the optional items").
 **Decision class:** Source-clearance gate per Rule 45.3 (`jubilant-bassoon/STANDARDS.md` Rule 45, LEGAL-GATE-A, 2026-05-29: "Not reversible without Jeff's approval (ADR-class)").
 **Supersedes:** the G0 "RULED 2026-11-23" text of `docs/CC-CMD-2026-11-22-aflw-live-source.md`, which recorded the source choice on the delegation "Go with Claude's best recommendations" without the Rule 45.3(b) decision (see the CC-CMD's "Rule 45.3 status, 2026-11-26").
 **Recorded by:** Claude (an AI assistant), on the owner's explicit reply, **after** the source was wired (see RISKS ACKNOWLEDGED, item 6). Not a legal opinion; Claude is not a lawyer and certifies nothing.
@@ -10,8 +10,8 @@
 
 `aflapi.afl.com.au` (the AFL's own API; no key; no contract) is accepted as a relay-side data source for FIELD for **AFLW competition id 3 only**, as built:
 
-- **Reads** (relay `src/index.js`, `readAflapiBoard`, `aflapiGet`): `GET /afl/v2/competitions/3/compseasons?pageSize=100` (edge-cached 3600 s) and `GET /afl/v2/matches?competitionId=3&compSeasonId=<id>&pageSize=200` (edge-cached 30 s; `cacheEverything`, so upstream calls are bounded by the cache, not by client traffic). Request headers: `Accept: application/json`, `User-Agent: FIELD/1.0` (no contact address). An upstream non-2xx, a non-JSON body, a paginated answer or an unmapped status is a named 502; nothing is guessed.
-- **Served:** `/v2/games?sport=aflw&date=D` (pull only, `Cache-Control` 15 s, or 300 s for the one empty-season answer), states `pre` (SCHEDULED) and `final` (CONCLUDED) only, until the live spelling is read.
+- **Reads** (relay `src/index.js`, `readAflapiBoard`, `aflapiGet`): `GET /afl/v2/competitions/3/compseasons?pageSize=100` (edge-cached 3600 s) and `GET /afl/v2/matches?competitionId=3&compSeasonId=<id>&pageSize=200` (edge-cached 30 s; `cacheEverything`, so upstream calls are bounded by the cache, not by client traffic). Request headers: `Accept: application/json`, `User-Agent: FIELD/1.0`; **from Task 6 (owner-approved 2026-11-27) the User-Agent is `FIELD/1.0 - <address>` when the owner has set the Worker secret `AFLAPI_CONTACT` to one plain address, and `FIELD/1.0` otherwise** (the address is never in the repository). An upstream non-2xx, a non-JSON body, a paginated answer or an unmapped status is a named 502; nothing is guessed.
+- **Served:** `/v2/games?sport=aflw&date=D` (pull only, `Cache-Control` 15 s, 300 s for the empty-season answer, 60 s for the switched-off answer), states `pre` (SCHEDULED, and from 2026-11-27 UNCONFIRMED_TEAMS, read that day on the Grand Final) and `final` (CONCLUDED) only, until the live spelling is read.
 - **Stored (this is DATABASE STORAGE, unlike ADR-003):** `seedAflwArchive` (called once per journalism-cycle tick, 10:00Z to 02:59Z, for today and the next three ET days) writes one row per match to `ARCHIVE_DB` `regular_season_games` through the relay's own `/archive/game`: the fields the code posts are `sport` and `league` (both `AFLW`), `date`, `home` and `away` (club names), `venue`, `start_time`, `source_id` `aflapi:<match id>` (stored as `espn_event_id`), `went_to_ot` null, and `home_score` and `away_score` only once the match is `final`; the route derives the row id `AFLW_<date>_<home>_<away>`. No other aflapi field is posted (read from `seedAflwArchive`, 2026-11-27). Raw aflapi bodies are also committed as evidence and test fixtures in this repository (`outbox/aflapi-aflw-gf-9081-baseline-20261122.json`, `outbox/aflapi-aflw-fixtures-20261123.json`) and, from 2026-11-27, the Grand Final captures (`outbox/aflapi-aflw-gf-9081-<timestamp>.json`, two GETs per slot, seven slots, through the `html_probe` tool from a Cloudflare Worker IP).
 - **Displayed:** the laboratory page's AFLW card (field-laboratory `00200dc1`), which reads only the relay.
 - **Built in:** relay `9ef280d` (feed), `d002716` (archive step); `CONTRACTS.md` AFLW section (both repos).
@@ -22,6 +22,13 @@
 - **The owner's reply (verbatim, the whole message; received after the question was put at about 23:52Z on 2026-11-26 and before this record was written at 01:54Z on 2026-11-27; the exact time is not recorded here):** "Accept"
 - **What the owner had been shown before replying** (assistant messages of 2026-11-26, in the same conversation): the text of Rule 45.3, quoted; the finding that no page read names aflapi.afl.com.au; the Telstra-titled afl.com.au terms sentence, quoted with ellipses: "You must not otherwise reproduce, transmit … or otherwise use any of the material … except as permitted by statute or with our prior written consent."; that Champion Data's AFLW access needs a licence; the precedents (ADR-003 needed a separate explicit reply after the terms and three risks were put to the owner; no precedent counts a general delegation); that Rule 45.2(c) and (d) apply (monetising materially raises the risk; a qualified attorney before any commercial launch); and where the full quoted terms are (`outbox/aflw-source-read-20261122.md`).
 - **What the owner had NOT been shown before replying:** the written text of this ADR (scope limits, triggers, the storage facts above stated as risks). That is why the status above says the written scope is awaiting confirmation.
+
+## THE OWNER'S CONFIRMATION AND THE OPTIONAL ITEMS
+
+- **The question (the assistant's last line, 2026-11-27):** "Next: reply "confirm" to the ADR's scope limits and triggers, or name what to change." The same message listed, under "Optional, not built": "write to the AFL's two contact points; add a contact address to the User-Agent; display an attribution line; build a one-step off flag."
+- **The owner's reply (verbatim, the whole message):** "Confirm. Optional choice approved"
+- **Reading recorded here:** "Confirm" confirms the SCOPE LIMITS and the re-evaluation TRIGGERS below as written. "Optional choice approved" is read as approving the four items under "Optional, not built". The separate recommendation to add the Rule 45.3 gate text to the relay and laboratory `CLAUDE.md` files was a different sentence, is a change to the owner's governance files, and is **not** treated as approved.
+- **What the approved items change in the SCOPE below, once built** (each is recorded in `docs/CC-CMD-2026-11-22-aflw-live-source.md`, Task 6, with its done condition): the request header gains a contact address read from a Worker secret the owner sets (the address is never written into the repository); the laboratory's AFLW card gains an attribution line; the feed gets a one-step switch-off that needs no deploy; and a letter to the AFL's two published contact points is **drafted for the owner to send** (no tool here can send mail). The letter starts a contact with the AFL, and **any reply is trigger 3 below**.
 
 ## TERMS LANGUAGE (verbatim, accessed 2026-11-22; the access method and URL are in `outbox/aflw-source-read-20261122.md`, item 3)
 
@@ -51,14 +58,14 @@ Whether any of these clauses applies to calls to aflapi.afl.com.au, or to the st
 2. **Storage.** Unlike ADR-003 (no database storage), match facts are written to D1 and raw bodies are committed to this repository. The quoted storing clauses concern third-party content in the Telstra-titled notice; whether they reach match fixtures and scores is not established.
 3. **Commercial.** Rule 45.2(c): commercialising or monetising materially raises the risk; 45.2(d): a qualified attorney before any commercial launch. FIELD's commercial status as last recorded (assistant text, 2026-05-29 and 2026-06-22) is "one user, no commercial use" and "no distribution, no urgency"; nothing later was found. Counsel review before commercial launch is required, as for every accepted source.
 4. **Unsupported, undocumented API.** No contract, SLA, schema or stability promise; fields, statuses and parameters can change; the in-play status spelling, period and clock have never been read (the Grand Final captures of 2026-11-27 are the first chance). A third party reports rate limiting or bot detection on this host (quoted above). Failure mode: the relay answers a named 502, AFLW cards show no reading, nothing else is affected.
-5. **Identification.** The relay sends `User-Agent: FIELD/1.0` with no contact address; the AFL has no stated requirement, but Squiggle's does (2026-11-26), so this is a known soft spot.
+5. **Identification.** Until the owner sets `AFLAPI_CONTACT` the relay sends `User-Agent: FIELD/1.0` with no contact address (the state the served board reports as `X-FIELD-Aflapi-Contact: unset`); the AFL has no stated requirement, but Squiggle's does (2026-11-26), so this is a known soft spot that closes when the owner sets the secret (CC-CMD Task 6b).
 6. **The sequence.** The feed was deployed on 2026-11-23 before this decision, against Rule 45.3 and its own wording "ambiguous sources stay OUT until that decision". This record is the correction, not a retroactive approval of the sequence.
 
 ## SCOPE LIMITS (explicit, as built on 2026-11-27)
 
 This ADR applies ONLY to:
 - aflapi.afl.com.au, AFLW competition id 3, the two read paths above
-- Server-to-server reads through the Cloudflare Worker (field-relay-nba), edge-cached as above
+- Server-to-server reads through the Cloudflare Worker (field-relay-nba), edge-cached as above, identified by `FIELD/1.0` and, once the owner sets it, the owner's contact address
 - The D1 `regular_season_games` rows described above and nothing else in D1, R2 or KV
 - The evidence and fixture files named above and the seven Grand Final capture slots of 2026-11-27 (two GETs each)
 - The laboratory page's AFLW card, display only
@@ -81,7 +88,7 @@ Mandatory re-evaluation events (this ADR is suspended pending the owner's decisi
 5. Publication of terms or an API programme that names aflapi.afl.com.au, or a material change to the terms quoted above (annual check minimum)
 6. Any proposal to widen the scope above (another competition, another field, more storage, redistribution)
 
-**Switch-off (not built as a flag):** remove the `aflw` key from `V2_LEAGUES` and the `seedAflwArchive` call from the journalism cycle, after a consumer diagnostic (Rule 39), and deploy. A fast-flip environment flag was not built; building one is a smaller, safer response and is recommended if the owner wants a one-step off.
+**Switch-off (one step, built 2026-11-27 under CC-CMD Task 6d, owner-approved):** set the Worker secret `AFLW_FEED_OFF` to `1` (any non-empty value except `0`, `false` or `no`; a typo fails closed). No code deploy (a secret added in the Cloudflare dashboard takes effect when the owner presses Deploy there; `wrangler secret put` deploys at once). From the next request `/v2/games?sport=aflw` answers 200 with no games and `note: 'aflw feed switched off'`, and neither the route nor `seedAflwArchive` makes any request to aflapi or writes any row; cards already in the archive stay. To switch back on, delete the secret or set it to `0`. The slower, permanent form remains: remove the `aflw` key from `V2_LEAGUES` and the `seedAflwArchive` call from the journalism cycle, after a consumer diagnostic (Rule 39), and deploy.
 
 ## ALTERNATIVE PATHS NOT TAKEN (and why)
 
@@ -97,11 +104,12 @@ Rule 45 (LEGAL-GATE-A). This ADR records Rule 45.3(b), the owner's explicit acce
 
 On 2026-11-27 the owner, Jeff Unglesbee, replied "Accept" to the question of whether to accept the risk of using aflapi.afl.com.au as a data source for FIELD (the feed, the archive rows and the Grand Final captures) or to take the feed off. By that reply the owner accepted the risk of using aflapi.afl.com.au as documented in DECISION and SCOPE LIMITS above, understanding, as put to the owner before the reply, that this is not a legal opinion, that no document read names the host, that a qualified attorney review is required before any commercial launch, and that the accepted use is re-evaluated under the triggers above.
 
-This is a record of the owner's reply. It does **not** attest that the owner has read the written text of this ADR; the owner is asked to confirm or correct the scope limits and triggers.
+This is a record of the owner's reply. It did not attest that the owner had read the written text of this ADR; the owner then replied "Confirm. Optional choice approved" to the written scope limits and triggers (see above).
 
 Recorded by Claude on the owner's explicit "Accept" reply, 2026-11-27, **after** the source was wired (deployed 2026-11-23).
 
 ## OPEN, THE OWNER'S
 
-1. Confirm or correct the SCOPE LIMITS and TRIGGERS above (one word is enough; any narrower or wider scope is a new decision).
-2. Optional, not built: write to the AFL's published contact points; add a contact address to the User-Agent; display an attribution line; build a one-step off flag.
+1. ~~Confirm or correct the SCOPE LIMITS and TRIGGERS~~ Done: "Confirm. Optional choice approved", 2026-11-27.
+2. The four optional items are approved and being built (CC-CMD Task 6). The owner's own steps once built: set the contact-address Worker secret; send the letter to the AFL.
+3. Still not approved: the Rule 45.3 gate text in the relay and laboratory `CLAUDE.md` files (a recommendation only).
