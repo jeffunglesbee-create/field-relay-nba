@@ -2,7 +2,13 @@
 
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
-**Status:** OPEN 2026-11-27. Step added; the verification below is the done condition and is not yet met.
+**Status:** OPEN 2026-11-27. Step added in `24d07a5`. TASK 2 step 1 was run (relay deploy `46056375985`) and **the bootstrap step was SKIPPED**:
+the job failed at its own gate, step 132 "a staged claim names a verifier that exists and runs", on a pre-existing orphan. The same guard fails on
+`24d07a5~1`, so it is not this change. Cause: `db0828a` (2026-11-27 16:16Z, a docs commit by another session) added a STAGED claim to
+`docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md` ("the 524-row write", blocked on the owner's word) with no `(verifier: <id> @ relay/staged-verification.yml)`
+tag. No relay deploy was due between 16:16Z and the dispatch (no `src/`, `wrangler.toml` or `workers/` commit), so nothing in production was blocked yet; the NEXT
+push to those paths will fail at step 132 until the claim is tagged. **Not fixed here:** the right verdict id (from `scripts/staged-verdicts.mjs`) is the claim
+owner's choice. TASK 2b below does the one approved call without the gate.
 **Owner approval:** 2026-11-27, "option 1", answering a session question that offered "go Courier" (this) or "I'll add it" (the owner pastes the
 token by hand). Moving the Cloudflare token into a new repository is the owner's call, so it was asked first.
 **Scope:** one workflow step. Bootstrap `CLOUDFLARE_API_TOKEN` into `jeffunglesbee-create/field-tonight` via the existing Deploy Courier.
@@ -46,6 +52,13 @@ with `exit 1` on a bad answer, as the laboratory's is: loud in the step, not a r
    `field-tonight` deploy run names.
 
 **Done condition:** that URL serves the `field-tonight` page and its `version.txt` equals the deployed commit, with no human having entered a credential.
+
+## TASK 2b — a one-shot, because step 132 blocks TASK 2 (added 2026-11-27)
+
+`.github/workflows/set-field-tonight-secret.yml`, triggered by `outbox/.trigger-set-field-tonight-secret`. The same Courier call as the deploy.yml step, target and
+secret name fixed (no inputs), value from `secrets.CLOUDFLARE_API_TOKEN` via env, the Courier's reply (never the value) written to
+`outbox/field-tonight-secret-sync-latest.txt`. It does not deploy the relay, so it bypasses nothing the gate protects; the deploy.yml step stays for rotation.
+Verify as TASK 2 steps 2 and 3 once the reply says `"ok":true`.
 
 ## Explicitly NOT in scope
 
