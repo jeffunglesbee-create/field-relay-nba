@@ -43,7 +43,7 @@ import { squiggleConfidenceFor } from '../src/afl-squiggle.js';
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip, aflRegularTip, squiggleContactSet, squiggleContactStateOf, aflapiContactSet, aflapiContactStateOf,
+         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip, aflRegularTip, squiggleContactSet, squiggleContactStateOf, aflapiContactSet, aflapiContactStateOf, uefaHistoryWritten, UEFA_HISTORY_WINDOWS,
          oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
          cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles, deployCommitResults } from './staged-verdicts.mjs';
 
@@ -137,7 +137,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 15;
+const EXPECTED_CHECKS = 16;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -927,6 +927,38 @@ try {
     add({
         id: 'aflapi_contact_set',
         what: "the relay sends the owner's contact address in its aflapi User-Agent (the Worker secret AFLAPI_CONTACT is set and is one plain address)",
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
+
+// ── Check 16: the 524-row UEFA history write (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, Addendum 2026-11-27 part 3) ──
+// Four closed date windows (UEFA_HISTORY_WINDOWS, scripts/staged-verdicts.mjs, which says why they are not the all-time totals), counted by EXACT label across BOTH game tables, the way the backfill's
+// own `alreadyArchived` reads them. `scored` is COUNT(home_score): the backfill treats an archived row with no score as not archived. The label and the dates are bound, never spliced in.
+try {
+    const windows = [];
+    for (const w of UEFA_HISTORY_WINDOWS) {
+        const r = (await d1(
+            'SELECT SUM(n) AS n, SUM(scored) AS scored FROM ('
+            + 'SELECT COUNT(*) AS n, COUNT(home_score) AS scored FROM regular_season_games WHERE sport = ?1 AND date BETWEEN ?2 AND ?3 '
+            + 'UNION ALL '
+            + 'SELECT COUNT(*) AS n, COUNT(home_score) AS scored FROM postseason_games WHERE sport = ?1 AND date BETWEEN ?2 AND ?3)',
+            [w.label, w.from, w.to],
+        ))[0];
+        windows.push({ key: w.key, label: w.label, from: w.from, to: w.to, expected: w.expected, rows: Number(r?.n), scored: Number(r?.scored) });
+    }
+    add({
+        id: 'uefa_history_written',
+        what: 'the 524-row UEFA history write is in the archive: each of four closed date windows holds exactly the completed matches ESPN lists for it',
+        qualifying_rows: windows.reduce((sum, w) => sum + (Number.isInteger(w.scored) ? w.scored : 0), 0),
+        windows,
+        coverage: `four SELECTs (one per window) over regular_season_games and postseason_games by exact label and date range, scored rows only (COUNT(home_score)); expected counts are ESPN's completed events from the dry runs of archive-league-history-backfill.yml on 2026-11-27 (outbox/archive-league-history-backfill-uefa-*-2026-11-27T16-*Z.json); the all-time label totals in the claim are not read because the cron grows them every matchday`,
+        status: uefaHistoryWritten({ windows }),
+    });
+} catch (e) {
+    add({
+        id: 'uefa_history_written',
+        what: 'the 524-row UEFA history write is in the archive: each of four closed date windows holds exactly the completed matches ESPN lists for it',
         qualifying_rows: 0,
         status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
     });

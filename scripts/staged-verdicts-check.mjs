@@ -23,7 +23,7 @@
 // A MISSING mustFailOn IS ITSELF A FAILURE. Optional would make it the field
 // nobody fills in, which is how Rule 89's "specify an artifact" became prose.
 
-import { VERDICTS, squiggleContactSet, squiggleContactStateOf, aflapiContactSet, aflapiContactStateOf, vendorWatchPayload, vendorWatchLogFiles, VENDOR_WATCH_REFUSALS, VENDOR_WATCH_JUDGED, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs'
+import { VERDICTS, UEFA_HISTORY_WINDOWS, squiggleContactSet, squiggleContactStateOf, aflapiContactSet, aflapiContactStateOf, vendorWatchPayload, vendorWatchLogFiles, VENDOR_WATCH_REFUSALS, VENDOR_WATCH_JUDGED, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs'
 import { readFileSync as _readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0
@@ -84,6 +84,7 @@ const CAN_PASS = {
   afl_regular_tip_in_season: { gamesInWindow: 6, reference: 'found', expectedHome: 62.49, served: '62.49' },
   squiggle_contact_set: { state: 'set', httpStatus: 200 },
   aflapi_contact_set: { state: 'set', httpStatus: 200 },
+  uefa_history_written: { windows: [{ key: 'ucl_history', scored: 186 }, { key: 'uel_history', scored: 186 }, { key: 'uecl_history', scored: 150 }, { key: 'uecl_may_nov', scored: 57 }] },
   d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true },
 }
 // EVERY REGISTERED VERDICT NEEDS A CLEAN PAYLOAD, not just the ones someone
@@ -254,7 +255,7 @@ for (const [id, countKey] of [['afl_finals_tip_in_season', 'finalsInWindow'], ['
   check('aflapi_contact_set: the Squiggle header is not read as the aflapi one', aflapiContactStateOf(new Headers({ 'X-FIELD-Squiggle-Contact': 'set' })) === null, '')
   // THE EXECUTOR: the real block of scripts/verify-staged-items.mjs run against a stubbed relay (a wrong header name, a lost import or a hard-coded state would otherwise show only in the first live run).
   const src = _readFileSync('scripts/verify-staged-items.mjs', 'utf8')
-  const i0 = src.indexOf('// ── Check 15'), j0 = src.indexOf('m.summary = ')
+  const i0 = src.indexOf('// ── Check 15'), j0 = src.indexOf('// ── Check 16')
   check('aflapi_contact_set: the executor block is found', i0 > 0 && j0 > i0, `markers ${i0} ${j0}`)
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
   const runBlock = async (respond) => {
@@ -276,6 +277,69 @@ for (const [id, countKey] of [['afl_finals_tip_in_season', 'finalsInWindow'], ['
   const down = await runBlock(async () => { throw new TypeError('network down') })
   check('aflapi_contact_set executor: a network failure is PENDING "could not read" with no rows', down.c.id === 'aflapi_contact_set' && /^PENDING — could not read: network down/.test(down.c.status) && down.c.qualifying_rows === 0, JSON.stringify(down.c))
   check('aflapi_contact_set executor: it reads the relay\'s AFLW board on a fixed 2026 day, once', JSON.stringify((await runBlock(resp('set'))).urls) === JSON.stringify(['https://relay.invalid/v2/games?sport=aflw&date=2026-08-09']), '')
+}
+
+// ── uefa_history_written: the windows, each state the verdict can reach, and the executor block itself ──
+{
+  const v = VERDICTS.uefa_history_written
+  const W = (a, b, c, d) => ({ windows: [{ key: 'ucl_history', scored: a }, { key: 'uel_history', scored: b }, { key: 'uecl_history', scored: c }, { key: 'uecl_may_nov', scored: d }] })
+  // THE WINDOWS ARE THE MEASUREMENT: ESPN's completed counts from the dry runs of 2026-11-27 (186, 186, 150 for 2025-09-01 to 2026-04-30; 57 for the Conference League 2026-05-01 to 2026-11-25).
+  // Pinned here so a constant that drifted (a typo, a window that moved past the cron's reach) is red, not a quiet change to what "written" means.
+  check('uefa_history_written: the four windows are the ones the dry runs measured (label, dates, expected count)',
+    JSON.stringify(UEFA_HISTORY_WINDOWS.map(w => [w.key, w.label, w.from, w.to, w.expected])) === JSON.stringify([
+      ['ucl_history', 'UEFA Champions League', '2025-09-01', '2026-04-30', 186], ['uel_history', 'UEFA Europa League', '2025-09-01', '2026-04-30', 186],
+      ['uecl_history', 'UEFA Europa Conference League', '2025-09-01', '2026-04-30', 150], ['uecl_may_nov', 'UEFA Europa Conference League', '2026-05-01', '2026-11-25', 57]]), JSON.stringify(UEFA_HISTORY_WINDOWS))
+  check('uefa_history_written: no window reaches past 2026-11-25, so the cron never adds to one', UEFA_HISTORY_WINDOWS.every(w => w.to <= '2026-11-25'), '')
+  check('uefa_history_written: the 522 history rows and the 524 the claim names add up (186+186+150 history; 55 of 57 May to November are archived, so 2 are to write)',
+    UEFA_HISTORY_WINDOWS.filter(w => w.key.endsWith('_history')).reduce((s, w) => s + w.expected, 0) === 522 && UEFA_HISTORY_WINDOWS.find(w => w.key === 'uecl_may_nov').expected - 55 === 2, '')
+  // The state read from the archive at 2026-11-27T19:24Z (outbox/archive-label-dates-2026-11-27T19-24-06-750Z.json): nothing in the history windows, 55 of 57 in the Conference May to November window.
+  for (const [name, payload, want] of [
+    ['the archive as read on 2026-11-27 (nothing written)', W(0, 0, 0, 55), 'PENDING'], ['all four windows empty', W(0, 0, 0, 0), 'PENDING'],
+    ['one history window written, the rest not', W(186, 0, 0, 55), 'PARTIAL'], ['a history window half written', W(100, 0, 0, 55), 'PARTIAL'],
+    ['all history written, the 2 May Conference rows not', W(186, 186, 150, 55), 'PARTIAL'], ['the May rows written and no history', W(0, 0, 0, 57), 'PENDING'],
+    ['one row short in the first window', W(185, 186, 150, 57), 'PARTIAL'], ['one row short in the last window', W(186, 186, 150, 56), 'PARTIAL'],
+    ['everything written', W(186, 186, 150, 57), 'PASS'],
+    ['a duplicate in the first window', W(187, 186, 150, 57), 'FAIL'], ['a duplicate in the last window', W(186, 186, 150, 58), 'FAIL'], ['a duplicate while the rest is unwritten', W(187, 0, 0, 55), 'FAIL'],
+    ['a count above the expected in one window, below in another', W(190, 100, 150, 57), 'FAIL'],
+  ]) check(`uefa_history_written: ${name} is ${want}`, String(v(payload)).startsWith(want), String(v(payload)))
+  const bad = [['a window missing', { windows: W(186, 186, 150, 57).windows.slice(0, 3) }], ['no windows', { windows: [] }], ['windows not an array', { windows: null }], ['an extra window', { windows: [...W(186, 186, 150, 57).windows, { key: 'x', scored: 1 }] }],
+    ['a count that is NaN', W(186, 186, NaN, 57)], ['a count that is a string', W('186', 186, 150, 57)], ['a count that is negative', W(-1, 186, 150, 57)], ['a count that is null', W(186, null, 150, 57)],
+    ['a count that is fractional', W(186.5, 186, 150, 57)], ['a wrong key', { windows: [{ key: 'ucl_history', scored: 186 }, { key: 'uel_history', scored: 186 }, { key: 'uecl_history', scored: 150 }, { key: 'uecl_other', scored: 57 }] }]]
+  for (const [name, payload] of bad) check(`uefa_history_written: ${name} is FAIL (the contract is broken, nothing is judged), never PASS`, String(v(payload)).startsWith('FAIL'), String(v(payload)))
+  check('uefa_history_written: the order the windows arrive in does not matter', String(v({ windows: W(186, 186, 150, 57).windows.reverse() })).startsWith('PASS'), '')
+  check('uefa_history_written: PENDING names what it waits on (the owner\'s word) and the counts', /owner's word/.test(v(W(0, 0, 0, 55))) && /0 of 522/.test(v(W(0, 0, 0, 55))) && /uecl_may_nov 55\/57/.test(v(W(0, 0, 0, 55))), v(W(0, 0, 0, 55)))
+  // THE EXECUTOR: the real block of scripts/verify-staged-items.mjs against a stubbed d1, because nothing else runs it before the daily workflow does.
+  const src = _readFileSync('scripts/verify-staged-items.mjs', 'utf8')
+  const i0 = src.indexOf('// ── Check 16'), j0 = src.indexOf('m.summary = ')
+  check('uefa_history_written: the executor block is found', i0 > 0 && j0 > i0, `markers ${i0} ${j0}`)
+  check('uefa_history_written: the executor says how many checks there are (16)', /const EXPECTED_CHECKS = 16;/.test(src), '')
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+  const runBlock = async (d1) => {
+    const checks = []
+    await (new AsyncFunction('add', 'd1', 'UEFA_HISTORY_WINDOWS', 'uefaHistoryWritten', src.slice(i0, j0)))(c => checks.push(c), d1, UEFA_HISTORY_WINDOWS, VERDICTS.uefa_history_written)
+    return { c: checks[0], n: checks.length }
+  }
+  // A stub that answers by the window the params name, and records every statement it was sent.
+  const stub = (table) => { const calls = []; const d1 = async (sql, params = []) => { calls.push({ sql, params }); const w = UEFA_HISTORY_WINDOWS.find(x => x.label === params[0] && x.from === params[1] && x.to === params[2]); const r = w ? table[w.key] : null; return r === null || r === undefined ? [] : [r] }; return { d1, calls } }
+  const T = (a, b, c, d, rows = null) => ({ ucl_history: { n: rows ?? a, scored: a }, uel_history: { n: rows ?? b, scored: b }, uecl_history: { n: rows ?? c, scored: c }, uecl_may_nov: { n: rows ?? d, scored: d } })
+  for (const [name, table, status, rows] of [['nothing written', T(0, 0, 0, 55), 'PENDING', 55], ['everything written', T(186, 186, 150, 57), 'PASS', 579], ['a duplicate', T(187, 186, 150, 57), 'FAIL', 580],
+      ['rows with no score are not archived: 4 extra unscored rows do not break a complete write', T(186, 186, 150, 57, 190), 'PASS', 579]]) {
+    const { d1 } = stub(table)
+    const { c, n } = await runBlock(d1)
+    check(`uefa_history_written executor: ${name} -> ${status}, ${rows} qualifying row(s), one check added`, n === 1 && c.id === 'uefa_history_written' && String(c.status).startsWith(status) && c.qualifying_rows === rows && c.windows.length === 4, JSON.stringify(c))
+  }
+  const sent = stub(T(0, 0, 0, 55)); await runBlock(sent.d1)
+  check('uefa_history_written executor: it sends one statement per window, four in all', sent.calls.length === 4, String(sent.calls.length))
+  check('uefa_history_written executor: every statement reads BOTH game tables', sent.calls.every(c => /FROM regular_season_games/.test(c.sql) && /FROM postseason_games/.test(c.sql)), sent.calls[0].sql)
+  check('uefa_history_written executor: every statement counts scored rows (COUNT(home_score)) in both tables', sent.calls.every(c => (c.sql.match(/COUNT\(home_score\)/g) || []).length === 2), sent.calls[0].sql)
+  check('uefa_history_written executor: the label is matched exactly (=, never LIKE) so the Qualifying labels are not counted', sent.calls.every(c => /sport = \?1/.test(c.sql) && !/LIKE/i.test(c.sql)), sent.calls[0].sql)
+  check('uefa_history_written executor: the label and both dates are bound parameters, never spliced into the statement',
+    sent.calls.every((c, i) => JSON.stringify(c.params) === JSON.stringify([UEFA_HISTORY_WINDOWS[i].label, UEFA_HISTORY_WINDOWS[i].from, UEFA_HISTORY_WINDOWS[i].to]) && !c.sql.includes('UEFA') && !/\d{4}-\d{2}-\d{2}/.test(c.sql)), JSON.stringify(sent.calls[0]))
+  check('uefa_history_written executor: it never writes (every statement is a SELECT)', sent.calls.every(c => /^\s*SELECT /i.test(c.sql) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|REPLACE)\b/i.test(c.sql)), sent.calls[0].sql)
+  const down = await runBlock(async () => { throw new Error('HTTP 503: relay down') })
+  check('uefa_history_written executor: a failed read is PENDING "could not read" with no rows', down.c.id === 'uefa_history_written' && /^PENDING — could not read: HTTP 503/.test(down.c.status) && down.c.qualifying_rows === 0, JSON.stringify(down.c))
+  const empty = await runBlock(async () => [])
+  check('uefa_history_written executor: a read that returns no row at all is FAIL (a count that is not a count), never PASS', String(empty.c.status).startsWith('FAIL'), JSON.stringify(empty.c))
 }
 console.log(fail ? `\n${fail} failed` : `\n${pass} passed`)
 process.exit(fail ? 1 : 0)

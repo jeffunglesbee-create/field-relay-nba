@@ -408,6 +408,43 @@ export const aflapiContactSet = ({ state, httpStatus }) =>
 // A secret that is set but malformed: the relay sends no contact and the owner thinks it does.
 aflapiContactSet.mustFailOn = { state: 'invalid' }
 
+/// Check 16 — the 524-row UEFA history write (docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, Addendum 2026-11-27 part 3: the staged write, blocked on the owner's word).
+///
+/// WHY FOUR DATE WINDOWS AND NOT THE ALL-TIME LABEL TOTALS. The claim's own Verify line gives all-time totals (279, 279 and 225 rows). Those are a snapshot of 2026-11-27: the cron
+/// archives each UEFA matchday as it finishes (the archive holds 14, 9 and 5 distinct dates for the three labels, read 2026-11-27T19:24Z), so the next matchday raises every total and an
+/// equality test on them would turn FAIL on a write that went perfectly. Every window below ends on or before 2026-11-25, so the cron never adds to one; only this write does.
+/// Each `expected` is the number of COMPLETED events ESPN lists for that label and window, read by the dry runs of 2026-11-27 (`archive-league-history-backfill.yml`, `dry_run` true:
+/// 186, 186 and 150 for 2025-09-01 to 2026-04-30 with 0 archived; 57 for the Conference League 2026-05-01 to 2026-11-25 with 55 archived, so the 2 May rows are still to write): the
+/// number the claim says `alreadyArchived` must reach. `scored` is COUNT(home_score), because the backfill itself calls an archived row with no score not archived.
+/// THE REFERENCE IS NOT THE CODE UNDER TEST. `expected` is ESPN's list, read through the backfill's scoreboard path; `scored` is a D1 count of the archive. They share nothing.
+/// PENDING is the honest state while the owner has not said to write (the history windows hold nothing): the claim is blocked on that word, so a red there would be a red nobody could clear.
+/// A count ABOVE ESPN's is the one regression: the backfill never writes an archived event twice, so more rows than completed events means a duplicate or a mislabelled row.
+export const UEFA_HISTORY_WINDOWS = [
+  { key: 'ucl_history',  label: 'UEFA Champions League',         from: '2025-09-01', to: '2026-04-30', expected: 186 },
+  { key: 'uel_history',  label: 'UEFA Europa League',            from: '2025-09-01', to: '2026-04-30', expected: 186 },
+  { key: 'uecl_history', label: 'UEFA Europa Conference League', from: '2025-09-01', to: '2026-04-30', expected: 150 },
+  { key: 'uecl_may_nov', label: 'UEFA Europa Conference League', from: '2026-05-01', to: '2026-11-25', expected: 57 },
+]
+export const uefaHistoryWritten = ({ windows }) => {
+  const known = UEFA_HISTORY_WINDOWS
+  const byKey = Object.fromEntries((Array.isArray(windows) ? windows : []).map((w) => [w?.key, w]))
+  const bad = known.filter((k) => !Number.isInteger(byKey[k.key]?.scored) || byKey[k.key].scored < 0)
+  if (!Array.isArray(windows) || windows.length !== known.length || bad.length)
+    return `FAIL — the four archive windows were not all counted (${bad.length ? `missing or not a count: ${bad.map((k) => k.key).join(', ')}` : `${Array.isArray(windows) ? windows.length : 'no'} windows handed over, ${known.length} expected`}): the contract between verify-staged-items.mjs and this verdict is broken, so nothing is judged`
+  const rows = known.map((k) => ({ ...k, scored: byKey[k.key].scored }))
+  const line = rows.map((r) => `${r.key} ${r.scored}/${r.expected}`).join(', ')
+  const over = rows.filter((r) => r.scored > r.expected)
+  const history = rows.filter((r) => r.key.endsWith('_history'))
+  const histHave = history.reduce((s, r) => s + r.scored, 0), histTotal = history.reduce((s, r) => s + r.expected, 0)
+  const have = rows.reduce((s, r) => s + r.scored, 0), total = rows.reduce((s, r) => s + r.expected, 0)
+  return over.length ? `FAIL — more scored archive rows than ESPN lists completed events in ${over.map((r) => r.key).join(', ')} (${line}): the backfill never writes an archived event twice, so a row is duplicated or mislabelled; investigate before anything more is written (Rule 77)`
+  : rows.every((r) => r.scored === r.expected) ? `PASS — all four windows hold the completed matches ESPN lists (${line}): ${have} rows`
+  : histHave === 0 ? `PENDING — the ${histTotal}-row UEFA history write has not run: ${histHave} of ${histTotal} archived (${line}); it waits on the owner's word for a production write (CC-CMD 2026-10-27-bsd-event-id-on-game-rows, Addendum 2026-11-27 part 3)`
+  : `PARTIAL — ${have} of ${total} scored rows archived (${line}); the rest of the write is still to run`
+}
+// A history window holding one more row than ESPN lists: the duplicate the claim's own concurrency note exists to prevent.
+uefaHistoryWritten.mustFailOn = { windows: [{ key: 'ucl_history', scored: 187 }, { key: 'uel_history', scored: 186 }, { key: 'uecl_history', scored: 150 }, { key: 'uecl_may_nov', scored: 57 }] }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
@@ -424,4 +461,5 @@ export const VERDICTS = {
   afl_regular_tip_in_season: aflRegularTip,
   squiggle_contact_set: squiggleContactSet,
   aflapi_contact_set: aflapiContactSet,
+  uefa_history_written: uefaHistoryWritten,
 }

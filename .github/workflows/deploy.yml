@@ -1273,6 +1273,12 @@ jobs:
       - name: the file-reading staged verdicts are mutation-tested
         run: node scripts/mutate-staged-verdicts-vendor-watch.mjs
 
+      # Rule 90 for check 16 (the staged 524-row UEFA history write, docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md, Addendum 2026-11-27 part 3): each mutation breaks one clause of the verdict
+      # or of the executor block that counts the four archive windows, and the checker must go red on a line naming uefa_history_written. The claim's tag resolves to this verifier, so a verifier
+      # that could not fail would make the tag a promise nothing keeps.
+      - name: the UEFA history staged verdict and its executor are mutation-tested
+        run: node scripts/mutate-staged-verdicts-uefa-history.mjs
+
       - name: a staged claim names a verifier that exists and runs
         run: node scripts/staged-verifier-check.mjs --self-test && node scripts/staged-verifier-check.mjs
 
