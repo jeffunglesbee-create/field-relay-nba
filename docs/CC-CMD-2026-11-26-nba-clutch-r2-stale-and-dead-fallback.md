@@ -1,7 +1,8 @@
 # Claude Code Command — the NBA clutch R2 objects are 15 days old, the writer hardcodes last season, and the R2-miss fallback points at a path that never existed
 
 **Repo:** field-relay-nba (`src/nba-clutch-r2.js`, `src/index.js`, `src/stale-data-sentinel.js`) · **Branch:** main — commit directly, no feature branch or PR · **Type:** B (stale data served; no error)
-**Filed:** 2026-11-26, found while retiring the superseded GitHub workflow `nba-clutch-update.yml` in jubilant-bassoon (the dead-cron fix; reader report in this session). **Status:** FILED, not dispatched.
+**Filed:** 2026-11-26, found while retiring the superseded GitHub workflow `nba-clutch-update.yml` in jubilant-bassoon (the dead-cron fix; reader report in this session).
+**Status:** FILED, not dispatched.
 **Confidence gate:** >= 95 before any commit. A change to `src/**` deploys; it needs the owner's order to dispatch a deploy only if it is not a push to main (pushes deploy by design).
 
 ## What was read (2026-11-26, 0 credits; reads only)
