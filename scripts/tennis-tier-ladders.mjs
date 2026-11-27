@@ -59,49 +59,65 @@ const TIERS = ['grand_slam', 'masters_1000', 'atp_1000', 'wta_1000',
 // This does not assume it fails. It asks, and prints what comes back.
 const NAMED = /^(ATP Finals|WTA Finals|Next Gen Finals|United Cup|Davis Cup|Billie Jean King Cup( Group I)?)$/;
 
-// THE CLIENT'S SPLIT, MIRRORED HERE SO IT CAN GO STALE LOUDLY.
+// THE CLIENT'S DRAW-TAB DECISION, REPLAYED RATHER THAN MIRRORED.
 //
-// jubilant-bassoon's _TENNIS_DRAW_NAMED_RANK admits four of these to the Draw
-// tab and _TENNIS_DRAW_NO_BRACKET excludes three, and that split was decided by
-// one reading on 2026-09-06. A vendor that starts serving a Davis Cup knockout,
-// or stops serving the ATP Finals semi-finals, makes the client wrong in a way
-// nothing in the client can notice — its lists are literals.
+// This used to compare two static name lists read out of jubilant-bassoon
+// (_TENNIS_DRAW_NO_BRACKET and the keys of _TENNIS_DRAW_NAMED_RANK) with the
+// main-draw count the draw route held for the LATEST season of each named
+// event. That count moves between 0 and n inside every event's year, so no
+// static list is right all year: the check was red on 2026-11-09 (WTA Finals),
+// 11-16 (ATP Finals) and 11-23 (Davis Cup), a different event each week, each
+// correct for its week, and none of them fixable by another list edit. The
+// earlier amendment of 2026-10-07 (the senior Billie Jean King Cup) was the
+// same class and was fixed the same way, five weeks before this recurred.
 //
-// So this run checks the split against what the route actually serves, and
-// FAILS when they disagree. It is the only automated thing that can: the lists
-// live in one repo and the truth lives in another.
+// What the client DECIDES is a function of the day's card, so that is what is
+// checked. scripts/lib/client-tennis-split.cjs extracts the client's own picker
+// from the DEPLOYED page (and from field.js on main, for agreement only), runs
+// it over a day's by-date card, and asks the draw route whether a main-draw
+// match was actually played that day:
 //
-// AMENDED 2026-10-07, and this is what the check was for. The senior Billie
-// Jean King Cup (509) moved from EXCLUDES to ADMITS: it began serving QF=4
-// SF=2 F=1, this run reported the drift on 2026-09-21, 09-28 and 10-05, and
-// jubilant-bassoon 6af0ffbb dropped it from _TENNIS_DRAW_NO_BRACKET and gave
-// it a named rank. Group I stays excluded — 508 still serves zero main-draw
-// rounds — and in the client the optional group is now gone from the regex.
+//   I1  never offer a Draw tab for an event that has no main-draw match that day
+//   I2  when a real main-draw event is on the card, offer some Draw tab
 //
-// THE LISTS ARE NO LONGER A COPY. Until 2026-10-07 they were two string
-// literals here, naming what the client does, and a copy has exactly one
-// failure mode: it goes stale and nobody can tell. It then did — the client
-// changed, nothing mirrored it, and this run was red against its own stale
-// copy for three weekly scheduled runs. The reverse is worse and silent: a
-// list edited only here reports drift that does not exist.
+// over a pinned corpus of days (one per class: a named event on a knockout day,
+// a named event on a round-robin day, a tier draw day, an empty day) plus the
+// trailing 7 days, and it checks the client's round_name vocabulary against the
+// relay's own draw payloads (V1: every main-draw round the relay serves is
+// offered, V2: every round it serves outside the main draw is refused).
+// A pin that does not reproduce, a pinned day that cannot be read (after one
+// re-read), a trailing window of which fewer than 5 of 7 days were read, a vocabulary
+// edition that cannot ground the vocabulary and a run with zero checks are harness
+// errors and fail, distinct from drift. A trailing day that cannot be read, in a
+// window that is otherwise read, is counted and named, and does not fail the run:
+// one vendor fault on one date would otherwise hold a weekly run red for a week.
+// A client this run could not read refuses rather than reporting no drift.
+// docs/CC-CMD-2026-11-24-tennis-client-split-drift.md has the series.
 //
-// They are now READ FROM THE CLIENT, both from the page a reader loads and
-// from the source on main. See scripts/lib/client-tennis-split.cjs for which
-// text counts as the client and why index.html is not read. Every failure
-// there throws, and a client this run could not read refuses rather than
-// reporting no drift.
+// WHAT TO READ IN THE ARTIFACT. summary.clientDecisionReplay.status is one of
+// ok | drift | refused | harness-error and is the key a reader checks:
+// summary.clientSplitDrift is only the I1/I2/V1/V2 sentences and is [] on a
+// refused, blind or failed run as well as on a clean one.
 
 import { createRequire } from 'node:module';
 const _require = createRequire(import.meta.url);
-const { readClient } = _require('./lib/client-tennis-split.cjs');
+const { readClient, readOnceMore, runReplay, describeClient, RETRY_PAUSE_MS: DEFAULT_RETRY_PAUSE_MS } = _require('./lib/client-tennis-split.cjs');
+// A relay read that threw or answered 5xx is made once more after this pause, never a 4xx (the answer is the answer).
+// The environment variable exists so the self-test's child process does not wait.
+const RETRY_PAUSE_MS = process.env.RETRY_PAUSE_MS === undefined ? DEFAULT_RETRY_PAUSE_MS : Number(process.env.RETRY_PAUSE_MS);
 
 const out = { ts: TS, relay: RELAY, perTier: PER_TIER, tiers: {}, editions: [] };
 
-async function get(path, timeout = 60000) {
+async function getOnce(path, timeout) {
   const r = await fetch(`${RELAY}${path}`, { signal: AbortSignal.timeout(timeout) });
   const text = await r.text();
   let json; try { json = JSON.parse(text); } catch {}
   return { status: r.status, json, text };
+}
+// Every relay read here decides something (the census, an edition, a card, a draw), and the one run that can clear
+// silently-dead-crons is a weekly one, so a transient 5xx or a dropped connection is read once more.
+async function get(path, timeout = 60000) {
+  return readOnceMore(() => getOnce(path, timeout), { pauseMs: RETRY_PAUSE_MS });
 }
 
 (async () => {
@@ -174,17 +190,18 @@ async function get(path, timeout = 60000) {
 
   // ── TEAM EVENTS AND SEASON FINALS ────────────────────────────────────────
   // Read the client BEFORE judging anything against it, so the output says
-  // which lists the verdict used rather than leaving a reader to assume.
+  // which declarations the verdict used rather than leaving a reader to assume.
+  // The replay itself runs after the census below, so a failure in it cannot
+  // stop the rest of the reading being written.
   const client = await readClient();
-  out.clientSplit = client;
-  console.log('\n── the client\'s team-event split, READ FROM THE CLIENT');
+  out.clientSplit = { deployed: describeClient(client.deployed), source: describeClient(client.source),
+                      refusals: client.refusals };
+  console.log('\n── the client\'s Draw-tab decision, EXTRACTED FROM THE CLIENT');
   for (const k of ['deployed', 'source']) {
     const r = client[k];
-    console.log(`   ${k.toUpperCase().padEnd(9)} ${r ? `excludes ${JSON.stringify(r.excludes)}`
-      + ` admits ${JSON.stringify(r.admits)}` : 'REFUSED'}`);
+    console.log(`   ${k.toUpperCase().padEnd(9)} ${r ? `read ${r.anchorsPresent.join(', ')}`
+      + ` | optional anchors absent ${JSON.stringify(r.anchorsAbsent)}` : 'REFUSED'}`);
   }
-  console.log(`   source agrees with deployed : ${client.sourceAgreesWithDeployed === null
-    ? 'UNKNOWN — one of the two refused' : client.sourceAgreesWithDeployed}`);
   client.refusals.forEach((r) => console.log(`   REFUSED: ${r}`));
 
   const named = all.filter((t) => NAMED.test(String(t?.name || '')));
@@ -197,10 +214,8 @@ async function get(path, timeout = 60000) {
                       withKnockout: [], withoutKnockout: [] };
   console.log(`\n── team events and season finals: ${named.length} tournament(s) match by name`);
   console.log(`   ${out.namedEvents.names.join(' | ') || '(none)'}`);
-  console.log("   NOTE: the client's draw picker keys on category rank, and the"
-            + " 'other' category has none — so none of these can currently reach"
-            + ' the Draw tab. Verified in field.js: _tennisDrawPick does'
-            + ' `if (rank == null) continue;`.');
+  console.log('   (informational: whether one of these reaches the Draw tab is decided per day'
+            + ' by the replay below, not by anything in this census)');
   for (const t of named.slice(0, 8)) {
     const r = await get(`/bsd/tennis/draw?tournament=${t.id}`);
     const rec = { tier: 'named', tid: t.id, name: t.name, status: r.status };
@@ -231,53 +246,92 @@ async function get(path, timeout = 60000) {
     else modelHeld++;
     (d.mainDrawMatches > 0 ? out.namedEvents.withKnockout : out.namedEvents.withoutKnockout)
       .push(`${t.id} ${t.name} (${d.mainDrawMatches} match(es))`);
-    // The cross-repo check, against the DEPLOYED client. Both directions,
-    // because both are wrong. When the deployed client could not be read this
-    // comparison is simply not made — the refusal is already recorded and
-    // fails the run, and guessing either way would be the fallback that let a
-    // stale copy stand for three weeks.
-    if (client.deployed) {
-      if (client.deployed.excludes.includes(t.name) && d.mainDrawMatches > 0) {
-        splitDrift.push(`${t.name} (${t.id}) now serves ${d.mainDrawMatches} main-draw match(es)`
-                      + ` but the client excludes it by name — a real draw nobody can reach`);
-      }
-      if (client.deployed.admits.includes(t.name) && d.mainDrawMatches === 0) {
-        splitDrift.push(`${t.name} (${t.id}) serves NO main-draw round but the client admits it`
-                      + ` — the tab would offer an empty bracket`);
-      }
-    }
     console.log(`   ${String(t.id).padStart(5)} ${String(t.name).slice(0, 26).padEnd(28)} ${d.season}`
               + ` ${(rec.ladder.join(' ') || '(no main-draw round)').padEnd(46)}`
               + ` mainDraw=${d.mainDrawMatches} outside=${JSON.stringify(d.roundsOutsideMainDraw)}`);
     if (off.length) console.log(`        interior off: ${rec.interiorOff.join(', ')}`);
   }
 
+  // ── THE REPLAY ───────────────────────────────────────────────────────────
+  // Against the DEPLOYED client only: it is the page a reader loads. When it
+  // was refused there is nothing to replay, the refusal is already recorded and
+  // fails the run, and guessing from the source would be the fallback that let
+  // a stale copy stand for three weeks.
+  let replay = null, replayRefusal = null;
+  if (client.deployed) {
+    try {
+      replay = await runReplay({ relayGet: get, deployed: client.deployed, source: client.source,
+                                 today: TS.slice(0, 10) });
+    } catch (e) { replayRefusal = e.message; }
+  }
+  out.replay = replay;
+  console.log('\n── the replay: pinned days, then the trailing window');
+  if (replay) {
+    console.log(`   window ${replay.window.from} .. ${replay.window.to} (${replay.window.trailing} days, UTC)`);
+    for (const p of replay.pins) {
+      console.log(`   pin ${p.id.padEnd(18)} ${p.date}  ${p.reproduced ? 'reproduced' : 'DOES NOT REPRODUCE'}`
+                + `${p.problems.length ? ' — ' + p.problems.join('; ') : ''}`);
+    }
+    for (const d of replay.days) {
+      console.log(`   ${d.date} ${(d.pin ?? d.window).padEnd(18)} rows=${String(d.rows).padStart(3)}`
+                + ` candidates=${d.candidates.length} pick=${d.pick ?? '-'} drawable=${JSON.stringify(d.drawable)}`
+                + ` I1=${d.i1} I2=${d.i2}${d.truncated ? ' CARD-TRUNCATED' : ''}`);
+    }
+    replay.unreadDays.forEach((u) => console.log(`   unread day ${u.date}: ${u.why}`));
+    replay.truthUnread.forEach((u) => console.log(`   unread draw ${u.tid}/${u.season}: ${u.why}`));
+    console.log(`   vocabulary (${replay.vocabulary.edition.name} ${replay.vocabulary.edition.season}): main-draw names ${JSON.stringify(replay.vocabulary.main)};`
+              + ` outside names ${JSON.stringify(replay.vocabulary.outside)}`);
+    console.log(`   COVERAGE (replay): ${replay.coverageLine}`);
+    console.log(`   card rows dated on another day than the card's: ${replay.coverage.rowsOffDay}`);
+    console.log(`   source decides like deployed on every replayed day : ${replay.sourceAgreesWithDeployed === null
+      ? 'UNKNOWN — the source was refused or no day was read' : replay.sourceAgreesWithDeployed}`);
+  } else {
+    console.log(`   NOT RUN — ${replayRefusal ?? 'the deployed client was refused'}`);
+  }
+  const harnessErrors = replay ? replay.harness.slice() : [];
+  if (replayRefusal !== null) harnessErrors.push(`the replay refused to run: ${replayRefusal}`);
+  if (replay) splitDrift.push(...replay.violations.map((v) => v.text));
+
   const checked = out.editions.length;
   const read = out.editions.filter((e) => e.status === 200).length;
   const edgeBad = out.editions.filter((e) => e.status === 200 && e.edgesDeclaredNull === false);
-  // A contradictory client — a name both excluded and ranked — is the client's
-  // own defect rather than drift against the route, and the regex is tested
-  // first so the rank loses. Reported with the drift because both make a draw
-  // unreachable, and distinguished by its wording.
+  // The client's source on main deciding differently from the page a reader
+  // loads means two versions of the client disagree: a fix on main that has not
+  // shipped, or a revert on main of one that has. Which is for the reader to
+  // say. Reported apart from drift because it is a different finding, and
+  // because the verdict above was drawn from the deployed page alone.
   const contradictory = [];
-  for (const k of ['deployed', 'source']) {
-    for (const n of (client[k] ? client[k].contradictory : [])) {
-      contradictory.push(`${client[k].where}: '${n}' is both excluded by name and given a rank`
-                       + ` — the regex is tested first, so the rank cannot take effect`);
-    }
+  if (replay && replay.sourceAgreesWithDeployed === false) {
+    // No direction is claimed: a fix on main that has not shipped and a revert on main of one that has look the same here.
+    contradictory.push(`the client's source and its deployed page decide differently on`
+                     + ` ${replay.sourceDiffs.map((x) => x.date).join(', ')}`);
   }
-  if (client.sourceAgreesWithDeployed === false) {
-    contradictory.push(`the client's source and its deployed page disagree on the split`
-                     + ` — a client change that has not shipped`);
-  }
+  // ok | drift | refused | harness-error: what the client Draw-tab replay found, in one word, so that a refused,
+  // blind or failed run is not read as clean from an empty clientSplitDrift. Refusals first (the client was not
+  // read), then harness errors (it was read and the harness could not see), then drift (including the source and the
+  // deployed page disagreeing).
+  const replayStatus = client.refusals.length ? 'refused'
+    : harnessErrors.length ? 'harness-error'
+    : splitDrift.length || contradictory.length ? 'drift' : 'ok';
   out.summary = { tiersDeclared: TIERS.length, editionsRequested: checked, editionsRead: read,
                   modelHeld, interiorHoles, unread, edgeRuleViolations: edgeBad.length,
+                  // The violations of I1, I2, V1 and V2 as sentences. [] here is
+                  // NOT a clean run on its own: a refused, blind or failed run
+                  // leaves it []. Read clientDecisionReplay.status.
                   clientSplitDrift: splitDrift,
                   // Rule 99: a client this run could not read is not a client
                   // with no drift. These are listed separately from drift so a
                   // reader never has to infer which happened.
                   clientSplitRefusals: client.refusals,
-                  clientSplitContradictions: contradictory };
+                  clientSplitContradictions: contradictory,
+                  // Rule 91: what the verdict above covers, in the artifact and
+                  // not in a comment. Zero checks fails the run.
+                  clientDecisionReplay: replay
+                    ? { status: replayStatus, ran: true, coverageLine: replay.coverageLine, coverage: replay.coverage, window: replay.window,
+                        vocabulary: replay.vocabulary, pins: replay.pins, violations: replay.violations, harness: harnessErrors,
+                        unreadDays: replay.unreadDays, truthUnread: replay.truthUnread,
+                        sourceAgreesWithDeployed: replay.sourceAgreesWithDeployed, sourceDiffs: replay.sourceDiffs }
+                    : { status: replayStatus, ran: false, reason: replayRefusal ?? 'the deployed client was refused', harness: harnessErrors } };
 
   console.log(`\nCOVERAGE: ${read} edition(s) read of ${checked} requested, across`
             + ` ${TIERS.length} declared tier(s), capped at ${PER_TIER} per tier,`
@@ -294,25 +348,30 @@ async function get(path, timeout = 60000) {
   }
   if (unread.length) { console.log(`unread:`); unread.forEach((u) => console.log(`   ${u}`)); }
   console.log(`edge-rule violations (an edge with a size, or an interior without one): ${edgeBad.length}`);
-  console.log(`client team-event split still matches what the route serves: ${
-    client.deployed ? splitDrift.length === 0 : 'NOT CHECKED — the deployed client refused'}`);
+  // Not a claim that the client matches the relay: the replay's own coverage line says what it did and did not see.
+  console.log(`client Draw-tab replay status: ${replayStatus}${replayStatus === 'ok'
+    ? ' — no I1, I2, V1 or V2 violation on the days and names replayed; see COVERAGE (replay) above for what that covers and what it cannot see'
+    : replayStatus === 'refused' ? ' — a client this run could not read; nothing is known about drift'
+    : replayStatus === 'harness-error' ? ' — the replay could not see (see HARNESS below); nothing is known about drift' : ''}`);
   splitDrift.forEach((x) => console.log(`   DRIFT: ${x}`));
   contradictory.forEach((x) => console.log(`   CONTRADICTION: ${x}`));
   client.refusals.forEach((x) => console.log(`   REFUSAL: ${x}`));
+  harnessErrors.forEach((x) => console.log(`   HARNESS: ${x}`));
 
   fs.mkdirSync('outbox', { recursive: true });
   const body = JSON.stringify(out, null, 2);
   fs.writeFileSync(`outbox/tennis-tier-ladders-${TS.replace(/[:.]/g, '-')}.json`, body);
   fs.writeFileSync('outbox/tennis-tier-ladders-latest.json', body);
-  // An edge-rule violation is a contract break and fails. So is client split
-  // drift: it means jubilant-bassoon is hiding a real draw, or offering an
-  // empty one, and neither repo can notice on its own. An interior hole is a
-  // finding about the vendor's data and does not fail.
+  // An edge-rule violation is a contract break and fails. So is a violation of
+  // I1, I2, V1 or V2: it means jubilant-bassoon is hiding a real draw, or offering
+  // a tab with nothing behind it, and neither repo can notice on its own. An
+  // interior hole is a finding about the vendor's data and does not fail.
   //
-  // A REFUSAL ALSO FAILS. Before 2026-10-07 the client's lists were literals
-  // here, so there was nothing to fail to read; now that they are read, a run
-  // that could not read them knows nothing about drift, and the one outcome
-  // worse than red is a green meaning "I could not look".
-  process.exit(edgeBad.length || splitDrift.length
-            || contradictory.length || client.refusals.length ? 1 : 0);
+  // A REFUSAL ALSO FAILS, and so does a HARNESS ERROR (a pin that no longer
+  // reproduces, a pinned day nobody could read, a trailing window read less than 5 of 7, a vocabulary edition
+  // that cannot ground the vocabulary, a replay that ran zero checks). A run
+  // that could not read the client, or could not see, knows nothing about drift,
+  // and the one outcome worse than red is a green meaning "I could not look".
+  process.exit(edgeBad.length || splitDrift.length || contradictory.length
+            || client.refusals.length || harnessErrors.length ? 1 : 0);
 })().catch((e) => { console.error('failed:', e.stack); process.exit(1); });

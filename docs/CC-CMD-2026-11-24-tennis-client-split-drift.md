@@ -41,7 +41,11 @@
 
 ## Done condition (Rule 89)
 
+`summary.clientSplitDrift` equal to `[]` is NOT sufficient on its own: a refused, blind or failed run also leaves it `[]` (and exits 1), so a check that reads only that key can be satisfied by a red run. The artifact must also show that the replay ran, saw nothing wrong, and checked something:
+
 ```
-node -e 'const j=JSON.parse(require("fs").readFileSync(process.argv[1]));console.log(j.summary.clientSplitDrift)' outbox/tennis-tier-ladders-<newest>.json   # []
+node -e 'const j=JSON.parse(require("fs").readFileSync(process.argv[1]));const s=j.summary,r=s.clientDecisionReplay;console.log(JSON.stringify([s.clientSplitDrift,s.clientSplitRefusals,s.clientSplitContradictions,r.status,r.ran,r.harness,r.coverage.i1Checks>0,r.coverage.i2Checks>0,r.coverage.vocabMainChecks>0,r.coverage.vocabOutsideChecks>0]))' outbox/tennis-tier-ladders-<newest>.json   # [[],[],[],"ok",true,[],true,true,true,true]
 grep -m1 'NEW, not in the baseline' outbox/silently-dead-crons-<newest>.log                                                                                 # NEW, not in the baseline  : 0
 ```
+
+`clientDecisionReplay.status` is one of `ok`, `drift`, `refused`, `harness-error`; only `ok` with `ran` true, `harness` `[]` and the check counts above zero means the replay looked and found nothing. A control run against the unfixed client is `drift`, and its `clientSplitDrift` must CONTAIN the I1 for ATP Finals (209) on 2026-11-16 and the I2 for Davis Cup (446) on 2026-11-25. It is membership, not a count: the trailing window and the vocabulary check add entries on a live dispatch, so "exactly two" would fail a correct detector. Read `unreadDays` too: a trailing day that could not be read is listed there and counted in the coverage line (`trailing window: N of 7 read`) without failing the run, and a window read less than 5 of 7 is a harness error.
