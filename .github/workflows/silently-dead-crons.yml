@@ -25,16 +25,22 @@ permissions:
 jobs:
   watch:
     runs-on: ubuntu-latest
+    # A HANG GUARD, not a budget: the whole job (self-test, mutation harness, the
+    # reading of four repos, the log commit) took 2m43s on 2026-11-26 (run
+    # 45900264103) and 2m29s to 3m06s on the five runs before it. The retry
+    # transport sleeps at most 120 s per run and each attempt is cut at 20 s, so a
+    # run that is still going at 20 minutes is stuck, and the default is 360.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       # The predicate must be able to fail before its verdict means anything.
-      # These three are pure, so they run without credentials — which matters
-      # here because a sandbox has no real token and the live half can only be
-      # exercised by this workflow.
-      - name: the watch can fail
-        run: |
-          node scripts/watch-silently-dead-crons.mjs --self-test
-          node scripts/mutate-silently-dead-crons.mjs
+      # The self-test is pure and takes seconds, so it runs without credentials
+      # and BEFORE the reading — a sandbox has no real token and the live half can
+      # only be exercised by this workflow. The mutation harness is the long one
+      # (a hundred mutants, minutes): it runs AFTER the log is committed, so a
+      # fault in the apparatus can never cost the day's reading.
+      - name: the watch can fail (self-test, gates the reading)
+        run: node scripts/watch-silently-dead-crons.mjs --self-test
 
       # RELAY_GH_PAT, not the run's GITHUB_TOKEN. The default token is scoped to
       # the repository it runs in, so with it this watch can only ever see
@@ -53,3 +59,8 @@ jobs:
           PROBE_AUTHOR_NAME="silently-dead-crons" \
           PROBE_AUTHOR_EMAIL="actions@github.com" \
           bash scripts/probe-commit-retry.sh "chore: silently dead crons watch"
+      # After the commit, and always: the reading above is already on main by now.
+      # A failure here still turns the run red, by name.
+      - name: the watch's mutation harness
+        if: always()
+        run: node scripts/mutate-silently-dead-crons.mjs

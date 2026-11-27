@@ -95,6 +95,38 @@ export function apiBase(env = process.env) {
   return v;
 }
 const API = apiBase();
+
+/** The workflow file's SHAPE, read as text (no YAML parser: this script imports node builtins only). Three claims
+ *  that nothing else would notice losing, each a way the watch stops reporting without going red:
+ *    - a hang guard (`timeout-minutes`), because the default is six hours;
+ *    - the fast self-test, then the reading, then the log commit, then the long mutation harness, in that order,
+ *      so a fault in the apparatus can never cost the day's reading;
+ *    - `if: always()` on the log commit and on the harness, so a red step before them still leaves a log.
+ *  Returns the problems found; [] means the file has the shape. */
+export const WORKFLOW_MAX_TIMEOUT_MIN = 30;
+export function workflowProblems(text) {
+  const problems = [];
+  const t = /^ {4}timeout-minutes:\s*(\d+)\s*$/m.exec(text);
+  if (!t) problems.push('the job has no timeout-minutes (the default is 360)');
+  else if (Number(t[1]) > WORKFLOW_MAX_TIMEOUT_MIN) problems.push(`timeout-minutes ${t[1]} is above ${WORKFLOW_MAX_TIMEOUT_MIN}`);
+  const blocks = text.split(/\n {6}- /).slice(1);
+  // A step is found by the command it runs, matched to the END of its line: the watch's own command is a prefix of the self-test's.
+  const find = (label, re, shown) => {
+    const i = blocks.map((b, n) => (re.test(b) ? n : -1)).filter((n) => n >= 0);
+    if (i.length !== 1) { problems.push(`${label}: ${i.length} step(s) run \`${shown}\`, expected 1`); return -1; }
+    return i[0];
+  };
+  const selfTest = find('self-test', /run: node scripts\/watch-silently-dead-crons\.mjs --self-test\s*$/m, 'node scripts/watch-silently-dead-crons.mjs --self-test');
+  const watch = find('watch', /run: node scripts\/watch-silently-dead-crons\.mjs\s*$/m, 'node scripts/watch-silently-dead-crons.mjs');
+  const commit = find('log commit', /scripts\/probe-commit-retry\.sh/, 'bash scripts/probe-commit-retry.sh');
+  const mutate = find('mutation harness', /run: node scripts\/mutate-silently-dead-crons\.mjs\s*$/m, 'node scripts/mutate-silently-dead-crons.mjs');
+  if ([selfTest, watch, commit, mutate].every((i) => i >= 0) && !(selfTest < watch && watch < commit && commit < mutate)) {
+    problems.push(`step order is self-test ${selfTest}, watch ${watch}, log commit ${commit}, mutation harness ${mutate}; it must be increasing`);
+  }
+  if (commit >= 0 && !/\n\s+if: always\(\)/.test(blocks[commit])) problems.push('the log commit step is not `if: always()`');
+  if (mutate >= 0 && !/\n\s+if: always\(\)/.test(blocks[mutate])) problems.push('the mutation harness step is not `if: always()`');
+  return problems;
+}
 export const retryableStatus = (s) => s >= 500 && s <= 599;
 
 /** A read that could not be made. `kind`: 'http' (GitHub answered with a status),
@@ -574,6 +606,25 @@ if (process.argv.includes('--self-test')) {
       refusedHost('evil.example'), 'the host is what follows the @');
   one('B7 a value that is not a URL is refused', baseOf('evil.example'), 'threw DEAD_CRON_API_BASE is not a URL: "evil.example"; the GitHub token would be sent to it', 'no scheme, so no host to check: refuse rather than guess');
   one('B8 another loopback address is refused', baseOf('http://127.0.0.2:8123'), refusedHost('127.0.0.2'), 'the allow-list is three names, not a range');
+
+  // The workflow file's shape. The real file must have it, and each way of losing it is a case that must name the loss.
+  const YML = readFileSync(fileURLToPath(new URL('../.github/workflows/silently-dead-crons.yml', import.meta.url)), 'utf8');
+  const ymlWith = (a, b) => { if (YML.split(a).length !== 2) throw new Error(`W-case anchor occurs ${YML.split(a).length - 1} times: ${a}`); return YML.replace(a, b); };
+  one('W1 the real workflow file has the shape', workflowProblems(YML).join(' | '), '', 'a hang guard, the four steps in order, the two always() steps');
+  one('W2 no timeout-minutes is a problem', workflowProblems(ymlWith('    timeout-minutes: 20\n', '')).join('|'), 'the job has no timeout-minutes (the default is 360)', 'six hours of a stuck run');
+  one('W3 a six-hour timeout is a problem', workflowProblems(ymlWith('timeout-minutes: 20', 'timeout-minutes: 360')).join('|'), 'timeout-minutes 360 is above 30', 'present but not a guard');
+  const mutStep = `      - name: the watch's mutation harness\n        if: always()\n        run: node scripts/mutate-silently-dead-crons.mjs\n`;
+  one('W4 the mutation harness before the reading is a problem',
+      workflowProblems(ymlWith(mutStep, '').replace('      - name: Watch\n', mutStep + '      - name: Watch\n')).join('|'),
+      'step order is self-test 1, watch 3, log commit 4, mutation harness 2; it must be increasing', 'the long harness can again keep the day\'s reading from being taken');
+  one('W5 a mutation harness that is not always() is a problem', workflowProblems(ymlWith(mutStep, mutStep.replace('        if: always()\n', ''))).join('|'),
+      'the mutation harness step is not `if: always()`', 'a red step before it would skip it silently');
+  one('W6 a log commit that is not always() is a problem', workflowProblems(ymlWith('      - name: Commit the log\n        if: always()\n', '      - name: Commit the log\n')).join('|'),
+      'the log commit step is not `if: always()`', 'a failed reading would leave no log');
+  one('W8 a step that runs twice is a problem, not a pass', workflowProblems(ymlWith(mutStep, mutStep + mutStep)).join('|'),
+      'mutation harness: 2 step(s) run `node scripts/mutate-silently-dead-crons.mjs`, expected 1', 'a duplicated step is a different file, and the order check would no longer know which to compare');
+  one('W7 a missing self-test step is a problem', workflowProblems(ymlWith('        run: node scripts/watch-silently-dead-crons.mjs --self-test\n', '        run: echo skipped\n')).join('|'),
+      'self-test: 0 step(s) run `node scripts/watch-silently-dead-crons.mjs --self-test`, expected 1', 'the reading would no longer be gated');
   one('T14 the GitHub request id is kept on the error', t4.thrown && t4.thrown.requestId, 'REQ-404',
       'a future 5xx can be reported to GitHub; gh() used to discard every header');
   // THE DEFAULT SLEEP, which every case above replaces. A no-op sleep fires the retries back to

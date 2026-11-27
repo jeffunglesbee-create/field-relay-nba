@@ -657,6 +657,42 @@ const MUTATIONS = [
     case: ['B5', 'B6'],
     catches: '127.0.0.1.evil.example and 127.0.0.1@evil.example pass a prefix test and carry the token to evil.example' },
 
+  { name: 'G77 the workflow step order is no longer checked',
+    anchor: '!(selfTest < watch && watch < commit && commit < mutate)',
+    replace: 'false',
+    case: ['W4'],
+    catches: 'the long mutation harness moves back before the reading, and a fault in the apparatus costs the day\'s reading' },
+
+  { name: 'G78 the workflow timeout may be any length',
+    anchor: 'Number(t[1]) > WORKFLOW_MAX_TIMEOUT_MIN',
+    replace: 'false',
+    case: ['W3'],
+    catches: 'timeout-minutes: 360 is present and guards nothing' },
+
+  { name: 'G79 a missing timeout is not a problem',
+    anchor: "if (!t) problems.push('the job has no timeout-minutes (the default is 360)');",
+    replace: 'if (!t) void 0;',
+    case: ['W2'],
+    catches: 'a stuck run holds a runner for the six-hour default' },
+
+  { name: 'G80 the mutation harness step may skip when an earlier step is red',
+    anchor: 'if (mutate >= 0 && !/\\n\\s+if: always\\(\\)/.test(blocks[mutate]))',
+    replace: 'if (false)',
+    case: ['W5'],
+    catches: 'a red reading skips the harness, and the next apparatus fault is found by nobody' },
+
+  { name: 'G81 the log commit step may skip when the reading is red',
+    anchor: 'if (commit >= 0 && !/\\n\\s+if: always\\(\\)/.test(blocks[commit]))',
+    replace: 'if (false)',
+    case: ['W6'],
+    catches: 'a failed reading leaves no log: the 2026-11-25 shape' },
+
+  { name: 'G82 a duplicated workflow step is accepted',
+    anchor: 'if (i.length !== 1) {',
+    replace: 'if (i.length === 0) {',
+    case: ['W8'],
+    catches: 'two steps run the same command and the order check silently compares the first' },
+
   { name: 'G25 an aborted run leaves no log',
     anchor: 'function writeAbortLog(e) {\n  try {',
     replace: 'function writeAbortLog(e) {\n  return; try {',
