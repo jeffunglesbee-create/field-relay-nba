@@ -43,7 +43,7 @@ import { squiggleConfidenceFor } from '../src/afl-squiggle.js';
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip, aflRegularTip, squiggleContactSet, squiggleContactStateOf,
+         threadNotesCleanup, d1WriteProvenance, aflRoundInSeason, aflFinalsTip, aflRegularTip, squiggleContactSet, squiggleContactStateOf, aflapiContactSet, aflapiContactStateOf,
          oddsBudgetCharging, vendorWatchWindowAligned, vendorWatchPayload, vendorWatchLogFiles,
          cflAbortRepeatLosesNothing, cflAbortRepeatPayload, cflAbortArtifactFiles, deployCommitResults } from './staged-verdicts.mjs';
 
@@ -137,7 +137,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 14;
+const EXPECTED_CHECKS = 15;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -903,6 +903,30 @@ try {
     add({
         id: 'squiggle_contact_set',
         what: "the relay sends the owner's contact address in its Squiggle User-Agent (the Worker secret SQUIGGLE_CONTACT is set and is one plain address)",
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
+
+// ── Check 15: the owner's Worker secret AFLAPI_CONTACT reaches aflapi's User-Agent (docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 6b) ──
+// The relay says what it will send, as one word, in the X-FIELD-Aflapi-Contact header of a served AFLW board (src/index.js); it never says the address. One read of the route, on a fixed day of the 2026 season
+// that has a concluded game (2026-08-09, round 1), so a board is served whatever tonight's status is and the answer never depends on a live match.
+try {
+    const r = await fetch(`${RELAY}/v2/games?sport=aflw&date=2026-08-09`, { headers: { 'User-Agent': UA } });
+    const state = aflapiContactStateOf(r.headers);   // one of set | unset | invalid | unrecognised | null: never the raw header, so a leak could not reach the manifest
+    add({
+        id: 'aflapi_contact_set',
+        what: "the relay sends the owner's contact address in its aflapi User-Agent (the Worker secret AFLAPI_CONTACT is set and is one plain address)",
+        qualifying_rows: state === null ? 0 : 1,
+        http_status: r.status,
+        contact_state: state,
+        coverage: `one read of the relay's /v2/games?sport=aflw&date=2026-08-09 and its X-FIELD-Aflapi-Contact header (the AFLW board route's own report; the archive step's reads use the same aflapiHeaders(env), asserted by scripts/check-aflw-archive-seed.mjs); the address is never reported or read`,
+        status: aflapiContactSet({ state, httpStatus: r.status }),
+    });
+} catch (e) {
+    add({
+        id: 'aflapi_contact_set',
+        what: "the relay sends the owner's contact address in its aflapi User-Agent (the Worker secret AFLAPI_CONTACT is set and is one plain address)",
         qualifying_rows: 0,
         status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
     });

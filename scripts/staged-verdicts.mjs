@@ -385,6 +385,29 @@ export const squiggleContactSet = ({ state, httpStatus }) =>
 // A secret that is set but malformed: the relay sends no contact and the owner thinks it does.
 squiggleContactSet.mustFailOn = { state: 'invalid' }
 
+/// Check 15 — the owner's Worker secret AFLAPI_CONTACT reaches the aflapi User-Agent (docs/CC-CMD-2026-11-22-aflw-live-source.md, Task 6b, owner-approved 2026-11-27).
+/// The relay says what it will send, as one word, in the X-FIELD-Aflapi-Contact header of a served /v2/games?sport=aflw board (the 200 with games and the 200 'no season' note; not the 502, not the off
+/// answer: CONTRACTS.md), and never the address. PENDING is the honest state while the owner's step is not done (`unset`), while the relay is not deployed with the header, and when the read carried no
+/// word (an aflapi refusal, or the feed switched off): there is nothing to judge about the contact. Only a secret that is SET but is not one plain address (`invalid`: the relay then sends none) is a
+/// failure, and so is a header that is present but is not one of the three words (a broken contract; the value is never printed). Unlike Squiggle's there is no status to judge `set` against: the AFL
+/// states no requirement for a contact address, and nothing here claims the address buys access.
+/// What `set` covers: the route's report. The two reads of one board, and the archive step's reads, build their headers from the same aflapiHeaders(env) (scripts/check-v2-games-aflw.mjs A17 and
+/// scripts/check-aflw-archive-seed.mjs S12 assert each), so they are not observed here.
+export const AFLAPI_CONTACT_HEADER = 'x-field-aflapi-contact'
+export const aflapiContactStateOf = (headers) => {
+  const v = headers.get(AFLAPI_CONTACT_HEADER)
+  return v === null ? null : ['set', 'unset', 'invalid'].includes(v.trim()) ? v.trim() : 'unrecognised'
+}
+export const aflapiContactSet = ({ state, httpStatus }) =>
+  state === 'set' && httpStatus === 200 ? 'PASS — the relay sends the owner\'s contact address in its aflapi User-Agent (AFLAPI_CONTACT is set and is one plain address); this is the AFLW board route\'s report, the archive step uses the same headers by construction'
+  : state === 'set' ? `PENDING — the relay reports a contact address but the read answered ${httpStatus === undefined ? 'no status' : `HTTP ${httpStatus}`}, not a served board: nothing to judge`
+  : state === 'invalid' ? 'FAIL — AFLAPI_CONTACT is set but is not one plain email address (printable ASCII, a local part, one @, a dotted domain, at most 254 characters; no spaces, quotes, brackets, commas, semicolons or backslashes): the relay sends none and the owner thinks it does'
+  : state === 'unrecognised' ? 'FAIL — the relay reported a contact state this verifier does not know (the header is not set, unset or invalid): the contract between src/index.js and this check is broken; the value is not printed'
+  : state === 'unset' ? 'PENDING — the owner has not set the Worker secret AFLAPI_CONTACT: the relay identifies itself to aflapi as FIELD/1.0 with no contact address (the approved item, not a requirement)'
+  : 'PENDING — the relay did not report its contact state (not deployed with the header yet, the feed switched off, or the route could not be read); nothing to judge'
+// A secret that is set but malformed: the relay sends no contact and the owner thinks it does.
+aflapiContactSet.mustFailOn = { state: 'invalid' }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
@@ -400,4 +423,5 @@ export const VERDICTS = {
   afl_finals_tip_in_season: aflFinalsTip,
   afl_regular_tip_in_season: aflRegularTip,
   squiggle_contact_set: squiggleContactSet,
+  aflapi_contact_set: aflapiContactSet,
 }

@@ -23,7 +23,7 @@
 // A MISSING mustFailOn IS ITSELF A FAILURE. Optional would make it the field
 // nobody fills in, which is how Rule 89's "specify an artifact" became prose.
 
-import { VERDICTS, squiggleContactSet, squiggleContactStateOf, vendorWatchPayload, vendorWatchLogFiles, VENDOR_WATCH_REFUSALS, VENDOR_WATCH_JUDGED, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs'
+import { VERDICTS, squiggleContactSet, squiggleContactStateOf, aflapiContactSet, aflapiContactStateOf, vendorWatchPayload, vendorWatchLogFiles, VENDOR_WATCH_REFUSALS, VENDOR_WATCH_JUDGED, cflAbortRepeatPayload, cflAbortArtifactFiles } from './staged-verdicts.mjs'
 import { readFileSync as _readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0
@@ -83,6 +83,7 @@ const CAN_PASS = {
   afl_finals_tip_in_season: { finalsInWindow: 3, reference: 'found', expectedHome: 68.6, served: '68.60' },
   afl_regular_tip_in_season: { gamesInWindow: 6, reference: 'found', expectedHome: 62.49, served: '62.49' },
   squiggle_contact_set: { state: 'set', httpStatus: 200 },
+  aflapi_contact_set: { state: 'set', httpStatus: 200 },
   d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true },
 }
 // EVERY REGISTERED VERDICT NEEDS A CLEAN PAYLOAD, not just the ones someone
@@ -214,7 +215,7 @@ for (const [id, countKey] of [['afl_finals_tip_in_season', 'finalsInWindow'], ['
   // THE EXECUTOR: the real block of scripts/verify-staged-items.mjs run against a stubbed relay, because nothing else runs it before the daily workflow does. A wrong header name, a lost
   // import or a hard-coded state would otherwise leave every other gate green and show only in the first live run.
   const src = _readFileSync('scripts/verify-staged-items.mjs', 'utf8')
-  const i0 = src.indexOf('// ── Check 14'), j0 = src.indexOf('m.summary = ')
+  const i0 = src.indexOf('// ── Check 14'), j0 = src.indexOf('// ── Check 15')
   check('squiggle_contact_set: the executor block is found', i0 > 0 && j0 > i0, `markers ${i0} ${j0}`)
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
   const runBlock = async (respond) => {
@@ -236,6 +237,45 @@ for (const [id, countKey] of [['afl_finals_tip_in_season', 'finalsInWindow'], ['
   const down = await runBlock(async () => { throw new TypeError('network down') })
   check('squiggle_contact_set executor: a network failure is PENDING "could not read" with no rows', down.c.id === 'squiggle_contact_set' && /^PENDING — could not read: network down/.test(down.c.status) && down.c.qualifying_rows === 0, JSON.stringify(down.c))
   check('squiggle_contact_set executor: it reads the relay\'s /squiggle?q=teams, once', JSON.stringify((await runBlock(resp('set'))).urls) === JSON.stringify(['https://relay.invalid/squiggle?q=teams']), '')
+}
+// ── aflapi_contact_set: each state the relay can report, the header's mapping, and the executor block itself (the same four things as squiggle_contact_set above) ──
+{
+  const v = VERDICTS.aflapi_contact_set
+  for (const [state, want] of [['invalid', 'FAIL'], ['unrecognised', 'FAIL'], ['unset', 'PENDING'], [undefined, 'PENDING'], [null, 'PENDING']])
+    check(`aflapi_contact_set: a state of ${JSON.stringify(state)} is ${want}`, String(v({ state, httpStatus: 200 })).startsWith(want), String(v({ state, httpStatus: 200 })))
+  for (const [httpStatus, want] of [[200, 'PASS'], [403, 'PENDING'], [502, 'PENDING'], [404, 'PENDING'], [undefined, 'PENDING']])
+    check(`aflapi_contact_set: a set contact whose read answered ${httpStatus === undefined ? 'no status' : httpStatus} is ${want} (only a served board can pass)`, String(v({ state: 'set', httpStatus })).startsWith(want), String(v({ state: 'set', httpStatus })))
+  check('aflapi_contact_set: an unset contact stays PENDING whatever the status (the owner\'s step is not done: that is the news)', [200, 403, 502].every(httpStatus => String(v({ state: 'unset', httpStatus })).startsWith('PENDING')), '')
+  check('aflapi_contact_set: nothing it says could carry an address (it never receives one)', !/[\w.+-]+@[\w-]+\.[\w.-]+/.test(['set', 'invalid', 'unrecognised', 'unset', null].map(state => v({ state, httpStatus: 200 })).join('\n')), '')
+  const hdr = (value) => new Headers(value === undefined ? {} : { 'X-FIELD-Aflapi-Contact': value })
+  for (const [raw, want] of [['set', 'set'], ['unset', 'unset'], ['invalid', 'invalid'], ['  set  ', 'set'], ['Set', 'unrecognised'], ['SET', 'unrecognised'], ['set, set', 'unrecognised'], ['', 'unrecognised'], ['true', 'unrecognised'], ['ops@example.invalid', 'unrecognised'], [undefined, null]])
+    check(`aflapi_contact_set: the header ${JSON.stringify(raw)} reads as ${JSON.stringify(want)}`, aflapiContactStateOf(hdr(raw)) === want, JSON.stringify(aflapiContactStateOf(hdr(raw))))
+  check('aflapi_contact_set: an address in the header is a FAIL that does not print it', (() => { const s = String(v({ state: aflapiContactStateOf(hdr('ops@example.invalid')), httpStatus: 200 })); return s.startsWith('FAIL') && !s.includes('example.invalid') })(), '')
+  check('aflapi_contact_set: the Squiggle header is not read as the aflapi one', aflapiContactStateOf(new Headers({ 'X-FIELD-Squiggle-Contact': 'set' })) === null, '')
+  // THE EXECUTOR: the real block of scripts/verify-staged-items.mjs run against a stubbed relay (a wrong header name, a lost import or a hard-coded state would otherwise show only in the first live run).
+  const src = _readFileSync('scripts/verify-staged-items.mjs', 'utf8')
+  const i0 = src.indexOf('// ── Check 15'), j0 = src.indexOf('m.summary = ')
+  check('aflapi_contact_set: the executor block is found', i0 > 0 && j0 > i0, `markers ${i0} ${j0}`)
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+  const runBlock = async (respond) => {
+    const checks = [], urls = []
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async (u) => { urls.push(String(u)); return respond(String(u)) }
+    try { await (new AsyncFunction('add', 'RELAY', 'UA', 'aflapiContactSet', 'aflapiContactStateOf', src.slice(i0, j0)))(c => checks.push(c), 'https://relay.invalid', 'ua', aflapiContactSet, aflapiContactStateOf) }
+    finally { globalThis.fetch = realFetch }
+    return { c: checks[0], n: checks.length, urls }
+  }
+  const resp = (value, status = 200) => async () => new Response('{}', { status, headers: value === undefined ? {} : { 'X-FIELD-Aflapi-Contact': value } })
+  for (const [name, respond, status, state, rows] of [['set', resp('set'), 'PASS', 'set', 1], ['invalid', resp('invalid'), 'FAIL', 'invalid', 1], ['unset', resp('unset'), 'PENDING', 'unset', 1],
+      ['no header', resp(undefined), 'PENDING', null, 0], ['a 502 that reports set', resp('set', 502), 'PENDING', 'set', 1], ['an address in the header', resp('ops@example.invalid'), 'FAIL', 'unrecognised', 1]]) {
+    const { c, n } = await runBlock(respond)
+    check(`aflapi_contact_set executor: ${name} -> ${status}, state ${JSON.stringify(state)}, ${rows} row(s), one check added`, n === 1 && c.id === 'aflapi_contact_set' && String(c.status).startsWith(status) && c.contact_state === state && c.qualifying_rows === rows, JSON.stringify(c))
+  }
+  const leak = await runBlock(resp('ops@example.invalid'))
+  check('aflapi_contact_set executor: nothing it records (manifest row, status, coverage) carries an address from the header', !JSON.stringify(leak.c).includes('example.invalid'), JSON.stringify(leak.c))
+  const down = await runBlock(async () => { throw new TypeError('network down') })
+  check('aflapi_contact_set executor: a network failure is PENDING "could not read" with no rows', down.c.id === 'aflapi_contact_set' && /^PENDING — could not read: network down/.test(down.c.status) && down.c.qualifying_rows === 0, JSON.stringify(down.c))
+  check('aflapi_contact_set executor: it reads the relay\'s AFLW board on a fixed 2026 day, once', JSON.stringify((await runBlock(resp('set'))).urls) === JSON.stringify(['https://relay.invalid/v2/games?sport=aflw&date=2026-08-09']), '')
 }
 console.log(fail ? `\n${fail} failed` : `\n${pass} passed`)
 process.exit(fail ? 1 : 0)
