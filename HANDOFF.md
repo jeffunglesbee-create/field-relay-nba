@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-27 (01:45Z) — the dead crons: the tennis detector replays the client's Draw-tab decision, the watch survives a GitHub 5xx, nba-clutch-update.yml is retired; the watch clears on Monday's scheduled run
+
+**HEAD:** `697b6063` (the last of 12 relay commits from `d6db52f2`) · **Branch:** main · client `5ef50c4d` (7 commits, deployed, run 45922462861) · no relay `src/` change, so no relay deploy.
+**Session doc:** outbox/cc-session-2026-11-26-dead-crons-fix.md (task: the owner's "Approved to fix dead crons. Rule 42"; spec `docs/CC-CMD-2026-11-24-tennis-client-split-drift.md`, now PARTIAL)
+
+- **Tennis:** the Draw tab is decided at run time from each card row's `round_name` (client `_tennisDrawPick`); `scripts/tennis-tier-ladders.mjs` replays that picker from the DEPLOYED page and fails when it cannot see. Live on the deployed client (run 45922733341): `status` ok, `ran` true, `harness` `[]`, `clientSplitDrift` `[]`, pins 4 of 4, trailing window 7 of 7. Behaviour change: the tab is hidden on qualifying and round-robin days; a Davis Cup quarterfinal now shows one.
+- **Watch:** retries the identical GET on 5xx and transport faults (never a 4xx), files unreadable reads as UNREAD by name, writes each repo as it is read, sends its token only to GitHub or loopback; 20-minute hang guard; the long mutation harness now runs after the log commit. Live (run 45923006298): UNREAD 0, 4 repos, 517 workflows, `bsd-join-probe.yml` in field-laboratory in its own "listed active, file absent" bucket.
+- **Retired:** `nba-clutch-update.yml` (jubilant-bassoon `1606d7a`; 0 of 18 runs ever worked). The relay-side staleness it exposed is `docs/CC-CMD-2026-11-26-nba-clutch-r2-stale-and-dead-fallback.md`.
+- **Two guards this change had turned red, fixed:** the CC-CMD status-line ratchet (the clutch CC-CMD's Status was mid-line) and the absence-collapse ratchet (a mutant string in the harness).
+- **Red on main and not this change's, left alone:** Repo guards' "a staged claim names a verifier" step, from `ed506ce8` (`docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md` has a STAGED claim with no verifier). While it is red, that guard's steps 12-43 are skipped on every push.
+- **STAGED (Rule 74):** the watch clears only on a green SCHEDULED `tennis-tier-ladders.yml` run, **Monday 2026-11-30** (`10 5 * * 1`); then the next `silently-dead-crons` log must read `NEW 0 / carried 0 / resolved 0`. Until then the watch is red on that one key by design. If the run is missed or red, the next chance is 2026-12-07.
+- **Filed:** `docs/CC-CMD-2026-11-27-dead-crons-carry-forwards.md` (the client probe's third picker, dated; the client mutation harness run by nothing; the named-event weighting, owner's; `bsd-join-probe.yml`; the breaker, considered and not built).
+
 ## SESSION CLOSE-OUT — 2026-11-27 (01:00Z) — the 4 unreached UEFA matches re-checked: still 4; ESPN lists 4 completed May matches the archive never held; the write is staged on the owner's word
 
 **HEAD:** see the commit that carries this entry · **Branch:** main · no code changed.

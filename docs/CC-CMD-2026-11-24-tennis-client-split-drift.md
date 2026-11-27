@@ -2,7 +2,7 @@
 
 **Repo:** field-relay-nba (reading) and jubilant-bassoon (`src/legacy/field.js`, the lists that drift) · **Branch:** main — commit directly, no feature branch or PR
 **Type:** B (a detector reporting a real mismatch between the relay and the client; no data is wrong) · **Filed:** 2026-11-24, by the 20:00Z daily read of the watches (0 credits, reads only)
-**Status:** FILED, not dispatched. Needs the owner's choice between the options below before any client change. **Confidence gate:** >= 95 before any commit.
+**Status:** PARTIAL — landed 2026-11-27 (relay `d6db52f2`, client `a5907ad5` to `5ef50c4d`; the owner's order "Approved to fix dead crons. Rule 42" chose the run-time decision, option 1). The live replay on the deployed client is `ok` with `clientSplitDrift` `[]` (run 45922733341). Not done: the watch clears only on a green SCHEDULED run, the first being Monday 2026-11-30 (`10 5 * * 1`); close this CC-CMD after reading it. **Confidence gate:** >= 95 before any commit.
 
 ## What was read (2026-11-24)
 
