@@ -54,7 +54,7 @@ Probe: `curl -s -H "Authorization: Bearer $T" https://api.github.com/repos/jeffu
 
 ## 5. Considered and NOT built: a breaker for a sustained GitHub outage in the watch
 
-The reviewers asked whether the watch should stop retrying after N consecutive UNREAD reads. It was not built, and here is the measurement it rests on: the retry transport sleeps at most `RETRY_BUDGET_MS` = 120 s per run, each attempt is cut at `ATTEMPT_TIMEOUT_MS` = 20 s, and the job has `timeout-minutes: 20` (the whole job measured 2m43s on 2026-11-26, run 45900264103). A sustained outage therefore costs at most the budget plus attempts, never a storm, and ends in UNREAD by name. Build it only if a run is observed spending its whole budget on a single outage, and then the artifact is that run's log. Nothing to do now.
+The reviewers asked whether the watch should stop retrying after N consecutive UNREAD reads. It was not built, and here is the measurement it rests on: the retry transport sleeps at most `RETRY_BUDGET_MS` = 120 s per run, each attempt is cut at `ATTEMPT_TIMEOUT_MS` = 20 s, and the job has `timeout-minutes: 20` (the whole job measured 6m50s on 2026-11-27, run 45923006298, of which the 109-mutant harness was 4m21s and the reading 2m17s). A sustained outage therefore costs at most the budget plus attempts, never a storm, and ends in UNREAD by name. Build it only if a run is observed spending its whole budget on a single outage, and then the artifact is that run's log. Nothing to do now.
 
 ## Also filed, not repeated here
 
