@@ -1,5 +1,5 @@
 {
-  "ts": "2026-11-27T00:44:27.518Z",
+  "ts": "2026-11-27T02:01:35.630Z",
   "base": "https://sports.bzzoiro.com",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "tokenPresent": true,
@@ -14,8 +14,8 @@
   "reachedTarget": true,
   "notReachedBecause": null,
   "runner": {
-    "gitSha": "7dff347ec042a8d33cb24053c918aa57ea21982f",
-    "runId": "45918323855",
+    "gitSha": "c7dadbaf8cb88691f1a0bb1135c2a88d1e250616",
+    "runId": "45925738716",
     "probeSha256": "de6672cd926095bd0d794096fe5787ed25431f9eb8bb711e1effad552f2ef7e4",
     "libSha256": "f9b321959b8df4dbcc8e8ce44a998ed9cd5c516ce7348076f2bbc196ee821452",
     "censusSha256": "466cf30f43e7f004a533805a04ba1139e16a80cb137d1f3e8b639cca91855f4f",
@@ -34,7 +34,7 @@
   "dayReadStatuses": {
     "200": 81
   },
-  "dayReadSeconds": 3.6,
+  "dayReadSeconds": 3,
   "dayReadStopped": null,
   "reach": {
     "matches": 256,
@@ -204,12 +204,6 @@
         "withEspn": 250,
         "withBoth": 250
       },
-      "EFL Cup": {
-        "rows": 48,
-        "withBsd": 48,
-        "withEspn": 48,
-        "withBoth": 48
-      },
       "La Liga": {
         "rows": 128,
         "withBsd": 128,
@@ -258,17 +252,11 @@
         "withEspn": 158,
         "withBoth": 0
       },
-      "EPL": {
-        "rows": 110,
-        "withBsd": 110,
-        "withEspn": 110,
-        "withBoth": 110
-      },
-      "Ligue 1": {
-        "rows": 99,
-        "withBsd": 99,
-        "withEspn": 99,
-        "withBoth": 99
+      "EFL Cup": {
+        "rows": 48,
+        "withBsd": 48,
+        "withEspn": 48,
+        "withBoth": 48
       },
       "EFL Trophy": {
         "rows": 35,
@@ -281,12 +269,6 @@
         "withBsd": 11,
         "withEspn": 11,
         "withBoth": 11
-      },
-      "Serie A": {
-        "rows": 118,
-        "withBsd": 118,
-        "withEspn": 118,
-        "withBoth": 118
       },
       "PGA Tour": {
         "rows": 12,
@@ -305,6 +287,24 @@
         "withBsd": 48,
         "withEspn": 48,
         "withBoth": 48
+      },
+      "EPL": {
+        "rows": 110,
+        "withBsd": 110,
+        "withEspn": 110,
+        "withBoth": 110
+      },
+      "Ligue 1": {
+        "rows": 99,
+        "withBsd": 99,
+        "withEspn": 99,
+        "withBoth": 99
+      },
+      "Serie A": {
+        "rows": 118,
+        "withBsd": 118,
+        "withEspn": 118,
+        "withBoth": 118
       },
       "Bundesliga": {
         "rows": 90,
@@ -369,62 +369,62 @@
     {
       "key": "count_first",
       "status": 200,
-      "ms": 340
+      "ms": 585
     },
     {
       "key": "page_0",
       "status": 200,
-      "ms": 377
+      "ms": 723
     },
     {
       "key": "page_1",
       "status": 200,
-      "ms": 336
+      "ms": 733
     },
     {
       "key": "page_2",
       "status": 200,
-      "ms": 336
+      "ms": 602
     },
     {
       "key": "page_3",
       "status": 200,
-      "ms": 424
+      "ms": 443
     },
     {
       "key": "page_4",
       "status": 200,
-      "ms": 558
+      "ms": 524
     },
     {
       "key": "page_5",
       "status": 200,
-      "ms": 339
+      "ms": 528
     },
     {
       "key": "page_6",
       "status": 200,
-      "ms": 543
+      "ms": 879
     },
     {
       "key": "page_7",
       "status": 200,
-      "ms": 341
+      "ms": 634
     },
     {
       "key": "page_8",
       "status": 200,
-      "ms": 735
+      "ms": 901
     },
     {
       "key": "page_9",
       "status": 200,
-      "ms": 203
+      "ms": 182
     },
     {
       "key": "count_last",
       "status": 200,
-      "ms": 214
+      "ms": 174
     }
   ]
 }
