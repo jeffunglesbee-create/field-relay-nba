@@ -463,21 +463,47 @@ const MUTATIONS = [
 ];
 
 /** Is this red a CATCH? Not every red is. A mutant that stays green is missed; one that
- *  hangs proves nothing; and a mutant that names the case that must catch it
- *  (`case`, a label prefix or a list of them) is caught only if THOSE cases went
- *  red — a crash, or some other case failing, would otherwise credit a guard that
- *  never fired. `case` is optional, so D1-E15 keep the judgement they were written under. */
+ *  hangs proves nothing; a red with NO `FAIL` line is a crash or a parse error, which is
+ *  the program breaking and not an assertion firing (a mutant that makes the file throw
+ *  at load would otherwise be credited to a guard that never ran); and a mutant that
+ *  names the case that must catch it (`case`, a label prefix or a list of them) is caught
+ *  only if THOSE cases went red, so a guard cannot be credited for a catch it did not
+ *  make. `case` is optional, so D1-E15 keep the judgement they were written under. */
 const judge = (mut, run) => {
   if (run.timedOut) return { caught: false, note: `TIMED OUT after ${RUN_TIMEOUT_MS} ms — a hang is not a catch` };
   if (run.code === 0) return { caught: false, note: 'the self-test stayed green' };
   const labels = failedLabels(run.stdout);
+  if (labels.length === 0) {
+    return { caught: false, note: 'red with NO FAIL line — a crash or a parse error, not an assertion. That is not a catch' };
+  }
   const want = mut.case === undefined ? [] : [].concat(mut.case);
   const missing = want.filter(c => !labels.some(l => l === c || l.startsWith(`${c} `)));
   if (missing.length) {
-    return { caught: false, note: `red, but NOT by ${missing.join(', ')} — red by: ${labels.join(' | ') || '(no FAIL line: a crash, not an assertion)'}` };
+    return { caught: false, note: `red, but NOT by ${missing.join(', ')} — red by: ${labels.join(' | ')}` };
   }
-  return { caught: true, note: `by: ${labels.slice(0, 4).join(' | ') || '(no FAIL line: a crash, not an assertion)'}${labels.length > 4 ? ` | +${labels.length - 4} more` : ''}` };
+  return { caught: true, note: `by: ${labels.slice(0, 4).join(' | ')}${labels.length > 4 ? ` | +${labels.length - 4} more` : ''}` };
 };
+
+// THE JUDGE IS A CHECK TOO, SO IT MUST BE ABLE TO FAIL (Rule 90). It is asserted before any
+// mutant is run, on synthetic runs, so a loosened judge stops the harness instead of
+// quietly crediting every red. Each row: what it must say, the run it is shown.
+const FAIL_X = '  FAIL  T1 a label: got 1 want 2  (why)\n';
+const JUDGE_CHECKS = [
+  ['a self-test that stayed green is not a catch',        judge({}, { code: 0, stdout: '' }).caught, false],
+  ['a hang is not a catch',                               judge({}, { code: null, timedOut: true, stdout: FAIL_X }).caught, false],
+  ['a crash with no FAIL line is not a catch',            judge({}, { code: 1, stdout: '' }).caught, false],
+  ['a crash with no FAIL line is not a catch, case named', judge({ case: 'T1' }, { code: 1, stdout: 'TypeError: boom\n' }).caught, false],
+  ['a red with a FAIL line is a catch, no case named',    judge({}, { code: 1, stdout: FAIL_X }).caught, true],
+  ['a red by the named case is a catch',                  judge({ case: 'T1' }, { code: 1, stdout: FAIL_X }).caught, true],
+  ['a red by some other case is not a catch',             judge({ case: 'T2' }, { code: 1, stdout: FAIL_X }).caught, false],
+];
+const judgeBad = JUDGE_CHECKS.filter(([, got, want]) => got !== want);
+for (const [what, got, want] of JUDGE_CHECKS) console.log(`${got === want ? 'ok  ' : 'FAIL'} judge: ${what}`);
+if (judgeBad.length) {
+  console.log(`\nFAIL — ${judgeBad.length} of ${JUDGE_CHECKS.length} judge checks failed; no mutant can be trusted.`);
+  process.exit(1);
+}
+console.log(`judge: ${JUDGE_CHECKS.length} of ${JUDGE_CHECKS.length} checks hold\n`);
 
 let caught = 0;
 for (const mut of MUTATIONS) {
