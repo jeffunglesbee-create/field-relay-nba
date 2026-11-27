@@ -6,7 +6,7 @@ No code changed in this session; one production write, one claim marked done, th
 
 ## Stated before the first dispatch (the claim's "side effect to state first")
 
-`bsd-game-join-backfill.yml` (range from 2026-02-01) picks up the February to April rows on its own schedule and spends BSD pages on them; rows before 2026-02-01 stay unjoined, which a results-only forecast does not need.
+`bsd-game-join-backfill.yml` (range from 2026-02-01) picks up the February to April rows on its own schedule and spends BSD pages on them; rows before 2026-02-01 stay unjoined, which a results-only forecast does not need. **CORRECTED 2026-11-27 (after the 21:38Z read): this is wrong.** `outbox/bsd-join-backfill-complete.json` exists, so every SCHEDULED `bsd-game-join-backfill.yml` run skips at its gate (run `46070490625`, 21:28Z, all three jobs skipped); the 126 rows dated 2026-02-01 to 2026-04-30 read 0 joined (re-read at 22:54Z, `outbox/archive-label-dates-2026-11-27T22-54-51-161Z.json`) and all 524 stay unjoined until someone DISPATCHES the join, which spends BSD pages. I repeated the claim from the staged text without checking the gate (Rule 72); the decision is the owner's, in the Addendum 2026-11-27, part 4.
 
 ## Checked before dispatching
 
@@ -30,7 +30,7 @@ Every run: `alreadyArchived` 0, `noEventId` 0, `stopped` null. 186 + 186 + 150 +
 
 ## Residual (not deferred work)
 
-The 524 rows are unjoined (`joined` 0 in each artifact; the label totals read joined 93, 93 and 73, which are the rows that were already there). `bsd-game-join-backfill.yml` joins the rows from 2026-02-01 on its own schedule, oldest first, and spends BSD pages on them, as stated before the write. Nothing was dispatched for it.
+The 524 rows are unjoined (`joined` 0 in each artifact; the label totals read joined 93, 93 and 73, which are the rows that were already there). `bsd-game-join-backfill.yml` joins the rows from 2026-02-01 on its own schedule, oldest first, and spends BSD pages on them, as stated before the write. **CORRECTED 2026-11-27 (after the 21:38Z read): this is wrong.** `outbox/bsd-join-backfill-complete.json` exists, so every SCHEDULED `bsd-game-join-backfill.yml` run skips at its gate (run `46070490625`, 21:28Z, all three jobs skipped); the 126 rows dated 2026-02-01 to 2026-04-30 read 0 joined (re-read at 22:54Z, `outbox/archive-label-dates-2026-11-27T22-54-51-161Z.json`) and all 524 stay unjoined until someone DISPATCHES the join, which spends BSD pages. I repeated the claim from the staged text without checking the gate (Rule 72); the decision is the owner's, in the Addendum 2026-11-27, part 4. Nothing was dispatched for it.
 
 ## Changed
 
