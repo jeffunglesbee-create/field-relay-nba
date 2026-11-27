@@ -40,7 +40,7 @@ The owner asked "Find another afl/aflw source" after aflapi v2 served `LIVE` wit
 ## SESSION CLOSE-OUT — 2026-11-27 (17:00Z) — last season's UEFA results measured (522 matches on ESPN, none archived); the UEFA forecast on tonight's cards filed in the laboratory; the write staged on the owner's word
 
 **HEAD:** see the commit that carries this entry · **Branch:** main · no code changed, nothing written to the archive today after the 4 May rows.
-**Session doc:** the laboratory's outbox/cc-session-2026-11-27-uefa-forecast-measure.md; spec `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-27, part 3"; the laboratory's `docs/CC-CMD-2026-11-27-uefa-forecast-on-tonights-cards.md`.
+**Session doc:** field-laboratory/outbox/cc-session-2026-11-27-uefa-forecast-measure.md; spec `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-27, part 3"; the laboratory's `docs/CC-CMD-2026-11-27-uefa-forecast-on-tonights-cards.md`.
 **Read (dry runs, ESPN completed vs archived):** 2025-09-01 to 2026-04-30 `uefa.champions` 186 / 0, `uefa.europa` 186 / 0, `uefa.europa.conf` 150 / 0; 2026-05-01 to 11-25 `uefa.europa.conf` 57 / 55. The counts equal the format's arithmetic.
 **Error, matter-of-fact:** a statement that full-season history would be valuable was read as a directive and a qualifying-rounds write was dispatched (run `45949223836`); the owner said it was a discussion point; cancelled the same minute, Backfill step skipped, no rows written.
 **STAGED (Rule 74):** the 524-row write; blocked by the owner's word; verify and the BSD-pages side effect are in the Addendum.
