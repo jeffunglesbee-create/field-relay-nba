@@ -224,7 +224,8 @@ export const contentsShape = (b) => {
 // NO CATCH HERE, AND THERE USED TO BE ONE. `catch (_) { return null; }` turned a contents
 // read that FAILED into "no schedule: block, not judged" — about 408 times a run, with no
 // comment saying why. That is absence read as not-applicable (Rule 99) on the same fault
-// class the transport now handles. A failed read throws GhError; surveyRepo files it UNREAD.
+// class the transport now handles. A failed read throws GhError; surveyRepo files it UNREAD, except a
+// 404, which is GitHub saying the file is not on the default branch and is its own bucket (fileAbsent).
 export async function cronOf(repo, path, read = gh) {
   const body = await read(`/repos/${repo}/contents/${path}`, contentsShape);
   return cronFromSource(Buffer.from(body.content, 'base64').toString('utf8'));
@@ -670,10 +671,19 @@ if (process.argv.includes('--self-test')) {
       'GhError 502', 'a failed read must reach the survey as an error, never as "no schedule"');
   const c3 = await settle(cronOf('o/r', 'w.yml', async () => ({ content: Buffer.from("on:\n  schedule:\n    - cron: '0 1 * * *'\n").toString('base64') })));
   one('S2c cronOf still reads a cron from a successful read', c3.e ? `threw ${c3.e.message}` : c3.v, '0 1 * * *', 'the control: removing the swallow must not break the read');
+  const abs = (st) => settle(surveyRepo('o/r', {}, fakeIo({ 'none.yml': [] }, {}, { contents: { 'none.yml': gone(st, 1) } })));
+  const s4 = await abs(404);
+  one('S2d a 404 on the file read is "file absent": not unread, not "no schedule", not never-fired',
+      s4.e ? whyNot(s4) : [s4.v.unread.length, s4.v.fileAbsent.length, s4.v.noCron.length, s4.v.neverFired.length].join('/'), '0/1/0/0',
+      'GitHub answered that the file is not on the default branch; the one listed workflow in 516 that did this made the run permanently red');
+  const s5 = [];
+  for (const st of [400, 401, 403, 410, 422, 429]) { const r = await abs(st); s5.push(r.e ? whyNot(r) : `${st}:${r.v.unread.length}/${r.v.fileAbsent.length}`); }
+  one('S2e any other 4xx on the file read stays UNREAD', s5.join(' '), '400:1/0 401:1/0 403:1/0 410:1/0 422:1/0 429:1/0',
+      'a 401, a 403 or a 429 answers about the credential or the quota, not about the file; only a 404 says it is absent');
   const s3 = await settle(surveyRepo('o/r', {}, fakeIo(WFS, {}, { runs: { 'red.yml': new TypeError('a bug') } })));
   one('S3 a code error is not filed as UNREAD', s3.e instanceof TypeError, true, 'only a failed READ is containable; a bug must still stop the run');
   const okSurvey = (repo) => ({ repo, total: 3, active: 3, dead: [], healthy: ['a', 'b', 'c'], noCron: [], neverFired: [],
-    detectors: [], selfRed: [], unread: [], unreadRepo: null });
+    detectors: [], selfRed: [], unread: [], fileAbsent: [], unreadRepo: null });
   const a1 = await settle(surveyAll(['o/x', 'o/y'], {}, async (repo) => { if (repo === 'o/x') throw gone(502, 4); return okSurvey(repo); }));
   one('A1a one repo\'s listing failure leaves the other repo\'s reading',
       a1.e ? whyNot(a1) : a1.v.map(r => `${r.repo}:${r.unreadRepo ? 'UNREAD' : r.total}`).join(','), 'o/x:UNREAD,o/y:3',
@@ -823,6 +833,7 @@ if (process.argv.includes('--self-test')) {
     nobaseline: { baseline: false },
     contents: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 502 } } },
     contents404: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 404 } } },
+    contents403: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 403 } } },
     nobudget: { faults: { 'runs:o/a:1': { times: FOREVER, mode: 502 } }, env: { DEAD_CRON_RETRY_BUDGET_MS: '0' } },
     short:    { faults: { 'list:o/a': { times: FOREVER, mode: 'short' } } },
     // the retry budget is per RUN: two reads that both fail, 100 ms backoff, 150 ms of budget in all
@@ -863,6 +874,7 @@ if (process.argv.includes('--self-test')) {
       'the real per-attempt timeout (300 ms here, 20 s by default) against a real hung connection');
 
   const A = 'UNREAD workflows, not judged';
+  const secA = (log) => (log.split('── o/b ──')[0] || '');                 // the o/a section of a log
   const attemptsOf = (n) => `\\[${n} attempt\\(s\\)\\]`;
   const T = RETRIES + 1;
   one('E2E-2a 502 forever on one workflow: the run is RED', R.forever.code, 1, 'a watch that could not read must not report green');
@@ -912,8 +924,25 @@ if (process.argv.includes('--self-test')) {
         new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/idle\\.yml`).test(R.contents.log)}|${
         /── o\/a ──[\s\S]*?no schedule: block, not judged\s+: 0/.test(R.contents.log)}`, `1|${T}|true|true`,
       'cronOf\'s swallow is gone');
-  one('E2E-8b a 404 on a contents read is UNREAD too, tried once', `${R.contents404.code}|${h(R.contents404, 'contents:o/a:.github/workflows/idle.yml')}`, '1|1',
-      'a workflow file deleted between the listing and the read is red once, by name, not silently "no schedule"');
+  // A 404 ON A CONTENTS READ IS GITHUB'S ANSWER ABOUT THE FILE: it is not on the default branch. It was
+  // UNREAD and red, and that made the first run after the transport change permanently red: probed
+  // 2026-11-26, 515 of 516 listed workflows read 200 and ONE read 404 (field-laboratory
+  // bsd-join-probe.yml, listed active, zero scheduled runs, its file absent from main), and
+  // an UNREAD cannot be admitted. It now has its own bucket, named and counted, not red.
+  const ABSENT = 'listed active, file absent';
+  const absentIn = (log, n) => new RegExp(`${ABSENT}\\s+: ${n}[^\\n]*\\n${n ? '\\s+\\.github/workflows/idle\\.yml\\s+GitHub 404 on [^\\n]*\\n' : ''}`).test(secA(log));
+  one('E2E-8b a 404 on a contents read is "listed active, file absent": tried once, named, and the run is GREEN',
+      `${R.contents404.code}|${h(R.contents404, 'contents:o/a:.github/workflows/idle.yml')}|${absentIn(R.contents404.log, 1)}|${
+        new RegExp(`${A}\\s+: 0`).test(secA(R.contents404.log))}|${/no schedule: block, not judged\s+: 0/.test(secA(R.contents404.log))}`, '0|1|true|true|true',
+      'a definitive 4xx on the file read is an answer, not an unreadable read; it is not UNREAD, and not "no schedule" either');
+  one('E2E-8c the file-absent count is in COVERAGE (Rule 91), and a clean day prints 0',
+      `${/listed active, file absent \(NOT judged, not red\): 1 workflow\(s\)/.test(R.contents404.log)}|${
+        /listed active, file absent \(NOT judged, not red\): 0 workflow\(s\)/.test(R.control.log)}|${absentIn(R.control.log, 0)}`, 'true|true|true',
+      'a JUDGED figure printed without what was not judged claims the whole; zero is printed, not omitted');
+  one('E2E-8d a 403 on a contents read is still UNREAD and red: it answers about the token, not the file',
+      `${R.contents403.code}|${h(R.contents403, 'contents:o/a:.github/workflows/idle.yml')}|${
+        new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/idle\\.yml\\s+GitHub 403`).test(R.contents403.log)}|${absentIn(R.contents403.log, 0)}`, '1|1|true|true',
+      'only a 404 says the file is not there; a 401, 403 or 429 says nothing about it, so the workflow stays unread');
   one('E2E-9 with the retry budget at 0 a 502 is tried once', `${R.nobudget.code}|${h(R.nobudget, 'runs:o/a:1')}`, '1|1', 'the budget is real, not decoration');
   one('E2E-13a a short listing is contained to its repo',
       `${R.short.code}|${/UNREAD, WHOLE REPO NOT JUDGED\s+: pagination short-read: collected 2 of 150/.test(R.short.log)}|${/── o\/b ──\n\s+2 workflow\(s\), 2 active/.test(R.short.log)}`,
@@ -933,7 +962,6 @@ if (process.argv.includes('--self-test')) {
         /── o\/a ──\n[^\n]*\n\s+scheduled and healthy\s+: 0/.test(R.runsReset.log)}`, `1|${T}|true|true`,
       'the transport kind, driven through the UNREAD path of the runs read');
   const IDLE = 'o/a:.github/workflows/idle.yml';
-  const secA = (log) => (log.split('── o/b ──')[0] || '');
   one('E2E-18a a runs body that is not {workflow_runs: []} is UNREAD, once, not healthy',
       `${R.runsShape.code}|${h(R.runsShape, 'runs:o/a:1')}|${
         new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/healthy\\.yml\\s+GitHub 200 on [^\\n]*unusable body`).test(R.runsShape.log)}|${
@@ -1070,7 +1098,7 @@ async function surveyRepo(repo, declared, io = { gh, ghAll, cronOf }) {
   const workflows = await ghAll(`/repos/${repo}/actions/workflows`, 'workflows');
   const active = workflows.filter(w => w.state === 'active');
 
-  const dead = [], healthy = [], noCron = [], neverFired = [], detectors = [], selfRed = [], unread = [];
+  const dead = [], healthy = [], noCron = [], neverFired = [], detectors = [], selfRed = [], unread = [], fileAbsent = [];
   for (const w of active) {
     // A READ THAT COULD NOT BE MADE IS NEITHER DEAD, NOR HEALTHY, NOR "NO SCHEDULE". It is
     // UNREAD, at the grain of the read that failed: one workflow here, a whole repo only when
@@ -1085,7 +1113,19 @@ async function surveyRepo(repo, declared, io = { gh, ghAll, cronOf }) {
       // deadest a cron can be, and it was being filed under "not judged" with
       // only a count printed beside it. Absence read as not-applicable (Rule 99).
       if (!workflow_runs.length) {
-        const cron = await cronOf(repo, w.path);
+        // A 404 ON THE FILE READ IS GITHUB'S ANSWER ABOUT THE FILE: it is not on the default branch.
+        // It is not "unreadable" (UNREAD, red, and impossible to admit: that made the first run after
+        // the transport change permanently red, on the one listed workflow in 516 whose file is gone),
+        // and it is not "no schedule" either (the swallow this change removed). It is its own bucket,
+        // named and counted. Only a 404 says the file is absent: a 401, a 403 or a 429 says nothing
+        // about it and stays UNREAD below. The runs read is not covered by this: a 404 THERE is still UNREAD.
+        let cron;
+        try { cron = await cronOf(repo, w.path); }
+        catch (e) {
+          if (!(e instanceof GhError) || e.status !== 404) throw e;
+          fileAbsent.push({ repo, name: w.name, path: w.path, requestId: e.requestId, why: e.message });
+          continue;
+        }
         (cron ? neverFired : noCron).push({ ...w, cron });
         continue;
       }
@@ -1109,7 +1149,7 @@ async function surveyRepo(repo, declared, io = { gh, ghAll, cronOf }) {
       unread.push({ repo, name: w.name, path: w.path, status: e.status, attempts: e.attempts, requestId: e.requestId, why: e.message });
     }
   }
-  return { repo, total: workflows.length, active: active.length, dead, healthy, noCron, neverFired, detectors, selfRed, unread, unreadRepo: null };
+  return { repo, total: workflows.length, active: active.length, dead, healthy, noCron, neverFired, detectors, selfRed, unread, fileAbsent, unreadRepo: null };
 }
 
 /** Every repo, and a repo whose LISTING cannot be read is UNREAD, not fatal: the repos
@@ -1122,7 +1162,7 @@ export async function surveyAll(repos, declared, survey = surveyRepo) {
     catch (e) {
       if (!(e instanceof GhError)) throw e;
       out.push({ repo, total: 0, active: 0, dead: [], healthy: [], noCron: [], neverFired: [], detectors: [], selfRed: [],
-                 unread: [], unreadRepo: { status: e.status, attempts: e.attempts, requestId: e.requestId, why: e.message } });
+                 unread: [], fileAbsent: [], unreadRepo: { status: e.status, attempts: e.attempts, requestId: e.requestId, why: e.message } });
     }
   }
   return out;
@@ -1157,6 +1197,8 @@ export async function surveyAll(repos, declared, survey = surveyRepo) {
     say(`    declared detectors, red on purpose : ${r.detectors.length}   (not failures)`);
     say(`    UNREAD workflows, not judged      : ${r.unread.length}`);
     for (const u of r.unread) say(`      ${u.path}  ${oneLine(u.why)}  [${u.attempts} attempt(s)]${requestIdOf(u)}`);
+    say(`    listed active, file absent        : ${r.fileAbsent.length}   (the default branch has no such file; not judged, not red)`);
+    for (const a of r.fileAbsent) say(`      ${a.path}  ${oneLine(a.why)}${requestIdOf(a)}`);
     // PRINTED, NOT SILENTLY DROPPED. A guard that removes a finding without
     // saying so is the amnesty shape this repo watches for, and the reader has
     // to be able to see that the exclusion fired at all.
@@ -1215,7 +1257,9 @@ export async function surveyAll(repos, declared, survey = surveyRepo) {
   // the reader needs beside the JUDGED figure: a number printed without it claims the whole.
   const unreadN = surveys.reduce((n, r) => n + r.unread.length, 0);
   const unreadRepos = surveys.filter(r => r.unreadRepo).length;
+  const absentN = surveys.reduce((n, r) => n + r.fileAbsent.length, 0);
   say(`    UNREAD (could not be read after retries, NOT judged; the run is RED for it): ${unreadN} workflow(s), ${unreadRepos} whole repo(s)`);
+  say(`    listed active, file absent (NOT judged, not red): ${absentN} workflow(s), each named above: GitHub lists it and a contents read of its path answered 404`);
 
 
   // Written BEFORE any exit, so the day the watch fails is not the day its

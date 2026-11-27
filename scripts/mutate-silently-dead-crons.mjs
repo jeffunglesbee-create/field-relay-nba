@@ -534,6 +534,43 @@ const MUTATIONS = [
     case: ['E2E-18d', 'E2E-18e'],
     catches: 'the same, for the file read: a file over 1 MB is "no schedule" and an admitted key is "fixed or gone"' },
 
+  // ── a listed workflow whose file is absent on the default branch (a 404 on the contents read) ──
+  { name: 'G68 a 404 on the file read is UNREAD and red again',
+    anchor: '          if (!(e instanceof GhError) || e.status !== 404) throw e;',
+    replace: '          throw e;',
+    case: ['S2d', 'E2E-8b', 'E2E-8c'],
+    catches: 'the first run after the transport change is red every day, on the one workflow in 516 whose file is gone' },
+
+  { name: 'G69 every 4xx on the file read is "file absent"',
+    anchor: '          if (!(e instanceof GhError) || e.status !== 404) throw e;',
+    replace: '          if (!(e instanceof GhError) || e.status < 400 || e.status > 499) throw e;',
+    case: ['S2e', 'E2E-8d'],
+    catches: 'a revoked token or an exhausted quota reads as "the file is gone" and the run is green' },
+
+  { name: 'G70 a 5xx on the file read is "file absent"',
+    anchor: '          if (!(e instanceof GhError) || e.status !== 404) throw e;',
+    replace: '          if (!(e instanceof GhError)) throw e;',
+    case: ['S2e', 'S2', 'E2E-8a', 'E2E-8d'],
+    catches: 'every unreadable file becomes "absent", which is the swallow this fix removed with a new name' },
+
+  { name: 'G71 a file-absent workflow is filed "no schedule" again',
+    anchor: '          fileAbsent.push({ repo, name: w.name, path: w.path, requestId: e.requestId, why: e.message });',
+    replace: '          noCron.push({ ...w, cron: null });',
+    case: ['S2d', 'E2E-8b'],
+    catches: 'it is counted as "no schedule: block, not judged" and its path is named nowhere' },
+
+  { name: 'G72 the file-absent workflows are counted but not named',
+    anchor: '    for (const a of r.fileAbsent) say(',
+    replace: '    for (const a of []) say(',
+    case: ['E2E-8b'],
+    catches: 'the log says one workflow is absent and not which' },
+
+  { name: 'G73 COVERAGE does not state the file-absent count',
+    anchor: '  say(`    listed active, file absent (NOT judged, not red): ${absentN} workflow(s), each named above: GitHub lists it and a contents read of its path answered 404`);\n',
+    replace: '',
+    case: ['E2E-8c'],
+    catches: 'Rule 91: what was not judged is out of sight beside the JUDGED figure' },
+
   // ── the ratchet ──
   { name: 'G19 an unread admitted key reads as "fixed or gone"',
     anchor: '    resolved:   [...base ].filter(k => !found.has(k) && !unread.has(k)).sort(),',
