@@ -628,7 +628,7 @@ const MUTATIONS = [
     catches: 'the numerator claims a workflow nobody read' },
 
   { name: 'G24 an unread repo is reported as read, with zero workflows',
-    anchor: "      continue;\n    }\n    say(`    ${r.total} workflow(s), ${r.active} active  (all pages read)`);",
+    anchor: "      return;\n    }\n    say(`    ${r.total} workflow(s), ${r.active} active  (all pages read)`);",
     replace: "    }\n    say(`    ${r.total} workflow(s), ${r.active} active  (all pages read)`);",
     case: ['E2E-3c'],
     catches: '"0 workflow(s), (all pages read)" for a repo whose listing failed: absence read as a fact' },
@@ -638,6 +638,12 @@ const MUTATIONS = [
     replace: '    for (const u of []) say(',
     case: ['E2E-2d', 'E2E-4', 'E2E-8a'],
     catches: 'the log says one read failed and not which' },
+
+  { name: 'G74 a repo is reported only after every repo is surveyed',
+    anchor: '    onRepo(out[out.length - 1]);\n',
+    replace: '',
+    case: ['E2E-7b'],
+    catches: 'a throw that is not a failed read loses every repo already surveyed, which is the 2026-11-25 outcome for any bug' },
 
   { name: 'G25 an aborted run leaves no log',
     anchor: 'function writeAbortLog(e) {\n  try {',

@@ -833,6 +833,9 @@ if (process.argv.includes('--self-test')) {
     nobaseline: { baseline: false },
     contents: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 502 } } },
     contents404: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 404 } } },
+    // a code error (not a failed read) in the MIDDLE of the survey: o/b's runs body is an array holding null,
+    // which passes the shape check and throws a TypeError in the classifier, after o/a was fully surveyed
+    midAbort: { faults: { 'runs:o/b:1': { times: FOREVER, mode: 'body', body: { workflow_runs: [null] } } } },
     contents403: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 403 } } },
     nobudget: { faults: { 'runs:o/a:1': { times: FOREVER, mode: 502 } }, env: { DEAD_CRON_RETRY_BUDGET_MS: '0' } },
     short:    { faults: { 'list:o/a': { times: FOREVER, mode: 'short' } } },
@@ -918,7 +921,12 @@ if (process.argv.includes('--self-test')) {
   one('E2E-6c a clean read says 0 unread', /UNREAD \(could not be read after retries[^\n]*: 0 workflow\(s\), 0 whole repo\(s\)/.test(R.control.log), true, 'zero is printed, not omitted');
   one('E2E-6d a whole unread repo is counted', /UNREAD \(could not be read after retries[^\n]*: 0 workflow\(s\), 1 whole repo\(s\)/.test(R.listing.log), true, 'the listing failure shows in COVERAGE too');
   one('E2E-7 a code error still leaves a log', `${R.nobaseline.code}|${R.nobaseline.logs}|${R.nobaseline.log.includes('ABORTED')}|${R.nobaseline.log.includes('── o/b ──')}|${R.nobaseline.stderr.startsWith('FAIL:')}`,
-      '1|1|true|true|true', 'the readings made before the abort are kept, and the log says it was aborted');
+      '1|1|true|true|true', 'a throw AFTER the report (a missing baseline) keeps the whole report and says the run was aborted; a throw during the survey is E2E-7b');
+  one('E2E-7b a code error in the middle of the survey keeps the repos already surveyed',
+      `${R.midAbort.code}|${R.midAbort.logs}|${R.midAbort.log.includes('ABORTED')}|${
+        /── o\/a ──\n\s+2 workflow\(s\), 2 active  \(all pages read\)/.test(R.midAbort.log)}|${!R.midAbort.log.includes('── o/b ──')}|${R.midAbort.stderr.startsWith('FAIL:')}`,
+      '1|1|true|true|true|true',
+      'the 2026-11-25 shape for any throw that is not a failed read: the readings sat in an array nobody printed until every repo was done, so the log was a header and the word ABORTED');
   one('E2E-8a an exhausted contents read is UNREAD, not "no schedule"',
       `${R.contents.code}|${h(R.contents, 'contents:o/a:.github/workflows/idle.yml')}|${
         new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/idle\\.yml`).test(R.contents.log)}|${
@@ -1154,8 +1162,11 @@ async function surveyRepo(repo, declared, io = { gh, ghAll, cronOf }) {
 
 /** Every repo, and a repo whose LISTING cannot be read is UNREAD, not fatal: the repos
  *  after it are still read. Before this, one throw here discarded every repo already
- *  surveyed and every repo not yet reached. */
-export async function surveyAll(repos, declared, survey = surveyRepo) {
+ *  surveyed and every repo not yet reached. `onRepo` is called with each repo's survey the
+ *  moment it is done, so the report is written as it is read: a throw that is NOT a failed
+ *  read (a bug) then leaves every repo already surveyed in the log, instead of an array
+ *  nobody had printed yet. */
+export async function surveyAll(repos, declared, survey = surveyRepo, onRepo = () => {}) {
   const out = [];
   for (const repo of repos) {
     try { out.push(await survey(repo, declared)); }
@@ -1164,6 +1175,7 @@ export async function surveyAll(repos, declared, survey = surveyRepo) {
       out.push({ repo, total: 0, active: 0, dead: [], healthy: [], noCron: [], neverFired: [], detectors: [], selfRed: [],
                  unread: [], fileAbsent: [], unreadRepo: { status: e.status, attempts: e.attempts, requestId: e.requestId, why: e.message } });
     }
+    onRepo(out[out.length - 1]);
   }
   return out;
 }
@@ -1179,17 +1191,16 @@ export async function surveyAll(repos, declared, survey = surveyRepo) {
   // watch the noise it exists to prevent.
   const declared = JSON.parse(readFileSync('docs/declared-detectors.json', 'utf8')).detectors || {};
 
-  const surveys = await surveyAll(REPOS, declared);
-
-  const dead = allDead(surveys), neverFired = [];
-  for (const r of surveys) {
+  // Printed as each repo is surveyed (surveyAll's onRepo), so the log holds every completed repo even
+  // if a later one throws something that is not a failed read.
+  const reportRepo = (r) => {
     say(`\n  ── ${r.repo} ──`);
     // A repo whose listing could not be read has NO counts, which is not the same as zero:
     // printing "0 workflow(s)" would be absence read as a fact (Rule 99).
     if (r.unreadRepo) {
       say(`    workflow listing UNREAD: this repo's counts are unknown, not zero`);
       say(`    UNREAD, WHOLE REPO NOT JUDGED     : ${oneLine(r.unreadRepo.why)}  [${r.unreadRepo.attempts} attempt(s)]${requestIdOf(r.unreadRepo)}`);
-      continue;
+      return;
     }
     say(`    ${r.total} workflow(s), ${r.active} active  (all pages read)`);
     say(`    scheduled and healthy             : ${r.healthy.length}`);
@@ -1219,7 +1230,6 @@ export async function surveyAll(repos, declared, survey = surveyRepo) {
     for (const w of r.neverFired) {
       const age = ((Date.now() - Date.parse(w.created_at)) / 86400000).toFixed(1);
       say(`      ${w.path}   cron ${w.cron || '?'}   added ${String(w.created_at).slice(0, 10)} (${age}d ago)`);
-      neverFired.push({ ...w, repo: r.repo });
     }
     const plain = r.dead.filter(d => d.outcome === 'failure');
     const other = r.dead.filter(d => d.outcome !== 'failure');
@@ -1227,7 +1237,11 @@ export async function surveyAll(repos, declared, survey = surveyRepo) {
     for (const d of plain) say(deadLines(d));
     say(`    NO RUN WORKED, NOT PLAIN FAILURE   : ${other.length}   (skipped, startup_failure or mixed)`);
     for (const d of other) say(deadLines(d));
-  }
+  };
+
+  const surveys = await surveyAll(REPOS, declared, surveyRepo, reportRepo);
+  const dead = allDead(surveys);
+  const neverFired = surveys.flatMap(r => r.neverFired.map(w => ({ ...w, repo: r.repo })));
 
   if (neverFired.length) {
     say(`\n    A never-fired cron is NOT automatically a fault: a monthly cron added`);
