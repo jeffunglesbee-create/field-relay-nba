@@ -1,0 +1,24 @@
+{
+  "ts": "2026-11-27T02:45:49.843Z",
+  "league": "uefa.europa_qual",
+  "label": "UEFA Europa League Qualifying",
+  "from": "2026-06-20",
+  "to": "2026-08-18",
+  "dry": true,
+  "dates": 60,
+  "scoreboardsRead": 60,
+  "completed": 56,
+  "alreadyArchived": 0,
+  "written": 0,
+  "failedWrites": 0,
+  "noEventId": 0,
+  "stopped": null,
+  "statuses": {
+    "200": 60
+  },
+  "archiveAfter": {
+    "n": 0,
+    "scored": 0,
+    "joined": 0
+  }
+}
