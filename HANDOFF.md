@@ -1,5 +1,12 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-27 (01:00Z) — the 4 unreached UEFA matches re-checked: still 4; ESPN lists 4 completed May matches the archive never held; the write is staged on the owner's word
+
+**HEAD:** see the commit that carries this entry · **Branch:** main · no code changed.
+**Session doc:** outbox/cc-session-2026-11-25-uefa-efl-join.md ("Update 2026-11-27" under the 4 unreached matches); spec `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-27"; the laboratory's `docs/CC-CMD-2026-11-23-bsd-next-goal-independent-reference.md`, "Re-check 2026-11-27".
+**Read (runner, counts only):** reach run `45918323855` still 4 (`ucl` 3 of 39, `europa` 1 of 28, 256 matches); archive run `45918622414` holds the newest matchdays and 338 of 338 UEFA rows joined (the cron-lag explanation is refuted); dry-run history backfills `45918749638`, `45918756744` (2026-09-01 to 11-25: nothing missing, UCL 90 of 90, Europa 72 of 72) and `45919006199`, `45919009386` (2026-05-01 to 08-31: ESPN lists 3 completed events per league, the archive holds 1 of each; UCL days 2026-05-05 and 05-06).
+**STAGED (Rule 74):** write 2 UCL and 2 Europa League rows (May 2026), then the scheduled join; blocked by the owner's word (a production archive write); done condition `reach.bySlug.ucl.zero` and `europa.zero` = 0 after one reach re-run, exact dispatches in the Addendum. Not established: that these 4 are the 4 unreached matches.
+
 ## SESSION CLOSE-OUT — 2026-11-26 (17:00Z) — EFL League One and League Two are seeded (179 and 188 rows in the archive); the EFL Trophy stays archived and unjoined
 
 **HEAD:** `efa06fa` (the two `LEAGUES` rows) ← `575f5cc` (artifacts); this entry's commit follows · **Branch:** main · deploy run 45861985679 (result in the session doc).
