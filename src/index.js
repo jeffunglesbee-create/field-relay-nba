@@ -1638,8 +1638,11 @@ export function aflwFeedOff(env) {
 // SCHEDULED and CONCLUDED were read on 2026-11-22/23. UNCONFIRMED_TEAMS was read on 2026-11-27 (the deployed route answered a 502 naming it for match 9081, the Grand Final, whose start was about six hours ahead;
 // scripts/check-v2-games-aflw.mjs A22): it is a status before the match, and is `pre`. Other evidence that it is a pre-match status, none of it a read of this host's body: the AFL's own match-centre script constants
 // list it beside CONFIRMED_TEAMS (urlscan.io capture of a pulselive-hosted script, found 2026-11-27), Champion Data's documentation places 'Confirmed Teams' before Quarter 1, and the open-source fitzroy package normalises it to
-// "Upcoming". CONFIRMED_TEAMS and every other spelling stay UNMAPPED on purpose, as unread: the Grand Final captures of 2026-11-27 are where they are read (CC-CMD Task 1, stage 2).
-const AFLAPI_STATE   = { SCHEDULED: 'pre', UNCONFIRMED_TEAMS: 'pre', CONCLUDED: 'final' };
+// "Upcoming". CONFIRMED_TEAMS and LIVE were read on 2026-11-27 from the Grand Final captures (outbox/aflapi-aflw-gf-9081-20261127T0841Z.json: the detail read said CONFIRMED_TEAMS about four minutes before the start;
+// outbox/aflapi-aflw-gf-9081-20261127T0858Z.json: both reads said LIVE, 13 minutes in): CONFIRMED_TEAMS is `pre`, LIVE is `live`. A LIVE item carried NO score object, no period and no clock key at that point, so a live
+// game is served with `score` null and an empty periodLabel and clock (unknown, not 'NS': the game has started); the laboratory reads a live game with no score as `live score unavailable`, named. Every other spelling
+// (POSTPONED, CANCELLED, any end-of-match word before CONCLUDED) stays UNMAPPED on purpose, as unread (CC-CMD Task 1, stage 2).
+const AFLAPI_STATE   = { SCHEDULED: 'pre', UNCONFIRMED_TEAMS: 'pre', CONFIRMED_TEAMS: 'pre', LIVE: 'live', CONCLUDED: 'final' };
 class AflapiStatusError extends Error {
     constructor(status, matchId) {
         super(`aflapi status ${JSON.stringify(status)} is not mapped (match ${matchId}); only ${Object.keys(AFLAPI_STATE).join(', ')} have been read`);
@@ -1665,7 +1668,7 @@ function adaptAflapi(m) {
         home:         side(m.home),
         away:         side(m.away),
         periodNum:    0,
-        periodLabel:  state === 'final' ? 'F' : 'NS',
+        periodLabel:  state === 'final' ? 'F' : state === 'live' ? '' : 'NS',
         clock:        '',
         venue:        m.venue?.name || '',
     };
@@ -1738,7 +1741,7 @@ export async function seedAflwArchive(env, dates) {
             } catch (e) { out.errors++; console.error(`[AFLW-ARCHIVE] ${sourceId}: dedup read failed, skipping this game to avoid a duplicate write:`, e.message); continue; }
             const hasRow = existing !== null && existing !== undefined;
             const scored = hasRow && existing.home_score !== null && existing.home_score !== undefined;
-            if (g.state === 'pre' && hasRow) { out.settled++; continue; }
+            if ((g.state === 'pre' || g.state === 'live') && hasRow) { out.settled++; continue; }
             if (g.state === 'final' && scored) { out.settled++; continue; }
             try {
                 const r = await fetch(relayBase + '/archive/game', {

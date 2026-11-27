@@ -20,7 +20,7 @@
 // Grand Final item (match 9081, SCHEDULED). A fixture marked DERIVED below is a real item with one field changed to make the case,
 // not a body aflapi sent: the 2026-08-15T03:00Z game (real, read through Exa on 2026-11-22; its start is the real one), a second
 // game on the Grand Final's ET day, a SCHEDULED item whose start has long passed (modelled on match 1181 of 2016, which reads
-// SCHEDULED still), and an item with status `LIVE` (NOT an aflapi spelling anyone has read: a third-party report names LIVE for a
+// SCHEDULED still), and an item with status `POSTPONED` (a documented aflapi spelling nobody has read from this host: the one status that stays unmapped, whatever else is read; the first version of this check used LIVE here, which the Grand Final of 2026-11-27 then read, and a third-party report names LIVE for a
 // different endpoint, and the point of the case is that the adapter does not know it).
 //
 // Coverage, printed with the result (Rule 91): the case ids in CASES, counted from the cases that ran. Not checked: the live
@@ -52,15 +52,18 @@ const withFields = (m, f) => ({ ...m, ...f });
 const M_LATE_AEST = withFields(M8884, { id: 8881, utcStartTime: '2026-08-15T03:00:00.000+0000' });
 const M_SAME_DAY_EARLY = withFields(M9081, { id: 9082, utcStartTime: '2026-11-27T06:00:00.000+0000' });
 const M_STALE_SCHEDULED = withFields(M9081, { id: 9099, utcStartTime: '2026-08-20T03:00:00.000+0000' });
-const M_LIVE = withFields(M9081, { id: 9100, status: 'LIVE', utcStartTime: '2026-11-26T07:00:00.000+0000' });
+const M_LIVE = withFields(M9081, { id: 9100, status: 'POSTPONED', utcStartTime: '2026-11-26T07:00:00.000+0000' });
+// REAL, A26 and A27: the Grand Final's own item as read on 2026-11-27, from the committed captures (not derived): detail read at 08:41Z (CONFIRMED_TEAMS) and at 08:58Z (LIVE, 13 minutes in; no score, period or clock key).
+const CAP_CONFIRMED = JSON.parse(readFileSync(path.resolve(HERE, '../outbox/aflapi-aflw-gf-9081-20261127T0841Z.json'), 'utf8'))[0];
+const CAP_LIVE = JSON.parse(readFileSync(path.resolve(HERE, '../outbox/aflapi-aflw-gf-9081-20261127T0858Z.json'), 'utf8'))[0];
+const M9081_CONFIRMED = JSON.parse(CAP_CONFIRMED.body).matches[0];
+const M9081_LIVE = JSON.parse(CAP_LIVE.body).matches[0];
 // DERIVED, A22: the Grand Final's own status read 'UNCONFIRMED_TEAMS' through the deployed route on 2026-11-27 (a 502 naming it); no body carrying it was kept, so this is the real SCHEDULED item with the status and a day changed.
-// CONFIRMED_TEAMS is NOT an aflapi spelling anyone has read from this host (a documented one): the case is that it stays unmapped.
 const M_UNCONFIRMED = withFields(M9081, { id: 9102, status: 'UNCONFIRMED_TEAMS', utcStartTime: '2026-12-05T15:00:00.000+0000' });
-const M_CONFIRMED = withFields(M9081, { id: 9103, status: 'CONFIRMED_TEAMS', utcStartTime: '2026-12-06T15:00:00.000+0000' });
 
 // The Grand Final is listed BEFORE the earlier game of its day on purpose: with the list already in start order, a missing sort
 // would pass (A15 and the first A1 case), which is what the first version of this check did.
-const ALL_MATCHES = [M8988, M8884, M_LATE_AEST, M_STALE_SCHEDULED, M_LIVE, M9081, M_SAME_DAY_EARLY, M_UNCONFIRMED, M_CONFIRMED];
+const ALL_MATCHES = [M8988, M8884, M_LATE_AEST, M_STALE_SCHEDULED, M_LIVE, M9081, M_SAME_DAY_EARLY, M_UNCONFIRMED];
 
 // mode: 'ok' serves the fixtures; '403' refuses; 'throw' fails the fetch; 'html' answers 200 with a page; 'paged' says numPages 2;
 // 'noseasons' serves an empty season list.
@@ -76,12 +79,12 @@ function stubAflapi(mode, seen) {
       return Response.json(mode === 'noseasons' ? { meta: { code: 200 }, compSeasons: [] } : FIXTURES.compseasons);
     if (url.includes('/afl/v2/matches'))
       return Response.json({ meta: { code: 200, pagination: { page: 0, numPages: mode === 'paged' ? 2 : 1, pageSize: 200, numEntries: ALL_MATCHES.length } },
-                             matches: ALL_MATCHES.filter(m => m.status !== 'LIVE' || mode === 'live') });
+                             matches: ALL_MATCHES.map(m => m.id !== 9081 ? m : mode === 'ingame' ? M9081_LIVE : mode === 'confirmed' ? M9081_CONFIRMED : m).filter(m => m.status !== 'POSTPONED' || mode === 'unmapped') });
     return new Response('{}', { status: 404 });
   };
 }
 
-const CASES = ['N', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'A20', 'A21', 'A22', 'A23', 'A24', 'A25'];
+const CASES = ['N', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'A20', 'A21', 'A22', 'A23', 'A24', 'A25', 'A26'];
 const seenCases = new Set();
 async function selfTest() {
   let failed = 0, assertions = 0;
@@ -152,9 +155,9 @@ async function selfTest() {
   eq('A5 a SCHEDULED game whose start has long passed is pre, not live and not dropped', (stale.body?.games ?? []).map(g => [g.aflapiMatchId, g.state, g.periodLabel]), [[9099, 'pre', 'NS']]);
 
   // A6: a status the adapter was never shown fails the whole board, named.
-  const live = await get('sport=aflw&date=2026-11-26', 'live');
+  const live = await get('sport=aflw&date=2026-11-26', 'unmapped');
   eq('A6 an unmapped status is a 502 naming the status and the match, and no game is served',
-    [live.status, live.body?.games, /"LIVE" is not mapped \(match 9100\)/.test(live.body?.error ?? ''), live.body?.sport], [502, undefined, true, 'aflw']);
+    [live.status, live.body?.games, /"POSTPONED" is not mapped \(match 9100\); only SCHEDULED, UNCONFIRMED_TEAMS, CONFIRMED_TEAMS, LIVE, CONCLUDED have been read/.test(live.body?.error ?? ''), live.body?.sport], [502, undefined, true, 'aflw']);
 
   // A7-A9, A11: a refusal, a thrown fetch, a page that is not JSON and a paginated answer are each a named 502, never an empty slate.
   const refused = await get('sport=aflw&date=2026-11-27', '403');
@@ -238,8 +241,17 @@ async function selfTest() {
   // Grand Final captures read it (CC-CMD Task 1, stage 2). A guessed state is a wrong card.
   const unconfirmed = await get('sport=aflw&date=2026-12-05');
   eq('A22 a match whose status is UNCONFIRMED_TEAMS is a pre game, with no score, NS and an empty clock', (unconfirmed.body?.games ?? []).map(g => [unconfirmed.status, g.aflapiMatchId, g.state, g.home.score, g.away.score, g.periodLabel, g.clock]), [[200, 9102, 'pre', null, null, 'NS', '']]);
-  const confirmed = await get('sport=aflw&date=2026-12-06');
-  eq('A22 CONFIRMED_TEAMS, unread from this host, is still a 502 naming it and the match, and the message lists what has been read', [confirmed.status, /"CONFIRMED_TEAMS" is not mapped \(match 9103\); only SCHEDULED, UNCONFIRMED_TEAMS, CONCLUDED have been read/.test(confirmed.body?.error ?? '')], [502, true]);
+  // A26: the Grand Final's REAL items. CONFIRMED_TEAMS (read at 08:41Z, before the start) is `pre`; LIVE (read at 08:58Z) is `live`, with no score, period or clock key in the body: the game is served with score null, periodNum 0, an EMPTY
+  // periodLabel and clock (unknown: not 'NS', the game has started), never a made-up quarter or a 0-0.
+  const confirmed = await get('sport=aflw&date=2026-11-27', 'confirmed');
+  eq('A26 the real CONFIRMED_TEAMS item is a pre game: no score, NS, an empty clock', (confirmed.body?.games ?? []).filter(g => g.aflapiMatchId === 9081).map(g => [confirmed.status, g.state, g.home.score, g.away.score, g.periodNum, g.periodLabel, g.clock]), [[200, 'pre', null, null, 0, 'NS', '']]);
+  const ingame = await get('sport=aflw&date=2026-11-27', 'ingame');
+  eq('A26 the real LIVE item is a live game with no score and an empty period and clock, in the contract shape', (ingame.body?.games ?? []).find(g => g.aflapiMatchId === 9081), {
+    id: 'aflw:9081', aflapiMatchId: 9081, sport: 'aflw', league: 'AFLW', state: 'live', start: '2026-11-27T08:45:00.000Z',
+    home: { name: 'North Melbourne', abbr: 'NMFC', score: null }, away: { name: 'Melbourne', abbr: 'MELB', score: null },
+    periodNum: 0, periodLabel: '', clock: '', venue: 'IKON Park' });
+  eq('A26 the live board still has the day\'s other game, in start order, and says where it came from', [ingame.status, ingame.body?.count, (ingame.body?.games ?? []).map(g => [g.aflapiMatchId, g.state]), ingame.body?.source], [200, 2, [[9082, 'pre'], [9081, 'live']], 'aflapi']);
+  eq('A26 the captures the fixtures come from say what this check says they say (a changed capture file must fail here)', [M9081_CONFIRMED.status, M9081_LIVE.status, M9081_LIVE.id, 'score' in M9081_LIVE.home, 'score' in M9081_LIVE.away], ['CONFIRMED_TEAMS', 'LIVE', 9081, false, false]);
 
   // A23: the address is a secret of the owner's. A canary in the secret must not appear in ANY response (body, every header) or console line, on any path: a board, the no-season note, an upstream refusal, a thrown fetch, a non-JSON answer,
   // a paginated answer, an unmapped status, an invalid-shaped value, and the off answer. (A17 checks the one place it is meant to be sent: the outgoing User-Agent.)
@@ -248,7 +260,7 @@ async function selfTest() {
     ['a served board', 'sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: CANARY }], ['the no-season note', 'sport=aflw&date=2027-08-01', 'ok', { AFLAPI_CONTACT: CANARY }],
     ['an upstream 403', 'sport=aflw&date=2026-11-27', '403', { AFLAPI_CONTACT: CANARY }], ['a thrown fetch', 'sport=aflw&date=2026-11-27', 'throw', { AFLAPI_CONTACT: CANARY }],
     ['a non-JSON answer', 'sport=aflw&date=2026-11-27', 'html', { AFLAPI_CONTACT: CANARY }], ['a paginated answer', 'sport=aflw&date=2026-11-27', 'paged', { AFLAPI_CONTACT: CANARY }],
-    ['an unmapped status', 'sport=aflw&date=2026-11-26', 'live', { AFLAPI_CONTACT: CANARY }], ['a value that is not an address', 'sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: `${CANARY}, other@example.com` }],
+    ['an unmapped status', 'sport=aflw&date=2026-11-26', 'unmapped', { AFLAPI_CONTACT: CANARY }], ['a value that is not an address', 'sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: `${CANARY}, other@example.com` }],
     ['the off answer', 'sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: CANARY, AFLW_FEED_OFF: '1' }],
   ]) {
     const r = await get(query, mode, env);
@@ -291,7 +303,7 @@ const MUTATIONS = [
   ['the games are not sorted', [[".sort((x, y) => x.start.localeCompare(y.start) || x.aflapiMatchId - y.aflapiMatchId);", ";"]]],
   ['the season is hard-coded to 2026', [["startsWith(`${year} `)", "startsWith('2026 ')"]]],
   ['home and away are swapped', [["        home:         side(m.home),\n        away:         side(m.away),\n", "        home:         side(m.away),\n        away:         side(m.home),\n"]]],
-  ['a finished game has no final word', [["periodLabel:  state === 'final' ? 'F' : 'NS',", "periodLabel:  'NS',"]]],
+  ['a finished game has no final word', [["periodLabel:  state === 'final' ? 'F' : state === 'live' ? '' : 'NS',", "periodLabel:  state === 'live' ? '' : 'NS',"]]],
   ['a day with no season is a refusal', [["if (!season) return { games: [], note: `no ${year} season on aflapi` };", "if (!season) throw new Error('no season');"]]],
   // The contact address and the switch-off (ADR-004, 2026-11-27).
   ['the contact address is used without the shape check', [["return raw === '' ? 'unset' : isPlainAddress(raw) ? 'set' : 'invalid';", "return raw === '' ? 'unset' : 'set';"]]],
@@ -326,7 +338,13 @@ const MUTATIONS = [
   ['the Accept header is dropped', [["    'Accept': 'application/json',\n    'User-Agent': aflapiContactState(env) === 'set'", "    'User-Agent': aflapiContactState(env) === 'set'"]]],
   ['UNCONFIRMED_TEAMS reads live', [["UNCONFIRMED_TEAMS: 'pre'", "UNCONFIRMED_TEAMS: 'live'"]]],
   ['UNCONFIRMED_TEAMS is unmapped again', [["UNCONFIRMED_TEAMS: 'pre', ", ""]]],
-  ['CONFIRMED_TEAMS is mapped on a documented guess', [["UNCONFIRMED_TEAMS: 'pre', ", "UNCONFIRMED_TEAMS: 'pre', CONFIRMED_TEAMS: 'pre', "]]],
+  ['CONFIRMED_TEAMS is unmapped again', [[" CONFIRMED_TEAMS: 'pre',", ""]]],
+  ['CONFIRMED_TEAMS reads live', [[" CONFIRMED_TEAMS: 'pre',", " CONFIRMED_TEAMS: 'live',"]]],
+  ['LIVE is unmapped again', [[" LIVE: 'live',", ""]]],
+  ['LIVE reads pre', [[" LIVE: 'live',", " LIVE: 'pre',"]]],
+  ['LIVE reads final', [[" LIVE: 'live',", " LIVE: 'final',"]]],
+  ['a live game is labelled not started', [["periodLabel:  state === 'final' ? 'F' : state === 'live' ? '' : 'NS',", "periodLabel:  state === 'final' ? 'F' : 'NS',"]]],
+  ['a live game is labelled with an invented quarter', [["periodLabel:  state === 'final' ? 'F' : state === 'live' ? '' : 'NS',", "periodLabel:  state === 'final' ? 'F' : state === 'live' ? 'Q1' : 'NS',"]]],
   ['the unmapped-status message stops listing the mapped ones', [["only ${Object.keys(AFLAPI_STATE).join(', ')} have been read", "only SCHEDULED and CONCLUDED have been read"]]],
   ['the switch off has no header', [["'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off'", "'Cache-Control': 'public, max-age=60'"]]],
   ['the switch off has no reason', [["note: 'aflw feed switched off', ts: Date.now() }),\n                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60'", "ts: Date.now() }),\n                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60'"]]],

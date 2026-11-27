@@ -1129,11 +1129,12 @@ FieldGame: { id: 'aflw:<aflapi match id>', aflapiMatchId, sport: 'aflw', league:
              periodNum: 0, periodLabel: 'NS' | 'F', clock: '', venue }
   espnEventId   ABSENT. The game is not on ESPN. As NHL's, the laboratory joins an id-less feed game to a card by the card's two club names.
   state         STAGE 1 (2026-11-23): 'pre' for aflapi status SCHEDULED, 'final' for CONCLUDED. Added 2026-11-27: 'pre' for UNCONFIRMED_TEAMS (read that day: the deployed route answered a 502 naming it for match 9081, the Grand Final, about six
-                hours before its start; CONFIRMED_TEAMS is documented elsewhere but unread from this host and stays unmapped). Any other status string is a 502 naming it and the match id. Stage 2 adds the live spelling from
-                the 2026-11-27 Grand Final capture (field-relay-nba `outbox/aflapi-aflw-gf-9081-*.json`); until then 'live' is never served for AFLW.
+                hours before its start), 'pre' for CONFIRMED_TEAMS (read at 08:41Z on the Grand Final day, about four minutes before the start) and 'live' for LIVE (read at 08:58Z, 13 minutes in; the captures are
+                field-relay-nba `outbox/aflapi-aflw-gf-9081-20261127T0841Z.json` and `...T0858Z.json`). Any other status string (POSTPONED, CANCELLED, any word between LIVE and CONCLUDED) is a 502 naming it and the match id,
+                until it is read. A LIVE item carried NO score object, no period and no clock key, so a live game is served with both scores null and empty periodNum 0, periodLabel '' and clock '' (unknown: not 'NS', the game has started).
   home.score, away.score   aflapi `score.totalScore` (points: goals x 6 + behinds), a number once the match has a score object, else null. A SCHEDULED item has no score object.
-  periodNum / periodLabel / clock   the contract's empty values ('NS' before, 'F' after, ''), because no period or clock key exists on a SCHEDULED or CONCLUDED aflapi item (read on 8988 and 9081, detail path included).
-                Whether a live item carries one is the unread question of the CC-CMD's Task 1.
+  periodNum / periodLabel / clock   the contract's empty values ('NS' before, 'F' after, ''), because no period or clock key exists on a SCHEDULED, CONFIRMED_TEAMS, LIVE (13 minutes in, 2026-11-27) or CONCLUDED aflapi item (read on 8988 and 9081, detail path included). A live game's periodLabel is '' and not 'NS'.
+                Whether a later point of a live match carries one is read by the remaining Grand Final captures (CC-CMD Task 1).
 ```
 
 Two owner-set Worker secrets, both optional, both approved 2026-11-27 (`outbox/ADR-004-aflapi-afl-com-au-source-acceptance-2026-11-27.md`, `docs/CC-CMD-2026-11-22-aflw-live-source.md` Task 6). Neither changes the body of a served board; each adds one response header word, never the secret's value:

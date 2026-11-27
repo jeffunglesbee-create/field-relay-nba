@@ -43,7 +43,9 @@ const [M8988, M8884] = FIXTURES.matches.matches;
 const M9081 = FIXTURES.scheduled;
 const withFields = (m, f) => ({ ...m, ...f });
 const M_SAME_DAY_EARLY = withFields(M9081, { id: 9082, utcStartTime: '2026-11-27T06:00:00.000+0000' });   // DERIVED
-const M_LIVE = withFields(M9081, { id: 9100, status: 'LIVE', utcStartTime: '2026-11-26T07:00:00.000+0000' }); // DERIVED, not an aflapi spelling anyone has read
+const M_LIVE = withFields(M9081, { id: 9100, status: 'POSTPONED', utcStartTime: '2026-11-26T07:00:00.000+0000' }); // DERIVED, a documented aflapi spelling nobody has read from this host: the one that stays unmapped (this fixture used LIVE until the Grand Final of 2026-11-27 read it)
+// REAL, S15: the Grand Final's own item as read at 08:58Z on 2026-11-27 (status LIVE, no score, period or clock key), from the committed capture.
+const M9081_LIVE = JSON.parse(JSON.parse(readFileSync(path.resolve(HERE, '../outbox/aflapi-aflw-gf-9081-20261127T0858Z.json'), 'utf8'))[0].body).matches[0];
 // DERIVED, S14: the Grand Final's own status read 'UNCONFIRMED_TEAMS' through the deployed route on 2026-11-27 (a 502 naming it); no body carrying it was kept, so this is the real SCHEDULED item with the status and a day changed.
 const M_UNCONFIRMED = withFields(M9081, { id: 9102, status: 'UNCONFIRMED_TEAMS', utcStartTime: '2026-12-05T15:00:00.000+0000' });
 const ALL = [M8988, M8884, M9081, M_SAME_DAY_EARLY, M_LIVE, M_UNCONFIRMED];
@@ -59,7 +61,7 @@ function stubFetch(log, aflapiMode = 'ok', archiveMode = 'ok', reads = []) {
       if (aflapiMode === 'throw') throw new Error('network down');
       if (aflapiMode === '403') return new Response('Access Denied', { status: 403 });
       if (url.includes('/compseasons')) return Response.json(FIXTURES.compseasons);
-      if (url.includes('/afl/v2/matches')) return Response.json({ meta: { code: 200, pagination: { page: 0, numPages: 1, pageSize: 200, numEntries: ALL.length } }, matches: ALL });
+      if (url.includes('/afl/v2/matches')) return Response.json({ meta: { code: 200, pagination: { page: 0, numPages: 1, pageSize: 200, numEntries: ALL.length } }, matches: ALL.map(m => m.id === 9081 && aflapiMode === 'ingame' ? M9081_LIVE : m) });
     }
     if (url === `${RELAY}/archive/game`) {
       log.push({ url, method: init?.method, headers: init?.headers, body: JSON.parse(init?.body ?? '{}') });
@@ -77,7 +79,7 @@ const envStub = (rows = new Map(), mode = 'ok', extra = {}, d1 = []) => ({
   ...extra,
 });
 
-const CASES = ['N', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12', 'S13', 'S14', 'R', 'W'];
+const CASES = ['N', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12', 'S13', 'S14', 'S15', 'R', 'W'];
 const seenCases = new Set();
 async function selfTest() {
   let failed = 0, assertions = 0;
@@ -192,6 +194,11 @@ async function selfTest() {
   // S14: a status the feed maps (UNCONFIRMED_TEAMS is `pre`, as the route reads it) seeds a skeleton and is not a failed board.
   const s14 = await run(['2026-12-05']);
   eq('S14 a match whose status is UNCONFIRMED_TEAMS is seeded as a pre-game skeleton, with no score, and is not an error', [s14.result?.errors, s14.posts.map(p => [p.body.source_id, p.body.home_score, p.body.away_score])], [0, [['aflapi:9102', null, null]]]);
+  // S15: a game in play (the real LIVE item: no score key). With no row it is seeded as a skeleton with no score, like a pre game; with a row it is settled and costs no write, so a live game is not rewritten every tick.
+  const s15a = await run(['2026-11-27'], { aflapiMode: 'ingame' });
+  eq('S15 a live game with no row is seeded as a skeleton with no score, beside the day\'s other game', [s15a.result?.errors, s15a.posts.map(p => [p.body.source_id, p.body.home_score, p.body.away_score])], [0, [['aflapi:9082', null, null], ['aflapi:9081', null, null]]]);
+  const s15b = await run(['2026-11-27'], { aflapiMode: 'ingame', rows: new Map([['aflapi:9081', { home_score: null }], ['aflapi:9082', { home_score: null }]]) });
+  eq('S15 a live game whose row exists is settled and not written again (a live game is not rewritten every tick)', [s15b.posts.length, s15b.result], [0, { dates: 1, games: 2, seeded: 0, finalised: 0, settled: 2, errors: 0 }]);
   const s13b = await run(['2026-11-27'], { env: { AFLW_FEED_OFF: 'false' } });
   eq('S13 a switch set to "false" is not off: the step runs as before', [s13b.reads.length, s13b.posts.length, s13b.result?.off], [2, 2, undefined]);
 
@@ -205,7 +212,9 @@ async function selfTest() {
 // [name, [[from, to], ...]]. Every anchor must occur exactly once, or the mutation is not run and the gate
 // fails (Rule 90's corollary: a mutation that applied nothing is worse than no test).
 const MUTATIONS = [
-  ['a pre game is written every tick', [["if (g.state === 'pre' && hasRow) { out.settled++; continue; }", "if (false) { out.settled++; continue; }"]]],
+  ['a pre game is written every tick', [["if ((g.state === 'pre' || g.state === 'live') && hasRow) { out.settled++; continue; }", "if (false) { out.settled++; continue; }"]]],
+  ['a live game with a row is written every tick', [["if ((g.state === 'pre' || g.state === 'live') && hasRow)", "if (g.state === 'pre' && hasRow)"]]],
+  ['LIVE is unmapped again, so a live board is not read', [[" LIVE: 'live',", ""]]],
   ['a scored final is written every tick', [["if (g.state === 'final' && scored) { out.settled++; continue; }", "if (false) { out.settled++; continue; }"]]],
   ['a pre game carries a zero score', [["home_score: g.state === 'final' ? g.home.score : null,", "home_score: g.state === 'final' ? g.home.score : 0,"]]],
   ['a final carries no score', [["away_score: g.state === 'final' ? g.away.score : null,", "away_score: null,"]]],
