@@ -76,3 +76,15 @@ One draw read was unread: tournament 142, season 2026, HTTP 409. It is counted i
 
 **Not done and said so:** the two other armed scheduled tasks are unchanged (the daily odds read; the CFL 2027 read, whose keep-or-delete is the owner's).
 
+## 8. Owner decisions taken 2026-11-27 ("go with Claude's best recommendations")
+
+Each is the recommendation filed in `docs/CC-CMD-2026-11-27-dead-crons-carry-forwards.md`, with what was read before acting:
+
+1. **Named events vs 250s: keep.** No code change. Reasoning in the CC-CMD (item 3), labelled as reasoning.
+2. **Weekly mutation harness: built and run.** `jubilant-bassoon` `61a9f8b4`; dispatch run `45925668008` success, step 52 s, log line `ran 28 mutations, caught 28 of 28 ... not caught 0; harness defects 0.` Before the push the step was shown red with a broken harness path and green on current main.
+3. **`tennis_draw_probe.js`: on the day it can be proven.** Scheduled task `trig_01GRH95J5SxjppM22mQZ9dQN`, 2027-01-12T18:00Z; AO 2027 qualifying is Monday 2027-01-11 to Saturday 2027-01-16 (Melbourne Park and LTA pages, read 2026-11-27).
+4. **`bsd-join-probe.yml`: leave.** Changed from "restore or disable" by what was read: workflow 396892304 created 2026-10-26, no commit on `main` touches the path, absent from both other live branches by directory listing. Inert.
+5. **Watch breaker: not built.** Bounded by the retry budget and the job's timeout, now measured at 6m50s against 20 minutes.
+6. **CFL 2027 read `trig_01Htpxma53smhqw9Z4z3zVWP`: kept.** Read-only, zero credits, fires 2027-06-15, bounded self-re-arm to 2027-09-15, and it carries its own stop condition.
+
+**Not decided here, and not this session's:** the orphan STAGED claim in `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md` (UEFA rows, waiting on the owner's word for a production archive write) that keeps Repo guards red; the delegation was read as covering the five items above and the CFL read, not another session's production write.
