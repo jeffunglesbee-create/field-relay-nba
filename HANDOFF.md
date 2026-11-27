@@ -2,7 +2,7 @@
 
 ## SESSION CLOSE-OUT — 2026-11-27 (02:58Z) — AFLW: the aflapi contact address, a one-step off switch, `UNCONFIRMED_TEAMS` is `pre`, the lab's source line; the relay is NOT deployed (the staged-claim gate)
 
-**HEAD:** relay `ba90760` (the status) ← `3286f6e` (contact and switch) ← `1844190` (docs) · field-laboratory `d566d24a` · client `CONTRACTS.md` sync (its own commit) · **Branch:** main.
+**HEAD:** relay `ba90760` (the status) ← `3286f6e` (contact and switch) ← `1844190` (docs) · field-laboratory `d566d24a` · client `73689d5` (the CONTRACTS.md sync) · **Branch:** main.
 **Session doc:** outbox/cc-session-2026-11-27-aflw-task6.md (spec `docs/CC-CMD-2026-11-22-aflw-live-source.md` Part C Task 6 and Part D Task 7; the owner: "Confirm. Optional choice approved", read as approving the four items under ADR-004's "Optional, not built"; the Rule 45.3 gate text in the `CLAUDE.md` files was NOT approved and NOT built)
 
 - **Found and fixed (not deployed):** at about 02:45Z the DEPLOYED `/v2/games?sport=aflw&date=2026-11-27` answered 502 naming aflapi status `UNCONFIRMED_TEAMS` (match 9081, the Grand Final, start 08:45Z): the design blanks a whole day for one unmapped status. `ba90760` maps only that observed spelling to `pre`; `CONFIRMED_TEAMS` is documented but unread from this host and stays a named 502 (check A22). **Expected tonight, stated not hidden:** when the status moves to `CONFIRMED_TEAMS` before kickoff, or to the live spelling at 08:45Z, the board is the named 502 again until stage 2 maps what the Grand Final captures read.
