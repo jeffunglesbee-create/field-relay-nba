@@ -87,4 +87,6 @@ Each is the recommendation filed in `docs/CC-CMD-2026-11-27-dead-crons-carry-for
 5. **Watch breaker: not built.** Bounded by the retry budget and the job's timeout, now measured at 6m50s against 20 minutes.
 6. **CFL 2027 read `trig_01Htpxma53smhqw9Z4z3zVWP`: kept.** Read-only, zero credits, fires 2027-06-15, bounded self-re-arm to 2027-09-15, and it carries its own stop condition.
 
+**Update 2026-11-27 20:05Z, read from the run:** the orphan STAGED claim below now has a verifier (another session's commits) and Repo guards is green on `e76bd1a2`, run 46058361014. The paragraph below is what was true at 02:00Z.
+
 **Not decided here, and not this session's:** the orphan STAGED claim in `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md` (UEFA rows, waiting on the owner's word for a production archive write) that keeps Repo guards red; the delegation was read as covering the five items above and the CFL read, not another session's production write.
