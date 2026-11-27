@@ -1,0 +1,157 @@
+{
+  "ts": "2026-11-27T01:59:26.477Z",
+  "dryRun": false,
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "from": "2026-02-01",
+  "to": "2026-10-23",
+  "maxDates": 5,
+  "pageCap": 40,
+  "survey": {
+    "daysInRange": 265,
+    "daysRead": 265,
+    "unreadDays": [],
+    "statuses": {
+      "200": 265
+    },
+    "daysToAttempt": 3,
+    "rowsToAttempt": 4,
+    "attemptedStillPending": 1,
+    "pendingRowsAllDays": 291,
+    "scopeSports": [
+      "EPL",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1",
+      "UEFA Champions League",
+      "UEFA Europa League",
+      "UEFA Europa Conference League",
+      "UEFA Champions League Qualifying",
+      "UEFA Europa League Qualifying",
+      "UEFA Europa Conference League Qualifying",
+      "EFL Championship",
+      "EFL Cup"
+    ],
+    "includePostseason": false,
+    "outOfScopeDays": 62,
+    "outOfScopeRows": 270
+  },
+  "chosen": [
+    "2026-05-05",
+    "2026-05-06",
+    "2026-05-07"
+  ],
+  "dates": [
+    {
+      "date": "2026-05-05",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingBeforeBySport": {
+        "UEFA Champions League": 1,
+        "MLS": 2
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 3,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 63,
+        "upstreamPages": 2,
+        "cacheHits": 0,
+        "unmatched": [
+          "MLS: Toronto FC v Atlético Ottawa",
+          "MLS: Toronto FC v Atlético Ottawa"
+        ]
+      }
+    },
+    {
+      "date": "2026-05-06",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingBeforeBySport": {
+        "UEFA Champions League": 1,
+        "MLS": 4
+      },
+      "pendingAfter": 4,
+      "verify": {
+        "verified": true,
+        "expected": 4
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 5,
+        "written": 1,
+        "joined": 1,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 63,
+        "upstreamPages": 1,
+        "cacheHits": 1,
+        "unmatched": [
+          "MLS: Club Tigres v Nashville SC",
+          "MLS: CF Montréal v Calgary Blizzard Soccer Club",
+          "MLS: Club Tigres v Nashville SC",
+          "MLS: CF Montréal v Calgary Blizzard Soccer Club"
+        ]
+      }
+    },
+    {
+      "date": "2026-05-07",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingBeforeBySport": {
+        "UEFA Europa League": 2,
+        "MLS": 2
+      },
+      "pendingAfter": 2,
+      "verify": {
+        "verified": true,
+        "expected": 2
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "reason": null,
+        "pending": 4,
+        "written": 2,
+        "joined": 2,
+        "ambiguous": 0,
+        "refusedKickoff": 0,
+        "unjudgedKickoff": 0,
+        "eventsRead": 81,
+        "upstreamPages": 2,
+        "cacheHits": 1,
+        "unmatched": [
+          "MLS: Toluca FC v Los Angeles Football Club",
+          "MLS: Toluca FC v Los Angeles Football Club"
+        ]
+      }
+    }
+  ],
+  "pagesUsed": 5,
+  "written": 4,
+  "stoppedBecause": null,
+  "remainingToAttempt": 0,
+  "complete": false,
+  "runner": {
+    "gitSha": "8b17765398be62b5d983fd8a6fa380ee88cfa3e5",
+    "runId": "45925492236",
+    "scriptSha256": "85f74020157b36b6ada3e6d398771cb77a73ef0f873b73f1b7ffb3d258ef604d",
+    "libSha256": "a551c2d78039168c6e93ca2096c92654b10a11407810df6417c7d455a307425e"
+  },
+  "rangeComplete": true,
+  "coverageLine": "265 of 265 days read (0 unread) | scope 13 sports (MLS not included), regular-season rows choose a date: to attempt 3 days / 4 rows, 1 days attempted before and still pending | out of scope (pending rows in sports outside the scope only) 62 days / 270 rows | this run: 3 dates posted, 4 rows written, 5 upstream pages (cap 40), 3 verified | no stop | remaining to attempt 0 | range complete, not the scheduled scope"
+}

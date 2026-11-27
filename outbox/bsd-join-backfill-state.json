@@ -1929,6 +1929,89 @@
         "EFL Championship",
         "EFL Cup"
       ]
+    },
+    "2026-05-05": {
+      "at": "2026-11-27T01:59:31.776Z",
+      "outcome": "joined",
+      "pendingBefore": 3,
+      "pendingAfter": 2,
+      "written": 1,
+      "unmatched": [
+        "MLS: Toronto FC v Atlético Ottawa",
+        "MLS: Toronto FC v Atlético Ottawa"
+      ],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship",
+        "EFL Cup"
+      ]
+    },
+    "2026-05-06": {
+      "at": "2026-11-27T01:59:32.189Z",
+      "outcome": "joined",
+      "pendingBefore": 5,
+      "pendingAfter": 4,
+      "written": 1,
+      "unmatched": [
+        "MLS: Club Tigres v Nashville SC",
+        "MLS: CF Montréal v Calgary Blizzard Soccer Club",
+        "MLS: Club Tigres v Nashville SC",
+        "MLS: CF Montréal v Calgary Blizzard Soccer Club"
+      ],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship",
+        "EFL Cup"
+      ]
+    },
+    "2026-05-07": {
+      "at": "2026-11-27T01:59:32.828Z",
+      "outcome": "joined",
+      "pendingBefore": 4,
+      "pendingAfter": 2,
+      "written": 2,
+      "unmatched": [
+        "MLS: Toluca FC v Los Angeles Football Club",
+        "MLS: Toluca FC v Los Angeles Football Club"
+      ],
+      "sports": [
+        "MLS",
+        "EPL",
+        "La Liga",
+        "Serie A",
+        "Bundesliga",
+        "Ligue 1",
+        "UEFA Champions League",
+        "UEFA Europa League",
+        "UEFA Europa Conference League",
+        "UEFA Champions League Qualifying",
+        "UEFA Europa League Qualifying",
+        "UEFA Europa Conference League Qualifying",
+        "EFL Championship",
+        "EFL Cup"
+      ]
     }
   }
 }
