@@ -29,6 +29,14 @@
 - **Filed:** `docs/CC-CMD-2026-11-27-dead-crons-carry-forwards.md` (the client probe's third picker, dated; the client mutation harness run by nothing; the named-event weighting, owner's; `bsd-join-probe.yml`; the breaker, considered and not built).
 - **Owner decisions taken 2026-11-27 ("go with Claude's best recommendations"):** (1) named events keep outranking 250s whatever their row count: KEEP, no change (reasoning in the CC-CMD item 3); (2) the Draw-tab picker's 28-mutant harness now runs weekly, `jubilant-bassoon/.github/workflows/mutation-harnesses-weekly.yml` (`61a9f8b4`), runner run 45925668008 green, `caught 28 of 28`; (3) `tennis_draw_probe.js` is fixed on the day it can be proven, not before: scheduled task `trig_01GRH95J5SxjppM22mQZ9dQN` fires 2027-01-12T18:00Z (AO 2027 qualifying is 2027-01-11 to 2027-01-16); (4) `bsd-join-probe.yml` is LEFT: inert, on no live branch, never on `main`; reopen if it gets a run or the "listed active, file absent" count rises above 1; (5) no watch breaker, as before. The CFL 2027 read (`trig_01Htpxma53smhqw9Z4z3zVWP`, 2027-06-15, read-only) is KEPT. Not decided here and not mine: the orphan STAGED claim in `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md` that keeps Repo guards red.
 
+## SESSION CLOSE-OUT — 2026-11-27 (17:00Z) — last season's UEFA results measured (522 matches on ESPN, none archived); the UEFA forecast on tonight's cards filed in the laboratory; the write staged on the owner's word
+
+**HEAD:** see the commit that carries this entry · **Branch:** main · no code changed, nothing written to the archive today after the 4 May rows.
+**Session doc:** the laboratory's outbox/cc-session-2026-11-27-uefa-forecast-measure.md; spec `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-27, part 3"; the laboratory's `docs/CC-CMD-2026-11-27-uefa-forecast-on-tonights-cards.md`.
+**Read (dry runs, ESPN completed vs archived):** 2025-09-01 to 2026-04-30 `uefa.champions` 186 / 0, `uefa.europa` 186 / 0, `uefa.europa.conf` 150 / 0; 2026-05-01 to 11-25 `uefa.europa.conf` 57 / 55. The counts equal the format's arithmetic.
+**Error, matter-of-fact:** a statement that full-season history would be valuable was read as a directive and a qualifying-rounds write was dispatched (run `45949223836`); the owner said it was a discussion point; cancelled the same minute, Backfill step skipped, no rows written.
+**STAGED (Rule 74):** the 524-row write; blocked by the owner's word; verify and the BSD-pages side effect are in the Addendum.
+
 ## SESSION CLOSE-OUT — 2026-11-27 (03:00Z) — the May UEFA rows written and joined (93 and 93); the reach still says 4; the qualifying rounds (345 ESPN events, 0 archived) are the next measured candidate
 
 **HEAD:** see the commit that carries this entry · **Branch:** main · no code changed; four archive rows written on the owner's "Write the May UEFA rows".
