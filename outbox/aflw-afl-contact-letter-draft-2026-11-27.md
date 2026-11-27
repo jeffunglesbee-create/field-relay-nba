@@ -10,7 +10,7 @@ CC-CMD `docs/CC-CMD-2026-11-22-aflw-live-source.md` Task 6a; `outbox/ADR-004-afl
 
 This draft makes no statement about what the AFL's terms allow (Rule 45.1) and does not describe the use as permitted. It asks.
 
-Where the facts come from, so the owner can check each one before signing: the two request paths and cache times are `readAflapiBoard` and `aflapiGet` in the relay's `src/index.js`; the stored fields are what `seedAflwArchive` posts (ADR-004, "Stored"); the display line is `Desk.sourceLineFor` in field-laboratory; the User-Agent and the off switch are CC-CMD Task 6b and 6d.
+Where the facts come from, so the owner can check each one before signing (the 14 requests of the Grand Final day are the seven files `outbox/aflapi-aflw-gf-9081-*.json` dated 2026-11-27, two reads each; the other hand reads are not counted exactly, which is why the letter says "a few times"): the two request paths and cache times are `readAflapiBoard` and `aflapiGet` in the relay's `src/index.js`; the stored fields are what `seedAflwArchive` posts (ADR-004, "Stored"); the display line is `Desk.sourceLineFor` in field-laboratory; the User-Agent and the off switch are CC-CMD Task 6b and 6d.
 
 ---
 
@@ -28,7 +28,7 @@ FIELD reads AFLW fixtures and results from your public match API, and before goi
 - `GET https://aflapi.afl.com.au/afl/v2/competitions/3/compseasons?pageSize=100`
 - `GET https://aflapi.afl.com.au/afl/v2/matches?competitionId=3&compSeasonId=<season id>&pageSize=200`
 
-Both responses are cached, the season list for an hour and the matches for 30 seconds, so the number of requests to your API depends on that cache and not on how many people look at the page. Nothing is read for any other competition. Requests identify themselves with the User-Agent `FIELD/1.0` [and, once the owner has set it, a contact address: delete this clause if it is not set].
+Both responses are cached, the season list for an hour and the matches for 30 seconds, so the number of requests to your API depends on that cache and not on how many people look at the page. Nothing is read for any other competition. While building and testing this I also read, by hand and a few times, the competitions list, single matches (`/afl/v2/matches/<match id>`) and the same matches list filtered by status; on the day of the 2026 AFLW Grand Final I made 14 such requests, seven each of two URLs (the Grand Final's own match record and the list filtered to live matches), spread from before the start to after the final siren. Requests identify themselves with the User-Agent `FIELD/1.0` [and, once the owner has set it, a contact address: delete this clause if it is not set].
 
 **What is stored.** For each match: the competition label (AFLW), the date, the home and away club names, the venue, the start time, your match id, and the final score once the match is concluded. Responses for a few matches are also kept as test fixtures in the project's source repository.
 
