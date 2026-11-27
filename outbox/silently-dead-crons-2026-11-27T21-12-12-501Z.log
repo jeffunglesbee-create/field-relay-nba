@@ -1,0 +1,95 @@
+=== silently dead crons  repos=4  streak=3  utc=2026-11-27T21:09:35.577Z ===
+    jeffunglesbee-create/field-relay-nba
+    jeffunglesbee-create/jubilant-bassoon
+    jeffunglesbee-create/field-laboratory
+    jeffunglesbee-create/field-playground
+
+  ── jeffunglesbee-create/field-relay-nba ──
+    234 workflow(s), 234 active  (all pages read)
+    scheduled and healthy             : 39
+    no schedule: block, not judged     : 191
+    declared detectors, red on purpose : 2   (not failures)
+    UNREAD workflows, not judged      : 0
+    listed active, file absent        : 0   (the default branch has no such file; not judged, not red)
+    THIS WATCH ITSELF, excluded          : red 3.0 days, since 2026-11-24T22:20:24Z
+      .github/workflows/silently-dead-crons.yml — it exits 1 on any finding, so three findings make it
+      its own finding. Excluded from judgement; see SELF in this script.
+      .github/workflows/brief-label-migration.yml  red at least 18.2 days
+        reports: brief rows whose sport is outside the authority label set read from the games table
+        now:     4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/rule90-staleness-monitor.yml  red at least 2.0 days
+        reports: rule-registry entries marked UNEXERCISED for more than 14 days
+        now:     rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/tennis-tier-ladders.yml
+        red since at least 2026-11-09T13:47:07Z, latest 2026-11-23T15:51:46Z
+        https://github.com/jeffunglesbee-create/field-relay-nba/actions/runs/45209954855
+    NO RUN WORKED, NOT PLAIN FAILURE   : 0   (skipped, startup_failure or mixed)
+
+  ── jeffunglesbee-create/jubilant-bassoon ──
+    142 workflow(s), 142 active  (all pages read)
+    scheduled and healthy             : 30
+    no schedule: block, not judged     : 111
+    declared detectors, red on purpose : 0   (not failures)
+    UNREAD workflows, not judged      : 0
+    listed active, file absent        : 0   (the default branch has no such file; not judged, not red)
+    DECLARES A CRON, NEVER FIRED       : 1
+      .github/workflows/mutation-harnesses-weekly.yml   cron 40 6 * * 3   added 2026-11-26 (0.8d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 0
+    NO RUN WORKED, NOT PLAIN FAILURE   : 0   (skipped, startup_failure or mixed)
+
+  ── jeffunglesbee-create/field-laboratory ──
+    62 workflow(s), 62 active  (all pages read)
+    scheduled and healthy             : 6
+    no schedule: block, not judged     : 54
+    declared detectors, red on purpose : 0   (not failures)
+    UNREAD workflows, not judged      : 0
+    listed active, file absent        : 1   (the default branch has no such file; not judged, not red)
+      .github/workflows/bsd-join-probe.yml  GitHub 404 on /repos/jeffunglesbee-create/field-laboratory/contents/.github/workflows/bsd-join-probe.yml: {"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}  (x-github-request-id 454D:114466:836499:C73368:6B09F203)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/drift-sentinel.yml
+        red since at least 2026-11-26T21:16:17Z, latest 2026-11-27T20:58:31Z
+        https://github.com/jeffunglesbee-create/field-laboratory/actions/runs/46067193764
+    NO RUN WORKED, NOT PLAIN FAILURE   : 0   (skipped, startup_failure or mixed)
+
+  ── jeffunglesbee-create/field-playground ──
+    83 workflow(s), 83 active  (all pages read)
+    scheduled and healthy             : 22
+    no schedule: block, not judged     : 61
+    declared detectors, red on purpose : 0   (not failures)
+    UNREAD workflows, not judged      : 0
+    listed active, file absent        : 0   (the default branch has no such file; not judged, not red)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 0
+    NO RUN WORKED, NOT PLAIN FAILURE   : 0   (skipped, startup_failure or mixed)
+
+    A never-fired cron is NOT automatically a fault: a monthly cron added
+    after its day-of-month, or a workflow added today, has legitimately not
+    reached a slot. The cron and the age are printed so that is decidable
+    here rather than inferred from a count. NEVER_FIRED_GRACE_DAYS=40.
+
+    COVERAGE: 4 repos, 521 workflows, 521 active, 101 JUDGED
+    (>= 3 completed scheduled runs each). NOT judged: 417 with no
+    schedule: block — their failures surface on the commit that caused them —
+    and 1 that declare a cron but have never produced a run,
+    named above rather than counted. A workflow is judged on its last 3
+    scheduled runs whenever they happened, so a firing delay cannot skew it.
+    DEAD means none of those 3 runs worked: each failed, was skipped, or never
+    started (startup_failure). A window holding anything else — a success, or
+    cancelled, timed_out, action_required, neutral — is counted healthy above.
+    NOT covered: any repo outside the 4 listed at the top.
+    UNREAD (could not be read after retries, NOT judged; the run is RED for it): 0 workflow(s), 0 whole repo(s)
+    listed active, file absent (NOT judged, not red): 1 workflow(s), each named above: GitHub lists it and a contents read of its path answered 404
+
+  ── ratchet (docs/dead-cron-baseline.json) ──
+    carried, already admitted : 0
+    NEW, not in the baseline  : 2
+      jeffunglesbee-create/field-laboratory:.github/workflows/drift-sentinel.yml
+      jeffunglesbee-create/field-relay-nba:.github/workflows/tennis-tier-ladders.yml
+    UNREAD today, admitted keys not judged : 0
+    baseline entries resolved : 0
+    reviews overdue           : 0
