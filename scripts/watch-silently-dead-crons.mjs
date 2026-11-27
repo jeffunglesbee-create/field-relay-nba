@@ -77,7 +77,24 @@ export const BACKOFF_MS = (i) => Number(process.env.DEAD_CRON_BACKOFF_MS || 1000
 export const RETRY_BUDGET_MS = Number(process.env.DEAD_CRON_RETRY_BUDGET_MS || 120000);          // sleeping, per RUN
 export const ATTEMPT_TIMEOUT_MS = Number(process.env.DEAD_CRON_TIMEOUT_MS || 20000);             // per attempt
 // A test seam, like DEAD_CRON_REPOS: the end-to-end cases point the real script at a local fake.
-const API = process.env.DEAD_CRON_API_BASE || 'https://api.github.com';
+//
+// EVERY REQUEST CARRIES THE TOKEN (RELAY_GH_PAT, which reads four repos). A seam that accepts any URL
+// is a way to send it anywhere: one mistyped or injected variable in a workflow file and the next scheduled
+// run hands the credential to whatever host the value names. So the seam is only ever a path to THIS machine,
+// compared on the parsed host (a prefix test passes 127.0.0.1.evil.example and 127.0.0.1@evil.example).
+// A bad value stops the process before the first request, loudly, rather than being read as a failed read.
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
+export function apiBase(env = process.env) {
+  const v = env.DEAD_CRON_API_BASE;
+  if (!v) return 'https://api.github.com';
+  let u;
+  try { u = new URL(v); } catch { throw new Error(`DEAD_CRON_API_BASE is not a URL: ${JSON.stringify(v)}; the GitHub token would be sent to it`); }
+  if (!LOOPBACK_HOSTS.has(u.hostname)) {
+    throw new Error(`DEAD_CRON_API_BASE must name this machine (127.0.0.1, localhost or [::1]); host ${JSON.stringify(u.hostname)} would be sent the GitHub token`);
+  }
+  return v;
+}
+const API = apiBase();
 export const retryableStatus = (s) => s >= 500 && s <= 599;
 
 /** A read that could not be made. `kind`: 'http' (GitHub answered with a status),
@@ -542,6 +559,21 @@ if (process.argv.includes('--self-test')) {
       'DEAD_CRON_* is not set in CI');
   one('T13 a 4xx message is byte for byte what gh() threw', t4.thrown && t4.thrown.message, 'GitHub 404 on /p: {"message":"Not Found"}',
       'two months of committed logs and the first FAIL line still compare');
+
+  // The API base seam (a token goes to whatever it names). Each rejected value is a distinct way to name another host.
+  const baseOf = (v) => { try { return apiBase(v === undefined ? {} : { DEAD_CRON_API_BASE: v }); } catch (e) { return `threw ${e.message}`; } };
+  const refusedHost = (h) => `threw DEAD_CRON_API_BASE must name this machine (127.0.0.1, localhost or [::1]); host ${JSON.stringify(h)} would be sent the GitHub token`;
+  one('B1 no override: the real API', baseOf(undefined), 'https://api.github.com', 'the default');
+  one('B2 127.0.0.1 with a port is accepted unchanged', baseOf('http://127.0.0.1:8123'), 'http://127.0.0.1:8123', 'the seam the end-to-end cases use');
+  one('B3 localhost and [::1] are accepted', `${baseOf('http://localhost:9')}|${baseOf('http://[::1]:9')}`, 'http://localhost:9|http://[::1]:9', 'this machine by either name');
+  one('B4 another host is refused, and the message names the host', baseOf('https://api.github.com.evil.example'),
+      refusedHost('api.github.com.evil.example'), 'a suffix of the real name is not the real name');
+  one('B5 a host that merely STARTS with 127.0.0.1 is refused', baseOf('http://127.0.0.1.evil.example:80'),
+      refusedHost('127.0.0.1.evil.example'), 'the prefix test a string match would pass');
+  one('B6 user-info naming 127.0.0.1 in front of another host is refused', baseOf('http://127.0.0.1@evil.example/'),
+      refusedHost('evil.example'), 'the host is what follows the @');
+  one('B7 a value that is not a URL is refused', baseOf('evil.example'), 'threw DEAD_CRON_API_BASE is not a URL: "evil.example"; the GitHub token would be sent to it', 'no scheme, so no host to check: refuse rather than guess');
+  one('B8 another loopback address is refused', baseOf('http://127.0.0.2:8123'), refusedHost('127.0.0.2'), 'the allow-list is three names, not a range');
   one('T14 the GitHub request id is kept on the error', t4.thrown && t4.thrown.requestId, 'REQ-404',
       'a future 5xx can be reported to GitHub; gh() used to discard every header');
   // THE DEFAULT SLEEP, which every case above replaces. A no-op sleep fires the retries back to
@@ -851,6 +883,8 @@ if (process.argv.includes('--self-test')) {
     shapeAdmitted: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 'body',
                      body: { type: 'file', encoding: 'none', size: 2000000, content: '' } } }, extraBaseline: IDLE_ADMITTED },
     resolvedControl: { extraBaseline: IDLE_ADMITTED },
+    // the token must never be sent to a host the seam was pointed at: nothing is requested, and the run says so by name
+    evilBase: { env: { DEAD_CRON_API_BASE: 'https://api.github.com.evil.invalid', DEAD_CRON_TIMEOUT_MS: '300' } },
     // a transport fault that never clears, on each kind of read (only 5xx and 404 were driven to UNREAD)
     contentsReset: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 'reset' } } },
     runsReset:     { faults: { 'runs:o/a:1': { times: FOREVER, mode: 'reset' } } },
@@ -927,6 +961,9 @@ if (process.argv.includes('--self-test')) {
         /── o\/a ──\n\s+2 workflow\(s\), 2 active  \(all pages read\)/.test(R.midAbort.log)}|${!R.midAbort.log.includes('── o/b ──')}|${R.midAbort.stderr.startsWith('FAIL:')}`,
       '1|1|true|true|true|true',
       'the 2026-11-25 shape for any throw that is not a failed read: the readings sat in an array nobody printed until every repo was done, so the log was a header and the word ABORTED');
+  one('E2E-7c a non-loopback DEAD_CRON_API_BASE stops the process before any request and names the variable',
+      `${R.evilBase.code}|${R.evilBase.stderr.includes('DEAD_CRON_API_BASE must name this machine')}|${R.evilBase.logs}|${R.evilBase.stdout.includes('UNREAD')}`,
+      '1|true|0|false', 'without the guard this scenario reads four repos from a host that is not GitHub: a log with UNREAD in it, and the token sent there');
   one('E2E-8a an exhausted contents read is UNREAD, not "no schedule"',
       `${R.contents.code}|${h(R.contents, 'contents:o/a:.github/workflows/idle.yml')}|${
         new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/idle\\.yml`).test(R.contents.log)}|${

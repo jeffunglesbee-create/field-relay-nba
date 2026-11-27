@@ -645,6 +645,18 @@ const MUTATIONS = [
     case: ['E2E-7b'],
     catches: 'a throw that is not a failed read loses every repo already surveyed, which is the 2026-11-25 outcome for any bug' },
 
+  { name: 'G75 the API base seam accepts any host',
+    anchor: "  if (!LOOPBACK_HOSTS.has(u.hostname)) {\n    throw new Error(`DEAD_CRON_API_BASE must name this machine (127.0.0.1, localhost or [::1]); host ${JSON.stringify(u.hostname)} would be sent the GitHub token`);\n  }\n",
+    replace: '',
+    case: ['B4', 'B5', 'B6', 'B8', 'E2E-7c'],
+    catches: 'a mistyped or injected DEAD_CRON_API_BASE sends the token to another host on the next scheduled run' },
+
+  { name: 'G76 the API base seam is checked by string prefix, not by parsed host',
+    anchor: "if (!LOOPBACK_HOSTS.has(u.hostname)) {",
+    replace: "if (!/^https?:\\/\\/(127\\.0\\.0\\.1|localhost|\\[::1\\])/.test(v)) {",
+    case: ['B5', 'B6'],
+    catches: '127.0.0.1.evil.example and 127.0.0.1@evil.example pass a prefix test and carry the token to evil.example' },
+
   { name: 'G25 an aborted run leaves no log',
     anchor: 'function writeAbortLog(e) {\n  try {',
     replace: 'function writeAbortLog(e) {\n  return; try {',
