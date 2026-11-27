@@ -1611,10 +1611,14 @@ function adaptNhle(g) {
 // contract's empty values ('NS' before, 'F' after, clock ''), not a guess at a quarter.
 const AFLAPI_BASE    = 'https://aflapi.afl.com.au';
 const AFLAPI_HEADERS = { 'Accept': 'application/json', 'User-Agent': 'FIELD/1.0' };
-const AFLAPI_STATE   = { SCHEDULED: 'pre', CONCLUDED: 'final' };
+// SCHEDULED and CONCLUDED were read on 2026-11-22/23. UNCONFIRMED_TEAMS was read on 2026-11-27 (the deployed route answered a 502 naming it for match 9081, the Grand Final, whose start was about six hours ahead;
+// scripts/check-v2-games-aflw.mjs A22): it is a status before the match, and is `pre`. Other evidence that it is a pre-match status, none of it a read of this host's body: the AFL's own match-centre script constants
+// list it beside CONFIRMED_TEAMS (urlscan.io capture of a pulselive-hosted script, found 2026-11-27), Champion Data's documentation places 'Confirmed Teams' before Quarter 1, and the open-source fitzroy package normalises it to
+// "Upcoming". CONFIRMED_TEAMS and every other spelling stay UNMAPPED on purpose, as unread: the Grand Final captures of 2026-11-27 are where they are read (CC-CMD Task 1, stage 2).
+const AFLAPI_STATE   = { SCHEDULED: 'pre', UNCONFIRMED_TEAMS: 'pre', CONCLUDED: 'final' };
 class AflapiStatusError extends Error {
     constructor(status, matchId) {
-        super(`aflapi status ${JSON.stringify(status)} is not mapped (match ${matchId}); only ${Object.keys(AFLAPI_STATE).join(' and ')} have been read`);
+        super(`aflapi status ${JSON.stringify(status)} is not mapped (match ${matchId}); only ${Object.keys(AFLAPI_STATE).join(', ')} have been read`);
         this.name = 'AflapiStatusError';
     }
 }

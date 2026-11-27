@@ -44,7 +44,9 @@ const M9081 = FIXTURES.scheduled;
 const withFields = (m, f) => ({ ...m, ...f });
 const M_SAME_DAY_EARLY = withFields(M9081, { id: 9082, utcStartTime: '2026-11-27T06:00:00.000+0000' });   // DERIVED
 const M_LIVE = withFields(M9081, { id: 9100, status: 'LIVE', utcStartTime: '2026-11-26T07:00:00.000+0000' }); // DERIVED, not an aflapi spelling anyone has read
-const ALL = [M8988, M8884, M9081, M_SAME_DAY_EARLY, M_LIVE];
+// DERIVED, S14: the Grand Final's own status read 'UNCONFIRMED_TEAMS' through the deployed route on 2026-11-27 (a 502 naming it); no body carrying it was kept, so this is the real SCHEDULED item with the status and a day changed.
+const M_UNCONFIRMED = withFields(M9081, { id: 9102, status: 'UNCONFIRMED_TEAMS', utcStartTime: '2026-12-05T15:00:00.000+0000' });
+const ALL = [M8988, M8884, M9081, M_SAME_DAY_EARLY, M_LIVE, M_UNCONFIRMED];
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
@@ -72,7 +74,7 @@ const envStub = (rows = new Map(), mode = 'ok') => ({
   ARCHIVE_DB: { prepare: () => ({ bind: id => ({ first: async () => { if (mode === 'dbfail') throw new Error('D1 down'); return rows.has(id) ? rows.get(id) : null; } }) }) },
 });
 
-const CASES = ['N', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'R', 'W'];
+const CASES = ['N', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S14', 'R', 'W'];
 const seenCases = new Set();
 async function selfTest() {
   let failed = 0, assertions = 0;
@@ -176,6 +178,10 @@ async function selfTest() {
       [calls.length, /try \{\s*const aflwDays = \[0, 1, 2, 3\]\.map\(n => new Date\(Date\.parse\(`\$\{dateKey\}T12:00:00Z`\) \+ n \* 86400000\)/.test(before), /catch \(e\) \{ console\.error\("\[AFLW-ARCHIVE\] step failed:"/.test(after)], [1, true, true]);
   }
 
+  // S14: a status the feed maps (UNCONFIRMED_TEAMS is `pre`, as the route reads it) seeds a skeleton and is not a failed board.
+  const s14 = await run(['2026-12-05']);
+  eq('S14 a match whose status is UNCONFIRMED_TEAMS is seeded as a pre-game skeleton, with no score, and is not an error', [s14.result?.errors, s14.posts.map(p => [p.body.source_id, p.body.home_score, p.body.away_score])], [0, [['aflapi:9102', null, null]]]);
+
   const missing = CASES.filter(c => !seenCases.has(c));
   if (missing.length) { failed++; console.log(`  FAIL coverage: case ${missing.join(', ')} did not run`); }
   console.log(`\nchecked ${CASES.length - missing.length} of ${CASES.length} cases (${assertions} assertions) of the AFLW archive step: a skeleton, a settled skeleton, a final, a finished skeleton, a settled final, an aflapi refusal, an unmapped status, a failed D1 read, a failing route, dates, the source id, the real route, the cycle wiring. Not checked: a real D1, the cycle itself, /context/date.`);
@@ -202,6 +208,7 @@ const MUTATIONS = [
   ['the cycle no longer calls the step', [["const aflw = await seedAflwArchive(env, aflwDays);", "const aflw = { seeded: 0, finalised: 0, errors: 0 };"]]],
   ['the cycle seeds only today', [["await seedAflwArchive(env, aflwDays)", "await seedAflwArchive(env, [dateKey])"]]],
   ['the cycle looks ahead only one day', [["const aflwDays = [0, 1, 2, 3].map(", "const aflwDays = [0, 1].map("]]],
+  ['UNCONFIRMED_TEAMS is unmapped again, so its board is not read', [["UNCONFIRMED_TEAMS: 'pre', ", ""]]],
 ];
 
 function mutate() {

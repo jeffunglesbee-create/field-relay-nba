@@ -53,10 +53,14 @@ const M_LATE_AEST = withFields(M8884, { id: 8881, utcStartTime: '2026-08-15T03:0
 const M_SAME_DAY_EARLY = withFields(M9081, { id: 9082, utcStartTime: '2026-11-27T06:00:00.000+0000' });
 const M_STALE_SCHEDULED = withFields(M9081, { id: 9099, utcStartTime: '2026-08-20T03:00:00.000+0000' });
 const M_LIVE = withFields(M9081, { id: 9100, status: 'LIVE', utcStartTime: '2026-11-26T07:00:00.000+0000' });
+// DERIVED, A22: the Grand Final's own status read 'UNCONFIRMED_TEAMS' through the deployed route on 2026-11-27 (a 502 naming it); no body carrying it was kept, so this is the real SCHEDULED item with the status and a day changed.
+// CONFIRMED_TEAMS is NOT an aflapi spelling anyone has read from this host (a documented one): the case is that it stays unmapped.
+const M_UNCONFIRMED = withFields(M9081, { id: 9102, status: 'UNCONFIRMED_TEAMS', utcStartTime: '2026-12-05T15:00:00.000+0000' });
+const M_CONFIRMED = withFields(M9081, { id: 9103, status: 'CONFIRMED_TEAMS', utcStartTime: '2026-12-06T15:00:00.000+0000' });
 
 // The Grand Final is listed BEFORE the earlier game of its day on purpose: with the list already in start order, a missing sort
 // would pass (A15 and the first A1 case), which is what the first version of this check did.
-const ALL_MATCHES = [M8988, M8884, M_LATE_AEST, M_STALE_SCHEDULED, M_LIVE, M9081, M_SAME_DAY_EARLY];
+const ALL_MATCHES = [M8988, M8884, M_LATE_AEST, M_STALE_SCHEDULED, M_LIVE, M9081, M_SAME_DAY_EARLY, M_UNCONFIRMED, M_CONFIRMED];
 
 // mode: 'ok' serves the fixtures; '403' refuses; 'throw' fails the fetch; 'html' answers 200 with a page; 'paged' says numPages 2;
 // 'noseasons' serves an empty season list.
@@ -77,7 +81,7 @@ function stubAflapi(mode, seen) {
   };
 }
 
-const CASES = ['N', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
+const CASES = ['N', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A22'];
 const seenCases = new Set();
 async function selfTest() {
   let failed = 0, assertions = 0;
@@ -177,6 +181,13 @@ async function selfTest() {
   const y2025 = await get('sport=aflw&date=2025-11-29');
   eq('A16 a 2025 request asks for season 84 and not 96', y2025.calls.map(c => c.url).some(u => u.includes('compSeasonId=84')) && !y2025.calls.some(c => c.url.includes('compSeasonId=96')), true);
 
+  // A22: a status read on 2026-11-27. The Grand Final's own status moved to UNCONFIRMED_TEAMS, which is before the match and is `pre`; CONFIRMED_TEAMS is documented elsewhere but unread from this host, so it is still a named 502 until the
+  // Grand Final captures read it (CC-CMD Task 1, stage 2). A guessed state is a wrong card.
+  const unconfirmed = await get('sport=aflw&date=2026-12-05');
+  eq('A22 a match whose status is UNCONFIRMED_TEAMS is a pre game, with no score, NS and an empty clock', (unconfirmed.body?.games ?? []).map(g => [unconfirmed.status, g.aflapiMatchId, g.state, g.home.score, g.away.score, g.periodLabel, g.clock]), [[200, 9102, 'pre', null, null, 'NS', '']]);
+  const confirmed = await get('sport=aflw&date=2026-12-06');
+  eq('A22 CONFIRMED_TEAMS, unread from this host, is still a 502 naming it and the match, and the message lists what has been read', [confirmed.status, /"CONFIRMED_TEAMS" is not mapped \(match 9103\); only SCHEDULED, UNCONFIRMED_TEAMS, CONCLUDED have been read/.test(confirmed.body?.error ?? '')], [502, true]);
+
   const missing = CASES.filter(c => !seenCases.has(c));
   if (missing.length) { failed++; console.log(`  FAIL coverage: case ${missing.join(', ')} did not run`); }
   console.log(`\nchecked ${CASES.length - missing.length} of ${CASES.length} cases (${assertions} assertions) of /v2/games?sport=aflw: a pre game, a final game, the ET day, no game, a stale SCHEDULED, an unmapped status, a 403, a thrown fetch, a non-JSON 200, a paginated answer, no season, caching, the key, one source, order, the season id. Not checked: the live spelling, any period or clock (unread until 2026-11-27), the archive writer.`);
@@ -203,6 +214,11 @@ const MUTATIONS = [
   ['home and away are swapped', [["        home:         side(m.home),\n        away:         side(m.away),\n", "        home:         side(m.away),\n        away:         side(m.home),\n"]]],
   ['a finished game has no final word', [["periodLabel:  state === 'final' ? 'F' : 'NS',", "periodLabel:  'NS',"]]],
   ['a day with no season is a refusal', [["if (!season) return { games: [], note: `no ${year} season on aflapi` };", "if (!season) throw new Error('no season');"]]],
+  // A status read on 2026-11-27.
+  ['UNCONFIRMED_TEAMS reads live', [["UNCONFIRMED_TEAMS: 'pre'", "UNCONFIRMED_TEAMS: 'live'"]]],
+  ['UNCONFIRMED_TEAMS is unmapped again', [["UNCONFIRMED_TEAMS: 'pre', ", ""]]],
+  ['CONFIRMED_TEAMS is mapped on a documented guess', [["UNCONFIRMED_TEAMS: 'pre', ", "UNCONFIRMED_TEAMS: 'pre', CONFIRMED_TEAMS: 'pre', "]]],
+  ['the unmapped-status message stops listing the mapped ones', [["only ${Object.keys(AFLAPI_STATE).join(', ')} have been read", "only SCHEDULED and CONCLUDED have been read"]]],
 ];
 
 function mutate() {

@@ -1127,12 +1127,15 @@ The decision to use this source is `docs/CC-CMD-2026-11-22-aflw-live-source.md` 
 FieldGame: { id: 'aflw:<aflapi match id>', aflapiMatchId, sport: 'aflw', league: 'AFLW', state, start (ISO, Z), home: { name, abbr, score }, away: { name, abbr, score },
              periodNum: 0, periodLabel: 'NS' | 'F', clock: '', venue }
   espnEventId   ABSENT. The game is not on ESPN. As NHL's, the laboratory joins an id-less feed game to a card by the card's two club names.
-  state         STAGE 1 (2026-11-23): 'pre' for aflapi status SCHEDULED, 'final' for CONCLUDED. Any other status string is a 502 naming it and the match id. Stage 2 adds the live spelling from
+  state         STAGE 1 (2026-11-23): 'pre' for aflapi status SCHEDULED, 'final' for CONCLUDED. Added 2026-11-27: 'pre' for UNCONFIRMED_TEAMS (read that day: the deployed route answered a 502 naming it for match 9081, the Grand Final, about six
+                hours before its start; CONFIRMED_TEAMS is documented elsewhere but unread from this host and stays unmapped). Any other status string is a 502 naming it and the match id. Stage 2 adds the live spelling from
                 the 2026-11-27 Grand Final capture (field-relay-nba `outbox/aflapi-aflw-gf-9081-*.json`); until then 'live' is never served for AFLW.
   home.score, away.score   aflapi `score.totalScore` (points: goals x 6 + behinds), a number once the match has a score object, else null. A SCHEDULED item has no score object.
   periodNum / periodLabel / clock   the contract's empty values ('NS' before, 'F' after, ''), because no period or clock key exists on a SCHEDULED or CONCLUDED aflapi item (read on 8988 and 9081, detail path included).
                 Whether a live item carries one is the unread question of the CC-CMD's Task 1.
 ```
+
+Observed (Rule 73), 2026-11-27 about 02:45Z, `probe_relay_route` on the deployed relay before this change: `/v2/games?sport=aflw&date=2026-11-27` answered HTTP 502 `aflapi status "UNCONFIRMED_TEAMS" is not mapped (match 9081); only SCHEDULED and CONCLUDED have been read`: the Grand Final's status had moved off SCHEDULED, about six hours before the 08:45Z start.
 
 Observed (Rule 73): `html_probe` from a Cloudflare Worker IP, 2026-11-22 and 2026-11-23: match 9081 (the 2026 Grand Final, `SCHEDULED`, `utcStartTime` `2026-11-27T08:45:00.000+0000`), matches 8988 and 8884 (`CONCLUDED`, with
 `score.totalScore`), the season list (11 seasons, `2026 NAB AFLW Season` is id 96); real bodies in `outbox/aflapi-aflw-fixtures-20261123.json`. NOT observed: any live aflapi match, so no live status string, period or clock;
