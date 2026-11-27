@@ -1121,7 +1121,8 @@ The decision to use this source is `docs/CC-CMD-2026-11-22-aflw-live-source.md` 
 
 ```
 200 { sport: 'aflw', date, games: FieldGame[], count, source: 'aflapi', ts }     date is the ET calendar day of each game's kickoff (fieldDayOfInstant, the archive's date key)
-200 { sport, date, games: [], count: 0, source: 'aflapi', note: 'no <year> season on aflapi', ts }     aflapi lists no season for the request's year (the one honest empty answer outside a day with no match)
+200 { sport, date, games: [], count: 0, source: 'aflapi', note: 'no <year> season on aflapi', ts }     aflapi lists no season for the request's year (an honest empty answer, with the off answer below and a day with no match)
+200 { sport, date, games: [], count: 0, source: 'aflapi', note: 'aflw feed switched off', ts }     the owner's switch is on (below): nothing was asked of aflapi
 502 { error, sport, date }     an aflapi non-2xx, a thrown fetch, a 200 that is not JSON, a paginated answer, or a status the adapter has not been shown. NEVER an empty slate.
 
 FieldGame: { id: 'aflw:<aflapi match id>', aflapiMatchId, sport: 'aflw', league: 'AFLW', state, start (ISO, Z), home: { name, abbr, score }, away: { name, abbr, score },
@@ -1134,6 +1135,12 @@ FieldGame: { id: 'aflw:<aflapi match id>', aflapiMatchId, sport: 'aflw', league:
   periodNum / periodLabel / clock   the contract's empty values ('NS' before, 'F' after, ''), because no period or clock key exists on a SCHEDULED or CONCLUDED aflapi item (read on 8988 and 9081, detail path included).
                 Whether a live item carries one is the unread question of the CC-CMD's Task 1.
 ```
+
+Two owner-set Worker secrets, both optional, both approved 2026-11-27 (`outbox/ADR-004-aflapi-afl-com-au-source-acceptance-2026-11-27.md`, `docs/CC-CMD-2026-11-22-aflw-live-source.md` Task 6). Neither changes the body of a served board; each adds one response header word, never the secret's value:
+`X-FIELD-Aflapi-Contact: set | unset | invalid` on a served board (the 200 with games and the 200 'no season' note; not the 502, not the off answer). `AFLAPI_CONTACT` is one plain address (`isPlainAddress`, the shape the Squiggle contact uses): `set` = the User-Agent of both reads is `FIELD/1.0 - <address>`
+(trimmed, address last), `unset` = `FIELD/1.0` as before, `invalid` = set but not one plain address, none sent. `X-FIELD-Aflapi-Feed: off` on the off answer only (absent otherwise). `AFLW_FEED_OFF`: any non-empty value but `0`, `false` or `no` (trimmed, case-insensitive) is off, so a typo fails closed; off = the 200 above with `note: 'aflw feed switched off'`,
+zero requests to aflapi, and `seedAflwArchive` reads nothing and writes nothing (its result says `off: true`); cards already in the archive stay. The off answer is cached 60 s (`Cache-Control: public, max-age=60`, which sets how soon a flip back to on shows to a client that caches) and carries the CORS header. A client that reads `games` sees an empty slate, the same shape as the 'no season' answer, so no client reads anything new: the laboratory's consumer code needs no change, and jubilant-bassoon's copy of this file is the same file (`contracts-identity-check.yml`), synced in the same session. A secret added in the Cloudflare dashboard takes effect when the owner presses Deploy there; `wrangler secret put` deploys at once. A value that is not a string (a dashboard JSON variable, a `[vars]` boolean) is read as its text, so `true` and `1` are off and `false` and `0` are not. Producers: `aflapiContactState`, `aflwFeedOff` (`src/index.js`);
+checks `scripts/check-v2-games-aflw.mjs` (A17-A21) and `scripts/check-aflw-archive-seed.mjs` (S12-S13).
 
 Observed (Rule 73), 2026-11-27 about 02:45Z, `probe_relay_route` on the deployed relay before this change: `/v2/games?sport=aflw&date=2026-11-27` answered HTTP 502 `aflapi status "UNCONFIRMED_TEAMS" is not mapped (match 9081); only SCHEDULED and CONCLUDED have been read`: the Grand Final's status had moved off SCHEDULED, about six hours before the 08:45Z start.
 

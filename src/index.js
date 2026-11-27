@@ -144,7 +144,7 @@ function mcpBearerMatches(header, env) {
 }
 
 import { stampProvenance } from './provenance-stamp.js';
-import { squiggleTipForGame, squiggleHomePct, squiggleHeaders, squiggleContactState } from './afl-squiggle.js';
+import { squiggleTipForGame, squiggleHomePct, squiggleHeaders, squiggleContactState, isPlainAddress } from './afl-squiggle.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
@@ -1610,7 +1610,31 @@ function adaptNhle(g) {
 // on a SCHEDULED or CONCLUDED item names a period or a clock (checked on 8988 and 9081, detail path included), so they are the
 // contract's empty values ('NS' before, 'F' after, clock ''), not a guess at a quarter.
 const AFLAPI_BASE    = 'https://aflapi.afl.com.au';
-const AFLAPI_HEADERS = { 'Accept': 'application/json', 'User-Agent': 'FIELD/1.0' };
+// THE CONTACT ADDRESS AND THE SWITCH-OFF, both approved by the owner on 2026-11-27 ("Confirm. Optional choice approved"; outbox/ADR-004-aflapi-afl-com-au-source-acceptance-2026-11-27.md,
+// docs/CC-CMD-2026-11-22-aflw-live-source.md Task 6). Both are Worker SECRETS the owner sets in the dashboard: a secret survives every deploy and never enters the git history, and a plain
+// dashboard variable would be wiped by the next `wrangler deploy` (it is not in wrangler.toml). Neither is required: unset is the state before this existed.
+//  - AFLAPI_CONTACT: one plain address (the shape Squiggle's contact uses: isPlainAddress). Set = the User-Agent is `FIELD/1.0 - <address>` (the name, ' - ', the address last, Squiggle's own
+//    format); unset or invalid = `FIELD/1.0` as before. The AFL states no requirement (no document names this host); the owner chose to identify the relay. The word reported in the
+//    X-FIELD-Aflapi-Contact response header is 'set', 'unset' or 'invalid', never the address, so the owner's step is visible and a typo is not silent.
+//  - AFLW_FEED_OFF: any non-empty value except 0, false or no (case-insensitive, trimmed) switches the AFLW feed off, so a typo fails CLOSED. Off = /v2/games?sport=aflw answers 200 with no
+//    games and a note, and the archive step reads nothing and writes nothing; the cards already in the archive stay. No CODE deploy is needed: the next request sees the new value. A secret added in
+//    the dashboard takes effect when the owner presses Deploy there; `wrangler secret put` deploys at once (Cloudflare's Secrets page, read 2026-11-27).
+const AFLAPI_AGENT = 'FIELD/1.0';
+export function aflapiContactState(env) {
+    const raw = typeof env?.AFLAPI_CONTACT === 'string' ? env.AFLAPI_CONTACT.trim() : '';
+    return raw === '' ? 'unset' : isPlainAddress(raw) ? 'set' : 'invalid';
+}
+const aflapiHeaders = (env) => ({
+    'Accept': 'application/json',
+    'User-Agent': aflapiContactState(env) === 'set' ? `${AFLAPI_AGENT} - ${env.AFLAPI_CONTACT.trim()}` : AFLAPI_AGENT,
+});
+export function aflwFeedOff(env) {
+    // Any value that is not null or undefined is read as its text. A dashboard JSON variable or a wrangler.toml [vars] boolean arrives as `true` or `1`, not as a string, and a switch that ignored it would fail OPEN,
+    // the unsafe direction for an off-switch (found by the independent review of 2026-11-27). The text of `false` and `0` is 'false' and '0', which are not off.
+    const raw = env?.AFLW_FEED_OFF;
+    const v = raw == null ? '' : String(raw).trim().toLowerCase();
+    return v !== '' && v !== '0' && v !== 'false' && v !== 'no';
+}
 // SCHEDULED and CONCLUDED were read on 2026-11-22/23. UNCONFIRMED_TEAMS was read on 2026-11-27 (the deployed route answered a 502 naming it for match 9081, the Grand Final, whose start was about six hours ahead;
 // scripts/check-v2-games-aflw.mjs A22): it is a status before the match, and is `pre`. Other evidence that it is a pre-match status, none of it a read of this host's body: the AFL's own match-centre script constants
 // list it beside CONFIRMED_TEAMS (urlscan.io capture of a pulselive-hosted script, found 2026-11-27), Champion Data's documentation places 'Confirmed Teams' before Quarter 1, and the open-source fitzroy package normalises it to
@@ -1647,7 +1671,7 @@ function adaptAflapi(m) {
     };
 }
 
-// readAflapiBoard(cfg, date, base) -> { games } | { games: [], note } ; THROWS on a refusal (the caller says 502). `base` is passed
+// readAflapiBoard(cfg, date, base, env) -> { games } | { games: [], note } ; THROWS on a refusal (the caller says 502). `base` is passed
 // by the caller (AFLAPI_BASE) so that the route's own body names the host it reads: scripts/build-route-provenance.mjs reads a route's
 // own body, not its helpers' (a shared helper would drag in every host every other caller contacts), so a host reached only inside
 // this function would be missing from the route's provenance.
@@ -1656,21 +1680,21 @@ function adaptAflapi(m) {
 // scoreboard, 3600 s for the season list). The slate is the ET calendar day of each kickoff (fieldDayOfInstant, the archive's own
 // date key): an AFLW game starting 12:35pm AEST is the previous ET day. Each read is bounded (8 s) so a stalled aflapi cannot hold
 // the route or the journalism cycle that calls seedAflwArchive.
-async function aflapiGet(base, path, ttl) {
+async function aflapiGet(base, path, ttl, env) {
     const u = `${base}${path}`;
     let r;
-    try { r = await fetch(u, { headers: AFLAPI_HEADERS, signal: AbortSignal.timeout(8000), cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: u } }); }
+    try { r = await fetch(u, { headers: aflapiHeaders(env), signal: AbortSignal.timeout(8000), cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: u } }); }
     catch (e) { throw new Error(`aflapi network error: ${e.message}`); }
     if (!r.ok) throw new Error(`aflapi upstream ${r.status} for ${path}`);
     try { return await r.json(); }
     catch { throw new Error(`aflapi upstream: ${path} did not answer JSON`); }
 }
-async function readAflapiBoard(cfg, date, base) {
+async function readAflapiBoard(cfg, date, base, env) {
     const year = date.slice(0, 4);
-    const seasons = await aflapiGet(base, `/afl/v2/competitions/${cfg.aflapiCompetitionId}/compseasons?pageSize=100`, 3600);
+    const seasons = await aflapiGet(base, `/afl/v2/competitions/${cfg.aflapiCompetitionId}/compseasons?pageSize=100`, 3600, env);
     const season = (seasons.compSeasons || []).find(cs => String(cs.name || '').startsWith(`${year} `));
     if (!season) return { games: [], note: `no ${year} season on aflapi` };
-    const page = await aflapiGet(base, `/afl/v2/matches?competitionId=${cfg.aflapiCompetitionId}&compSeasonId=${season.id}&pageSize=200`, 30);
+    const page = await aflapiGet(base, `/afl/v2/matches?competitionId=${cfg.aflapiCompetitionId}&compSeasonId=${season.id}&pageSize=200`, 30, env);
     if ((page.meta?.pagination?.numPages ?? 1) > 1)
         throw new Error(`aflapi matches for season ${season.id} are paginated (${page.meta.pagination.numPages} pages): not read`);
     const games = (page.matches || [])
@@ -1695,11 +1719,13 @@ async function readAflapiBoard(cfg, date, base) {
 // stores a synthetic there (`golf_<event>`). The row's sport and league are 'AFLW', so the id prefix cannot meet the men's 'AFL'.
 export async function seedAflwArchive(env, dates) {
     const out = { dates: dates.length, games: 0, seeded: 0, finalised: 0, settled: 0, errors: 0 };
+    // The owner's switch (AFLW_FEED_OFF above): off reads nothing from aflapi and writes nothing, and says so.
+    if (aflwFeedOff(env)) { console.warn('[AFLW-ARCHIVE] AFLW_FEED_OFF is set: nothing read, nothing written'); return { ...out, off: true }; }
     const cfg = V2_LEAGUES.aflw;
     const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
     for (const date of dates) {
         let board;
-        try { board = await readAflapiBoard(cfg, date, AFLAPI_BASE); }
+        try { board = await readAflapiBoard(cfg, date, AFLAPI_BASE, env); }
         catch (e) { out.errors++; console.error(`[AFLW-ARCHIVE] ${date}: board not read, nothing written:`, e.message); continue; }
         for (const g of board.games) {
             out.games++;
@@ -5358,18 +5384,24 @@ async function handleV2Games(url, env, ctx, request = null) {
     // The read itself is readAflapiBoard (above adaptAflapi's callers, shared with seedAflwArchive): a refusal is NOT an empty
     // slate (the NBA board's lesson, CC-CMD-2026-10-22-nba-cdn-403-in-season), so an upstream non-2xx, a thrown fetch, a body
     // that is not JSON, a paginated answer and a status the adapter has not been shown are each a 502 that names the cause.
-    // No season for the request's year is the one honest empty answer: aflapi lists the seasons that exist.
+    // No season for the request's year is an honest empty answer (as is the switched-off one below): aflapi lists the seasons that exist.
     if (cfg.aflapiSource) {
+        // The owner's switch (AFLW_FEED_OFF above): checked BEFORE anything is read, so an off feed makes no request to aflapi. An honest empty answer with its reason, cached briefly.
+        if (aflwFeedOff(env)) {
+            return new Response(
+                JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note: 'aflw feed switched off', ts: Date.now() }),
+                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off' } });
+        }
         try {
-            const { games, note } = await readAflapiBoard(cfg, date, AFLAPI_BASE);
+            const { games, note } = await readAflapiBoard(cfg, date, AFLAPI_BASE, env);
             if (note) {
                 return new Response(
                     JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note, ts: Date.now() }),
-                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', 'X-FIELD-Aflapi-Contact': aflapiContactState(env) } });
             }
             return new Response(
                 JSON.stringify({ sport, date, games, count: games.length, source: 'aflapi', ts: Date.now() }),
-                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } });
+                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15', 'X-FIELD-Aflapi-Contact': aflapiContactState(env) } });
         } catch (e) {
             return new Response(
                 JSON.stringify({ error: e.message, sport, date }),

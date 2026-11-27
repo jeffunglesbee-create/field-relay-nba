@@ -51,10 +51,11 @@ const ALL = [M8988, M8884, M9081, M_SAME_DAY_EARLY, M_LIVE, M_UNCONFIRMED];
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
 // aflapiMode: 'ok' | '403' | 'throw'.  archiveMode: 'ok' | '500' | 'throw'.
-function stubFetch(log, aflapiMode = 'ok', archiveMode = 'ok') {
+function stubFetch(log, aflapiMode = 'ok', archiveMode = 'ok', reads = []) {
   globalThis.fetch = async (input, init) => {
     const url = String(input?.url ?? input);
     if (url.startsWith('https://aflapi.afl.com.au/')) {
+      reads.push({ url, ua: init?.headers?.['User-Agent'] });
       if (aflapiMode === 'throw') throw new Error('network down');
       if (aflapiMode === '403') return new Response('Access Denied', { status: 403 });
       if (url.includes('/compseasons')) return Response.json(FIXTURES.compseasons);
@@ -70,11 +71,13 @@ function stubFetch(log, aflapiMode = 'ok', archiveMode = 'ok') {
   };
 }
 // rows: Map espn_event_id -> { home_score }.  mode 'ok' | 'dbfail'.
-const envStub = (rows = new Map(), mode = 'ok') => ({
-  ARCHIVE_DB: { prepare: () => ({ bind: id => ({ first: async () => { if (mode === 'dbfail') throw new Error('D1 down'); return rows.has(id) ? rows.get(id) : null; } }) }) },
+// d1: an array that counts every prepare() (a switched-off feed must make none).
+const envStub = (rows = new Map(), mode = 'ok', extra = {}, d1 = []) => ({
+  ARCHIVE_DB: { prepare: () => { d1.push(1); return { bind: id => ({ first: async () => { if (mode === 'dbfail') throw new Error('D1 down'); return rows.has(id) ? rows.get(id) : null; } }) }; } },
+  ...extra,
 });
 
-const CASES = ['N', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S14', 'R', 'W'];
+const CASES = ['N', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12', 'S13', 'S14', 'R', 'W'];
 const seenCases = new Set();
 async function selfTest() {
   let failed = 0, assertions = 0;
@@ -84,15 +87,15 @@ async function selfTest() {
     if (!ok) failed++;
     console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}${ok ? '' : `\n         got  ${JSON.stringify(got)}\n         want ${JSON.stringify(want)}`}`);
   };
-  const silenced = async fn => { const e = console.error, l = console.log; console.error = () => {}; console.log = () => {}; try { return await fn(); } finally { console.error = e; console.log = l; } };
+  const silenced = async fn => { const e = console.error, l = console.log, w = console.warn; console.error = () => {}; console.log = () => {}; console.warn = () => {}; try { return await fn(); } finally { console.error = e; console.log = l; console.warn = w; } };
 
   const mod = await import(pathToFileURL(INDEX_MODULE).href);
   const seed = mod.seedAflwArchive;
-  const run = async (dates, { rows, dbMode, aflapiMode, archiveMode } = {}) => {
-    const log = []; stubFetch(log, aflapiMode, archiveMode);
+  const run = async (dates, { rows, dbMode, aflapiMode, archiveMode, env } = {}) => {
+    const log = [], reads = [], d1 = []; stubFetch(log, aflapiMode, archiveMode, reads);
     let result, threw = null;
-    try { result = await silenced(() => seed(envStub(rows, dbMode), dates)); } catch (e) { threw = e.message; }
-    return { result, threw, posts: log };
+    try { result = await silenced(() => seed(envStub(rows, dbMode, env, d1), dates)); } catch (e) { threw = e.message; }
+    return { result, threw, posts: log, reads, d1: d1.length };
   };
   const body = (r, id) => r.posts.map(p => p.body).find(b => b.source_id === `aflapi:${id}`) ?? null;
 
@@ -178,13 +181,23 @@ async function selfTest() {
       [calls.length, /try \{\s*const aflwDays = \[0, 1, 2, 3\]\.map\(n => new Date\(Date\.parse\(`\$\{dateKey\}T12:00:00Z`\) \+ n \* 86400000\)/.test(before), /catch \(e\) \{ console\.error\("\[AFLW-ARCHIVE\] step failed:"/.test(after)], [1, true, true]);
   }
 
+  // S12-S13: the contact address and the switch-off (ADR-004, approved 2026-11-27). The cycle's reads carry the address like the route's, and an off feed
+  // reads nothing from aflapi, touches no D1 and writes nothing, and says so.
+  const s12 = await run(['2026-11-27'], { env: { AFLAPI_CONTACT: ' ops@example.com ' } });
+  eq('S12 the cycle step sends the contact address on both of its reads', [s12.reads.length, s12.reads.map(r => r.ua)], [2, ['FIELD/1.0 - ops@example.com', 'FIELD/1.0 - ops@example.com']]);
+  const s12b = await run(['2026-11-27'], { env: { AFLAPI_CONTACT: 'not an address' } });
+  eq('S12 an address that is not one plain address is not sent by the cycle step either', s12b.reads.map(r => r.ua), ['FIELD/1.0', 'FIELD/1.0']);
+  const s13 = await run(['2026-11-26', '2026-11-27', '2026-11-28'], { env: { AFLW_FEED_OFF: '1' } });
+  eq('S13 an off feed reads no aflapi, touches no D1, writes nothing, throws nothing and says it is off', [s13.threw, s13.reads.length, s13.d1, s13.posts.length, s13.result], [null, 0, 0, 0, { dates: 3, games: 0, seeded: 0, finalised: 0, settled: 0, errors: 0, off: true }]);
   // S14: a status the feed maps (UNCONFIRMED_TEAMS is `pre`, as the route reads it) seeds a skeleton and is not a failed board.
   const s14 = await run(['2026-12-05']);
   eq('S14 a match whose status is UNCONFIRMED_TEAMS is seeded as a pre-game skeleton, with no score, and is not an error', [s14.result?.errors, s14.posts.map(p => [p.body.source_id, p.body.home_score, p.body.away_score])], [0, [['aflapi:9102', null, null]]]);
+  const s13b = await run(['2026-11-27'], { env: { AFLW_FEED_OFF: 'false' } });
+  eq('S13 a switch set to "false" is not off: the step runs as before', [s13b.reads.length, s13b.posts.length, s13b.result?.off], [2, 2, undefined]);
 
   const missing = CASES.filter(c => !seenCases.has(c));
   if (missing.length) { failed++; console.log(`  FAIL coverage: case ${missing.join(', ')} did not run`); }
-  console.log(`\nchecked ${CASES.length - missing.length} of ${CASES.length} cases (${assertions} assertions) of the AFLW archive step: a skeleton, a settled skeleton, a final, a finished skeleton, a settled final, an aflapi refusal, an unmapped status, a failed D1 read, a failing route, dates, the source id, the real route, the cycle wiring. Not checked: a real D1, the cycle itself, /context/date.`);
+  console.log(`\nchecked ${CASES.length - missing.length} of ${CASES.length} cases (${assertions} assertions) of the AFLW archive step: a skeleton, a settled skeleton, a final, a finished skeleton, a settled final, an aflapi refusal, an unmapped status, a failed D1 read, a failing route, dates, the source id, the real route, the cycle wiring, the contact address on both of the step's reads (set, and a bad value not sent), the switch (reads nothing, touches no D1, writes nothing, says off: true; \"false\" is not off), UNCONFIRMED_TEAMS seeded as a pre-game skeleton. Not checked: a real D1, the cycle itself, /context/date, a secret set in a real Worker.`);
   console.log(failed ? `SELF-TEST FAILED: ${failed}` : 'self-test passed');
   return failed;
 }
@@ -208,6 +221,12 @@ const MUTATIONS = [
   ['the cycle no longer calls the step', [["const aflw = await seedAflwArchive(env, aflwDays);", "const aflw = { seeded: 0, finalised: 0, errors: 0 };"]]],
   ['the cycle seeds only today', [["await seedAflwArchive(env, aflwDays)", "await seedAflwArchive(env, [dateKey])"]]],
   ['the cycle looks ahead only one day', [["const aflwDays = [0, 1, 2, 3].map(", "const aflwDays = [0, 1].map("]]],
+  // The contact address and the switch-off (ADR-004, 2026-11-27).
+  ['the step ignores the switch', [["if (aflwFeedOff(env)) { console.warn('[AFLW-ARCHIVE] AFLW_FEED_OFF is set: nothing read, nothing written'); return { ...out, off: true }; }", ""]]],
+  ['the step does not say it is off', [["nothing read, nothing written'); return { ...out, off: true }; }", "nothing read, nothing written'); return { ...out }; }"]]],
+  ['the step reads before it checks the switch', [["if (aflwFeedOff(env)) { console.warn('[AFLW-ARCHIVE] AFLW_FEED_OFF is set: nothing read, nothing written'); return { ...out, off: true }; }\n    const cfg = V2_LEAGUES.aflw;", "const cfg = V2_LEAGUES.aflw; if (false) { return { ...out, off: true }; }"]]],
+  ['the step does not pass the env to the board read', [["try { board = await readAflapiBoard(cfg, date, AFLAPI_BASE, env); }", "try { board = await readAflapiBoard(cfg, date, AFLAPI_BASE); }"]]],
+  ['the step treats "false" as off', [["&& v !== 'false'", ""]]],
   ['UNCONFIRMED_TEAMS is unmapped again, so its board is not read', [["UNCONFIRMED_TEAMS: 'pre', ", ""]]],
 ];
 

@@ -45,6 +45,8 @@ export function squiggleContactState(env) {
     const raw = contactOf(env);
     return raw === '' ? 'unset' : CONTACT_SHAPE.test(raw) ? 'set' : 'invalid';
 }
+// The same shape test for any other contact address this relay sends (aflapi, ADR-004), so there is one definition of "one plain address" and not two.
+export const isPlainAddress = (raw) => typeof raw === 'string' && CONTACT_SHAPE.test(raw);
 export function squiggleHeaders(env) {
     const state = squiggleContactState(env);
     if (state !== 'set' && !warnedContact) {

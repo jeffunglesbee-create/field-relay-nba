@@ -81,7 +81,7 @@ function stubAflapi(mode, seen) {
   };
 }
 
-const CASES = ['N', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A22'];
+const CASES = ['N', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'A20', 'A21', 'A22', 'A23', 'A24', 'A25'];
 const seenCases = new Set();
 async function selfTest() {
   let failed = 0, assertions = 0;
@@ -95,17 +95,29 @@ async function selfTest() {
   const seen = [];
   stubAflapi('ok', seen);
   const worker = (await import(pathToFileURL(INDEX_MODULE).href)).default;
-  const get = async (query, mode = 'ok') => {
+  const get = async (query, mode = 'ok', env = {}) => {
     seen.length = 0;
     stubAflapi(mode, seen);
     const waits = [];
     const ctx = { waitUntil: p => waits.push(p), passThroughOnException() {} };
-    const r = await worker.fetch(new Request(`http://relay.test/v2/games?${query}`), {}, ctx);
-    await Promise.allSettled(waits);
-    let body = null;
-    try { body = await r.json(); } catch (_) { /* not JSON */ }
-    return { status: r.status, body, calls: [...seen] };
+    // Everything the worker writes to the console while answering is kept (A23 looks for the address in it) and the real console is put back before anything is printed.
+    const logs = [], real = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+    for (const k of Object.keys(real)) console[k] = (...a) => logs.push(a.map(String).join(' '));
+    let r;
+    try {
+      r = await worker.fetch(new Request(`http://relay.test/v2/games?${query}`), env, ctx);
+      await Promise.allSettled(waits);
+    } finally { Object.assign(console, real); }
+    let body = null, text = '';
+    try { text = await r.text(); body = JSON.parse(text); } catch (_) { /* not JSON */ }
+    return {
+      status: r.status, body, text, calls: [...seen], logs: logs.join('\n'),
+      allHeaders: [...r.headers].map(([k, v]) => `${k}: ${v}`).join('\n'),
+      headers: { contact: r.headers.get('X-FIELD-Aflapi-Contact'), feed: r.headers.get('X-FIELD-Aflapi-Feed'), cache: r.headers.get('Cache-Control'), cors: r.headers.get('Access-Control-Allow-Origin') },
+    };
   };
+  const uaOf = c => c.calls.map(x => x.init?.headers?.['User-Agent']);
+  const acceptOf = c => c.calls.map(x => x.init?.headers?.Accept);
 
   eq('N the real Grand Final item is SCHEDULED with no score object (the fixture is what was read)', [M9081.status, M9081.home.score, M9081.id], ['SCHEDULED', undefined, 9081]);
 
@@ -181,6 +193,47 @@ async function selfTest() {
   const y2025 = await get('sport=aflw&date=2025-11-29');
   eq('A16 a 2025 request asks for season 84 and not 96', y2025.calls.map(c => c.url).some(u => u.includes('compSeasonId=84')) && !y2025.calls.some(c => c.url.includes('compSeasonId=96')), true);
 
+  // A17-A18: the contact address (ADR-004, approved 2026-11-27). The Worker secret AFLAPI_CONTACT: one plain address goes into the User-Agent of BOTH reads
+  // as `FIELD/1.0 - <address>`, trimmed; the response says only a word about it, never the address; anything that is not one plain address is not sent.
+  // The address below is a placeholder on a reserved domain: it is never a real one.
+  const ADDR = 'ops@example.com';
+  const withAddr = await get('sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: `  ${ADDR}  ` });
+  eq('A17 a set contact address is in the User-Agent of both reads, trimmed, name then " - " then the address last', [withAddr.status, uaOf(withAddr)], [200, [`FIELD/1.0 - ${ADDR}`, `FIELD/1.0 - ${ADDR}`]]);
+  eq('A17 the response names the state and never the address (header, body)', [withAddr.headers.contact, withAddr.text.includes(ADDR), withAddr.text.includes('example.com')], ['set', false, false]);
+  const noSeason = await get('sport=aflw&date=2027-08-01', 'ok', { AFLAPI_CONTACT: ADDR });
+  eq('A17 the no-season answer carries the state too, and sends the address on the one read it made', [noSeason.headers.contact, uaOf(noSeason)], ['set', [`FIELD/1.0 - ${ADDR}`]]);
+  eq('A17 with no secret the state is "unset" and the User-Agent is the name alone', [a.headers.contact, uaOf(a)], ['unset', ['FIELD/1.0', 'FIELD/1.0']]);
+  eq('A17 both reads still ask for JSON (the Accept header survived the User-Agent change), with and without the address', [acceptOf(a), acceptOf(withAddr)], [['application/json', 'application/json'], ['application/json', 'application/json']]);
+  const noSeasonUnset = await get('sport=aflw&date=2027-08-01'), noSeasonBad = await get('sport=aflw&date=2027-08-01', 'ok', { AFLAPI_CONTACT: 'not an address' });
+  eq('A17 the no-season answer reports the state it is in, whatever it is: unset with no secret, invalid with a bad one', [noSeasonUnset.headers.contact, noSeasonBad.headers.contact], ['unset', 'invalid']);
+  const refusedWithAddr = await get('sport=aflw&date=2026-11-27', '403', { AFLAPI_CONTACT: ADDR });
+  const offWithAddr = await get('sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: ADDR, AFLW_FEED_OFF: '1' });
+  eq('A17 the contact state is on the two 200 boards only: not on a 502, not on the off answer, even with the address set', [refusedWithAddr.status, refusedWithAddr.headers.contact, refusedWithAddr.headers.feed, offWithAddr.headers.contact], [502, null, null, null]);
+  const BAD_ADDRS = [['not an address', 'words'], ['ops@example.com\r\nX-Injected: 1', 'a header injection'], ['mailto:ops@example.com', 'a scheme'], ['ops@example.com, ceo@example.com', 'two addresses'], ['Ops <ops@example.com>', 'an angle-bracket form'], ['ops@localhost', 'no dotted domain']];
+  for (const [bad, what] of BAD_ADDRS) {
+    const r = await get('sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: bad });
+    eq(`A18 ${what} is not sent: User-Agent is the name alone, the state is "invalid", the games are still served`, [r.status, r.body?.count, uaOf(r), r.headers.contact], [200, 2, ['FIELD/1.0', 'FIELD/1.0'], 'invalid']);
+  }
+  const blank = await get('sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: '   ' });
+  eq('A18 a blank secret is "unset", not "invalid"', [uaOf(blank), blank.headers.contact], [['FIELD/1.0', 'FIELD/1.0'], 'unset']);
+
+  // A19-A21: the switch-off (ADR-004, approved 2026-11-27). The Worker secret AFLW_FEED_OFF, checked BEFORE anything is read: off is a 200 with no games and its reason,
+  // zero requests to aflapi, a header that says so. It fails CLOSED: any non-empty value but 0, false or no (case-insensitive, trimmed) is off.
+  const off = await get('sport=aflw&date=2026-11-27', 'ok', { AFLW_FEED_OFF: '1' });
+  eq('A19 a set switch answers 200 with no games, its source and its reason', [off.status, { ...off.body, ts: 0 }], [200, { sport: 'aflw', date: '2026-11-27', games: [], count: 0, source: 'aflapi', note: 'aflw feed switched off', ts: 0 }]);
+  eq('A19 a set switch makes no request to aflapi and says so in a header', [off.calls.length, off.headers.feed], [0, 'off']);
+  eq('A19 an unset switch has no such header and reads aflapi as before', [gf.headers.feed, gf.calls.length, gf.body?.count], [null, 2, 2]);
+  const offBroken = await get('sport=aflw&date=2026-11-27', '403', { AFLW_FEED_OFF: '1' });
+  eq('A20 the switch is checked before the read: with aflapi refusing, an off feed is still the 200 answer and asks nothing', [offBroken.status, offBroken.body?.note, offBroken.calls.length], [200, 'aflw feed switched off', 0]);
+  for (const v of ['1', 'true', 'TRUE', 'yes', 'on', 'OFF', 'x', ' 1 ']) {
+    const r = await get('sport=aflw&date=2026-11-27', 'ok', { AFLW_FEED_OFF: v });
+    eq(`A21 AFLW_FEED_OFF=${JSON.stringify(v)} is off (zero reads)`, [r.body?.note, r.calls.length], ['aflw feed switched off', 0]);
+  }
+  for (const v of ['', '   ', '0', 'false', 'FALSE', 'No', ' no ']) {
+    const r = await get('sport=aflw&date=2026-11-27', 'ok', { AFLW_FEED_OFF: v });
+    eq(`A21 AFLW_FEED_OFF=${JSON.stringify(v)} is not off (the feed reads as before)`, [r.body?.count, r.calls.length, r.headers.feed], [2, 2, null]);
+  }
+
   // A22: a status read on 2026-11-27. The Grand Final's own status moved to UNCONFIRMED_TEAMS, which is before the match and is `pre`; CONFIRMED_TEAMS is documented elsewhere but unread from this host, so it is still a named 502 until the
   // Grand Final captures read it (CC-CMD Task 1, stage 2). A guessed state is a wrong card.
   const unconfirmed = await get('sport=aflw&date=2026-12-05');
@@ -188,9 +241,35 @@ async function selfTest() {
   const confirmed = await get('sport=aflw&date=2026-12-06');
   eq('A22 CONFIRMED_TEAMS, unread from this host, is still a 502 naming it and the match, and the message lists what has been read', [confirmed.status, /"CONFIRMED_TEAMS" is not mapped \(match 9103\); only SCHEDULED, UNCONFIRMED_TEAMS, CONCLUDED have been read/.test(confirmed.body?.error ?? '')], [502, true]);
 
+  // A23: the address is a secret of the owner's. A canary in the secret must not appear in ANY response (body, every header) or console line, on any path: a board, the no-season note, an upstream refusal, a thrown fetch, a non-JSON answer,
+  // a paginated answer, an unmapped status, an invalid-shaped value, and the off answer. (A17 checks the one place it is meant to be sent: the outgoing User-Agent.)
+  const CANARY = 'canary-leak-7f3a@example.com';
+  for (const [what, query, mode, env] of [
+    ['a served board', 'sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: CANARY }], ['the no-season note', 'sport=aflw&date=2027-08-01', 'ok', { AFLAPI_CONTACT: CANARY }],
+    ['an upstream 403', 'sport=aflw&date=2026-11-27', '403', { AFLAPI_CONTACT: CANARY }], ['a thrown fetch', 'sport=aflw&date=2026-11-27', 'throw', { AFLAPI_CONTACT: CANARY }],
+    ['a non-JSON answer', 'sport=aflw&date=2026-11-27', 'html', { AFLAPI_CONTACT: CANARY }], ['a paginated answer', 'sport=aflw&date=2026-11-27', 'paged', { AFLAPI_CONTACT: CANARY }],
+    ['an unmapped status', 'sport=aflw&date=2026-11-26', 'live', { AFLAPI_CONTACT: CANARY }], ['a value that is not an address', 'sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: `${CANARY}, other@example.com` }],
+    ['the off answer', 'sport=aflw&date=2026-11-27', 'ok', { AFLAPI_CONTACT: CANARY, AFLW_FEED_OFF: '1' }],
+  ]) {
+    const r = await get(query, mode, env);
+    const seenIn = ['canary-leak-7f3a', 'example.com'].filter(w => (r.text + '\n' + r.allHeaders + '\n' + r.logs).includes(w));
+    eq(`A23 the address is nowhere in the response or the console on ${what}`, [r.status > 0, seenIn], [true, []]);
+  }
+
+  // A24: the switch is for the AFLW feed alone, and its answer is the contract's: cached 60 s (that decides how soon the owner's flip back on shows), readable cross-origin, and it says nothing about the contact.
+  const offNhl = await get('sport=nhl&date=2026-11-27', 'ok', { AFLW_FEED_OFF: '1' });
+  eq('A24 the switch does not touch another sport: an NHL request with it set carries no aflw note and no feed header', [offNhl.body?.note === 'aflw feed switched off', offNhl.headers.feed], [false, null]);
+  eq('A24 the off answer is cached 60 s and carries the CORS header', [off.headers.cache, off.headers.cors], ['public, max-age=60', '*']);
+
+  // A25: the switch as a platform delivers it. A dashboard JSON variable or a wrangler.toml [vars] boolean is `true` or `1`, not a string; an off-switch that ignored it would fail OPEN.
+  for (const [v, want] of [[true, true], [1, true], [2, true], [{ a: 1 }, true], [false, false], [0, false], [null, false], [undefined, false]]) {
+    const r = await get('sport=aflw&date=2026-11-27', 'ok', { AFLW_FEED_OFF: v });
+    eq(`A25 AFLW_FEED_OFF=${v === undefined ? 'undefined' : JSON.stringify(v)} (a ${v === null ? 'null' : typeof v}) is ${want ? 'off' : 'not off'}`, [r.calls.length === 0, r.headers.feed], want ? [true, 'off'] : [false, null]);
+  }
+
   const missing = CASES.filter(c => !seenCases.has(c));
   if (missing.length) { failed++; console.log(`  FAIL coverage: case ${missing.join(', ')} did not run`); }
-  console.log(`\nchecked ${CASES.length - missing.length} of ${CASES.length} cases (${assertions} assertions) of /v2/games?sport=aflw: a pre game, a final game, the ET day, no game, a stale SCHEDULED, an unmapped status, a 403, a thrown fetch, a non-JSON 200, a paginated answer, no season, caching, the key, one source, order, the season id. Not checked: the live spelling, any period or clock (unread until 2026-11-27), the archive writer.`);
+  console.log(`\nchecked ${CASES.length - missing.length} of ${CASES.length} cases (${assertions} assertions) of /v2/games?sport=aflw: a pre game, a final game, the ET day, no game, a stale SCHEDULED, an unmapped status, a 403, a thrown fetch, a non-JSON 200, a paginated answer, no season, caching, the key, one source, order, the season id, the contact address (set, padded, blank, six malformed forms, never echoed in any response, header or console line on nine paths, the Accept header kept, the state header on the two 200 boards only), the switch-off (checked before the read; fail-closed values including a boolean or a number; the reads it avoids; only the AFLW feed; the off answer's 60 s and CORS), the status UNCONFIRMED_TEAMS (pre) and CONFIRMED_TEAMS (still a named 502). Not checked: a secret set in a real Worker (the owner's step; the header X-FIELD-Aflapi-Contact on the deployed route says which state it is in), the live spelling, any period or clock (unread until 2026-11-27), the archive writer.`);
   console.log(failed ? `SELF-TEST FAILED: ${failed}` : 'self-test passed');
   return failed;
 }
@@ -214,11 +293,44 @@ const MUTATIONS = [
   ['home and away are swapped', [["        home:         side(m.home),\n        away:         side(m.away),\n", "        home:         side(m.away),\n        away:         side(m.home),\n"]]],
   ['a finished game has no final word', [["periodLabel:  state === 'final' ? 'F' : 'NS',", "periodLabel:  'NS',"]]],
   ['a day with no season is a refusal', [["if (!season) return { games: [], note: `no ${year} season on aflapi` };", "if (!season) throw new Error('no season');"]]],
-  // A status read on 2026-11-27.
+  // The contact address and the switch-off (ADR-004, 2026-11-27).
+  ['the contact address is used without the shape check', [["return raw === '' ? 'unset' : isPlainAddress(raw) ? 'set' : 'invalid';", "return raw === '' ? 'unset' : 'set';"]]],
+  ['the contact address is never sent', [["'User-Agent': aflapiContactState(env) === 'set' ?", "'User-Agent': false ?"]]],
+  ['the contact address is sent untrimmed', [["`${AFLAPI_AGENT} - ${env.AFLAPI_CONTACT.trim()}`", "`${AFLAPI_AGENT} - ${env.AFLAPI_CONTACT}`"]]],
+  ['the contact separator is not " - "', [["`${AFLAPI_AGENT} - ${env.AFLAPI_CONTACT.trim()}`", "`${AFLAPI_AGENT} / ${env.AFLAPI_CONTACT.trim()}`"]]],
+  ['the season-list read drops the contact address', [["compseasons?pageSize=100`, 3600, env)", "compseasons?pageSize=100`, 3600)"]]],
+  ['the matches read drops the contact address', [["&pageSize=200`, 30, env)", "&pageSize=200`, 30)"]]],
+  ['the board read is not given the env by the route', [["await readAflapiBoard(cfg, date, AFLAPI_BASE, env);\n            if (note) {", "await readAflapiBoard(cfg, date, AFLAPI_BASE);\n            if (note) {"]]],
+  ['the games answer says the state is always set', [["'Cache-Control': 'public, max-age=15', 'X-FIELD-Aflapi-Contact': aflapiContactState(env)", "'Cache-Control': 'public, max-age=15', 'X-FIELD-Aflapi-Contact': 'set'"]]],
+  ['the games answer leaves the state out', [["'Cache-Control': 'public, max-age=15', 'X-FIELD-Aflapi-Contact': aflapiContactState(env)", "'Cache-Control': 'public, max-age=15'"]]],
+  ['the no-season answer leaves the state out', [["'Cache-Control': 'public, max-age=300', 'X-FIELD-Aflapi-Contact': aflapiContactState(env)", "'Cache-Control': 'public, max-age=300'"]]],
+  ['the switch is ignored by the route', [["if (aflwFeedOff(env)) {\n            return new Response(", "if (false) {\n            return new Response("]]],
+  ['the switch is inverted', [["return v !== '' && v !== '0' && v !== 'false' && v !== 'no';", "return !(v !== '' && v !== '0' && v !== 'false' && v !== 'no');"]]],
+  ['an unset switch reads as off', [["return v !== '' && v !== '0'", "return v !== '' || v !== '0'"]]],
+  ['"0" reads as off', [["&& v !== '0'", ""]]],
+  ['"false" reads as off', [["&& v !== 'false'", ""]]],
+  ['"no" reads as off', [["&& v !== 'no';", ";"]]],
+  ['the switch is case-sensitive', [["String(raw).trim().toLowerCase()", "String(raw).trim()"]]],
+  ['the switch is not trimmed', [["String(raw).trim().toLowerCase()", "String(raw).toLowerCase()"]]],
+  ['a non-string switch value is ignored (fails open)', [["const v = raw == null ? '' : String(raw).trim().toLowerCase();", "const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';"]]],
+  ['an unset switch reads as the text undefined', [["const v = raw == null ? '' : String(raw).trim().toLowerCase();", "const v = String(raw).trim().toLowerCase();"]]],
+  ['the switch is read above the per-sport branches and blanks every sport', [["    // ESPN-sourced sports (golf/PGA) bypass api-sports and route to ESPN scoreboard.\n", "    if (aflwFeedOff(env)) return new Response(JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note: 'aflw feed switched off', ts: Date.now() }), { headers: { ...CORS, 'Content-Type': 'application/json', 'X-FIELD-Aflapi-Feed': 'off' } });\n    // ESPN-sourced sports (golf/PGA) bypass api-sports and route to ESPN scoreboard.\n"]]],
+  ['the off answer is cached for an hour', [["'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off'", "'Cache-Control': 'public, max-age=3600', 'X-FIELD-Aflapi-Feed': 'off'"]]],
+  ['the off answer loses its CORS header', [["{ headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off' } }", "{ headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off' } }"]]],
+  ['the off answer carries the contact state', [["'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off'", "'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off', 'X-FIELD-Aflapi-Contact': aflapiContactState(env)"]]],
+  ['the off answer echoes the address in a header', [["'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off'", "'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off', 'X-FIELD-Aflapi-Agent': String(env?.AFLAPI_CONTACT)"]]],
+  ['the no-season answer says the state is always set', [["'Cache-Control': 'public, max-age=300', 'X-FIELD-Aflapi-Contact': aflapiContactState(env)", "'Cache-Control': 'public, max-age=300', 'X-FIELD-Aflapi-Contact': 'set'"]]],
+  ['the 502 carries the contact state', [["{ status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });\n        }\n    }\n    // ", "{ status: 502, headers: { ...CORS, 'Content-Type': 'application/json', 'X-FIELD-Aflapi-Contact': aflapiContactState(env) } });\n        }\n    }\n    // "]]],
+  ['the 502 body echoes the address', [["JSON.stringify({ error: e.message, sport, date }),\n                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });\n        }\n    }\n    // ", "JSON.stringify({ error: e.message, sport, date, agent: aflapiHeaders(env)['User-Agent'] }),\n                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });\n        }\n    }\n    // "]]],
+  ['the address is logged on every read', [["    try { r = await fetch(u, { headers: aflapiHeaders(env),", "    console.log(aflapiHeaders(env)['User-Agent']);\n    try { r = await fetch(u, { headers: aflapiHeaders(env),"]]],
+  ['the Accept header is dropped', [["    'Accept': 'application/json',\n    'User-Agent': aflapiContactState(env) === 'set'", "    'User-Agent': aflapiContactState(env) === 'set'"]]],
   ['UNCONFIRMED_TEAMS reads live', [["UNCONFIRMED_TEAMS: 'pre'", "UNCONFIRMED_TEAMS: 'live'"]]],
   ['UNCONFIRMED_TEAMS is unmapped again', [["UNCONFIRMED_TEAMS: 'pre', ", ""]]],
   ['CONFIRMED_TEAMS is mapped on a documented guess', [["UNCONFIRMED_TEAMS: 'pre', ", "UNCONFIRMED_TEAMS: 'pre', CONFIRMED_TEAMS: 'pre', "]]],
   ['the unmapped-status message stops listing the mapped ones', [["only ${Object.keys(AFLAPI_STATE).join(', ')} have been read", "only SCHEDULED and CONCLUDED have been read"]]],
+  ['the switch off has no header', [["'Cache-Control': 'public, max-age=60', 'X-FIELD-Aflapi-Feed': 'off'", "'Cache-Control': 'public, max-age=60'"]]],
+  ['the switch off has no reason', [["note: 'aflw feed switched off', ts: Date.now() }),\n                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60'", "ts: Date.now() }),\n                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60'"]]],
+  ['the switch is read after aflapi has been asked', [["if (aflwFeedOff(env)) {\n            return new Response(", "if (false) {\n            return new Response("], ["await readAflapiBoard(cfg, date, AFLAPI_BASE, env);\n            if (note) {", "await readAflapiBoard(cfg, date, AFLAPI_BASE, env);\n            if (aflwFeedOff(env)) return new Response(JSON.stringify({ sport, date, games: [], count: 0, source: 'aflapi', note: 'aflw feed switched off', ts: Date.now() }), { headers: { ...CORS, 'Content-Type': 'application/json', 'X-FIELD-Aflapi-Feed': 'off' } });\n            if (note) {"]]],
 ];
 
 function mutate() {
