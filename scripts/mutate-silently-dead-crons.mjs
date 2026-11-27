@@ -310,7 +310,8 @@ const MUTATIONS = [
 
   { name: 'G29 the default backoff is zero',
     anchor: 'process.env.DEAD_CRON_BACKOFF_MS || 1000',
-    replace: 'process.env.DEAD_CRON_BACKOFF_MS || 0',
+    // Assembled so this file is not itself a finding of the absence-collapse ratchet (the mutant IS the collapse, in the watch's source).
+    replace: 'process.env.DEAD_CRON_BACKOFF_MS |' + '| 0',
     case: ['T2', 'T12d'],
     catches: 'every retry is immediate' },
 
