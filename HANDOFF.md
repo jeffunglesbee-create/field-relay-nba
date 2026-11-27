@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-27 (19:35Z) — Repo guards green again: the 17:00Z close-out names its session doc by repo (step 63) and the staged UEFA history write has a verifier (step 11, check 16 `uefa_history_written`, PENDING 0/186, 0/186, 0/150, 55/57)
+
+**HEAD:** relay `5df5861` (check 16) ← `2dbe794` (step 63 wording) ← `afed116` (the AFLW source research) · **Branch:** main.
+**Session doc:** outbox/cc-session-2026-11-27-uefa-history-verifier.md (spec: `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, the staged write of Addendum 2026-11-27 part 3; the owner: "go step 63 wording fix, build the step 11 verifier").
+
+- **Cause:** both red steps came in with the other session's `db0828a` (run `46032219531`), not with `afed116`: a close-out naming `the laboratory's outbox/...` (read as a relay path) and a staged claim with no verifier.
+- **Verified:** `Repo guards` `46057021333` success on `5df5861`; `staged-verification.yml` `46057026915`, manifest `outbox/staged-verification-20261127T192923Z.json`, check 16 PENDING with the four window counts. Mutation harness `scripts/mutate-staged-verdicts-uefa-history.mjs`: 21 of 21 caught; `staged-verdicts-check` 222 -> 268 passed.
+- **Not verified:** the PASS path on real rows (the write has not run).
+- **Open for the owner:** the 524-row UEFA history write (unchanged, still waiting on the owner's word); the check reports PENDING daily until then.
+
 ## RESEARCH — 2026-11-27 (late): another source for a live AFLW score (no build)
 
 The owner asked "Find another afl/aflw source" after aflapi v2 served `LIVE` with no score, period or clock in the Grand Final. Result: **no source read is shown to serve an AFLW in-play score with period and clock**; three document it at `claimed-only` level (Champion Data licensed API, Sportradar, DataSportsAPI). Record: `outbox/aflw-live-score-sources-2026-11-27.md`; evidence JSON beside it; CC-CMD Part E. **Session doc:** the outbox record above (research only, no code change).
