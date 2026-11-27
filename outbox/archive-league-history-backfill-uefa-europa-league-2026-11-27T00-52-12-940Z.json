@@ -1,0 +1,24 @@
+{
+  "ts": "2026-11-27T00:52:12.940Z",
+  "league": "uefa.europa",
+  "label": "UEFA Europa League",
+  "from": "2026-05-01",
+  "to": "2026-08-31",
+  "dry": true,
+  "dates": 123,
+  "scoreboardsRead": 123,
+  "completed": 3,
+  "alreadyArchived": 1,
+  "written": 0,
+  "failedWrites": 0,
+  "noEventId": 0,
+  "stopped": null,
+  "statuses": {
+    "200": 123
+  },
+  "archiveAfter": {
+    "n": 1,
+    "scored": 1,
+    "joined": 1
+  }
+}
