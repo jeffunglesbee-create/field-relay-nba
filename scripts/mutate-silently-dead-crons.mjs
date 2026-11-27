@@ -288,8 +288,8 @@ const MUTATIONS = [
     catches: 'the budget becomes decoration' },
 
   { name: 'G10 a body cut off mid-read escapes the retry loop',
-    anchor: '      if (res.ok) return await res.json();',
-    replace: '      if (res.ok) return res.json();',
+    anchor: '      if (res.ok) { body = await res.json(); got = true; }',
+    replace: '      if (res.ok) { body = res.json(); got = true; }',
     case: ['T8', 'E2E-11'],
     catches: 'the un-awaited rejection leaves the try, so a truncated body ends the run as an unrelated TypeError' },
 
@@ -333,15 +333,15 @@ const MUTATIONS = [
     catches: 'the log says one attempt was made when four were' },
 
   { name: 'G31 the GitHub request id is dropped',
-    anchor: "requestId: res.headers.get('x-github-request-id') }",
-    replace: 'requestId: null }',
+    anchor: "{ path, status: res.status, requestId: res.headers.get('x-github-request-id') });",
+    replace: '{ path, status: res.status, requestId: null });',
     case: ['T14'],
     catches: 'a future 5xx cannot be reported to GitHub, which is where gh() started' },
 
   // ── UNREAD ──
   { name: 'G14 a failed contents read is swallowed into "no schedule" again',
-    anchor: '  const body = await read(`/repos/${repo}/contents/${path}`);',
-    replace: '  let body; try { body = await read(`/repos/${repo}/contents/${path}`); } catch (_) { return null; }',
+    anchor: '  const body = await read(`/repos/${repo}/contents/${path}`, contentsShape);',
+    replace: '  let body; try { body = await read(`/repos/${repo}/contents/${path}`, contentsShape); } catch (_) { return null; }',
     case: ['S2b', 'E2E-8a', 'E2E-8b'],
     catches: 'about 408 failed reads a run read as "nothing to judge" — the fallback this fix removes' },
 
@@ -390,8 +390,8 @@ const MUTATIONS = [
   // ── 2026-11-27: behaviours the first review proved NO case pinned. Each of these was found by
   // writing the mutant, and each ESCAPED the 121 cases before the case that names it was added. ──
   { name: 'G44 the retry budget is per call, not per run',
-    anchor: 'retries = RETRIES, backoff = BACKOFF_MS, timeoutMs = ATTEMPT_TIMEOUT_MS, budget = RUN_BUDGET } = {}) {',
-    replace: 'retries = RETRIES, backoff = BACKOFF_MS, timeoutMs = ATTEMPT_TIMEOUT_MS, budget = { left: RETRY_BUDGET_MS } } = {}) {',
+    anchor: 'budget = RUN_BUDGET, validate = null } = {}) {',
+    replace: 'budget = { left: RETRY_BUDGET_MS }, validate = null } = {}) {',
     case: ['E2E-14'],
     catches: 'every failed read gets a fresh budget, so a hard outage sleeps for hours and the job dies with no log' },
 
@@ -426,8 +426,8 @@ const MUTATIONS = [
     catches: 'a 4xx other than the four the first cases named is retried' },
 
   { name: 'G50 a transport failure on a contents read is swallowed into "no schedule"',
-    anchor: '  const body = await read(`/repos/${repo}/contents/${path}`);',
-    replace: '  let body; try { body = await read(`/repos/${repo}/contents/${path}`); } catch (e) { if (e.kind === \'transport\') return null; throw e; }',
+    anchor: '  const body = await read(`/repos/${repo}/contents/${path}`, contentsShape);',
+    replace: '  let body; try { body = await read(`/repos/${repo}/contents/${path}`, contentsShape); } catch (e) { if (e.kind === \'transport\') return null; throw e; }',
     case: ['E2E-15a'],
     catches: 'a connection that resets forever reads as "nothing to judge", the swallow this fix removed, for one fault kind' },
 
@@ -466,6 +466,73 @@ const MUTATIONS = [
     replace: 'unread.push({ repo, name: w.name, path: w.path, status: e.status, attempts: e.attempts, requestId: null,',
     case: ['E2E-17'],
     catches: 'a per-workflow 5xx is logged without the id GitHub would ask for' },
+
+  // ── a 200 is not an answer until its body is one ──
+  { name: 'G57 a runs body of any shape is accepted',
+    anchor: "export const runsShape = (b) => (isObject(b) && Array.isArray(b.workflow_runs) ? null : 'no workflow_runs array');",
+    replace: 'export const runsShape = () => null;',
+    case: ['SH1', 'E2E-18a', 'E2E-18b'],
+    catches: '{} reads as "no runs" and a healthy workflow moves into "no schedule, not judged"' },
+
+  { name: 'G58 a listing with no total_count is accepted',
+    anchor: "  if (typeof b.total_count !== 'number') return 'no total_count';\n",
+    replace: '',
+    case: ['SH2'],
+    catches: 'the short-read assertion has nothing to compare against and passes' },
+
+  { name: 'G59 a listing with no workflows array is accepted',
+    anchor: "  if (!Array.isArray(b[key])) return `no ${key} array`;\n",
+    replace: '',
+    case: ['SH2', 'E2E-18c'],
+    catches: '{} reads as a repo with 0 workflows, "all pages read"' },
+
+  { name: 'G60 the contents encoding is not checked',
+    anchor: "  if (b.encoding !== 'base64' || typeof b.content !== 'string') return",
+    replace: "  if (typeof b.content !== 'string') return",
+    case: ['SH3'],
+    catches: 'a body in an encoding the decoder does not read is decoded anyway' },
+
+  { name: 'G61 empty content is accepted for a file that has size',
+    anchor: "  if (b.content === '' && b.size !== 0) return",
+    replace: "  if (false) return",
+    case: ['SH3'],
+    catches: 'a file over 1 MB, which GitHub sends empty, reads as a file with no schedule' },
+
+  { name: 'G62 an empty file is refused',
+    anchor: "  if (b.content === '' && b.size !== 0) return",
+    replace: "  if (b.content === '') return",
+    case: ['SH3'],
+    catches: 'a genuinely empty workflow file turns the run red every day' },
+
+  { name: 'G63 a shape failure is retried',
+    anchor: "        { path, status: res.status, kind: 'shape', requestId: res.headers.get('x-github-request-id') });\n      retry = false;",
+    replace: "        { path, status: res.status, kind: 'shape', requestId: res.headers.get('x-github-request-id') });\n      retry = true;",
+    case: ['T18a', 'E2E-18a', 'E2E-18c', 'E2E-18d'],
+    catches: 'the same wrong body is re-read four times and the budget is spent on it' },
+
+  { name: 'G64 the validator is never called',
+    anchor: '      const why = validate ? validate(body) : null;',
+    replace: '      const why = null;',
+    case: ['T18a', 'E2E-18a', 'E2E-18c', 'E2E-18d'],
+    catches: 'the shapes are right and unused' },
+
+  { name: 'G65 the runs read does not use its shape',
+    anchor: "&status=completed`, runsShape);",
+    replace: "&status=completed`);",
+    case: ['E2E-18a', 'E2E-18b'],
+    catches: 'the unit is right and the call site does not use it, which is the shape that hid the EPA probe' },
+
+  { name: 'G66 the listing read does not use its shape',
+    anchor: 'per_page=${perPage}&page=${page}`, listingShape(key));',
+    replace: 'per_page=${perPage}&page=${page}`);',
+    case: ['E2E-18c'],
+    catches: 'the same, for the listing' },
+
+  { name: 'G67 the contents read does not use its shape',
+    anchor: 'await read(`/repos/${repo}/contents/${path}`, contentsShape);',
+    replace: 'await read(`/repos/${repo}/contents/${path}`);',
+    case: ['E2E-18d', 'E2E-18e'],
+    catches: 'the same, for the file read: a file over 1 MB is "no schedule" and an admitted key is "fixed or gone"' },
 
   // ── the ratchet ──
   { name: 'G19 an unread admitted key reads as "fixed or gone"',

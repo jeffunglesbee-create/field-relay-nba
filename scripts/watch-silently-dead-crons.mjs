@@ -81,7 +81,8 @@ const API = process.env.DEAD_CRON_API_BASE || 'https://api.github.com';
 export const retryableStatus = (s) => s >= 500 && s <= 599;
 
 /** A read that could not be made. `kind`: 'http' (GitHub answered with a status),
- *  'transport' (no usable answer: reset, abort, body cut off) or 'short-read'. */
+ *  'transport' (no usable answer: reset, abort, body cut off), 'short-read', or 'shape'
+ *  (a 2xx whose body is not what the caller can use; deterministic, so never retried). */
 export class GhError extends Error {
   constructor(message, { path, status = null, attempts = 1, kind = 'http', requestId = null } = {}) {
     super(message);
@@ -196,13 +197,36 @@ export const declaredKey = (repo, path) => `${repo}:${path}`;
 export const uncommented = (src) => String(src || '').split('\n').filter(l => !/^\s*#/.test(l)).join('\n');
 export const cronFromSource = (src) => (uncommented(src).match(/cron:\s*'([^']+)'/) || [])[1] || null;
 
+// ── THE SHAPE OF A 200 ──────────────────────────────────────────────────────────────────────
+// A 200 is not an answer until its body is one. The three readers below each treated a body of
+// the wrong shape as "nothing there": `{ workflow_runs = [] }`, `body[key] || []` and
+// `!body.content` turned `{}` into "no runs", "0 workflows" and "no schedule", so a run could
+// exit 0 having read nothing (Rule 99, absence read as not-applicable). Each is checked WHERE
+// THE READ IS MADE, by ghRequest, and returns the reason or null. Shapes probed 2026-11-27
+// against api.github.com: a file is { type, encoding: 'base64', size, content }; GitHub sends
+// encoding 'none' and empty content above 1 MB, and an array for a directory.
+const isObject = (b) => b !== null && typeof b === 'object' && !Array.isArray(b);
+export const runsShape = (b) => (isObject(b) && Array.isArray(b.workflow_runs) ? null : 'no workflow_runs array');
+export const listingShape = (key) => (b) => {
+  if (!isObject(b)) return 'not an object';
+  if (!Array.isArray(b[key])) return `no ${key} array`;
+  if (typeof b.total_count !== 'number') return 'no total_count';
+  return null;
+};
+export const contentsShape = (b) => {
+  if (!isObject(b)) return 'not a file object';
+  if (b.encoding !== 'base64' || typeof b.content !== 'string') return `not base64 content (encoding ${JSON.stringify(b.encoding)})`;
+  // The ONLY legitimate empty body is an empty file, and GitHub says so with size 0.
+  if (b.content === '' && b.size !== 0) return 'empty content for a file of size ' + JSON.stringify(b.size);
+  return null;
+};
+
 // NO CATCH HERE, AND THERE USED TO BE ONE. `catch (_) { return null; }` turned a contents
 // read that FAILED into "no schedule: block, not judged" — about 408 times a run, with no
 // comment saying why. That is absence read as not-applicable (Rule 99) on the same fault
 // class the transport now handles. A failed read throws GhError; surveyRepo files it UNREAD.
 export async function cronOf(repo, path, read = gh) {
-  const body = await read(`/repos/${repo}/contents/${path}`);
-  if (!body || !body.content) return null;
+  const body = await read(`/repos/${repo}/contents/${path}`, contentsShape);
   return cronFromSource(Buffer.from(body.content, 'base64').toString('utf8'));
 }
 
@@ -535,6 +559,32 @@ if (process.argv.includes('--self-test')) {
   one('T17 the per-attempt timeout VALUE is honoured', t17.abortAfter.length === 1 && t17.abortAfter[0] >= 160 && t17.abortAfter[0] <= 320, true,
       `a 200 ms timeout aborted after [${t17.abortAfter}] ms`);
 
+  // THE SHAPE OF A 200. Each shape check is pure; the wiring (that each READ calls its own) is E2E-18.
+  one('T18a a 200 with an unusable body is one call, no sleep, kind shape',
+      await (async () => { const r = await drive([200], { validate: () => 'nope' });
+        return `${r.calls}|${r.sleeps.length}|${r.thrown && r.thrown.kind}|${r.thrown && r.thrown.status}|${r.thrown && r.thrown.message}`; })(),
+      '1|0|shape|200|GitHub 200 on /p: unusable body, nope', 'a deterministic body is not retried: the repeat would spend the budget re-reading the same wrong answer');
+  one('T18b a 200 whose body passes the validator is read', gist(await drive([200], { validate: () => null })), '1 call(s), sleeps [], read {"ok":true}',
+      'the control: a validator must not refuse a good body');
+  const verdicts = (check, bodies) => bodies.map(b => (check(b) === null ? 'ok' : 'refused')).join(',');
+  one('SH1 a runs body is accepted only as an object with a workflow_runs array',
+      verdicts(runsShape, [{ workflow_runs: [] }, { workflow_runs: [{ conclusion: 'success' }] }, {}, null, [], { workflow_runs: {} }, { workflow_runs: null }, 'x']),
+      'ok,ok,refused,refused,refused,refused,refused,refused', 'an empty array is a real answer (no runs); everything else is not one');
+  one('SH2 a listing is accepted only with an array under its key and a numeric total_count',
+      verdicts(listingShape('workflows'), [{ total_count: 0, workflows: [] }, { total_count: 2, workflows: [{}, {}] }, {}, { workflows: [] },
+        { total_count: 3, workflows: 'x' }, { total_count: '3', workflows: [] }, null, []]),
+      'ok,ok,refused,refused,refused,refused,refused,refused', 'a repo with no workflows says total_count 0 and an empty array; {} says nothing');
+  one('SH3 a contents body is accepted only as base64 content, or a file GitHub says is empty',
+      verdicts(contentsShape, [
+        { type: 'file', encoding: 'base64', size: 5, content: 'b246Cg==' },
+        { type: 'file', encoding: 'base64', size: 0, content: '' },
+        { type: 'file', encoding: 'none', size: 2000000, content: '' },
+        { type: 'file', encoding: 'none', size: 3, content: 'abc' },
+        { type: 'file', encoding: 'base64', size: 9, content: '' },
+        [], null, { type: 'symlink', target: 'x' }, { encoding: 'base64', content: 5 }, {}]),
+      'ok,ok,refused,refused,refused,refused,refused,refused,refused,refused',
+      'size 0 is the only empty content that is true; a file over 1 MB, a directory, a symlink and a submodule carry none');
+
   // The survey, against a fake of the API. The fake answers the REAL query or
   // nothing: a URL that has drifted (no `status=completed`, another per_page or
   // event) reads as "no runs", so it fails the cases below instead of passing.
@@ -694,7 +744,8 @@ if (process.argv.includes('--self-test')) {
       let key = null, body = null;
       if (wfs && m[3] !== undefined) {
         const w = wfs.find(x => x.path === decodeURIComponent(m[3]));
-        if (w) { key = `contents:${m[1]}:${w.path}`; body = { content: Buffer.from(w.source || '').toString('base64'), encoding: 'base64' }; }
+        // the real shape, probed 2026-11-27 against api.github.com: type, encoding, size and content
+        if (w) { key = `contents:${m[1]}:${w.path}`; body = { type: 'file', encoding: 'base64', size: Buffer.byteLength(w.source || ''), content: Buffer.from(w.source || '').toString('base64') }; }
       } else if (wfs && m[2] !== undefined) {
         const w = wfs.find(x => String(x.id) === m[2]);
         if (w && q === 'event=schedule&per_page=3&status=completed') {
@@ -721,6 +772,7 @@ if (process.argv.includes('--self-test')) {
           return setTimeout(() => req.socket.destroy(), 30);
         }
         if (f.mode === 'short') body = { ...body, total_count: 150 }; // claims 150, sends 2: answered below
+        if (f.mode === 'body') body = f.body;                        // a 200 whose body is the wrong shape
       }
       rsp.setHeader('content-type', 'application/json');
       rsp.end(JSON.stringify(body));
@@ -728,13 +780,14 @@ if (process.argv.includes('--self-test')) {
     server.listen(0, '127.0.0.1', () => resolve({ port: server.address().port, hits,
       close: () => { server.closeAllConnections(); server.close(); } }));
   });
-  const runChild = async ({ faults = {}, env = {}, baseline = true } = {}) => {
+  const runChild = async ({ faults = {}, env = {}, baseline = true, extraBaseline = {} } = {}) => {
     const fake = await fakeGitHub(faults);
     const dir = mkdtempSync(join(tmpdir(), 'dead-cron-e2e-'));
     mkdirSync(join(dir, 'docs')); mkdirSync(join(dir, 'outbox'));
     writeFileSync(join(dir, 'docs/declared-detectors.json'), JSON.stringify({ detectors: {} }));
     if (baseline) writeFileSync(join(dir, 'docs/dead-cron-baseline.json'), JSON.stringify({ entries: {
-      [ADMITTED]: { kind: 'failure', red_since: '2026-01-01', first_seen: '2026-01-01', unblocked_by: 'fixture', review_by: '2099-01-01' } } }));
+      [ADMITTED]: { kind: 'failure', red_since: '2026-01-01', first_seen: '2026-01-01', unblocked_by: 'fixture', review_by: '2099-01-01' },
+      ...extraBaseline } }));
     // HERMETIC: nothing of this process's environment leaks in, so DEAD_CRON_* or a
     // proxy variable set around the self-test cannot change what the child does.
     const child = spawn(process.execPath, [fileURLToPath(import.meta.url)], { cwd: dir, env: {
@@ -753,6 +806,8 @@ if (process.argv.includes('--self-test')) {
     return { code: signal ? `killed by ${signal}` : code, stdout, stderr, hits: fake.hits, log, logs: names.length };
   };
   const FOREVER = Infinity;
+  // an admitted never_fired key for the fixture's idle workflow (it has no cron, so a clean read resolves it)
+  const IDLE_ADMITTED = { 'o/a:.github/workflows/idle.yml': { kind: 'never_fired', red_since: '2026-01-01', first_seen: '2026-01-01', unblocked_by: 'fixture', review_by: '2099-01-01' } };
   const R = {};
   const SCEN = {
     control:  {},
@@ -773,6 +828,15 @@ if (process.argv.includes('--self-test')) {
     // the retry budget is per RUN: two reads that both fail, 100 ms backoff, 150 ms of budget in all
     budget2:  { faults: { 'runs:o/a:1': { times: FOREVER, mode: 502 }, 'runs:o/b:1': { times: FOREVER, mode: 502 } },
                 env: { DEAD_CRON_BACKOFF_MS: '100', DEAD_CRON_RETRY_BUDGET_MS: '150' } },
+    // a 200 whose body is the wrong shape: it was filed healthy, 'no schedule' or '0 workflows', and the run exited 0
+    runsShape:     { faults: { 'runs:o/a:1': { times: FOREVER, mode: 'body', body: {} } } },
+    runsNull:      { faults: { 'runs:o/a:1': { times: FOREVER, mode: 'body', body: null } } },
+    listingShape:  { faults: { 'list:o/a': { times: FOREVER, mode: 'body', body: { total_count: 2 } } } },   // says 2, sends none
+    contentsShape: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 'body',
+                     body: { type: 'file', encoding: 'none', size: 2000000, content: '' } } } },
+    shapeAdmitted: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 'body',
+                     body: { type: 'file', encoding: 'none', size: 2000000, content: '' } } }, extraBaseline: IDLE_ADMITTED },
+    resolvedControl: { extraBaseline: IDLE_ADMITTED },
     // a transport fault that never clears, on each kind of read (only 5xx and 404 were driven to UNREAD)
     contentsReset: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 'reset' } } },
     runsReset:     { faults: { 'runs:o/a:1': { times: FOREVER, mode: 'reset' } } },
@@ -868,6 +932,34 @@ if (process.argv.includes('--self-test')) {
         new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/healthy\\.yml\\s+GitHub transport error`).test(R.runsReset.log)}|${
         /── o\/a ──\n[^\n]*\n\s+scheduled and healthy\s+: 0/.test(R.runsReset.log)}`, `1|${T}|true|true`,
       'the transport kind, driven through the UNREAD path of the runs read');
+  const IDLE = 'o/a:.github/workflows/idle.yml';
+  const secA = (log) => (log.split('── o/b ──')[0] || '');
+  one('E2E-18a a runs body that is not {workflow_runs: []} is UNREAD, once, not healthy',
+      `${R.runsShape.code}|${h(R.runsShape, 'runs:o/a:1')}|${
+        new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/healthy\\.yml\\s+GitHub 200 on [^\\n]*unusable body`).test(R.runsShape.log)}|${
+        /scheduled and healthy\s+: 0/.test(secA(R.runsShape.log))}`, '1|1|true|true',
+      'a 200 of {} read as "no runs" and moved a healthy workflow into "no schedule, not judged"; a deterministic body is not retried');
+  one('E2E-18b a runs body of null is UNREAD and the run is not aborted',
+      `${R.runsNull.code}|${R.runsNull.logs}|${R.runsNull.log.includes('ABORTED')}|${R.runsNull.log.includes('── o/b ──')}|${
+        new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/healthy\\.yml`).test(R.runsNull.log)}`, '1|1|false|true|true',
+      'null was a TypeError that aborted the run and lost every reading; the second repo must still be read');
+  one('E2E-18c a listing body with no workflows array or total_count makes the repo UNREAD, not "0 workflows"',
+      `${R.listingShape.code}|${h(R.listingShape, 'list:o/a')}|${
+        /UNREAD, WHOLE REPO NOT JUDGED\s+: GitHub 200 on [^\n]*unusable body/.test(R.listingShape.log)}|${
+        !/── o\/a ──\n\s+0 workflow\(s\)/.test(R.listingShape.log)}|${/── o\/b ──\n\s+2 workflow\(s\), 2 active/.test(R.listingShape.log)}`, '1|1|true|true|true',
+      '"0 workflow(s), 0 active (all pages read)" for a repo whose listing answered {} or a count with no array');
+  one('E2E-18d a contents body that is not a readable file is UNREAD, once, not "no schedule"',
+      `${R.contentsShape.code}|${h(R.contentsShape, 'contents:o/a:.github/workflows/idle.yml')}|${
+        new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/idle\\.yml\\s+GitHub 200 on [^\\n]*unusable body`).test(R.contentsShape.log)}|${
+        /no schedule: block, not judged\s+: 0/.test(secA(R.contentsShape.log))}`, '1|1|true|true',
+      'GitHub sends encoding none and empty content for a file over 1 MB: that is not a file with no schedule');
+  one('E2E-18e an admitted key whose contents body was unusable is NOT "fixed or gone"',
+      `${R.shapeAdmitted.code}|${R.shapeAdmitted.logs}|${!R.shapeAdmitted.log.includes('fixed or gone; remove it')}|${
+        new RegExp(`UNREAD today, admitted keys not judged\\s+: 1\\n\\s+${IDLE.replace(/[.]/g, '\\.')}`).test(R.shapeAdmitted.log)}`, '1|1|true|true',
+      'the same rule as E2E-5, for the success-with-no-content path that cronOf used to read as "no schedule"');
+  one('E2E-18f the control for E2E-18e: the same baseline and a clean read DOES say "fixed or gone"',
+      `${R.resolvedControl.code}|${R.resolvedControl.log.includes(`${IDLE}   <- fixed or gone; remove it`)}`, '0|true',
+      'E2E-18e asserts an absence; this shows the string it forbids is what a clean read prints, so the absence is not vacuous');
   one('E2E-17 the GitHub request id reaches the log line, for a workflow and for a whole repo',
       `${R.forever.log.includes('(x-github-request-id FAKE-runs-o-a-1)')}|${R.listing.log.includes('(x-github-request-id FAKE-list-o-a)')}`, 'true|true',
       'a 5xx can be reported to GitHub only if the id was kept: the unit case T14 cannot see the report line');
@@ -895,24 +987,35 @@ const requestIdOf = (u) => (u.requestId ? `  (x-github-request-id ${u.requestId}
 /** The one place this script talks to GitHub. Everything it needs is a parameter so
  *  --self-test can drive it with a scripted fetch and a recorded sleep. */
 export async function ghRequest(path, { token, fetchFn = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
-    retries = RETRIES, backoff = BACKOFF_MS, timeoutMs = ATTEMPT_TIMEOUT_MS, budget = RUN_BUDGET } = {}) {
+    retries = RETRIES, backoff = BACKOFF_MS, timeoutMs = ATTEMPT_TIMEOUT_MS, budget = RUN_BUDGET, validate = null } = {}) {
   let attempt = 0;
   for (;;) {
     attempt++;
-    let failure, retry;
+    let failure, retry, res, body, got = false;
     try {
-      const res = await fetchFn(`${API}${path}`, {
+      res = await fetchFn(`${API}${path}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json',
                    'User-Agent': 'field-relay-dead-cron-watch' }, signal: AbortSignal.timeout(timeoutMs) });
       // AWAITED INSIDE THE TRY: a body cut off mid-read rejects here, and that is a
       // transport fault to retry, not an exception to let escape the loop.
-      if (res.ok) return await res.json();
-      retry = retryableStatus(res.status);
-      failure = new GhError(`GitHub ${res.status} on ${path}: ${await bodyText(res)}`,
-        { path, status: res.status, requestId: res.headers.get('x-github-request-id') });
+      if (res.ok) { body = await res.json(); got = true; }
+      else {
+        retry = retryableStatus(res.status);
+        failure = new GhError(`GitHub ${res.status} on ${path}: ${await bodyText(res)}`,
+          { path, status: res.status, requestId: res.headers.get('x-github-request-id') });
+      }
     } catch (e) {
       failure = new GhError(`GitHub transport error on ${path}: ${e.message}`, { path, kind: 'transport' });
       retry = true;
+    }
+    if (got) {
+      // OUTSIDE THE TRY, so a bug in a validator is a bug and not a retried "transport error". A
+      // body of the wrong shape is the same body next time: GitHub's answer, never retried.
+      const why = validate ? validate(body) : null;
+      if (!why) return body;
+      failure = new GhError(`GitHub ${res.status} on ${path}: unusable body, ${why}`,
+        { path, status: res.status, kind: 'shape', requestId: res.headers.get('x-github-request-id') });
+      retry = false;
     }
     failure.attempts = attempt;
     if (!retry || attempt > retries) throw failure;
@@ -929,9 +1032,9 @@ async function bodyText(res) {
   catch (e) { return `(response body unreadable: ${e.message})`; }
 }
 
-async function gh(path) {
+async function gh(path, validate = null) {
   if (!TOKEN) throw new Error('GITHUB_TOKEN is not set');
-  return ghRequest(path, { token: TOKEN });
+  return ghRequest(path, { token: TOKEN, validate });
 }
 
 /** Every page, and it PROVES it got every page rather than trusting the loop:
@@ -942,9 +1045,9 @@ async function ghAll(path, key, perPage = 100) {
   let total = null;
   for (let page = 1; page <= 50; page++) {
     const sep = path.includes('?') ? '&' : '?';
-    const body = await gh(`${path}${sep}per_page=${perPage}&page=${page}`);
-    if (total === null) total = body.total_count ?? null;
-    const batch = body[key] || [];
+    const body = await gh(`${path}${sep}per_page=${perPage}&page=${page}`, listingShape(key));
+    if (total === null) total = body.total_count;
+    const batch = body[key];
     out.push(...batch);
     if (!wantsAnotherPage(batch.length, perPage)) break;
   }
@@ -974,8 +1077,8 @@ async function surveyRepo(repo, declared, io = { gh, ghAll, cronOf }) {
     // its listing fails (surveyAll). Only GhError is contained; any other throw is a bug and
     // still stops the run.
     try {
-      const { workflow_runs = [] } = await gh(
-        `/repos/${repo}/actions/workflows/${w.id}/runs?event=schedule&per_page=${STREAK}&status=completed`);
+      const { workflow_runs } = await gh(
+        `/repos/${repo}/actions/workflows/${w.id}/runs?event=schedule&per_page=${STREAK}&status=completed`, runsShape);
       // ZERO SCHEDULED RUNS IS TWO DIFFERENT ANSWERS AND THEY WERE ONE BUCKET.
       // A workflow with no `schedule:` block has nothing to judge — correct.
       // A workflow that DECLARES a cron and has never produced a run is the
