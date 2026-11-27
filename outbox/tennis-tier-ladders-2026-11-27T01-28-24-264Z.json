@@ -1,0 +1,1352 @@
+{
+  "ts": "2026-11-27T01:28:24.264Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "perTier": 5,
+  "tiers": {
+    "grand_slam": {
+      "tournamentsInTier": 25,
+      "singles": 8,
+      "checked": 5
+    },
+    "masters_1000": {
+      "tournamentsInTier": 10,
+      "singles": 10,
+      "checked": 5
+    },
+    "atp_1000": {
+      "tournamentsInTier": 0,
+      "singles": 0,
+      "checked": 0
+    },
+    "wta_1000": {
+      "tournamentsInTier": 11,
+      "singles": 11,
+      "checked": 5
+    },
+    "atp_500": {
+      "tournamentsInTier": 16,
+      "singles": 16,
+      "checked": 5
+    },
+    "wta_500": {
+      "tournamentsInTier": 17,
+      "singles": 17,
+      "checked": 5
+    },
+    "atp_250": {
+      "tournamentsInTier": 32,
+      "singles": 32,
+      "checked": 5
+    },
+    "wta_250": {
+      "tournamentsInTier": 105,
+      "singles": 105,
+      "checked": 5
+    }
+  },
+  "editions": [
+    {
+      "tier": "grand_slam",
+      "tid": 15,
+      "name": "Australian Open",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 14,
+      "name": "Australian Open",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 76,
+      "name": "Roland Garros",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 77,
+      "name": "Roland Garros",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "grand_slam",
+      "tid": 135,
+      "name": "US Open, Men",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=64",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 63,
+      "name": "ATP Madrid Masters",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 67,
+      "name": "ATP Rome Masters",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 130,
+      "name": "Cincinnati",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 42,
+      "name": "Indian Wells",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "masters_1000",
+      "tid": 45,
+      "name": "Miami",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 167,
+      "name": "Beijing",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 131,
+      "name": "Cincinnati",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 128",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 27,
+      "name": "Doha",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 33,
+      "name": "Dubai",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_1000",
+      "tid": 41,
+      "name": "Indian Wells",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 37,
+      "name": "Acapulco",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 57,
+      "name": "Barcelona",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 189,
+      "name": "Basel",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 169,
+      "name": "Beijing",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_500",
+      "tid": 25,
+      "name": "Dallas",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 22,
+      "name": "Abu Dhabi",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 11,
+      "name": "Adelaide",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=14",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 99,
+      "name": "Bad Homburg",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 95,
+      "name": "Berlin",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_500",
+      "tid": 5,
+      "name": "Brisbane",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R64=16",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 64",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 13,
+      "name": "Adelaide",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 180,
+      "name": "Almaty",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 202,
+      "name": "ATP Athens, Greece Men Singles",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 183,
+      "name": "ATP Brussels, Belgium Singles",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "atp_250",
+      "tid": 10,
+      "name": "Auckland",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=12",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 790,
+      "name": "Adana, Turkiye",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 1,
+      "name": "Angers, France",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 46,
+      "name": "Antalya 2, Turkiye",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [
+        "R32=12",
+        "R16=8"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": "Round of 16",
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "wta_250",
+      "tid": 53,
+      "name": "Antalya 3, Turkiye",
+      "status": 409,
+      "body": "{\"error\":\"a player appears twice in one round\",\"tournament\":53,\"season\":\"2026\",\"duplicates\":[{\"round\":\"Round of 32\",\"playerId\":634,\"matches\":[28296,28603]},{\"round\":\"Round of 32\",\"playerId\":233,\"match"
+    },
+    {
+      "tier": "wta_250",
+      "tid": 758,
+      "name": "Antalya 4, Turkiye",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "entry": "Round of 32",
+      "openInnermost": null,
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 209,
+      "name": "ATP Finals",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 3,
+      "roundsOutsideMainDraw": {
+        "": 12
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 509,
+      "name": "Billie Jean King Cup",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 7,
+      "roundsOutsideMainDraw": {
+        "": 156,
+        "Qualification Round 1": 7
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 508,
+      "name": "Billie Jean King Cup Group I",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [],
+      "mainDrawMatches": 0,
+      "roundsOutsideMainDraw": {
+        "": 130
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 446,
+      "name": "Davis Cup",
+      "status": 200,
+      "season": "2026",
+      "complete": false,
+      "ladder": [
+        "Quarterfinals=4",
+        "Semifinals=2"
+      ],
+      "mainDrawMatches": 6,
+      "roundsOutsideMainDraw": {
+        "": 339,
+        "Qualification Final": 7,
+        "Qualification Round 1": 13
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 4,
+      "name": "Next Gen Finals",
+      "status": 200,
+      "season": "2025",
+      "complete": true,
+      "ladder": [
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 3,
+      "roundsOutsideMainDraw": {
+        "": 12
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 391,
+      "name": "United Cup",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 7,
+      "roundsOutsideMainDraw": {
+        "": 74
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    },
+    {
+      "tier": "named",
+      "tid": 204,
+      "name": "WTA Finals",
+      "status": 200,
+      "season": "2026",
+      "complete": true,
+      "ladder": [
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "mainDrawMatches": 3,
+      "roundsOutsideMainDraw": {
+        "": 14
+      },
+      "interiorOff": [],
+      "edgesDeclaredNull": true
+    }
+  ],
+  "census": {
+    "status": 200,
+    "read": 778,
+    "declared": 778,
+    "truncated": false,
+    "pages": 8
+  },
+  "clientSplit": {
+    "deployed": {
+      "where": "DEPLOYED https://jubilant-bassoon.jeffunglesbee.workers.dev/",
+      "bytes": 2136578,
+      "anchorsPresent": [
+        "TENNIS_TIERS",
+        "TENNIS_NAMED",
+        "_tennisTierAllowed",
+        "_TENNIS_DRAW_TIER_RANK",
+        "_TENNIS_MAIN_DRAW_ROUNDS",
+        "_tennisRowInMainDraw",
+        "_TENNIS_DRAW_NAMED_RANK",
+        "_tennisDrawPick"
+      ],
+      "anchorsAbsent": [
+        "_TENNIS_DRAW_NO_BRACKET"
+      ]
+    },
+    "source": {
+      "where": "SOURCE jeffunglesbee-create/jubilant-bassoon:src/legacy/field.js@main",
+      "bytes": 2391612,
+      "anchorsPresent": [
+        "TENNIS_TIERS",
+        "TENNIS_NAMED",
+        "_tennisTierAllowed",
+        "_TENNIS_DRAW_TIER_RANK",
+        "_TENNIS_MAIN_DRAW_ROUNDS",
+        "_tennisRowInMainDraw",
+        "_TENNIS_DRAW_NAMED_RANK",
+        "_tennisDrawPick"
+      ],
+      "anchorsAbsent": [
+        "_TENNIS_DRAW_NO_BRACKET"
+      ]
+    },
+    "refusals": []
+  },
+  "namedEvents": {
+    "matched": 7,
+    "names": [
+      "ATP Finals",
+      "Billie Jean King Cup",
+      "Billie Jean King Cup Group I",
+      "Davis Cup",
+      "Next Gen Finals",
+      "United Cup",
+      "WTA Finals"
+    ],
+    "withKnockout": [
+      "209 ATP Finals (3 match(es))",
+      "509 Billie Jean King Cup (7 match(es))",
+      "446 Davis Cup (6 match(es))",
+      "4 Next Gen Finals (3 match(es))",
+      "391 United Cup (7 match(es))",
+      "204 WTA Finals (3 match(es))"
+    ],
+    "withoutKnockout": [
+      "508 Billie Jean King Cup Group I (0 match(es))"
+    ]
+  },
+  "replay": {
+    "window": {
+      "from": "2026-11-21",
+      "to": "2026-11-27",
+      "trailing": 7
+    },
+    "pins": [
+      {
+        "id": "empty-day",
+        "date": "2025-12-22",
+        "tid": null,
+        "name": null,
+        "expectDrawn": null,
+        "basis": "card read in full 2026-11-26: 16 rows, count=declaredCount=16, truncated=false, every row category utr (UTR PTT Saitama).",
+        "reproduced": true,
+        "problems": []
+      },
+      {
+        "id": "tier-draw",
+        "date": "2026-09-07",
+        "tid": 135,
+        "name": "US Open, Men",
+        "expectDrawn": true,
+        "basis": "draw 135/2026 read 2026-11-26: Round of 16 nodes dated 2026-09-07 (18:05, 20:40, 21:45Z). The 2026-09-07 card read the same day shows US Open, Women (136) Round of 16 at 01:30Z; the men's rows are later in the day, runner confirms.",
+        "reproduced": true,
+        "problems": []
+      },
+      {
+        "id": "named-round-robin",
+        "date": "2026-11-16",
+        "tid": 209,
+        "name": "ATP Finals",
+        "expectDrawn": false,
+        "basis": "draw 209/2026 read 2026-11-26: nodes dated 2026-11-21 x2 and 11-22 only, so no main-draw node on 11-16. Round-robin rows on the 11-16 card with a blank round_name: inferred from roundsOutsideMainDraw {\"\":12}, runner confirms.",
+        "reproduced": true,
+        "problems": []
+      },
+      {
+        "id": "named-main-draw",
+        "date": "2026-11-25",
+        "tid": 446,
+        "name": "Davis Cup",
+        "expectDrawn": true,
+        "basis": "draw 446/2026 read 2026-11-26: Quarterfinals nodes dated 2026-11-24, 11-25 (Italy v Korea), 11-26 x2; semifinal 11-27. Card rows on 11-25 with round_name Quarterfinals: unread, runner confirms.",
+        "reproduced": true,
+        "problems": []
+      }
+    ],
+    "days": [
+      {
+        "date": "2025-12-22",
+        "window": "pinned",
+        "pin": "empty-day",
+        "rows": 16,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [],
+        "pick": null,
+        "drawable": [],
+        "unread": [],
+        "i1": "n/a",
+        "i2": "n/a"
+      },
+      {
+        "date": "2026-09-07",
+        "window": "pinned",
+        "pin": "tier-draw",
+        "rows": 205,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "136 US Open, Women (grand_slam) x5",
+          "758 Antalya 4, Turkiye (wta_250) x10",
+          "142 Montreux, Switzerland (wta_250) x9",
+          "765 Barranquilla, Colombia (wta_250) x9",
+          "135 US Open, Men (grand_slam) x3"
+        ],
+        "pick": "136 US Open, Women",
+        "drawable": [
+          136,
+          758,
+          765,
+          135
+        ],
+        "unread": [
+          142
+        ],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-16",
+        "window": "pinned",
+        "pin": "named-round-robin",
+        "rows": 195,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "209 ATP Finals (other) x2",
+          "211 Santiago, Chile (wta_250) x8"
+        ],
+        "pick": "211 Santiago, Chile",
+        "drawable": [
+          211
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-21",
+        "window": "trailing",
+        "pin": null,
+        "rows": 121,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "509 Billie Jean King Cup (other) x23",
+          "209 ATP Finals (other) x2",
+          "211 Santiago, Chile (wta_250) x2"
+        ],
+        "pick": "209 ATP Finals",
+        "drawable": [
+          209,
+          211
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-22",
+        "window": "trailing",
+        "pin": null,
+        "rows": 173,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "509 Billie Jean King Cup (other) x17",
+          "215 Buenos Aires, Argentina (wta_250) x4",
+          "209 ATP Finals (other) x1",
+          "211 Santiago, Chile (wta_250) x1"
+        ],
+        "pick": "209 ATP Finals",
+        "drawable": [
+          209,
+          211
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-23",
+        "window": "trailing",
+        "pin": null,
+        "rows": 161,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "215 Buenos Aires, Argentina (wta_250) x8"
+        ],
+        "pick": "215 Buenos Aires, Argentina",
+        "drawable": [
+          215
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-24",
+        "window": "trailing",
+        "pin": null,
+        "rows": 160,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "215 Buenos Aires, Argentina (wta_250) x9",
+          "446 Davis Cup (other) x3"
+        ],
+        "pick": "446 Davis Cup",
+        "drawable": [
+          215,
+          446
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-25",
+        "window": "pinned",
+        "pin": "named-main-draw",
+        "rows": 116,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "446 Davis Cup (other) x3",
+          "215 Buenos Aires, Argentina (wta_250) x5"
+        ],
+        "pick": "446 Davis Cup",
+        "drawable": [
+          446,
+          215
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-26",
+        "window": "trailing",
+        "pin": null,
+        "rows": 119,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "446 Davis Cup (other) x6",
+          "215 Buenos Aires, Argentina (wta_250) x4"
+        ],
+        "pick": "446 Davis Cup",
+        "drawable": [
+          446,
+          215
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      },
+      {
+        "date": "2026-11-27",
+        "window": "trailing",
+        "pin": null,
+        "rows": 111,
+        "truncated": false,
+        "rowsOffDay": 0,
+        "candidates": [
+          "446 Davis Cup (other) x1",
+          "215 Buenos Aires, Argentina (wta_250) x4"
+        ],
+        "pick": "446 Davis Cup",
+        "drawable": [
+          446,
+          215
+        ],
+        "unread": [],
+        "i1": "ok",
+        "i2": "ok"
+      }
+    ],
+    "violations": [],
+    "harness": [],
+    "unreadDays": [],
+    "truthUnread": [
+      {
+        "tid": 142,
+        "season": "2026",
+        "why": "HTTP 409"
+      }
+    ],
+    "sourceDiffs": [],
+    "vocabulary": {
+      "edition": {
+        "tid": 135,
+        "season": "2026",
+        "name": "US Open, Men"
+      },
+      "main": [
+        "Round of 128",
+        "Round of 64",
+        "Round of 32",
+        "Round of 16",
+        "Quarterfinals",
+        "Semifinals",
+        "Final"
+      ],
+      "outside": [
+        "",
+        "Qualification Final",
+        "Qualification Round 1",
+        "Qualification Round 2"
+      ],
+      "mainChecks": 7,
+      "outsideChecks": 4
+    },
+    "sourceAgreesWithDeployed": true,
+    "coverage": {
+      "daysExamined": 10,
+      "daysRequested": 10,
+      "daysWithCandidates": 9,
+      "daysWithDrawable": 9,
+      "i1Checks": 9,
+      "i2Checks": 9,
+      "i1Skipped": 0,
+      "i2Skipped": 0,
+      "pinsReproduced": 4,
+      "pinsTotal": 4,
+      "trailingRead": 7,
+      "trailingTotal": 7,
+      "vocabMainChecks": 7,
+      "vocabOutsideChecks": 4,
+      "unreadDays": 0,
+      "truthUnread": 1,
+      "truncatedCards": 0,
+      "rowsOffDay": 0,
+      "cannotSee": "by-date rows only, so the nav link, _tennisRevealDrawNav and the live feed are not replayed; which event is chosen when several are drawable is not checked; events the client's own tier filter drops are seen only where a pin or a payload shows them"
+    },
+    "coverageLine": "checked 10 days, 9 with a drawable event, 9 I1 checks, 9 I2 checks; 9 had a candidate; pins reproduced 4 of 4; trailing window: 7 of 7 read; vocabulary: 7 main-draw name(s) offered, 4 outside name(s) refused; 0 day(s) and 1 draw read(s) unread; 0 card(s) truncated; skipped checks: I1 0, I2 0. NOT SEEN: by-date rows only, so the nav link, _tennisRevealDrawNav and the live feed are not replayed; which event is chosen when several are drawable is not checked; events the client's own tier filter drops are seen only where a pin or a payload shows them"
+  },
+  "summary": {
+    "tiersDeclared": 8,
+    "editionsRequested": 42,
+    "editionsRead": 41,
+    "modelHeld": 41,
+    "interiorHoles": [],
+    "unread": [
+      "wta_250 53 Antalya 3, Turkiye HTTP 409"
+    ],
+    "edgeRuleViolations": 0,
+    "clientSplitDrift": [],
+    "clientSplitRefusals": [],
+    "clientSplitContradictions": [],
+    "clientDecisionReplay": {
+      "status": "ok",
+      "ran": true,
+      "coverageLine": "checked 10 days, 9 with a drawable event, 9 I1 checks, 9 I2 checks; 9 had a candidate; pins reproduced 4 of 4; trailing window: 7 of 7 read; vocabulary: 7 main-draw name(s) offered, 4 outside name(s) refused; 0 day(s) and 1 draw read(s) unread; 0 card(s) truncated; skipped checks: I1 0, I2 0. NOT SEEN: by-date rows only, so the nav link, _tennisRevealDrawNav and the live feed are not replayed; which event is chosen when several are drawable is not checked; events the client's own tier filter drops are seen only where a pin or a payload shows them",
+      "coverage": {
+        "daysExamined": 10,
+        "daysRequested": 10,
+        "daysWithCandidates": 9,
+        "daysWithDrawable": 9,
+        "i1Checks": 9,
+        "i2Checks": 9,
+        "i1Skipped": 0,
+        "i2Skipped": 0,
+        "pinsReproduced": 4,
+        "pinsTotal": 4,
+        "trailingRead": 7,
+        "trailingTotal": 7,
+        "vocabMainChecks": 7,
+        "vocabOutsideChecks": 4,
+        "unreadDays": 0,
+        "truthUnread": 1,
+        "truncatedCards": 0,
+        "rowsOffDay": 0,
+        "cannotSee": "by-date rows only, so the nav link, _tennisRevealDrawNav and the live feed are not replayed; which event is chosen when several are drawable is not checked; events the client's own tier filter drops are seen only where a pin or a payload shows them"
+      },
+      "window": {
+        "from": "2026-11-21",
+        "to": "2026-11-27",
+        "trailing": 7
+      },
+      "vocabulary": {
+        "edition": {
+          "tid": 135,
+          "season": "2026",
+          "name": "US Open, Men"
+        },
+        "main": [
+          "Round of 128",
+          "Round of 64",
+          "Round of 32",
+          "Round of 16",
+          "Quarterfinals",
+          "Semifinals",
+          "Final"
+        ],
+        "outside": [
+          "",
+          "Qualification Final",
+          "Qualification Round 1",
+          "Qualification Round 2"
+        ],
+        "mainChecks": 7,
+        "outsideChecks": 4
+      },
+      "pins": [
+        {
+          "id": "empty-day",
+          "date": "2025-12-22",
+          "tid": null,
+          "name": null,
+          "expectDrawn": null,
+          "basis": "card read in full 2026-11-26: 16 rows, count=declaredCount=16, truncated=false, every row category utr (UTR PTT Saitama).",
+          "reproduced": true,
+          "problems": []
+        },
+        {
+          "id": "tier-draw",
+          "date": "2026-09-07",
+          "tid": 135,
+          "name": "US Open, Men",
+          "expectDrawn": true,
+          "basis": "draw 135/2026 read 2026-11-26: Round of 16 nodes dated 2026-09-07 (18:05, 20:40, 21:45Z). The 2026-09-07 card read the same day shows US Open, Women (136) Round of 16 at 01:30Z; the men's rows are later in the day, runner confirms.",
+          "reproduced": true,
+          "problems": []
+        },
+        {
+          "id": "named-round-robin",
+          "date": "2026-11-16",
+          "tid": 209,
+          "name": "ATP Finals",
+          "expectDrawn": false,
+          "basis": "draw 209/2026 read 2026-11-26: nodes dated 2026-11-21 x2 and 11-22 only, so no main-draw node on 11-16. Round-robin rows on the 11-16 card with a blank round_name: inferred from roundsOutsideMainDraw {\"\":12}, runner confirms.",
+          "reproduced": true,
+          "problems": []
+        },
+        {
+          "id": "named-main-draw",
+          "date": "2026-11-25",
+          "tid": 446,
+          "name": "Davis Cup",
+          "expectDrawn": true,
+          "basis": "draw 446/2026 read 2026-11-26: Quarterfinals nodes dated 2026-11-24, 11-25 (Italy v Korea), 11-26 x2; semifinal 11-27. Card rows on 11-25 with round_name Quarterfinals: unread, runner confirms.",
+          "reproduced": true,
+          "problems": []
+        }
+      ],
+      "violations": [],
+      "harness": [],
+      "unreadDays": [],
+      "truthUnread": [
+        {
+          "tid": 142,
+          "season": "2026",
+          "why": "HTTP 409"
+        }
+      ],
+      "sourceAgreesWithDeployed": true,
+      "sourceDiffs": []
+    }
+  }
+}
