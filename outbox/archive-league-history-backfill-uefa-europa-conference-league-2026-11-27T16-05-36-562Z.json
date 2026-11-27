@@ -1,0 +1,24 @@
+{
+  "ts": "2026-11-27T16:05:36.562Z",
+  "league": "uefa.europa.conf",
+  "label": "UEFA Europa Conference League",
+  "from": "2026-05-01",
+  "to": "2026-11-25",
+  "dry": true,
+  "dates": 209,
+  "scoreboardsRead": 209,
+  "completed": 57,
+  "alreadyArchived": 55,
+  "written": 0,
+  "failedWrites": 0,
+  "noEventId": 0,
+  "stopped": null,
+  "statuses": {
+    "200": 209
+  },
+  "archiveAfter": {
+    "n": 55,
+    "scored": 55,
+    "joined": 55
+  }
+}
