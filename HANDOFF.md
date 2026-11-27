@@ -61,7 +61,8 @@ The owner asked "Find another afl/aflw source" after aflapi v2 served `LIVE` wit
 ## SESSION CLOSE-OUT — 2026-11-27 (21:45Z) — the laboratory's UEFA forecast: DO NOT BUILD; a correction: the scheduled join does not run
 
 **HEAD:** see the commit that carries this entry · **Branch:** main · no code changed.
-**Spec:** `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-27, part 4"; the laboratory's `docs/CC-CMD-2026-11-27-uefa-forecast-on-tonights-cards.md` (Status DONE, verdict DO NOT BUILD) and its session record `outbox/cc-session-2026-11-27-uefa-forecast-fit.md`.
+**Session doc:** field-laboratory/outbox/cc-session-2026-11-27-uefa-forecast-fit.md
+**Spec:** `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, "Addendum 2026-11-27, part 4"; the laboratory's `docs/CC-CMD-2026-11-27-uefa-forecast-on-tonights-cards.md` (Status DONE, verdict DO NOT BUILD) and its session record `field-laboratory/outbox/cc-session-2026-11-27-uefa-forecast-fit.md`.
 **Read at 21:38Z** (`outbox/archive-label-dates-2026-11-27T21-38-02-440Z.json`): 866 UEFA rows, 342 joined, 524 unjoined (last season's 522 plus the 2 May Conference League rows); 279 / 279 / 225 rows for the three main labels.
 **Correction:** the earlier statement that the scheduled join would pick up the February to April rows was wrong: `outbox/bsd-join-backfill-complete.json` exists, so every scheduled run skips at the gate (run `46070490625`, 21:28Z, all three jobs skipped). Those 126 rows stay unjoined until a dispatch. **Nothing needs it today;** an owner decision (dispatch spends BSD pages), in the Addendum.
 **Also recorded:** club names differ in spelling inside one competition in the archive (the three finals use full names; two 2026-27 clubs change spelling mid-season); the Addendum lists them.
