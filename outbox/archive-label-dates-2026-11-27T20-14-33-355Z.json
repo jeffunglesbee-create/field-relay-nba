@@ -1,0 +1,749 @@
+{
+  "ts": "2026-11-27T20:14:33.355Z",
+  "likes": [
+    "UEFA%"
+  ],
+  "tablesRead": [
+    "regular_season_games",
+    "postseason_games"
+  ],
+  "labels": {
+    "UEFA Champions League": {
+      "rows": 279,
+      "joined": 93,
+      "dates": 44,
+      "firstDate": "2025-09-16",
+      "lastDate": "2026-11-25",
+      "tables": {
+        "regular_season_games": 279
+      }
+    },
+    "UEFA Europa League": {
+      "rows": 279,
+      "joined": 93,
+      "dates": 27,
+      "firstDate": "2025-09-24",
+      "lastDate": "2026-11-26",
+      "tables": {
+        "regular_season_games": 279
+      }
+    },
+    "UEFA Europa Conference League": {
+      "rows": 225,
+      "joined": 73,
+      "dates": 20,
+      "firstDate": "2025-10-02",
+      "lastDate": "2026-11-26",
+      "tables": {
+        "regular_season_games": 225
+      }
+    },
+    "UEFA Champions League Qualifying": {
+      "rows": 11,
+      "joined": 11,
+      "dates": 3,
+      "firstDate": "2026-08-19",
+      "lastDate": "2026-08-26",
+      "tables": {
+        "regular_season_games": 11
+      }
+    },
+    "UEFA Europa Conference League Qualifying": {
+      "rows": 48,
+      "joined": 48,
+      "dates": 3,
+      "firstDate": "2026-08-20",
+      "lastDate": "2026-08-27",
+      "tables": {
+        "regular_season_games": 48
+      }
+    },
+    "UEFA Europa League Qualifying": {
+      "rows": 24,
+      "joined": 24,
+      "dates": 2,
+      "firstDate": "2026-08-20",
+      "lastDate": "2026-08-27",
+      "tables": {
+        "regular_season_games": 24
+      }
+    }
+  },
+  "dates": [
+    "2025-09-16",
+    "2025-09-17",
+    "2025-09-18",
+    "2025-09-24",
+    "2025-09-25",
+    "2025-09-30",
+    "2025-10-01",
+    "2025-10-02",
+    "2025-10-21",
+    "2025-10-22",
+    "2025-10-23",
+    "2025-10-24",
+    "2025-11-04",
+    "2025-11-05",
+    "2025-11-06",
+    "2025-11-25",
+    "2025-11-26",
+    "2025-11-27",
+    "2025-12-09",
+    "2025-12-10",
+    "2025-12-11",
+    "2025-12-18",
+    "2026-01-20",
+    "2026-01-21",
+    "2026-01-22",
+    "2026-01-28",
+    "2026-01-29",
+    "2026-02-17",
+    "2026-02-18",
+    "2026-02-19",
+    "2026-02-24",
+    "2026-02-25",
+    "2026-02-26",
+    "2026-03-10",
+    "2026-03-11",
+    "2026-03-12",
+    "2026-03-17",
+    "2026-03-18",
+    "2026-03-19",
+    "2026-04-07",
+    "2026-04-08",
+    "2026-04-09",
+    "2026-04-14",
+    "2026-04-15",
+    "2026-04-16",
+    "2026-04-28",
+    "2026-04-29",
+    "2026-04-30",
+    "2026-05-05",
+    "2026-05-06",
+    "2026-05-07",
+    "2026-05-20",
+    "2026-05-27",
+    "2026-05-30",
+    "2026-08-19",
+    "2026-08-20",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27",
+    "2026-09-08",
+    "2026-09-09",
+    "2026-09-10",
+    "2026-09-16",
+    "2026-09-17",
+    "2026-10-13",
+    "2026-10-14",
+    "2026-10-15",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-24",
+    "2026-11-25",
+    "2026-11-26"
+  ],
+  "rowsByTable": {
+    "regular_season_games": [
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-09-16",
+        "n": 6,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-09-17",
+        "n": 6,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-09-18",
+        "n": 6,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2025-09-24",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2025-09-25",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-09-30",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-10-01",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2025-10-02",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2025-10-02",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-10-21",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-10-22",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2025-10-23",
+        "n": 17,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2025-10-23",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2025-10-24",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-11-04",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-11-05",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2025-11-06",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2025-11-06",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-11-25",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-11-26",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2025-11-27",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2025-11-27",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-12-09",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2025-12-10",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2025-12-11",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2025-12-11",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2025-12-18",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-01-20",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-01-21",
+        "n": 9,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-01-22",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-01-28",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-01-29",
+        "n": 18,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-02-17",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-02-18",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-02-19",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-02-19",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-02-24",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-02-25",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-02-26",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-02-26",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-03-10",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-03-11",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-03-12",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-03-12",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-03-17",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-03-18",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-03-18",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-03-19",
+        "n": 8,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-03-19",
+        "n": 7,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-04-07",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-04-08",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-04-08",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-04-09",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-04-09",
+        "n": 3,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-04-14",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-04-15",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-04-16",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-04-16",
+        "n": 4,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-04-28",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-04-29",
+        "n": 1,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-04-30",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-04-30",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-05-05",
+        "n": 1,
+        "joined": 1
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-05-06",
+        "n": 1,
+        "joined": 1
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-05-07",
+        "n": 2,
+        "joined": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-05-07",
+        "n": 2,
+        "joined": 2
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-05-20",
+        "n": 1,
+        "joined": 1
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-05-27",
+        "n": 1,
+        "joined": 1
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-05-30",
+        "n": 1,
+        "joined": 1
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "date": "2026-08-19",
+        "n": 4,
+        "joined": 4
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "date": "2026-08-20",
+        "n": 24,
+        "joined": 24
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "date": "2026-08-20",
+        "n": 12,
+        "joined": 12
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "date": "2026-08-25",
+        "n": 3,
+        "joined": 3
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "date": "2026-08-26",
+        "n": 4,
+        "joined": 4
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "date": "2026-08-26",
+        "n": 1,
+        "joined": 1
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "date": "2026-08-27",
+        "n": 23,
+        "joined": 23
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "date": "2026-08-27",
+        "n": 12,
+        "joined": 12
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-09-08",
+        "n": 6,
+        "joined": 6
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-09-09",
+        "n": 6,
+        "joined": 6
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-09-10",
+        "n": 6,
+        "joined": 6
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-09-16",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-09-17",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-10-13",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-10-14",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-10-15",
+        "n": 18,
+        "joined": 18
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-10-15",
+        "n": 18,
+        "joined": 18
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-10-20",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-10-21",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-10-22",
+        "n": 18,
+        "joined": 18
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-10-22",
+        "n": 18,
+        "joined": 18
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-11-03",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-11-04",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-11-04",
+        "n": 1,
+        "joined": 1
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-11-05",
+        "n": 18,
+        "joined": 18
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-11-05",
+        "n": 17,
+        "joined": 17
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-11-24",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Champions League",
+        "date": "2026-11-25",
+        "n": 9,
+        "joined": 9
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "date": "2026-11-26",
+        "n": 18,
+        "joined": 18
+      },
+      {
+        "sport": "UEFA Europa League",
+        "date": "2026-11-26",
+        "n": 18,
+        "joined": 18
+      }
+    ],
+    "postseason_games": []
+  }
+}
