@@ -1,0 +1,24 @@
+{
+  "ts": "2026-11-27T16:08:10.958Z",
+  "league": "uefa.champions",
+  "label": "UEFA Champions League",
+  "from": "2025-09-01",
+  "to": "2026-04-30",
+  "dry": true,
+  "dates": 242,
+  "scoreboardsRead": 242,
+  "completed": 186,
+  "alreadyArchived": 0,
+  "written": 0,
+  "failedWrites": 0,
+  "noEventId": 0,
+  "stopped": null,
+  "statuses": {
+    "200": 242
+  },
+  "archiveAfter": {
+    "n": 0,
+    "scored": 0,
+    "joined": 0
+  }
+}
