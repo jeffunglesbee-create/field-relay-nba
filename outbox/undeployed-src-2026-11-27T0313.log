@@ -1,0 +1,22 @@
+=== undeployed src  repo=jeffunglesbee-create/field-relay-nba  utc=2026-11-27T03:13:15.263Z ===
+
+  deploy triggers on : src/**, wrangler.toml, workers/**   (read from deploy.yml)
+  last GREEN deploy  : efa06fa  2026-11-26T16:47:26Z
+  a deploy running   : false
+
+  verdict            : undeployed
+  commits unbuilt    : 2   oldest 0.5h ago
+      3286f6e  2026-11-27T02:41:09Z  feat: aflapi reads carry the owner's contact address; one-step off switch for the AFLW feed
+      ba90760  2026-11-27T02:40:53Z  fix: aflapi status UNCONFIRMED_TEAMS is `pre`; the Grand Final's board was a 502
+
+COVERAGE: compares HEAD against the last SUCCESSFUL deploy run's head_sha
+over 3 declared path(s), reading those paths from deploy.yml rather
+than restating them. It does NOT verify the running worker matches that SHA —
+no build stamp exists to check — only that every deploy-triggering commit has
+been through a successful run.
+
+FAIL: 2 commit(s) touch a deploy path and no successful deploy has built them.
+      Oldest is 0.5h old. A red deploy followed by a docs-only fix leaves
+      exactly this state and nothing else reports it: the failed run scrolls
+      away, the fix commit runs no workflows, and git log looks finished.
+      Re-run deploy.yml at HEAD (it accepts workflow_dispatch).
