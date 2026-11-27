@@ -1,5 +1,15 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-11-27 (20:20Z) — the 524-row UEFA history write is DONE on the owner's word: 186 + 186 + 150 + 2 written, 0 failed; `uefa_history_written` PASS (579 rows); the claim is marked done
+
+**HEAD:** see the commit that carries this entry · **Branch:** main · production write via `archive-league-history-backfill.yml`, no code changed.
+**Session doc:** outbox/cc-session-2026-11-27-uefa-history-write.md (spec: `docs/CC-CMD-2026-10-27-bsd-event-id-on-game-rows.md`, the staged write of Addendum 2026-11-27 part 3; the owner: "UEFA history write approved").
+
+- **Written:** runs `46060604957` (Champions League 186), `46061081424` (Europa League 186), `46061545774` (Conference League 150), `46062013710` (Conference League May rows 2); each `completed` equal to `written`, 0 failed.
+- **Done condition read:** `staged-verification.yml` `46062121581` check 16 PASS (`outbox/staged-verification-20261127T201324Z.json`; PENDING 0/186, 0/186, 0/150, 55/57 before); label totals 279, 279, 225 as the claim predicted (`outbox/archive-label-dates-2026-11-27T20-14-33-355Z.json`).
+- **Residual:** the 524 rows are unjoined; `bsd-game-join-backfill.yml` joins from 2026-02-01 on its schedule and spends BSD pages, as stated before the write.
+- **For the laboratory's UEFA forecast session:** the history it was blocked on is in the archive; that session has not been told.
+
 ## SESSION CLOSE-OUT — 2026-11-27 (19:35Z) — Repo guards green again: the 17:00Z close-out names its session doc by repo (step 63) and the staged UEFA history write has a verifier (step 11, check 16 `uefa_history_written`, PENDING 0/186, 0/186, 0/150, 55/57)
 
 **HEAD:** relay `5df5861` (check 16) ← `2dbe794` (step 63 wording) ← `afed116` (the AFLW source research) · **Branch:** main.
