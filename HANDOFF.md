@@ -1,5 +1,13 @@
 # FIELD Relay — HANDOFF
 
+## RESEARCH — 2026-11-27 (late): another source for a live AFLW score (no build)
+
+The owner asked "Find another afl/aflw source" after aflapi v2 served `LIVE` with no score, period or clock in the Grand Final. Result: **no source read is shown to serve an AFLW in-play score with period and clock**; three document it at `claimed-only` level (Champion Data licensed API, Sportradar, DataSportsAPI). Record: `outbox/aflw-live-score-sources-2026-11-27.md`; evidence JSON beside it; CC-CMD Part E. **Session doc:** the outbox record above (research only, no code change).
+
+- **Owner decisions open:** whether AFLW should get a live score at all; which source to pursue (each needs a Rule 45.3(b) decision, none taken); whether to send the AFL letter (draft); a Champion Data enquiry would be ADR-004 trigger 3.
+- **Time-limited:** DataSportsAPI Free plan history is 7 days, so the Grand Final fixture leaves it about 2026-12-04 (post-match fields only; needs the owner's sign-in).
+- **Not wired, not signed up, no key used.** The lab card keeps saying "live score unavailable" for a live AFLW game, which is the feed's true state.
+
 ## SESSION CLOSE-OUT — 2026-11-27 (02:58Z) — AFLW: the aflapi contact address, a one-step off switch, `UNCONFIRMED_TEAMS` is `pre`, the lab's source line; the relay is DEPLOYED (2026-11-27 04:49Z, after the UEFA staged claim was marked done)
 
 **HEAD:** relay `ba90760` (the status) ← `3286f6e` (contact and switch) ← `1844190` (docs) · field-laboratory `d566d24a` · client `73689d5` (the CONTRACTS.md sync) · **Branch:** main.
