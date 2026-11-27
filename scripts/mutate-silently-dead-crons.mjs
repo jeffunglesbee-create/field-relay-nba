@@ -296,7 +296,7 @@ const MUTATIONS = [
   { name: 'G11 the per-attempt timeout is removed',
     anchor: ', signal: AbortSignal.timeout(timeoutMs)',
     replace: '',
-    case: ['T9b', 'E2E-12'],
+    case: ['T9a', 'T9b', 'E2E-12'],
     catches: 'one hung socket holds the runner for hours, which today has no limit at all' },
 
   { name: 'G28 the default attempt timeout is widened until nothing can fail',
@@ -386,6 +386,86 @@ const MUTATIONS = [
     replace: 'unreadRepo: { status: e.status, attempts: 1,',
     case: ['A1b'],
     catches: 'the log says one attempt when the listing was tried four times' },
+
+  // ── 2026-11-27: behaviours the first review proved NO case pinned. Each of these was found by
+  // writing the mutant, and each ESCAPED the 121 cases before the case that names it was added. ──
+  { name: 'G44 the retry budget is per call, not per run',
+    anchor: 'retries = RETRIES, backoff = BACKOFF_MS, timeoutMs = ATTEMPT_TIMEOUT_MS, budget = RUN_BUDGET } = {}) {',
+    replace: 'retries = RETRIES, backoff = BACKOFF_MS, timeoutMs = ATTEMPT_TIMEOUT_MS, budget = { left: RETRY_BUDGET_MS } } = {}) {',
+    case: ['E2E-14'],
+    catches: 'every failed read gets a fresh budget, so a hard outage sleeps for hours and the job dies with no log' },
+
+  { name: 'G45 the default sleep is a no-op',
+    anchor: 'sleep = (ms) => new Promise((r) => setTimeout(r, ms)),',
+    replace: 'sleep = () => Promise.resolve(),',
+    case: ['T16'],
+    catches: 'the retries are fired back to back, which defeats riding out a 502 blip' },
+
+  { name: 'G46 the default sleep waits a thousand times too long',
+    anchor: 'sleep = (ms) => new Promise((r) => setTimeout(r, ms)),',
+    replace: 'sleep = (ms) => new Promise((r) => setTimeout(r, ms * 1000)),',
+    case: ['T16'],
+    catches: 'one retry costs seventeen minutes' },
+
+  { name: 'G47 the per-attempt timeout is ten times too long',
+    anchor: 'signal: AbortSignal.timeout(timeoutMs)',
+    replace: 'signal: AbortSignal.timeout(timeoutMs * 10)',
+    case: ['T17'],
+    catches: 'a signal exists and fires, far too late' },
+
+  { name: 'G48 the per-attempt timeout is twice too long',
+    anchor: 'signal: AbortSignal.timeout(timeoutMs)',
+    replace: 'signal: AbortSignal.timeout(timeoutMs * 2)',
+    case: ['T17'],
+    catches: 'the value is configured and not honoured' },
+
+  { name: 'G49 a 408 is retried besides the 5xx',
+    anchor: 'export const retryableStatus = (s) => s >= 500 && s <= 599;',
+    replace: 'export const retryableStatus = (s) => (s >= 500 && s <= 599) || s === 408;',
+    case: ['T5'],
+    catches: 'a 4xx other than the four the first cases named is retried' },
+
+  { name: 'G50 a transport failure on a contents read is swallowed into "no schedule"',
+    anchor: '  const body = await read(`/repos/${repo}/contents/${path}`);',
+    replace: '  let body; try { body = await read(`/repos/${repo}/contents/${path}`); } catch (e) { if (e.kind === \'transport\') return null; throw e; }',
+    case: ['E2E-15a'],
+    catches: 'a connection that resets forever reads as "nothing to judge", the swallow this fix removed, for one fault kind' },
+
+  { name: 'G51 a transport failure on a runs read is filed healthy',
+    anchor: '      unread.push({ repo, name: w.name, path: w.path, status: e.status, attempts: e.attempts, requestId: e.requestId, why: e.message });',
+    replace: "      if (e.kind === 'transport') { healthy.push(w.name); continue; }\n      unread.push({ repo, name: w.name, path: w.path, status: e.status, attempts: e.attempts, requestId: e.requestId, why: e.message });",
+    case: ['E2E-16a'],
+    catches: 'a connection that resets forever reports a workflow healthy that nobody read' },
+
+  { name: 'G52 the Authorization header is dropped',
+    anchor: "headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json',",
+    replace: "headers: { Accept: 'application/vnd.github+json',",
+    case: ['E2E-0'],
+    catches: 'every request goes out unauthenticated, and the end-to-end fake used to answer it anyway' },
+
+  { name: 'G53 the Accept header is dropped',
+    anchor: "Accept: 'application/vnd.github+json',",
+    replace: '',
+    case: ['E2E-0'],
+    catches: 'GitHub is asked for its default media type, not the versioned one' },
+
+  { name: 'G54 the request id is never printed',
+    anchor: "const requestIdOf = (u) => (u.requestId ? `  (x-github-request-id ${u.requestId})` : '');",
+    replace: "const requestIdOf = () => '';",
+    case: ['E2E-17'],
+    catches: 'a 5xx cannot be reported to GitHub, which is where gh() started' },
+
+  { name: 'G55 the unread repo loses its request id',
+    anchor: 'unreadRepo: { status: e.status, attempts: e.attempts, requestId: e.requestId,',
+    replace: 'unreadRepo: { status: e.status, attempts: e.attempts, requestId: null,',
+    case: ['E2E-17'],
+    catches: 'a listing 5xx is logged without the id GitHub would ask for' },
+
+  { name: 'G56 the unread workflow loses its request id',
+    anchor: 'unread.push({ repo, name: w.name, path: w.path, status: e.status, attempts: e.attempts, requestId: e.requestId,',
+    replace: 'unread.push({ repo, name: w.name, path: w.path, status: e.status, attempts: e.attempts, requestId: null,',
+    case: ['E2E-17'],
+    catches: 'a per-workflow 5xx is logged without the id GitHub would ask for' },
 
   // ── the ratchet ──
   { name: 'G19 an unread admitted key reads as "fixed or gone"',
@@ -536,16 +616,18 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: ${MUTATIONS.length} mutations, ${MUTATIONS.filter(x => x.case !== undefined).length} of them (G1-G43) with the case(s) that must catch them named and checked.`);
+console.log(`COVERAGE: ${MUTATIONS.length} mutations, ${MUTATIONS.filter(x => x.case !== undefined).length} of them (the G series) with the case(s) that must catch them named and checked.`);
 console.log(`D1-E15 mutate the PURE predicates — page loop, short-read assertion, grace, the repo`);
 console.log(`list, detector-key qualification, cron extraction, the RATCHET and the dead-window`);
-console.log(`definition — and are judged by the self-test going red. G1-G43 mutate the transport`);
-console.log(`(retry, backoff, budget, timeout, cut-off body), UNREAD, the ratchet's unread bucket,`);
-console.log(`COVERAGE, the exit colour and the abort log, and are judged by the NAMED case failing.`);
+console.log(`definition — and are judged by the self-test going red. The G series mutates the transport`);
+console.log(`(retry, backoff, budget, timeout, cut-off body, headers, request id), UNREAD, the ratchet's unread`);
+console.log(`bucket, COVERAGE, the exit colour and the abort log, and is judged by the NAMED case failing.`);
 console.log(`Since 2026-11-26 the self-test also runs the WHOLE script as a child process against a`);
 console.log(`local fake of the GitHub REST API, so the real fetch, the report loop, the log write`);
-console.log(`and the exit path ARE exercised. NOT exercised: the real GitHub API — the sandbox token`);
-console.log(`is a proxy placeholder and RELAY_GH_PAT exists only in CI, and a live 502 cannot be`);
+console.log(`and the exit path ARE exercised, and the fake refuses a request without its Authorization`);
+console.log(`and Accept headers. NOT exercised: the real GitHub API, the default base URL (the seam is set`);
+console.log(`in every scenario) and the User-Agent header (undici replaces an absent one) — the sandbox`);
+console.log(`token is a proxy placeholder, RELAY_GH_PAT exists only in CI, and a live 502 cannot be`);
 console.log(`forced — so the live half is verified by dispatching the workflow and reading its`);
 console.log(`committed log.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);

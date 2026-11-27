@@ -440,7 +440,7 @@ if (process.argv.includes('--self-test')) {
   // sleep records what was asked and throws after 10, so an unbounded loop goes red
   // here instead of hanging the run.
   const drive = async (steps, opts = {}) => {
-    const rec = { calls: 0, sleeps: [], signals: 0, thrown: null, out: null };
+    const rec = { calls: 0, sleeps: [], signals: 0, aborted: 0, reasons: [], abortAfter: [], thrown: null, out: null };
     const fetchFn = (_url, init) => {
       if (init && init.signal instanceof AbortSignal) rec.signals++;
       const step = steps[Math.min(rec.calls++, steps.length - 1)];
@@ -451,15 +451,25 @@ if (process.argv.includes('--self-test')) {
       // A real hung socket keeps the loop alive; this timer does the same, and it also
       // rejects on its own when NO signal arrives, so a missing signal is reported as a
       // recorded fact (T9b) instead of a hang or a crash.
+      // `aborted`, `reasons` and `abortAfter` are RECORDED when the signal itself fires. T9a used
+      // to pass with the signal deleted: the 1500 ms timer above rejected the attempt instead, and
+      // the retry loop cannot tell a timer's rejection from an abort's.
       if (step === 'hang') return new Promise((_, rej) => {
+        const t0 = Date.now();
         const keep = setTimeout(() => rej(new Error('fake: nothing aborted this attempt')), 1500);
-        if (init && init.signal) init.signal.addEventListener('abort', () => { clearTimeout(keep); rej(init.signal.reason); });
+        if (init && init.signal) init.signal.addEventListener('abort', () => {
+          clearTimeout(keep); rec.aborted++; rec.reasons.push(init.signal.reason && init.signal.reason.name);
+          rec.abortAfter.push(Date.now() - t0); rej(init.signal.reason);
+        });
       });
       return Promise.resolve(step === 200 ? res(200, { ok: true })
         : res(step, { message: step >= 500 ? 'Server Error' : 'Not Found' }));
     };
     const sleep = async (ms) => { rec.sleeps.push(ms); if (rec.sleeps.length > 10) throw new Error('RUNAWAY: more than 10 sleeps'); };
-    try { rec.out = await ghRequest('/p', { token: 't', fetchFn, sleep, ...opts }); } catch (e) { rec.thrown = e; }
+    // A FRESH BUDGET PER CALL. The in-process cases used to draw on the one module-level RUN_BUDGET
+    // (about 25 s of its 120 s between them), so adding enough exhausting cases would have failed
+    // later ones for an unrelated reason. The per-RUN property itself is E2E-14.
+    try { rec.out = await ghRequest('/p', { token: 't', fetchFn, sleep, budget: { left: RETRY_BUDGET_MS }, ...opts }); } catch (e) { rec.thrown = e; }
     return rec;
   };
   const gist = (r, n = 40) => `${r.calls} call(s), sleeps [${r.sleeps}], ${r.thrown ? `threw ${r.thrown.message.slice(0, n)}` : `read ${JSON.stringify(r.out)}`}`;
@@ -474,10 +484,11 @@ if (process.argv.includes('--self-test')) {
       `${1 + RETRIES}|502|${1 + RETRIES}|true`, 'bounded: it gives up, and says how many attempts it made');
   const t4 = await drive([404]);
   one('T4 a 404 is one call and no sleep', gist(t4, 17), '1 call(s), sleeps [], threw GitHub 404 on /p:', 'a 4xx is GitHub\'s real answer');
+  // EVERY 4xx, not a sample: 401, 403 and 429 were pinned and a retried 408 (or 400, 410, 422) read green.
   const t5 = [];
-  for (const st of [401, 403, 429]) { const r = await drive([st]); t5.push(`${st}:${r.calls}/${r.sleeps.length}`); }
-  one('T5 401, 403 and 429 are never retried', t5.join(' '), '401:1/0 403:1/0 429:1/0',
-      'a rate limit is an answer, not an outage; retrying it spends the quota it reports');
+  for (let st = 400; st <= 499; st++) { const r = await drive([st]); if (r.calls !== 1 || r.sleeps.length) t5.push(`${st}:${r.calls}/${r.sleeps.length}`); }
+  one('T5 every status 400-499 is one call and no sleep', t5.length ? t5.join(' ') : 'all 100', 'all 100',
+      'a rate limit is an answer, not an outage; retrying it spends the quota it reports. The offenders are listed, status:calls/sleeps');
   one('T6 a transport error then a 200 reads', gist(await drive(['net', 200])), '2 call(s), sleeps [1000], read {"ok":true}',
       'a reset connection carries no answer, so it is retried');
   const t7 = await drive(['net']);
@@ -487,8 +498,9 @@ if (process.argv.includes('--self-test')) {
   one('T8 a body cut off mid-read is retried', gist(await drive(['cut', 200])), '2 call(s), sleeps [1000], read {"ok":true}',
       'res.json() is awaited INSIDE the try; un-awaited, the cut escapes the loop');
   const t9 = await drive(['hang', 200], { timeoutMs: 25 });
-  one('T9a a hung fetch is aborted and retried', gist(t9), '2 call(s), sleeps [1000], read {"ok":true}',
-      'no timeout means one hung socket holds the runner for hours');
+  one('T9a a hung fetch is aborted by its signal and retried', `${gist(t9)}|aborted ${t9.aborted}|${t9.reasons.join(',')}`,
+      '2 call(s), sleeps [1000], read {"ok":true}|aborted 1|TimeoutError',
+      'no timeout means one hung socket holds the runner for hours; the abort is a recorded fact, not the fake\'s own timer');
   one('T9b every attempt carried an abort signal', t9.signals === t9.calls, true, `${t9.signals} signals over ${t9.calls} attempts`);
   one('T10a a spent budget stops retrying', gist(await drive([502], { budget: { left: 0 } }), 17),
       '1 call(s), sleeps [], threw GitHub 502 on /p:', 'the retry budget is per RUN, so an outage cannot multiply into hours');
@@ -507,6 +519,21 @@ if (process.argv.includes('--self-test')) {
       'two months of committed logs and the first FAIL line still compare');
   one('T14 the GitHub request id is kept on the error', t4.thrown && t4.thrown.requestId, 'REQ-404',
       'a future 5xx can be reported to GitHub; gh() used to discard every header');
+  // THE DEFAULT SLEEP, which every case above replaces. A no-op sleep fires the retries back to
+  // back and a x1000 one costs seventeen minutes a retry; both left the first 121 cases green.
+  // The race is a watchdog: a wrong sleep must read as a failed case, not a stalled run.
+  const watchdog = (ms) => new Promise((r) => setTimeout(() => r('WATCHDOG'), ms));
+  const t16t0 = Date.now();
+  const t16 = await Promise.race([drive([502, 200], { sleep: undefined, backoff: () => 150 }), watchdog(3000)]);
+  const t16ms = Date.now() - t16t0;
+  one('T16 the real sleep really waits, and not for long', t16 !== 'WATCHDOG' && t16ms >= 120 && t16ms < 1500, true,
+      `one retry after a 150 ms backoff took ${t16ms} ms${t16 === 'WATCHDOG' ? ' (watchdog fired)' : ''}`);
+  // THE TIMEOUT VALUE, not only that a signal exists (T9b) and that a hung child dies before the
+  // 20 s killer (E2E-12): x10, x2 and a hardcoded 20000 all read green. 200 ms in, abort observed
+  // by the fake between 160 and 320 ms: a x2 value lands at 400.
+  const t17 = await drive(['hang', 200], { timeoutMs: 200 });
+  one('T17 the per-attempt timeout VALUE is honoured', t17.abortAfter.length === 1 && t17.abortAfter[0] >= 160 && t17.abortAfter[0] <= 320, true,
+      `a 200 ms timeout aborted after [${t17.abortAfter}] ms`);
 
   // The survey, against a fake of the API. The fake answers the REAL query or
   // nothing: a URL that has drifted (no `status=completed`, another per_page or
@@ -647,10 +674,19 @@ if (process.argv.includes('--self-test')) {
     ],
   };
   const ADMITTED = 'o/b:.github/workflows/rot.yml'; // dead, and admitted in the fixture baseline
+  // The request id a faulted response carries, derived from the URL key so the log line can be asserted.
+  const reqId = (key) => `FAKE-${key.replace(/[^A-Za-z0-9]+/g, '-')}`;
   // faults: { 'runs:o/a:1': { times: 1 | Infinity, mode: 502 | 404 | 'reset' | 'cut' | 'hang' } }
   const fakeGitHub = (faults) => new Promise((resolve) => {
     const hits = {};
     const server = createServer((req, rsp) => {
+      // STRICT: a request without the credential or the media type is refused and COUNTED, so a
+      // dropped Authorization header turns the control red. The fake used to answer anything with
+      // the right URL, and the header was a line no case could see.
+      if (req.headers.authorization !== 'Bearer x' || req.headers.accept !== 'application/vnd.github+json') {
+        hits['rejected: authorization or accept header missing or wrong'] = (hits['rejected: authorization or accept header missing or wrong'] || 0) + 1;
+        rsp.statusCode = 401; return rsp.end('{"message":"Bad credentials"}');
+      }
       const u = new URL(req.url, 'http://fake');
       const m = /^\/repos\/([^/]+\/[^/]+)\/(?:actions\/workflows(?:\/(\d+)\/runs)?|contents\/(.+))$/.exec(u.pathname);
       const wfs = m && FIXTURE[m[1]];
@@ -673,7 +709,10 @@ if (process.argv.includes('--self-test')) {
       hits[key] = (hits[key] || 0) + 1;
       const f = faults[key];
       if (f && hits[key] <= f.times) {
-        if (typeof f.mode === 'number') { rsp.statusCode = f.mode; return rsp.end(f.mode >= 500 ? '{ "message": "Server Error" }' : '{"message":"Not Found"}'); }
+        if (typeof f.mode === 'number') {
+          rsp.statusCode = f.mode; rsp.setHeader('x-github-request-id', reqId(key));
+          return rsp.end(f.mode >= 500 ? '{ "message": "Server Error" }' : '{"message":"Not Found"}');
+        }
         if (f.mode === 'reset') return req.socket.destroy();
         if (f.mode === 'hang') return; // never answered
         if (f.mode === 'cut') {
@@ -731,14 +770,21 @@ if (process.argv.includes('--self-test')) {
     contents404: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 404 } } },
     nobudget: { faults: { 'runs:o/a:1': { times: FOREVER, mode: 502 } }, env: { DEAD_CRON_RETRY_BUDGET_MS: '0' } },
     short:    { faults: { 'list:o/a': { times: FOREVER, mode: 'short' } } },
+    // the retry budget is per RUN: two reads that both fail, 100 ms backoff, 150 ms of budget in all
+    budget2:  { faults: { 'runs:o/a:1': { times: FOREVER, mode: 502 }, 'runs:o/b:1': { times: FOREVER, mode: 502 } },
+                env: { DEAD_CRON_BACKOFF_MS: '100', DEAD_CRON_RETRY_BUDGET_MS: '150' } },
+    // a transport fault that never clears, on each kind of read (only 5xx and 404 were driven to UNREAD)
+    contentsReset: { faults: { 'contents:o/a:.github/workflows/idle.yml': { times: FOREVER, mode: 'reset' } } },
+    runsReset:     { faults: { 'runs:o/a:1': { times: FOREVER, mode: 'reset' } } },
   };
   await Promise.all(Object.entries(SCEN).map(async ([k, v]) => { R[k] = await runChild(v); }));
   const h = (r, k) => r.hits[k] || 0;
-  const unmatched = (r) => Object.keys(r.hits).filter(k => k.startsWith('unmatched')).join(',') || 'none';
+  const unmatched = (r) => Object.keys(r.hits).filter(k => k.startsWith('unmatched') || k.startsWith('rejected')).join(',') || 'none';
 
   one('E2E-0 control: a clean read exits 0 and leaves one log', `${R.control.code}|${R.control.logs}`, '0|1',
       'without this, an exit-1 case below could pass from a broken harness');
-  one('E2E-0b control: the fake saw only real URL shapes', unmatched(R.control), 'none', 'a drifted query would read as a 404 and show here');
+  one('E2E-0b control: the fake saw only real URL shapes, each with its Authorization and Accept headers', unmatched(R.control), 'none',
+      'a drifted query would read as a 404 and show here; a dropped header is refused with a 401 and counted');
   one('E2E-0c control: every URL read exactly once', ['list:o/a', 'runs:o/a:1', 'runs:o/a:2', 'contents:o/a:.github/workflows/idle.yml', 'runs:o/b:1']
       .map(k => h(R.control, k)).join(','), '1,1,1,1,1', 'no retry when nothing failed');
   one('E2E-1 a 502 once then a 200: exit 0', R.once.code, 0,
@@ -809,15 +855,34 @@ if (process.argv.includes('--self-test')) {
       `${R.short.code}|${/UNREAD, WHOLE REPO NOT JUDGED\s+: pagination short-read: collected 2 of 150/.test(R.short.log)}|${/── o\/b ──\n\s+2 workflow\(s\), 2 active/.test(R.short.log)}`,
       '1|true|true', 'ghAll\'s own short-read throw used to abort every repo after it');
   one('E2E-13b a short read is one response, not retried', h(R.short, 'list:o/a'), 1, 'the repeat would re-ask the same question of the same source');
+  one('E2E-14 the retry budget is per RUN: the second failing read gets only what the first left',
+      `${h(R.budget2, 'runs:o/a:1')}|${h(R.budget2, 'runs:o/b:1')}`, '2|1',
+      '150 ms of budget, 100 ms then 200 ms of backoff: the first read spends 100 and is refused the 200, the second is refused its first 100. A per-call budget gives 2|2');
+  one('E2E-15a a contents read that resets forever is UNREAD, not "no schedule"',
+      `${R.contentsReset.code}|${h(R.contentsReset, 'contents:o/a:.github/workflows/idle.yml')}|${
+        new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/idle\\.yml\\s+GitHub transport error`).test(R.contentsReset.log)}|${
+        /── o\/a ──[\s\S]*?no schedule: block, not judged\s+: 0/.test(R.contentsReset.log)}`, `1|${T}|true|true`,
+      'the transport kind, driven through the UNREAD path of the contents read: only 5xx and 404 had been');
+  one('E2E-16a a runs read that resets forever is UNREAD, not healthy',
+      `${R.runsReset.code}|${h(R.runsReset, 'runs:o/a:1')}|${
+        new RegExp(`${A}\\s+: 1\\n\\s+\\.github/workflows/healthy\\.yml\\s+GitHub transport error`).test(R.runsReset.log)}|${
+        /── o\/a ──\n[^\n]*\n\s+scheduled and healthy\s+: 0/.test(R.runsReset.log)}`, `1|${T}|true|true`,
+      'the transport kind, driven through the UNREAD path of the runs read');
+  one('E2E-17 the GitHub request id reaches the log line, for a workflow and for a whole repo',
+      `${R.forever.log.includes('(x-github-request-id FAKE-runs-o-a-1)')}|${R.listing.log.includes('(x-github-request-id FAKE-list-o-a)')}`, 'true|true',
+      'a 5xx can be reported to GitHub only if the id was kept: the unit case T14 cannot see the report line');
 
   console.log(bad ? `\n${bad} of ${ran} FAILED` : `\nself-test: ${ran}/${ran}`);
   console.log(`COVERAGE: ${ran} cases, in ${Object.keys(SCEN).length} END TO END scenarios and the rest pure: each scenario runs the whole script, as a child process,`);
   console.log(`  against a local fake of the GitHub REST API (${Object.keys(FIXTURE).length} repos, ${Object.values(FIXTURE).flat().length} workflows) that answers only the real URL shapes`);
-  console.log(`  — the real fetch, retry, report loop, log write and exit code. The rest run the pure predicates`);
+  console.log(`  and refuses a request without its Authorization and Accept headers — the real fetch, retry, report loop,`);
+  console.log(`  log write and exit code. The rest run the pure predicates`);
   console.log(`  (page loop, short read, grace, repo list, detector keys, cron extraction, the ratchet, the dead-window`);
   console.log(`  definition, the transport against a scripted fetch, the survey and UNREAD against a fake of the API).`);
-  console.log(`  NOT reached: the real GitHub API — the sandbox token is a proxy placeholder and a live 502 cannot be`);
-  console.log(`  forced, so the local fake is the proof artifact for the failure path. The live half is verified by`);
+  console.log(`  NOT reached: the real GitHub API; the default base URL, because DEAD_CRON_API_BASE is set in every scenario`);
+  console.log(`  here, so the real fetch is never pointed at it; and the User-Agent header, which undici replaces when it is`);
+  console.log(`  absent, so its absence cannot be seen. A live 502 cannot be forced and the sandbox token is a proxy`);
+  console.log(`  placeholder, so the local fake is the proof artifact for the failure path. The live half is verified by`);
   console.log(`  dispatching the workflow and reading its committed outbox log.`);
   process.exit(bad ? 1 : 0);
 }
